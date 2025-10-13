@@ -180,6 +180,7 @@ int main(int argc, char** argv) {
     // Register XML components (globals first to make constants available)
     LV_LOG_USER("Registering XML components...");
     lv_xml_component_register_from_file("A:ui_xml/globals.xml");
+    lv_xml_component_register_from_file("A:ui_xml/header_bar.xml");
     lv_xml_component_register_from_file("A:ui_xml/confirmation_dialog.xml");
     lv_xml_component_register_from_file("A:ui_xml/numeric_keypad_modal.xml");
     lv_xml_component_register_from_file("A:ui_xml/print_file_card.xml");

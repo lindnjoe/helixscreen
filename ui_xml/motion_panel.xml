@@ -4,48 +4,8 @@
   <!-- Simplified button grid design (vs circular jog pad) -->
 
   <view extends="lv_obj" name="motion_panel" width="100%" height="100%" style_bg_color="#panel_bg" style_pad_all="0" flag_scrollable="false" flex_flow="column">
-    <!-- Header Bar (matches keypad header exactly) -->
-    <lv_obj name="motion_header" width="100%" height="60"
-            style_bg_color="#panel_bg"
-            style_bg_opa="0"
-            style_border_width="0"
-            style_pad_all="0"
-            flag_scrollable="false"
-            flex_flow="row"
-            style_flex_main_place="space_between"
-            style_flex_cross_place="center">
-
-      <!-- Left side: Back button + Title -->
-      <lv_obj height="100%"
-              width="400"
-              style_bg_opa="0"
-              style_border_width="0"
-              style_pad_all="0"
-              flag_scrollable="false"
-              flex_flow="row"
-              style_flex_cross_place="center"
-              style_pad_gap="#padding_medium">
-
-        <lv_label name="back_button"
-                  text="&lt;"
-                  style_text_font="montserrat_28"
-                  style_text_color="#text_primary"
-                  style_pad_left="#button_padding"
-                  style_pad_right="#button_padding"
-                  flag_clickable="true"
-                  flag_scrollable="false"/>
-
-        <lv_label name="motion_title"
-                  text="Motion: XYZ"
-                  width="320"
-                  style_text_font="montserrat_28"
-                  style_text_color="#text_primary"
-                  flag_scrollable="false"/>
-      </lv_obj>
-
-      <!-- Right side: Empty spacer (no OK button like keypad) -->
-      <lv_obj width="40" height="40" style_bg_opa="0" flag_scrollable="false" style_border_width="0" style_pad_all="0"/>
-    </lv_obj>
+    <!-- Header Bar -->
+    <header_bar name="motion_header" title="Motion: XYZ"/>
 
     <!-- Content Area: Two Columns -->
     <lv_obj name="motion_content" flex_grow="1" width="100%"

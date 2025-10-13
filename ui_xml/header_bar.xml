@@ -1,0 +1,59 @@
+<component>
+	<!-- Reusable Header Bar Component -->
+	<!-- Used in modal overlays, sub-screens, and detail views -->
+	<!-- Provides consistent back button + title + optional right content pattern -->
+
+	<!-- API Properties -->
+	<api>
+		<prop type="string" name="title"/>
+	</api>
+
+	<view extends="lv_obj"
+	      width="100%"
+	      height="60"
+	      style_bg_opa="0"
+	      style_border_width="0"
+	      style_pad_all="0"
+	      flex_flow="row"
+	      style_flex_main_place="space_between"
+	      style_flex_cross_place="center"
+	      flag_scrollable="false">
+
+		<!-- Left side: Back button + Title -->
+		<lv_obj height="100%"
+		        width="400"
+		        style_bg_opa="0"
+		        style_border_width="0"
+		        style_pad_all="0"
+		        flag_scrollable="false"
+		        flex_flow="row"
+		        style_flex_cross_place="center"
+		        style_pad_gap="#padding_medium">
+
+			<lv_label name="back_button"
+			          text="#icon_chevron_left"
+			          style_text_font="fa_icons_32"
+			          style_text_color="#text_primary"
+			          style_pad_left="#button_padding"
+			          style_pad_right="#button_padding"
+			          flag_clickable="true"
+			          flag_scrollable="false"/>
+
+			<lv_label name="header_title"
+			          text="$title"
+			          width="320"
+			          style_text_font="montserrat_28"
+			          style_text_color="#text_primary"
+			          flag_scrollable="false"/>
+		</lv_obj>
+
+		<!-- Right side: Empty spacer by default (can be replaced with button) -->
+		<lv_obj name="right_content"
+		        width="40"
+		        height="40"
+		        style_bg_opa="0"
+		        flag_scrollable="false"
+		        style_border_width="0"
+		        style_pad_all="0"/>
+	</view>
+</component>
