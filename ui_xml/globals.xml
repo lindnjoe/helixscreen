@@ -63,8 +63,12 @@
 		<px name="position_card_height" value="140"/>
 		<px name="z_controls_height" value="280"/>       <!-- Increased to accommodate taller Z buttons -->
 
+		<!-- Overlay/Modal Panel Dimensions -->
+		<!-- Used for numeric keypad, motion panel, and other overlay panels -->
+		<px name="overlay_panel_width" value="700"/>
+
 		<!-- Numeric Keypad Modal dimensions -->
-		<px name="keypad_width" value="700"/>
+		<px name="keypad_width" value="700"/>  <!-- TODO: Migrate to overlay_panel_width -->
 		<px name="keypad_padding" value="40"/>
 		<px name="keypad_section_gap" value="40"/>
 		<px name="keypad_input_height" value="120"/>

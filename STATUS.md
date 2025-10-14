@@ -1,6 +1,34 @@
 # Project Status - LVGL 9 UI Prototype
 
-**Last Updated:** 2025-10-13 (Motion Panel XYZ Controls COMPLETE)
+**Last Updated:** 2025-10-13 (Motion Panel Bug Fixes + Component Naming Pattern)
+
+## Recent Updates (2025-10-13)
+
+### Bug Fixes
+
+✅ **Fixed Header Bar Back Button** - Changed from `lv_label` to `lv_button` in `header_bar.xml`
+- **Problem**: `lv_label` with `flag_clickable="true"` was not responding to clicks (XML parser doesn't apply clickable flag to labels)
+- **Solution**: Replaced with transparent `lv_button` containing the icon label
+- **Impact**: All panels using `header_bar` component now have functional back buttons (motion panel, print detail view, numeric keypad)
+
+✅ **Fixed Motion Panel Width** - Added `overlay_panel_width` constant (700px)
+- **Problem**: Motion panel had `width="100%"` which covered the navigation bar
+- **Solution**: Created `#overlay_panel_width` constant in globals.xml and updated motion_panel.xml
+- **Impact**: Motion panel now matches keypad width and doesn't hide navigation
+
+✅ **Fixed Panel Visibility on Back Button** - Discovered and documented component naming pattern
+- **Problem**: Closing motion panel left blank screen instead of showing controls panel
+- **Root Cause**: `lv_obj_find_by_name()` returns NULL when searching for components without explicit `name` attributes on instantiation tags
+- **Solution**: Added explicit `name` attributes to all component tags in `app_layout.xml`
+- **Pattern Documented**: Component names in `<view name="...">` definitions don't propagate to `<component_name/>` instantiation tags
+- **Files Updated**: Added pattern to LVGL9_XML_GUIDE.md, QUICK_REFERENCE.md, CLAUDE.md
+
+### Documentation Updates
+
+- Added "Component Instantiation: Always Add Explicit Names" section to LVGL9_XML_GUIDE.md
+- Added "Component Instantiation with Names (CRITICAL)" to QUICK_REFERENCE.md
+- Added "Component Instantiation Naming (CRITICAL)" to CLAUDE.md
+- Updated app_layout.xml with explicit names on all panel components
 
 ## Current State
 

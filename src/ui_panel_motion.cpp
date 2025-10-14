@@ -60,14 +60,14 @@ static void update_distance_buttons() {
 
 // Event handler: Back button
 static void back_button_cb(lv_event_t* e) {
-    printf("[Motion] Back button clicked - returning to controls launcher\n");
+    (void)e;  // Unused parameter
 
-    // Hide motion panel, show controls launcher
+    // Hide motion panel
     if (motion_panel) {
         lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // Find and show controls panel launcher (it's named "controls_panel" in the view)
+    // Show controls panel launcher
     if (parent_obj) {
         lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
         if (controls_launcher) {
@@ -179,9 +179,6 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
     if (back_btn) {
         lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-        printf("[Motion]   ✓ Back button\n");
-    } else {
-        printf("[Motion]   ✗ Back button NOT FOUND!\n");
     }
 
     // Distance selector buttons

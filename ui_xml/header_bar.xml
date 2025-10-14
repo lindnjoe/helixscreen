@@ -30,14 +30,18 @@
 		        style_flex_cross_place="center"
 		        style_pad_gap="#padding_medium">
 
-			<lv_label name="back_button"
-			          text="#icon_chevron_left"
-			          style_text_font="fa_icons_32"
-			          style_text_color="#text_primary"
-			          style_pad_left="#button_padding"
-			          style_pad_right="#button_padding"
-			          flag_clickable="true"
-			          flag_scrollable="false"/>
+			<lv_button name="back_button"
+			           width="60"
+			           height="60"
+			           style_bg_opa="0"
+			           style_border_width="0"
+			           style_shadow_width="0"
+			           flag_scrollable="false">
+				<lv_label text="#icon_chevron_left"
+				          align="center"
+				          style_text_font="fa_icons_32"
+				          style_text_color="#text_primary"/>
+			</lv_button>
 
 			<lv_label name="header_title"
 			          text="$title"

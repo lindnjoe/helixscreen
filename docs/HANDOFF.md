@@ -196,6 +196,31 @@ lv_obj_add_event_cb(card, card_motion_clicked, LV_EVENT_CLICKED, NULL);
 lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 ```
 
+### 1a. Component Instantiation Naming (CRITICAL)
+
+**IMPORTANT:** When instantiating XML components, always add explicit `name` attributes to make them findable.
+
+```xml
+<!-- app_layout.xml - ALWAYS add explicit names -->
+<lv_obj name="content_area">
+  <controls_panel name="controls_panel"/>  <!-- Explicit name required -->
+  <home_panel name="home_panel"/>
+  <motion_panel name="motion_panel"/>
+</lv_obj>
+```
+
+**Why:** Component names in `<view name="...">` definitions do NOT automatically propagate to instantiation tags. Without explicit names, `lv_obj_find_by_name()` returns NULL when searching for components.
+
+```cpp
+// Motion panel back button can now find and show controls panel
+lv_obj_t* controls = lv_obj_find_by_name(parent_obj, "controls_panel");
+if (controls) {
+    lv_obj_clear_flag(controls, LV_OBJ_FLAG_HIDDEN);
+}
+```
+
+See LVGL9_XML_GUIDE.md section "Component Instantiation: Always Add Explicit Names" for full details.
+
 ### 2. Subject Initialization Order
 Always initialize subjects BEFORE creating XML that references them:
 

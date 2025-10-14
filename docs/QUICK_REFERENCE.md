@@ -46,6 +46,28 @@ void ui_panel_xyz_update(const char* text, int value) {
 </component>
 ```
 
+### Component Instantiation with Names (CRITICAL)
+
+**Always add explicit `name` attributes to component tags for findability:**
+
+```xml
+<!-- app_layout.xml -->
+<lv_obj name="content_area">
+  <!-- ✓ CORRECT - Explicit names on component tags -->
+  <controls_panel name="controls_panel"/>
+  <home_panel name="home_panel"/>
+  <settings_panel name="settings_panel"/>
+</lv_obj>
+```
+
+```cpp
+// Now findable from C++
+lv_obj_t* controls = lv_obj_find_by_name(parent, "controls_panel");
+lv_obj_clear_flag(controls, LV_OBJ_FLAG_HIDDEN);
+```
+
+**Why:** Component names in `<view name="...">` definitions don't propagate to instantiation tags. Without explicit names, `lv_obj_find_by_name()` returns NULL.
+
 ### Flex Layout (Navbar Pattern)
 
 ```xml

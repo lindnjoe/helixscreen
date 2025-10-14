@@ -980,6 +980,53 @@ lv_obj_t* widget = lv_obj_get_child(parent, 3);  // DON'T DO THIS
 - Self-documenting - widget name shows intent
 - Works seamlessly with XML `name` attributes
 
+### Component Instantiation: Always Add Explicit Names
+
+**CRITICAL:** When instantiating XML components, always add explicit `name` attributes to make them findable with `lv_obj_find_by_name()`.
+
+**✗ WRONG - Component tag without name (not findable):**
+
+```xml
+<!-- app_layout.xml -->
+<lv_obj>
+  <controls_panel/>  <!-- Component tag without name attribute -->
+</lv_obj>
+```
+
+```cpp
+// This will FAIL - returns NULL
+lv_obj_t* controls = lv_obj_find_by_name(parent, "controls_panel");
+```
+
+**✓ CORRECT - Component tag with explicit name:**
+
+```xml
+<!-- app_layout.xml -->
+<lv_obj name="content_area">
+  <controls_panel name="controls_panel"/>  <!-- Explicit name attribute -->
+  <home_panel name="home_panel"/>
+  <settings_panel name="settings_panel"/>
+</lv_obj>
+```
+
+```cpp
+// This WORKS - finds the component
+lv_obj_t* controls = lv_obj_find_by_name(parent, "controls_panel");
+if (controls) {
+    lv_obj_clear_flag(controls, LV_OBJ_FLAG_HIDDEN);
+}
+```
+
+**Why this matters:**
+- Component names defined in `<view name="...">` inside the component definition are **not** automatically applied to component instantiation tags
+- Without explicit names, components cannot be found with `lv_obj_find_by_name()` from other panels
+- This pattern enables clean panel-to-panel communication (e.g., motion panel showing controls panel when back button is pressed)
+
+**When to use:**
+- ✓ Always add names to component instantiation tags in layout files
+- ✓ Use names when components need to be shown/hidden from other panels
+- ✓ Use names when components need to be referenced in C++ code
+
 ### Subject Management
 
 **String subject buffers must be persistent:**
