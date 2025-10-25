@@ -57,29 +57,20 @@ std::string format_file_size(size_t bytes);
 std::string format_modified_date(time_t timestamp);
 
 /**
- * Show the right button in a header_bar component
- * This is useful when the button needs to be made visible at runtime
- * after component creation (e.g., for dynamically added actions)
- * @param header_bar_widget Pointer to the header_bar component root
- * @return true if button was found and shown, false otherwise
+ * Get responsive padding for content areas below headers
+ * Returns smaller padding on tiny/small screens for more compact layouts
+ * @param screen_height Current screen height in pixels
+ * @return Padding value in pixels (20px for large/medium, 10px for small, 6px for tiny)
  */
-bool ui_header_bar_show_right_button(lv_obj_t* header_bar_widget);
+lv_coord_t ui_get_header_content_padding(lv_coord_t screen_height);
 
 /**
- * Hide the right button in a header_bar component
- * @param header_bar_widget Pointer to the header_bar component root
- * @return true if button was found and hidden, false otherwise
+ * Get responsive header height based on screen size
+ * Returns smaller header on tiny/small screens for more compact layouts
+ * @param screen_height Current screen height in pixels
+ * @return Header height in pixels (60px for large/medium, 48px for small, 40px for tiny)
  */
-bool ui_header_bar_hide_right_button(lv_obj_t* header_bar_widget);
-
-/**
- * Set the text of the right button in a header_bar component
- * Note: This does NOT automatically show the button - call ui_header_bar_show_right_button() separately
- * @param header_bar_widget Pointer to the header_bar component root
- * @param text New button text
- * @return true if button was found and updated, false otherwise
- */
-bool ui_header_bar_set_right_button_text(lv_obj_t* header_bar_widget, const char* text);
+lv_coord_t ui_get_responsive_header_height(lv_coord_t screen_height);
 
 // ============================================================================
 // App-level resize handling
@@ -104,3 +95,31 @@ void ui_resize_handler_init(lv_obj_t* screen);
  * @param callback Function to call on resize
  */
 void ui_resize_handler_register(ui_resize_callback_t callback);
+
+// ============================================================================
+// Image Scaling Utilities
+// ============================================================================
+
+/**
+ * Scale image to cover a target area (like CSS object-fit: cover)
+ * Image may be cropped but will fill the entire area with no empty space
+ *
+ * @param image_widget The lv_image widget to scale
+ * @param target_width Target width in pixels
+ * @param target_height Target height in pixels
+ * @return true if scaling succeeded, false if image info could not be obtained
+ */
+bool ui_image_scale_to_cover(lv_obj_t* image_widget, lv_coord_t target_width, lv_coord_t target_height);
+
+/**
+ * Scale image to fit within a target area (like CSS object-fit: contain)
+ * Entire image will be visible, may have empty space around it
+ *
+ * @param image_widget The lv_image widget to scale
+ * @param target_width Target width in pixels
+ * @param target_height Target height in pixels
+ * @param align Alignment within the target area (default: LV_IMAGE_ALIGN_CENTER)
+ * @return true if scaling succeeded, false if image info could not be obtained
+ */
+bool ui_image_scale_to_contain(lv_obj_t* image_widget, lv_coord_t target_width, lv_coord_t target_height,
+                                lv_image_align_t align = LV_IMAGE_ALIGN_CENTER);

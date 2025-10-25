@@ -1,13 +1,174 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-10-22
-**Current Focus:** Responsive print file cards complete, app-level resize handler implemented
+**Last Updated:** 2025-10-25
+**Current Focus:** ✅ **Responsive Header Heights & Vertical Padding System**
 
 ---
 
-## Current State
+## What Was Just Accomplished (2025-10-25 Latest Session)
 
-**Completed Phases:**
+### 0. Responsive Header Heights & Vertical Padding
+- **Problem:** Fixed 60px headers and 20px padding wasted ~19% of tiny screen vertical space
+- **Solution:** Created `ui_component_header_bar` component system for responsive management
+- **Headers:** 40px (tiny), 48px (small), 60px (medium/large) - saves 20px on tiny screens
+- **Padding:** Split pattern - vertical responsive (6/10/20px), horizontal fixed (12px)
+- **Space Saved:** 34px on tiny (10.6% more usable), 22px on small (4.6% more usable)
+- **Pattern:** Component wrapper with single setup call per panel
+- **Updated Panels:** motion, extrusion, nozzle_temp, bed_temp, print_status
+- **Files Created:** `ui_component_header_bar.cpp/h` (203 lines total)
+- **Files Modified:** 9 files (ui_utils, main.cpp, 5 panel files)
+- **Testing:** Verified on tiny/small/large - header heights and padding apply correctly
+- **Documentation:** Updated `docs/RESPONSIVE_DESIGN_PATTERN.md` with C++ component pattern
+
+### 1. Controls Panel Responsive Launcher Cards
+- **Problem:** Cards were 400×200px hardcoded - too large on tiny/small screens (only 1 card fit on 480×320)
+- **Problem:** `flex_grow` caused uneven card sizing when rows had different numbers of cards
+- **Solution:** Switched to percentage-based width (`47%`) with no flex_grow
+- **Result:** Exactly 2 cards per row on ALL screen sizes (tiny through large)
+- **Result:** All cards identical size across all rows (no uneven distribution)
+- **Fonts:** Reduced title to `montserrat_16`, subtitle to `montserrat_14` for better density
+- **Padding:** Reduced from 24px → 16px for compact layouts
+- **Files:** `ui_xml/globals.xml` (launcher card constants), `ui_xml/controls_panel.xml` (all 6 cards)
+- **Pattern:** Simple percentage width for uniform sizing (simpler than print file cards)
+
+---
+
+## Previous Session (2025-10-25 Earlier Session)
+
+### 0. Command-Q Quit Shortcut Implementation
+- **Added:** Cmd+Q (macOS) / Win+Q (Windows) keyboard shortcut to quit application
+- **Location:** `src/main.cpp` lines 555-561 (main event loop)
+- **Approach:** Uses SDL state query functions (no SDL_PollEvent() interference with LVGL)
+- **Detection:** `SDL_GetModState()` for KMOD_GUI + `SDL_GetKeyboardState()` for Q key
+- **Behavior:** Clean exit - breaks loop, runs cleanup, logs action
+- **Cross-platform:** Works on macOS (Cmd+Q) and Windows/Linux (Win+Q)
+
+### 1. Makefile Parallel Building by Default
+- **Fixed:** Default `make` command now uses all CPU cores automatically
+- **Change:** Added `MAKEFLAGS += -j$(NPROC)` to Makefile line 57
+- **Benefit:** Faster builds without needing to remember `make build` vs `make`
+- **Auto-detection:** NPROC detects CPU cores (macOS sysctl, Linux nproc, fallback 4)
+- **Consistency:** Matches HANDOFF.md documentation ("make # Incremental build (auto-parallel)")
+
+---
+
+## Previous Session (2025-10-25 Earlier)
+
+### Documentation Cleanup - Event Handlers Clarification
+- **Clarification:** Event handlers were already implemented in Phase 5.2 (2025-10-12 Late Night)
+- **Removed:** Stale "Wire Keypad Event Handlers" task from HANDOFF.md
+- **Updated:** STATUS.md with clarification entry documenting implementation timeline
+- **Status:** Numeric keypad is 100% complete (sizing, appearance, event handling, testing)
+- **Next Priority:** Apply responsive design pattern to other panels
+
+---
+
+## Previous Session (2025-10-25)
+
+### 1. Removed Keypad Button Height Constraint
+- **Problem:** Keypad buttons capped at 70px max height, wasted vertical space
+- **Solution:** Removed `style_max_height="#button_max_height"` from all 11 buttons
+- **Result:** Buttons now fill available space with `height="100%"` and `flex_grow="1"`
+- **Files:** `ui_xml/numeric_keypad_modal.xml`
+
+### 2. FontAwesome Backspace Icon Integration
+- **Problem:** Backspace button used placeholder character ⌫ (U+232B) not in Montserrat fonts
+- **Solution:**
+  - Integrated FontAwesome icon (U+F55A delete-left)
+  - Used `fa_icons_24` font to match `montserrat_20` button label size
+  - Updated button: `text="#icon_backspace" style_text_font="fa_icons_24"`
+- **Files:** `ui_xml/numeric_keypad_modal.xml`
+
+### 3. Icon Generation Script Fixes
+- **Problem:** `scripts/generate-icon-consts.py` pattern matching failed on globals.xml
+- **Solution:**
+  - Fixed regex to handle tab/space variations: `r'(\t<!-- ={69} -->.*?FontAwesome.*?<!-- ={69} -->.*?)(?=\n\t<!-- ={69} -->|\n</consts>)'`
+  - Script now reliably replaces existing icon section
+  - Generated 33 icon constants with proper UTF-8 encoding
+- **Files:** `scripts/generate-icon-consts.py`, `ui_xml/globals.xml`
+
+### 4. Documentation Updates
+- **STATUS.md:** Added detailed session entry with technical details
+- **HANDOFF.md:** Updated current focus and completed phases
+- **CLAUDE.md:** Added gotcha about icon constants appearing empty in terminal
+
+### Technical Details
+
+**Icon Constant Encoding:**
+Icon constants use FontAwesome Private Use Area (U+F000-U+F8FF):
+- Characters appear **empty** in terminal/grep output
+- UTF-8 bytes are present: e.g., `ef959a` for U+F55A
+- Rendered correctly when using FontAwesome fonts in LVGL
+
+**Verification:**
+```bash
+# Check UTF-8 encoding
+python3 << 'PYEOF'
+with open('ui_xml/globals.xml', 'r') as f:
+    for line in f:
+        if 'icon_backspace' in line:
+            import re
+            match = re.search(r'value="([^"]*)"', line)
+            if match:
+                val = match.group(1)
+                print(f"Length: {len(val)}, Bytes: {val.encode('utf-8').hex()}")
+PYEOF
+# Output: Length: 1, Bytes: ef959a
+```
+
+**Font Size Consistency:**
+- Number buttons: `montserrat_20`
+- Backspace icon: `fa_icons_24`
+- Rationale: 24px FontAwesome ≈ 20px Montserrat for visual consistency
+
+**Build & Test:**
+```bash
+make clean && make                    # Clean rebuild
+./build/bin/guppy-ui-proto -k         # Test keypad
+./scripts/test_keypad_sizes.sh        # Test all screen sizes
+```
+
+**Previous Session (2025-10-25) - Responsive Numeric Keypad:**
+- ✅ Keypad works on ALL screen sizes (480×320 through 1280×720)
+- ✅ Semantic constants only, flex layout, responsive design pattern established
+- ✅ Test automation: `./scripts/test_keypad_sizes.sh`
+
+---
+
+## Current State Summary
+
+**Project Status:** All UI components functional and tested. Navigation system robust. Visual polish complete. **Responsive design pattern established.**
+
+**Automated Testing:** ✅ 26/26 tests passing
+- All command-line flags working (8 panel flags, 4 screen sizes)
+- All panels render without errors
+- UI polish verified (rounded corners, thumbnail scaling, gradients)
+- Test script: `./scripts/test_navigation.sh`
+
+---
+
+## Completed Phases
+
+**Recent (2025-10-25):**
+- ✅ **Phase 6.16: Controls Panel Responsive Design** - Fixed oversized launcher cards, switched to 47% width for uniform sizing (2 cards/row on all screens), reduced fonts/padding for better density
+- ✅ **Phase 6.15: Command-Q Quit Shortcut & Makefile Auto-Parallel** - Added Cmd+Q/Win+Q keyboard shortcut (src/main.cpp:555-561), enabled parallel builds by default (MAKEFLAGS += -j$(NPROC))
+- ✅ **Phase 6.14: Keypad Documentation Cleanup** - Clarified event handlers were complete from Phase 5.2, removed stale tasks, updated HANDOFF.md and STATUS.md
+- ✅ **Phase 6.13: Keypad Button Sizing & Icon Integration** - Removed max height constraint, FontAwesome backspace icon with fa_icons_24, icon generation script fixes
+- ✅ **Phase 6.12: Responsive Numeric Keypad** - Mobile-first design, semantic constants only, works on all screen sizes (480×320 - 1280×720)
+- ✅ **Phase 5.2: Numeric Keypad Modal Component** - Complete implementation with event handlers (2025-10-12 Late Night)
+- ✅ **Phase 6.11: Interactive Testing & Automation** - Created automated test suite, verified all navigation flows and UI polish
+- ✅ **Phase 6.10: Navigation System Refactoring & Bug Fixes** - Robust navigation with unified panel stack, app_layout protection, UI polish
+- ✅ **Phase 6.9: Navigation History Stack** - Back button navigation with state preservation
+
+**Previous:**
+- ✅ **Phase 6.8: Print Status Panel Complete** (2025-10-24) - Full layout with metadata overlay, temp cards, control buttons, perfect 2:1 ratio
+- ✅ **Phase 6.7: Print Status Panel Layout Rebuild - Foundation** (2025-10-24) - Incremental approach: empty layout working, thumbnails rendering with resize callback
+- ✅ **Phase 6.6: Detail View Responsive Layout Fix** (2025-10-24) - Detail view respects navigation bar, uses calculated constants, fits screen height
+- ✅ **Phase 6.5: Print Button Integration** (2025-10-24) - Print button launches print status panel with mock print
+- ✅ **Phase 6.4: Header Bar Responsive Refactoring** (2025-10-24) - Removed hardcoded widths, added semantic constants, fully responsive layout
+- ✅ **Phase 6.3: LVGL 9 XML Syntax Cleanup** (2025-10-24) - Fixed all flag_* attributes across entire codebase
+- ✅ **Phase 6.2: Print File Detail View Complete** (2025-10-24) - Including gradient fill fix and LVGL XML syntax corrections
+- ✅ Phase 6.1: Print File Card Gradient Background
 - ✅ Phase 6: Responsive Print File Card System with App-Level Resize Handler
 - ✅ Phase 5.5: Extrusion Panel with safety checks
 - ✅ Phase 5.4: Temperature Sub-Screens (Nozzle + Bed)
@@ -17,18 +178,57 @@
 - ✅ Phase 4: Print Select Panel (dual views, sorting, file operations)
 
 **What Works:**
-- Navigation between all 6 main panels
+- **✅ Comprehensive automated testing:**
+  - Test script: `./scripts/test_navigation.sh` (26/26 tests passing)
+  - All command-line flags verified (-p panel, -s size)
+  - All panels render without initialization errors
+  - UI polish verified via screenshot review
+- **✅ Robust navigation system:**
+  - Unified panel stack architecture (all panels tracked in z-order)
+  - Nav bar buttons clear stack and show selected panel
+  - Back buttons navigate to previous panel (with state preserved)
+  - Defensive fallback to HOME panel if stack empty
+  - App layout protection prevents navbar from disappearing
+  - Handles edge cases (command line flags, empty history)
 - Home panel with temperature/network/light displays
 - Controls launcher → sub-screens (motion, temps, extrusion)
 - **Print Select panel:**
   - Card/list dual views with toggle
   - Fully responsive cards (adapt to any screen size)
+  - **Rounded corners with proper clipping** (no image overflow)
   - Dynamic dimension calculation in C++
-  - Image scaling and top-alignment
+  - **Gradient background** (diagonal gray-to-black)
+  - **Object-fit:cover for cards** (48.8% for 500x500→204x244)
+  - **Object-fit:contain for detail view** (shows full thumbnail)
+  - New transparent blue egg placeholder (500x500)
   - Metadata overlays with transparency
   - Window resize handling with debounced callbacks
   - Sorting by filename, size, date, print time
-  - File detail view and confirmation dialogs
+  - **File detail view:**
+    - **Rounded corners with proper clipping** (no image overflow)
+    - Overlay positioned after navigation bar (respects nav width)
+    - Responsive width using `UI_NAV_WIDTH()` macro (screen-size agnostic)
+    - Proper padding prevents height overflow (fits within screen)
+    - Left section styled like large card (gradient fills entire area, metadata overlay)
+    - **Thumbnail scaling when shown** (gradient cover, thumbnail contain)
+    - Left chevron back button (properly hidden when not needed using correct XML syntax)
+    - Delete/Print buttons on right
+  - **Print button integration:**
+    - Launches print status panel overlay
+    - Starts mock print with selected file (250 layers, 3 hours)
+    - Progress updates every second
+    - Temperature/layer/time simulation
+- **Print Status panel:**
+  - ✅ **COMPLETE** - Full UI with all components
+  - ✅ Perfect 2:1 layout (thumbnail 66%, controls 33%)
+  - ✅ Metadata overlay with progress bar, filename, time/percentage
+  - ✅ Nozzle and bed temperature cards (clickable)
+  - ✅ Control buttons: Light, Pause, Tune, Cancel (red)
+  - ✅ Thumbnail scaling with gradient background
+  - ✅ Mock print simulation with data updates
+  - ✅ Event handlers wired for all buttons
+  - Back button returns to Home
+  - Screenshot: `/tmp/ui-screenshot-print-status-final.png`
 - Responsive design across tiny/small/medium/large screens
 - Material Design icon system with dynamic recoloring
 - Reactive Subject-Observer data binding
@@ -41,6 +241,7 @@
 - Extrusion/retract buttons
 - Motion jog buttons → position updates
 - Print Select file operations → actual printer integration
+- Detail view Print/Delete buttons → actual operations
 - All interactive flows need end-to-end testing with Moonraker
 
 See **STATUS.md** for complete chronological development history.
@@ -48,6 +249,60 @@ See **STATUS.md** for complete chronological development history.
 ---
 
 ## Critical Architecture Patterns
+
+### 0. Navigation System Architecture (UPDATED - 2025-10-25)
+
+**Unified Panel Stack Approach:**
+
+All panel visibility is managed through a single `panel_stack` vector that tracks visible panels in z-order (bottom to top).
+
+**Always use `ui_nav_push_overlay()` and `ui_nav_go_back()` for overlay navigation:**
+
+```cpp
+// When showing an overlay panel (motion, temp, extrusion, etc.)
+void card_motion_clicked(lv_event_t* e) {
+    // Create panel if needed...
+
+    // ✓ CORRECT - Pushes current panel to stack and shows overlay
+    ui_nav_push_overlay(motion_panel);
+}
+
+// In back button callback
+static void back_button_cb(lv_event_t* e) {
+    // ✓ CORRECT - Pops stack, hides current, shows previous
+    // Defensively hides all overlays and defaults to HOME if stack empty
+    ui_nav_go_back();  // No need for fallback - built-in
+}
+```
+
+**Behavior:**
+- `ui_nav_push_overlay()` - Hides current, shows overlay, pushes to stack
+- `ui_nav_go_back()` - Defensively hides all overlays, pops stack, shows previous or HOME
+- Clicking nav bar icons **clears stack** and shows selected panel (nav_button_clicked_cb in ui_nav.cpp:82-136)
+
+**App Layout Protection (CRITICAL):**
+
+Navigation code must NEVER hide `app_layout` (the container holding navbar + all panels):
+
+```cpp
+// In main.cpp after creating app_layout from XML:
+lv_obj_t* app_layout = lv_xml_create(screen, "app_layout", NULL);
+ui_nav_set_app_layout(app_layout);  // CRITICAL - prevents navbar disappearing
+```
+
+**Architecture:**
+```
+screen
+└── app_layout (navbar + content_area container) ← NEVER HIDE THIS
+    ├── navigation_bar
+    └── content_area
+        ├── main panels (home, controls, etc.)
+        └── overlay panels shown on top
+```
+
+**State Preservation:** Panels remain in memory when hidden, state is preserved when navigating back.
+
+**Reference:** `include/ui_nav.h:54-62`, `src/ui_nav.cpp:39-40, 43-48, 82-136, 183-186, 333-408`
 
 ### 1. Name-Based Widget Lookup (CRITICAL)
 
@@ -240,7 +495,48 @@ lv_image_set_scale(thumbnail, zoom);
 
 **Reference:** `ui_xml/print_file_card.xml:72-78`, LVGL docs `widgets/image.html`
 
-### 10. App-Level Resize Handler (CRITICAL)
+### 10. Responsive Overlay Positioning (CRITICAL)
+
+**Pattern: Position overlays after navigation bar using calculated constants**
+
+Full-screen overlays (detail views, modals) should respect the navigation bar:
+
+```xml
+<!-- print_file_detail.xml -->
+<view extends="lv_obj"
+      x="#nav_width"              <!-- Start after nav bar -->
+      height="100%"
+      flex_flow="column">
+```
+
+```cpp
+// In C++ - calculate width dynamically
+lv_coord_t screen_width = lv_obj_get_width(parent_screen_widget);
+lv_coord_t nav_width = UI_NAV_WIDTH(screen_width);  // From ui_theme.h
+lv_obj_set_width(detail_view_widget, screen_width - nav_width);
+```
+
+**Height constraints:**
+
+Use symmetric padding to prevent overflow:
+
+```xml
+<lv_obj width="100%"
+        flex_grow="1"
+        style_pad_top="#padding_normal"
+        style_pad_bottom="#padding_normal"    <!-- Match top padding -->
+        flex_flow="row">
+```
+
+**Key points:**
+- Use `UI_NAV_WIDTH()` macro from `ui_theme.h` - never hardcode
+- Calculate remaining width in C++ for screen-size agnostic layout
+- Match top/bottom padding to prevent height overflow
+- Set `x` position in XML, `width` in C++ for responsive behavior
+
+**Reference:** `ui_xml/print_file_detail.xml:26-47`, `src/ui_panel_print_select.cpp:663-666`
+
+### 11. App-Level Resize Handler (CRITICAL)
 
 **Architecture: Centralized handler with panel registration**
 
@@ -363,7 +659,14 @@ make clean && make            # Clean rebuild
 ./build/bin/guppy-ui-proto -s tiny            # 480x320 screen
 ./build/bin/guppy-ui-proto -s large           # 1280x720 screen
 ./build/bin/guppy-ui-proto -p controls        # Start at Controls panel
+./build/bin/guppy-ui-proto -p print-select    # Print select card view
+./build/bin/guppy-ui-proto -p file-detail     # Print file detail overlay (NEW)
 ./build/bin/guppy-ui-proto -s small -p print-select  # Combined options
+
+# Controls (when running)
+# Press Cmd+Q (macOS) or Win+Q (Windows) to quit
+# Press 'S' key to save screenshot
+# Close window to exit
 
 # Screenshot
 ./scripts/screenshot.sh guppy-ui-proto output-name [panel-name]
@@ -372,6 +675,7 @@ make clean && make            # Clean rebuild
 ./scripts/screenshot.sh guppy-ui-proto home-test home
 ./scripts/screenshot.sh guppy-ui-proto controls-launcher controls
 ./scripts/screenshot.sh guppy-ui-proto motion-panel motion
+./scripts/screenshot.sh guppy-ui-proto file-detail file-detail
 
 # Unit tests
 make test                     # Run all tests
@@ -383,58 +687,130 @@ make test                     # Run all tests
 - `medium` = 1024x600 (default)
 - `large` = 1280x720
 
+**Panel Name Mappings:**
+- `home` - Home panel
+- `controls` - Controls launcher
+- `motion` - Motion sub-screen (overlay)
+- `nozzle-temp` - Nozzle temperature sub-screen
+- `bed-temp` - Bed temperature sub-screen
+- `extrusion` - Extrusion sub-screen
+- `print-select` - Print select panel (card view)
+- `file-detail` - Print file detail view (overlay)
+- `filament` - Filament panel
+- `settings` - Settings panel
+- `advanced` - Advanced panel
+
+---
+
+## Immediate Next Steps
+
+**These tasks should be completed in the next session:**
+
+### 1. Apply Responsive Pattern to Other Panels
+- **Action:** Review motion/temp/extrusion panels for hardcoded sizing
+- **Action:** Replace with semantic constants where applicable
+- **Pattern:** Use same approach as numeric keypad (flex_grow, semantic constants)
+- **Goal:** Ensure all panels work across all screen sizes (480×320 to 1280×720)
+
+### Notes for Next Developer
+
+- Icon constants in `globals.xml` will **look empty** in your editor - this is normal
+- Use `python3 scripts/generate-icon-consts.py` to add new icons (edit ICONS dict in script)
+- All FontAwesome fonts (16/24/32/48/64) are already declared in `ui_fonts.h`
+- Use `fa_icons_24` for small inline icons to match `montserrat_20` text
+
 ---
 
 ## Next Priorities
 
-### Priority 1: Interactive Button Wiring
+### Priority 1: Moonraker Integration 🔌 **PRIMARY FOCUS**
 
-**Temperature Panels:**
-- Wire preset buttons (PLA/PETG/ABS/Off) → update target temperature subjects
-- Wire Custom button → open numeric keypad with callback
-- Wire Confirm button → apply temperature and close panel
-- Wire back button → hide panel, show Controls launcher
+**Status:** ✅ UI complete and tested. Ready to connect to live printer.
 
-**Motion Panel:**
-- Wire jog pad buttons → update position subjects
-- Wire distance selector → change jog increment
-- Wire home buttons → mock homing operations
-- Wire back button
+**Why this is next:** All UI components are functional with mock data. Navigation system is robust. The next logical step is to replace mock data with live Moonraker API data.
 
-**Extrusion Panel:**
-- Wire amount selector → set extrusion distance
-- Wire extrude/retract buttons → check temp, simulate extrusion
-- Wire back button
+**Integration Tasks:**
+1. **WebSocket Client Setup** - Connect to Moonraker API
+2. **Printer State Subscription** - Subscribe to printer status updates
+3. **Wire Button Actions** - Connect UI buttons to Moonraker commands:
+   - Motion jog buttons → `printer.gcode.script` (G0/G1 commands)
+   - Temperature presets → `printer.gcode.script` (M104/M140)
+   - Print start → `printer.print.start`
+   - Print pause/resume → `printer.print.pause`/`printer.print.resume`
+   - Print cancel → `printer.print.cancel`
+4. **Update Subject Bindings** - Replace mock data with live printer state:
+   - Temperature subjects → `extruder.temperature`, `heater_bed.temperature`
+   - Position subjects → `toolhead.position`
+   - Print progress → `virtual_sdcard.progress`
+   - File list → `server.files.list`
 
-**Test End-to-End Flows:**
-1. Controls → Nozzle Temp → PLA preset → Custom (keypad) → Confirm → Back
-2. Controls → Motion → jog XY → change distance → jog Z → Home All → Back
-3. Controls → Extrusion → select 25mm → verify temp check → Extrude → Back
-
-### Priority 2: Moonraker Integration Prep
-
-**Dynamic Temperature Limits:**
-APIs already implemented, ready to wire to Moonraker config:
-
-```cpp
-// Query printer heater config on startup:
-// GET /printer/objects/query?heater_bed&extruder
-
-// Then configure UI with actual printer limits:
-ui_panel_controls_temp_set_nozzle_limits(extruder.min_temp, extruder.max_temp);
-ui_panel_controls_temp_set_bed_limits(heater_bed.min_temp, heater_bed.max_temp);
-ui_panel_controls_extrusion_set_limits(extruder.min_temp, extruder.max_temp);
+**Test Commands:**
+```bash
+# Test with live printer (requires Moonraker URL in config)
+./build/bin/guppy-ui-proto
+# Click any file → Print button → observe print status panel
 ```
 
-**Default Safe Limits:**
-- Nozzle: 0-500°C (covers all hotends)
-- Bed: 0-150°C (covers all heatbeds)
-- Extrusion min: 170°C (safety threshold)
+**Existing Subjects (already wired):**
+- `print_filename_text` - File being printed
+- `print_progress_text` - "45%" format
+- `print_progress_value` - 0-100 integer for progress bar
+- `print_layer_text` - "125 / 250" format
+- `print_elapsed_time_text` - "1h 23m" format
+- `print_remaining_time_text` - "1h 37m" format
+- `print_nozzle_temp_text` - "215 / 215°C" format
+- `print_bed_temp_text` - "60 / 60°C" format
+- `print_speed_text` - "100%" format
+- `print_flow_text` - "100%" format
+- `print_state_text` - "Printing" / "Paused" / "Complete" / "Cancelled"
 
-### Priority 3: Future Enhancements
+**Implementation Steps:**
+
+**Step 1: WebSocket Foundation**
+- Review existing GuppyScreen Moonraker client code (parent repo)
+- Adapt libhv WebSocket implementation for prototype
+- Connect to Moonraker on startup
+- Handle connection/disconnection events
+
+**Step 2: Printer Status Updates**
+- Subscribe to printer object updates
+- Wire temperature subjects to live data:
+  - `extruder.temperature` → nozzle temp subjects
+  - `heater_bed.temperature` → bed temp subjects
+- Update home panel displays with real-time temps
+
+**Step 3: Motion & Control Commands**
+- Motion jog buttons → `printer.gcode.script` (G0/G1 commands)
+- Temperature presets → M104/M140 commands
+- Home buttons → G28 commands
+- Query printer config for dynamic limits:
+  ```cpp
+  ui_panel_controls_temp_set_nozzle_limits(extruder.min_temp, extruder.max_temp);
+  ui_panel_controls_temp_set_bed_limits(heater_bed.min_temp, heater_bed.max_temp);
+  ```
+
+**Step 4: Print Management**
+- File list → `server.files.list` API
+- Print start → `printer.print.start`
+- Print pause/resume → `printer.print.pause`/`.resume`
+- Print cancel → `printer.print.cancel`
+- Live print status updates (progress, layer, times)
+
+**Reference Code:**
+- Parent repo: `/Users/pbrown/code/guppyscreen/` has working Moonraker client
+- Look for WebSocket handling, JSON-RPC protocol, subscription management
+
+**Testing Strategy:**
+1. Start with read-only status (temps, positions)
+2. Add control commands incrementally
+3. Test each command with real printer before moving to next
+4. Use parent repo's simulator mode if available
+
+---
+
+### Priority 2: Future Enhancements
 
 - Temperature graph visualization (replace static fire icon)
-- Print status panel real-time updates
 - File browser pagination/search
 - Multi-language support
 - Animations and transitions
@@ -442,6 +818,26 @@ ui_panel_controls_extrusion_set_limits(extruder.min_temp, extruder.max_temp);
 ---
 
 ## Known Gotchas
+
+### LVGL 9 XML Flag Attribute Syntax (RESOLVED ✅)
+
+**Problem:** Using `flag_*` prefix in XML attributes causes them to be silently ignored.
+
+**Wrong Syntax (doesn't work):**
+```xml
+<lv_button flag_hidden="true" flag_clickable="false" flag_scrollable="false"/>
+```
+
+**Correct Syntax:**
+```xml
+<lv_button hidden="true" clickable="false" scrollable="false"/>
+```
+
+**Why:** LVGL 9 XML property system auto-generates simplified attribute names without the `flag_` prefix. The C enum is `LV_PROPERTY_OBJ_FLAG_HIDDEN` but the XML attribute is just `hidden`.
+
+**Status:** ✅ **FIXED** - All XML files updated as of 2025-10-24. All instances of `flag_hidden`, `flag_clickable`, and `flag_scrollable` have been corrected across the codebase.
+
+**Reference:** `docs/LVGL9_XML_ATTRIBUTES_REFERENCE.md:91-123` for complete list of correct flag attribute names.
 
 ### LV_SIZE_CONTENT Width Bug
 

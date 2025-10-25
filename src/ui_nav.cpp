@@ -24,6 +24,7 @@
 #include "lvgl/lvgl.h"
 #include <cstdio>
 #include <cstdlib>  // for atoi
+#include <vector>
 
 // Active panel tracking
 static lv_subject_t active_panel_subject;
@@ -35,8 +36,16 @@ static lv_subject_t icon_color_subjects[UI_PANEL_COUNT];
 // Panel widget tracking for show/hide
 static lv_obj_t* panel_widgets[UI_PANEL_COUNT] = {nullptr};
 
+// App layout widget reference (contains navbar + panels, must never be hidden)
+static lv_obj_t* app_layout_widget = nullptr;
+
 // Subjects initialization flag
 static bool subjects_initialized = false;
+
+// Panel stack: tracks ALL visible panels in z-order (bottom to top)
+// Last element is the currently visible top panel
+// This replaces the old nav_history approach and eliminates guessing
+static std::vector<lv_obj_t*> panel_stack;
 
 // Observer callback - updates all icon colors when active panel changes
 static void active_panel_observer_cb(lv_observer_t* /*observer*/, lv_subject_t* subject) {
@@ -78,6 +87,58 @@ static void nav_button_clicked_cb(lv_event_t* e) {
     int panel_id = (int)(uintptr_t)lv_event_get_user_data(e);
 
     if (code == LV_EVENT_CLICKED) {
+        // DEFENSIVE: Hide ALL visible overlay panels (not in panel_widgets)
+        // This handles overlays shown via command line, push_overlay, or other means
+        lv_obj_t* screen = lv_screen_active();
+        if (screen) {
+            for (uint32_t i = 0; i < lv_obj_get_child_count(screen); i++) {
+                lv_obj_t* child = lv_obj_get_child(screen, i);
+                if (lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) {
+                    continue;  // Already hidden
+                }
+
+                // Don't hide app_layout (contains navbar + panels)
+                if (child == app_layout_widget) {
+                    continue;
+                }
+
+                // Check if this is NOT one of the main nav panels
+                bool is_main_panel = false;
+                for (int j = 0; j < UI_PANEL_COUNT; j++) {
+                    if (panel_widgets[j] == child) {
+                        is_main_panel = true;
+                        break;
+                    }
+                }
+
+                // Hide any visible overlay panel
+                if (!is_main_panel) {
+                    lv_obj_add_flag(child, LV_OBJ_FLAG_HIDDEN);
+                    LV_LOG_USER("Hiding overlay panel %p (nav button clicked)", child);
+                }
+            }
+        }
+
+        // Hide all main panels
+        for (int i = 0; i < UI_PANEL_COUNT; i++) {
+            if (panel_widgets[i]) {
+                lv_obj_add_flag(panel_widgets[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+
+        // Clear panel stack when switching via nav bar
+        panel_stack.clear();
+        LV_LOG_USER("Panel stack cleared (nav button clicked)");
+
+        // Show the clicked panel and add it to stack
+        lv_obj_t* new_panel = panel_widgets[panel_id];
+        if (new_panel) {
+            lv_obj_remove_flag(new_panel, LV_OBJ_FLAG_HIDDEN);
+            panel_stack.push_back(new_panel);
+            LV_LOG_USER("Showing panel %p (stack depth: %zu)", new_panel, panel_stack.size());
+        }
+
+        // Update active panel state (triggers icon colors, etc.)
         ui_nav_set_active((ui_panel_id_t)panel_id);
     }
 }
@@ -117,6 +178,11 @@ void ui_nav_init() {
     subjects_initialized = true;
 
     LV_LOG_USER("Navigation subjects initialized successfully");
+}
+
+void ui_nav_set_app_layout(lv_obj_t* app_layout) {
+    app_layout_widget = app_layout;
+    LV_LOG_USER("App layout widget registered");
 }
 
 void ui_nav_wire_events(lv_obj_t* navbar) {
@@ -235,5 +301,126 @@ void ui_nav_set_panels(lv_obj_t** panels) {
         }
     }
 
+    // Initialize panel stack with the active panel
+    panel_stack.clear();
+    if (panel_widgets[active_panel]) {
+        panel_stack.push_back(panel_widgets[active_panel]);
+        LV_LOG_USER("Panel stack initialized with active panel %p", panel_widgets[active_panel]);
+    }
+
     LV_LOG_USER("Panel widgets registered for show/hide management");
+}
+
+void ui_nav_push_overlay(lv_obj_t* overlay_panel) {
+    if (!overlay_panel) {
+        LV_LOG_ERROR("Cannot push NULL overlay panel");
+        return;
+    }
+
+    // Hide current top panel (if any)
+    if (!panel_stack.empty()) {
+        lv_obj_t* current_top = panel_stack.back();
+        lv_obj_add_flag(current_top, LV_OBJ_FLAG_HIDDEN);
+        LV_LOG_USER("Hiding current top panel %p (pushing overlay)", current_top);
+    }
+
+    // Show the new overlay and push it to stack
+    lv_obj_remove_flag(overlay_panel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(overlay_panel);
+    panel_stack.push_back(overlay_panel);
+
+    LV_LOG_USER("Showing overlay panel %p (stack depth: %zu)", overlay_panel, panel_stack.size());
+}
+
+bool ui_nav_go_back() {
+    // DEFENSIVE: Always hide any visible overlay panels (not in panel_widgets)
+    // This handles cases where panels were shown via command line or other means
+    lv_obj_t* screen = lv_screen_active();
+    if (screen) {
+        for (uint32_t i = 0; i < lv_obj_get_child_count(screen); i++) {
+            lv_obj_t* child = lv_obj_get_child(screen, i);
+            if (lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) {
+                continue;  // Already hidden
+            }
+
+            // Don't hide app_layout (contains navbar + panels)
+            if (child == app_layout_widget) {
+                continue;
+            }
+
+            // Check if this is NOT one of the main nav panels
+            bool is_main_panel = false;
+            for (int j = 0; j < UI_PANEL_COUNT; j++) {
+                if (panel_widgets[j] == child) {
+                    is_main_panel = true;
+                    break;
+                }
+            }
+
+            // Hide any visible overlay panel
+            if (!is_main_panel) {
+                lv_obj_add_flag(child, LV_OBJ_FLAG_HIDDEN);
+                LV_LOG_USER("Hiding visible overlay panel %p (defensive hide)", child);
+            }
+        }
+    }
+
+    // Pop current panel from stack if present
+    if (!panel_stack.empty()) {
+        panel_stack.pop_back();
+        LV_LOG_USER("Popped panel from stack (remaining depth: %zu)", panel_stack.size());
+    }
+
+    // Need at least one panel in stack to show
+    if (panel_stack.empty()) {
+        LV_LOG_USER("Panel stack empty after pop, falling back to home panel");
+
+        // Hide all main panels
+        for (int i = 0; i < UI_PANEL_COUNT; i++) {
+            if (panel_widgets[i]) {
+                lv_obj_add_flag(panel_widgets[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+
+        // Show home panel
+        if (panel_widgets[UI_PANEL_HOME]) {
+            lv_obj_remove_flag(panel_widgets[UI_PANEL_HOME], LV_OBJ_FLAG_HIDDEN);
+            panel_stack.push_back(panel_widgets[UI_PANEL_HOME]);
+            active_panel = UI_PANEL_HOME;
+            lv_subject_set_int(&active_panel_subject, UI_PANEL_HOME);
+            LV_LOG_USER("Fallback: showing home panel");
+            return true;
+        }
+
+        LV_LOG_ERROR("Cannot show home panel - widget not found!");
+        return false;
+    }
+
+    // Show previous panel (new top of stack)
+    lv_obj_t* previous_panel = panel_stack.back();
+
+    // If previous panel is one of the main nav panels, hide all other main panels
+    bool is_main_panel = false;
+    for (int i = 0; i < UI_PANEL_COUNT; i++) {
+        if (panel_widgets[i] == previous_panel) {
+            is_main_panel = true;
+            // Hide all main panels except this one
+            for (int j = 0; j < UI_PANEL_COUNT; j++) {
+                if (j != i && panel_widgets[j]) {
+                    lv_obj_add_flag(panel_widgets[j], LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+            // Update active panel state
+            active_panel = (ui_panel_id_t)i;
+            lv_subject_set_int(&active_panel_subject, i);
+            LV_LOG_USER("Updated active panel to %d", i);
+            break;
+        }
+    }
+
+    lv_obj_remove_flag(previous_panel, LV_OBJ_FLAG_HIDDEN);
+    LV_LOG_USER("Showing previous panel %p (stack depth: %zu, is_main=%d)",
+                previous_panel, panel_stack.size(), is_main_panel);
+
+    return true;
 }

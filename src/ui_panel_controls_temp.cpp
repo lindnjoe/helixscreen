@@ -20,7 +20,10 @@
 
 #include "ui_panel_controls_temp.h"
 #include "ui_component_keypad.h"
+#include "ui_component_header_bar.h"
 #include "ui_utils.h"
+#include "ui_nav.h"
+#include "ui_theme.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -109,16 +112,18 @@ static void update_bed_display() {
 static void nozzle_back_button_cb(lv_event_t* e) {
     (void)e;
 
-    // Hide nozzle panel
-    if (nozzle_panel) {
-        lv_obj_add_flag(nozzle_panel, LV_OBJ_FLAG_HIDDEN);
-    }
+    // Use navigation history to go back to previous panel
+    if (!ui_nav_go_back()) {
+        // Fallback: If navigation history is empty, manually hide and show controls launcher
+        if (nozzle_panel) {
+            lv_obj_add_flag(nozzle_panel, LV_OBJ_FLAG_HIDDEN);
+        }
 
-    // Show controls panel launcher
-    if (parent_obj) {
-        lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-        if (controls_launcher) {
-            lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+        if (parent_obj) {
+            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
+            if (controls_launcher) {
+                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 }
@@ -185,11 +190,41 @@ static void nozzle_custom_button_cb(lv_event_t* e) {
     ui_keypad_show(&config);
 }
 
+// Resize callback for responsive padding (nozzle panel)
+static void nozzle_on_resize() {
+    if (!nozzle_panel || !parent_obj) {
+        return;
+    }
+
+    lv_obj_t* temp_content = lv_obj_find_by_name(nozzle_panel, "temp_content");
+    if (temp_content) {
+        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
+        lv_obj_set_style_pad_all(temp_content, padding, 0);
+    }
+}
+
 void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     nozzle_panel = panel;
     parent_obj = parent_screen;
 
     printf("[Temp] Setting up nozzle panel event handlers...\n");
+
+    // Setup header for responsive height
+    lv_obj_t* nozzle_temp_header = lv_obj_find_by_name(panel, "nozzle_temp_header");
+    if (nozzle_temp_header) {
+        ui_component_header_bar_setup(nozzle_temp_header, parent_screen);
+    }
+
+    // Set responsive padding for content area
+    lv_obj_t* temp_content = lv_obj_find_by_name(panel, "temp_content");
+    if (temp_content) {
+        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
+        lv_obj_set_style_pad_all(temp_content, padding, 0);
+        printf("[Temp]   ✓ Content padding: %dpx (responsive)\n", padding);
+    }
+
+    // Register resize callback
+    ui_resize_handler_register(nozzle_on_resize);
 
     // Back button
     lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
@@ -236,16 +271,18 @@ void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_scree
 static void bed_back_button_cb(lv_event_t* e) {
     (void)e;
 
-    // Hide bed panel
-    if (bed_panel) {
-        lv_obj_add_flag(bed_panel, LV_OBJ_FLAG_HIDDEN);
-    }
+    // Use navigation history to go back to previous panel
+    if (!ui_nav_go_back()) {
+        // Fallback: If navigation history is empty, manually hide and show controls launcher
+        if (bed_panel) {
+            lv_obj_add_flag(bed_panel, LV_OBJ_FLAG_HIDDEN);
+        }
 
-    // Show controls panel launcher
-    if (parent_obj) {
-        lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-        if (controls_launcher) {
-            lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+        if (parent_obj) {
+            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
+            if (controls_launcher) {
+                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 }
@@ -312,11 +349,41 @@ static void bed_custom_button_cb(lv_event_t* e) {
     ui_keypad_show(&config);
 }
 
+// Resize callback for responsive padding (bed panel)
+static void bed_on_resize() {
+    if (!bed_panel || !parent_obj) {
+        return;
+    }
+
+    lv_obj_t* temp_content = lv_obj_find_by_name(bed_panel, "temp_content");
+    if (temp_content) {
+        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
+        lv_obj_set_style_pad_all(temp_content, padding, 0);
+    }
+}
+
 void ui_panel_controls_temp_bed_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     bed_panel = panel;
     parent_obj = parent_screen;
 
     printf("[Temp] Setting up bed panel event handlers...\n");
+
+    // Setup header for responsive height
+    lv_obj_t* bed_temp_header = lv_obj_find_by_name(panel, "bed_temp_header");
+    if (bed_temp_header) {
+        ui_component_header_bar_setup(bed_temp_header, parent_screen);
+    }
+
+    // Set responsive padding for content area
+    lv_obj_t* temp_content = lv_obj_find_by_name(panel, "temp_content");
+    if (temp_content) {
+        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
+        lv_obj_set_style_pad_all(temp_content, padding, 0);
+        printf("[Temp]   ✓ Content padding: %dpx (responsive)\n", padding);
+    }
+
+    // Register resize callback
+    ui_resize_handler_register(bed_on_resize);
 
     // Back button
     lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");

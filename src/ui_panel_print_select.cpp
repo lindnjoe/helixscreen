@@ -19,9 +19,11 @@
  */
 
 #include "ui_panel_print_select.h"
+#include "ui_panel_print_status.h"
 #include "ui_utils.h"
 #include "ui_fonts.h"
 #include "ui_theme.h"
+#include "ui_nav.h"
 #include "lvgl/src/others/xml/lv_xml.h"
 #include <string>
 #include <vector>
@@ -160,6 +162,7 @@ static lv_obj_t* view_toggle_btn = nullptr;
 static lv_obj_t* view_toggle_icon = nullptr;
 static lv_obj_t* detail_view_widget = nullptr;
 static lv_obj_t* confirmation_dialog_widget = nullptr;
+static lv_obj_t* print_status_panel_widget = nullptr;
 
 // ============================================================================
 // Reactive subjects for selected file state
@@ -188,6 +191,7 @@ static void attach_card_click_handler(lv_obj_t* card, const PrintFileData& file_
 static void attach_row_click_handler(lv_obj_t* row, const PrintFileData& file_data);
 static void create_detail_view();
 static void create_confirmation_dialog();
+static void scale_detail_images();
 
 // ============================================================================
 // Resize handling callback
@@ -198,6 +202,15 @@ static void on_resize() {
     // Only recalculate card view dimensions if currently in card view mode
     if (current_view_mode == PrintSelectViewMode::CARD && card_view_container) {
         populate_card_view();
+    }
+
+    // Update detail view content padding if detail view exists
+    if (detail_view_widget && parent_screen_widget) {
+        lv_obj_t* content_container = lv_obj_find_by_name(detail_view_widget, "content_container");
+        if (content_container) {
+            lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen_widget));
+            lv_obj_set_style_pad_all(content_container, padding, 0);
+        }
     }
 }
 
@@ -299,14 +312,24 @@ void ui_panel_print_select_toggle_view() {
         current_view_mode = PrintSelectViewMode::LIST;
         lv_obj_add_flag(card_view_container, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(list_view_container, LV_OBJ_FLAG_HIDDEN);
-        lv_label_set_text(view_toggle_icon, ICON_TH_LARGE);  // Show card icon when in list mode
+
+        // Update icon to show grid_view (indicates you can switch back to card view)
+        const void* grid_icon = lv_xml_get_image(NULL, "mat_grid_view");
+        if (grid_icon) {
+            lv_image_set_src(view_toggle_icon, grid_icon);
+        }
         LV_LOG_USER("Switched to list view");
     } else {
         // Switch to card view
         current_view_mode = PrintSelectViewMode::CARD;
         lv_obj_remove_flag(card_view_container, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(list_view_container, LV_OBJ_FLAG_HIDDEN);
-        lv_label_set_text(view_toggle_icon, ICON_LIST);  // Show list icon when in card mode
+
+        // Update icon to show list (indicates you can switch to list view)
+        const void* list_icon = lv_xml_get_image(NULL, "mat_list");
+        if (list_icon) {
+            lv_image_set_src(view_toggle_icon, list_icon);
+        }
         LV_LOG_USER("Switched to card view");
     }
 
@@ -505,10 +528,6 @@ static void populate_card_view() {
             lv_obj_set_height(card, dims.card_height);
             lv_obj_set_style_flex_grow(card, 0, LV_PART_MAIN);  // Disable flex_grow
 
-            // Set gradient background image on card root
-            lv_obj_set_style_bg_image_src(card, "A:assets/images/thumbnail-gradient-bg.png", LV_PART_MAIN);
-            lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
-
             // Calculate proper filename label height based on font
             lv_obj_t* filename_label = lv_obj_find_by_name(card, "filename_label");
             if (filename_label) {
@@ -516,6 +535,24 @@ static void populate_card_view() {
                 if (font) {
                     lv_coord_t line_height = lv_font_get_line_height(font);
                     lv_obj_set_height(filename_label, line_height);
+                }
+            }
+
+            // Scale gradient background to cover card
+            lv_obj_t* gradient_bg = lv_obj_find_by_name(card, "gradient_background");
+            if (gradient_bg) {
+                lv_image_header_t header;
+                lv_result_t res = lv_image_decoder_get_info(lv_image_get_src(gradient_bg), &header);
+
+                if (res == LV_RESULT_OK && header.w > 0 && header.h > 0) {
+                    // Calculate scale to cover the card
+                    float scale_w = (float)dims.card_width / header.w;
+                    float scale_h = (float)dims.card_height / header.h;
+                    float scale = (scale_w > scale_h) ? scale_w : scale_h;  // Use larger scale to cover
+
+                    uint16_t zoom = (uint16_t)(scale * 256);
+                    lv_image_set_scale(gradient_bg, zoom);
+                    lv_image_set_inner_align(gradient_bg, LV_IMAGE_ALIGN_CENTER);
                 }
             }
 
@@ -610,11 +647,48 @@ void ui_panel_print_select_set_file(const char* filename, const char* thumbnail_
     LV_LOG_USER("Selected file: %s", filename);
 }
 
+// ============================================================================
+// Detail view image scaling helper
+// ============================================================================
+static void scale_detail_images() {
+    if (!detail_view_widget) return;
+
+    // Find thumbnail section to get target dimensions
+    lv_obj_t* thumbnail_section = lv_obj_find_by_name(detail_view_widget, "thumbnail_section");
+    if (!thumbnail_section) {
+        LV_LOG_WARN("Thumbnail section not found in detail view, cannot scale images");
+        return;
+    }
+
+    // Force layout update to get accurate dimensions (CRITICAL for flex layouts)
+    lv_obj_update_layout(thumbnail_section);
+
+    lv_coord_t section_width = lv_obj_get_content_width(thumbnail_section);
+    lv_coord_t section_height = lv_obj_get_content_height(thumbnail_section);
+
+    LV_LOG_USER("Detail view thumbnail section: %dx%d", section_width, section_height);
+
+    // Scale gradient background to cover the entire section
+    lv_obj_t* gradient_bg = lv_obj_find_by_name(detail_view_widget, "gradient_background");
+    if (gradient_bg) {
+        ui_image_scale_to_cover(gradient_bg, section_width, section_height);
+    }
+
+    // Scale thumbnail to contain within section (no cropping)
+    lv_obj_t* thumbnail = lv_obj_find_by_name(detail_view_widget, "detail_thumbnail");
+    if (thumbnail) {
+        ui_image_scale_to_contain(thumbnail, section_width, section_height, LV_IMAGE_ALIGN_TOP_MID);
+    }
+}
+
 void ui_panel_print_select_show_detail_view() {
     if (detail_view_widget) {
         lv_obj_remove_flag(detail_view_widget, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(detail_view_widget);
         lv_subject_set_int(&detail_view_visible_subject, 1);
+
+        // Scale images after showing (layout must be calculated first)
+        scale_detail_images();
     }
 }
 
@@ -626,8 +700,8 @@ void ui_panel_print_select_hide_detail_view() {
 }
 
 static void create_detail_view() {
-    if (!panel_root_widget) {
-        LV_LOG_ERROR("Cannot create detail view: panel_root_widget is null");
+    if (!parent_screen_widget) {
+        LV_LOG_ERROR("Cannot create detail view: parent_screen_widget is null");
         return;
     }
 
@@ -636,22 +710,31 @@ static void create_detail_view() {
         return;
     }
 
-    // Create detail view from XML component
-    detail_view_widget = (lv_obj_t*)lv_xml_create(panel_root_widget, "print_file_detail", nullptr);
+    // Create detail view from XML component (as child of screen for full overlay)
+    detail_view_widget = (lv_obj_t*)lv_xml_create(parent_screen_widget, "print_file_detail", nullptr);
 
     if (!detail_view_widget) {
         LV_LOG_ERROR("Failed to create detail view from XML");
         return;
     }
 
-    lv_obj_set_pos(detail_view_widget, 0, 0);
+    // Calculate width to fill remaining space after navigation bar (screen-size agnostic)
+    lv_coord_t screen_width = lv_obj_get_width(parent_screen_widget);
+    lv_coord_t nav_width = UI_NAV_WIDTH(screen_width);
+    lv_obj_set_width(detail_view_widget, screen_width - nav_width);
+
+    // Set responsive padding for content area
+    lv_obj_t* content_container = lv_obj_find_by_name(detail_view_widget, "content_container");
+    if (content_container) {
+        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen_widget));
+        lv_obj_set_style_pad_all(content_container, padding, 0);
+        LV_LOG_USER("[PrintSelect] Detail view content padding: %dpx (responsive)", padding);
+    }
+
     lv_obj_add_flag(detail_view_widget, LV_OBJ_FLAG_HIDDEN);
 
-    // Set image scale manually (XML scale attribute doesn't work)
-    lv_obj_t* thumbnail = lv_obj_find_by_name(detail_view_widget, "detail_thumbnail");
-    if (thumbnail) {
-        lv_image_set_scale(thumbnail, 568);
-    }
+    // NOTE: Image scaling is done in scale_detail_images() when the detail view is shown,
+    // not here during creation, because the flex layout dimensions aren't calculated yet.
 
     // Wire up back button
     lv_obj_t* back_button = lv_obj_find_by_name(detail_view_widget, "back_button");
@@ -668,6 +751,40 @@ static void create_detail_view() {
         lv_obj_add_event_cb(delete_button, [](lv_event_t* e) {
             (void)e;
             ui_panel_print_select_show_delete_confirmation();
+        }, LV_EVENT_CLICKED, nullptr);
+    }
+
+    // Wire up print button
+    lv_obj_t* print_button = lv_obj_find_by_name(detail_view_widget, "print_button");
+    if (print_button) {
+        lv_obj_add_event_cb(print_button, [](lv_event_t* e) {
+            (void)e;
+            if (print_status_panel_widget) {
+                // Hide detail view
+                ui_panel_print_select_hide_detail_view();
+
+                // Push print status panel onto navigation history
+                ui_nav_push_overlay(print_status_panel_widget);
+
+                // Hide print select panel (will be restored by nav history when going back)
+                if (panel_root_widget) {
+                    lv_obj_add_flag(panel_root_widget, LV_OBJ_FLAG_HIDDEN);
+                }
+
+                // Start mock print with selected file
+                const char* filename = selected_filename_buffer;
+
+                // Show print status panel
+                lv_obj_remove_flag(print_status_panel_widget, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_move_foreground(print_status_panel_widget);
+
+                // Start mock print (250 layers, 3 hours = 10800 seconds)
+                ui_panel_print_status_start_mock_print(filename, 250, 10800);
+
+                LV_LOG_USER("Started mock print for: %s", filename);
+            } else {
+                LV_LOG_WARN("Print status panel not set - cannot start print");
+            }
         }, LV_EVENT_CLICKED, nullptr);
     }
 
@@ -809,4 +926,12 @@ static void attach_row_click_handler(lv_obj_t* row, const PrintFileData& file_da
 
         ui_panel_print_select_show_detail_view();
     }, LV_EVENT_CLICKED, data);
+}
+
+// ============================================================================
+// Print status panel integration
+// ============================================================================
+void ui_panel_print_select_set_print_status_panel(lv_obj_t* panel) {
+    print_status_panel_widget = panel;
+    LV_LOG_USER("Print status panel reference set");
 }

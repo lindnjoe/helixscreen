@@ -22,14 +22,12 @@
 #include "lvgl/lvgl.h"
 #include "lvgl/src/others/xml/lv_xml.h"
 
-// External icon declarations
-extern const lv_image_dsc_t list;
-
 void material_icons_register() {
-    LV_LOG_USER("Registering Material Design icons (57 total)...");
+    LV_LOG_USER("Registering Material Design icons (59 total)...");
 
     // Navigation & Movement
     lv_xml_register_image(NULL, "mat_home", &home);
+    lv_xml_register_image(NULL, "mat_home_printer", &home_printer);
     lv_xml_register_image(NULL, "mat_arrow_up", &arrow_up);
     lv_xml_register_image(NULL, "mat_arrow_down", &arrow_down);
     lv_xml_register_image(NULL, "mat_arrow_left", &arrow_left);
@@ -43,6 +41,7 @@ void material_icons_register() {
     // Print & Files
     lv_xml_register_image(NULL, "mat_print", &print);
     lv_xml_register_image(NULL, "mat_list", &list);
+    lv_xml_register_image(NULL, "mat_grid_view", &grid_view);
     lv_xml_register_image(NULL, "mat_pause", &pause_img);
     lv_xml_register_image(NULL, "mat_resume", &resume);
     lv_xml_register_image(NULL, "mat_cancel", &cancel);

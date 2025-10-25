@@ -94,7 +94,7 @@ def update_globals_xml():
         content = f.read()
 
     # Pattern to match the auto-generated icon section
-    pattern = r'(\t\t<!-- ={69} -->.*?<!-- ={69} -->.*?(?=\t</consts>))'
+    pattern = r'(\t<!-- ={69} -->.*?FontAwesome icon constants.*?<!-- ={69} -->.*?)(?=\n\t<!-- ={69} -->|\n</consts>)'
 
     new_section = generate_icon_section()
 
@@ -104,7 +104,7 @@ def update_globals_xml():
         print(f"Updated icon constants in {GLOBALS_FILE}")
     else:
         # Add new section before </consts>
-        content = content.replace('\t</consts>', f'\n{new_section}\n\t</consts>')
+        content = content.replace('</consts>', f'\n{new_section}\n</consts>')
         print(f"Added icon constants to {GLOBALS_FILE}")
 
     with open(GLOBALS_FILE, 'w', encoding='utf-8') as f:

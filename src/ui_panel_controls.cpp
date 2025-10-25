@@ -23,6 +23,7 @@
 #include "ui_panel_motion.h"
 #include "ui_panel_controls_temp.h"
 #include "ui_panel_controls_extrusion.h"
+#include "ui_nav.h"
 #include <cstdio>
 
 // Panel object references
@@ -124,14 +125,9 @@ static void card_motion_clicked(lv_event_t* e) {
         LV_LOG_USER("Motion panel created and initialized");
     }
 
-    // Show motion panel, hide controls launcher
+    // Push motion panel onto navigation history and show it
     if (motion_panel) {
-        lv_obj_clear_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    // Find and hide the controls launcher content
-    if (controls_panel) {
-        lv_obj_add_flag(controls_panel, LV_OBJ_FLAG_HIDDEN);
+        ui_nav_push_overlay(motion_panel);
     }
 }
 
@@ -157,13 +153,9 @@ static void card_nozzle_temp_clicked(lv_event_t* e) {
         LV_LOG_USER("Nozzle temp panel created and initialized");
     }
 
-    // Show nozzle temp panel, hide controls launcher
+    // Push nozzle temp panel onto navigation history and show it
     if (nozzle_temp_panel) {
-        lv_obj_clear_flag(nozzle_temp_panel, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    if (controls_panel) {
-        lv_obj_add_flag(controls_panel, LV_OBJ_FLAG_HIDDEN);
+        ui_nav_push_overlay(nozzle_temp_panel);
     }
 }
 
@@ -189,13 +181,9 @@ static void card_bed_temp_clicked(lv_event_t* e) {
         LV_LOG_USER("Bed temp panel created and initialized");
     }
 
-    // Show bed temp panel, hide controls launcher
+    // Push bed temp panel onto navigation history and show it
     if (bed_temp_panel) {
-        lv_obj_clear_flag(bed_temp_panel, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    if (controls_panel) {
-        lv_obj_add_flag(controls_panel, LV_OBJ_FLAG_HIDDEN);
+        ui_nav_push_overlay(bed_temp_panel);
     }
 }
 
@@ -221,13 +209,9 @@ static void card_extrusion_clicked(lv_event_t* e) {
         LV_LOG_USER("Extrusion panel created and initialized");
     }
 
-    // Show extrusion panel, hide controls launcher
+    // Push extrusion panel onto navigation history and show it
     if (extrusion_panel) {
-        lv_obj_clear_flag(extrusion_panel, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    if (controls_panel) {
-        lv_obj_add_flag(controls_panel, LV_OBJ_FLAG_HIDDEN);
+        ui_nav_push_overlay(extrusion_panel);
     }
 }
 

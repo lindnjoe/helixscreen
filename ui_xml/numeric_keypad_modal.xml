@@ -20,6 +20,13 @@
 -->
 
 <component>
+	<!-- Local Constants -->
+	<consts>
+		<int name="button_radius" value="8"/>
+		<int name="header_padding" value="6"/>
+        <int name="button_font" value="montserrat_20"/>
+	</consts>
+
 	<!-- API Properties -->
 	<api>
 		<prop type="int" name="initial_value" default="0"/>
@@ -41,194 +48,216 @@
 		style_pad_all="0"
 		style_radius="0"
 		align="center"
-		flag_clickable="true">
+		clickable="true">
 
 		<!-- Keypad modal (docked right edge) -->
 		<lv_obj name="keypad_modal"
 			width="#overlay_panel_width"
-			height="100%"
+		style_max_width="600"
+		height="100%"
 			align="right_mid"
 			style_bg_color="#keypad_bg"
-			style_pad_all="#keypad_padding"
+			style_pad_all="#padding_small"
 			style_border_width="0"
 			flex_flow="column"
 			style_flex_main_place="start"
-			style_pad_gap="#keypad_section_gap">
+			style_pad_gap="#gap_small">
 
 			<!-- Header bar: Back button + Title (left) and OK button (right) -->
 			<!-- NOTE: Uses custom header instead of header_bar component due to unique OK button requirement -->
+			<!-- Mobile-first sizing: compact for tiny screens -->
 			<lv_obj width="100%"
-				height="60"
+				height="content"
 				style_bg_opa="0%"
 				style_border_width="0"
-				style_pad_all="0"
+				style_pad_all="#header_padding"
 				flex_flow="row"
 				style_flex_main_place="space_between"
 				style_flex_cross_place="center">
 
 				<!-- Left side: Back button + Title -->
-				<lv_obj height="100%"
-					width="400"
+				<lv_obj height="content"
+					width="content"
 					style_bg_opa="0%"
 					style_border_width="0"
 					style_pad_all="0"
 					flex_flow="row"
 					style_flex_cross_place="center"
-					style_pad_gap="#padding_medium">
+					style_pad_gap="#padding_small">
 
 					<icon name="back_button"
 						src="mat_back"
-						size="md"
+						size="sm"
 						variant="primary"
-						style_pad_left="#button_padding"
-						style_pad_right="#button_padding"
-						flag_clickable="true"
-						flag_scrollable="false"
+						style_pad_all="#padding_small"
+						clickable="true"
+						scrollable="false"
 						align="center"/>
 
 					<lv_label name="keypad_title"
 						text="Nozzle Temp"
-						width="320"
-						style_text_font="montserrat_28"
+						width="content"
+						style_text_font="#font_heading"
 						style_text_color="#text_primary"
-						flag_scrollable="false"/>
+						scrollable="false"/>
 				</lv_obj>
 
 				<!-- Right side: OK button -->
-				<lv_button name="btn_ok" width="120" height="50"
-					style_bg_color="#primary_color" style_radius="12" style_border_width="0">
-					<lv_label text="OK" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+				<lv_button name="btn_ok" width="content" height="content"
+					style_pad_row="8" style_pad_column="16"
+					style_bg_color="#primary_color" style_radius="#button_radius" style_border_width="0">
+					<lv_label text="OK" style_text_font="#font_heading" style_text_color="#text_primary" align="center"/>
 				</lv_button>
 			</lv_obj>
 
-			<!-- Input Display Card -->
+			<!-- Input Display Card - Uses content sizing -->
 			<lv_obj width="100%"
-				height="#keypad_input_height"
+				height="content"
 				style_bg_color="#keypad_input_bg"
-				style_radius="12"
-				style_pad_all="32"
+				style_radius="#button_radius"
+				style_pad_all="#padding_medium"
 				style_border_width="0"
-				flag_scrollable="false"
+				scrollable="false"
 				flex_flow="row"
 				flex_align="center,center,center">
 
 				<lv_label name="input_display"
 					text="0"
-					style_text_font="montserrat_48"
+					style_text_font="montserrat_28"
 					style_text_color="#text_primary"
 					style_text_align="center"
-					flag_scrollable="false"
-					style_max_width="500"
+					scrollable="false"
+					style_max_width="400"
 					style_pad_all="0"/>
 
 				<!-- Unit label (e.g., "°C") -->
 				<lv_label name="input_unit"
 					text="$unit_label"
-					style_text_font="montserrat_48"
+					style_text_font="montserrat_28"
 					style_text_color="#text_secondary"
 					style_text_align="left"
-					flag_scrollable="false"
-					style_max_width="80"
-					style_pad_left="16"
+					scrollable="false"
+					style_max_width="60"
+					style_pad_left="#padding_small"
 					style_pad_all="0"/>
 			</lv_obj>
 
-			<!-- Keypad Grid Container -->
+			<!-- Keypad Grid Container - Flex grow to fill remaining space -->
 			<lv_obj width="100%"
-				height="480"
+				flex_grow="1"
 				style_bg_opa="0%"
 				style_border_width="0"
 				style_pad_all="0"
 				flex_flow="column"
-				style_pad_gap="#keypad_button_gap"
+				style_pad_gap="#gap_small"
+				style_flex_main_place="space_evenly"
 				name="keypad_grid">
 
 				<!-- Row 1: [7] [8] [9] -->
 				<lv_obj width="100%"
-					height="#keypad_button_height"
+					flex_grow="1"
 					style_bg_opa="0%"
 					style_border_width="0"
-					style_pad_all="0"
 					flex_flow="row"
-					style_flex_main_place="center"
-					style_pad_gap="#keypad_button_gap"
+					style_flex_main_place="space_evenly"
+					style_flex_cross_place="center"
+					style_pad_all="0"
+					style_pad_bottom="2"
 					name="row_1">
 
-					<lv_button name="btn_7" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="7" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_7" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="7" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_8" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="8" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_8" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="8" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_9" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="9" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_9" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="9" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 				</lv_obj>
 
 				<!-- Row 2: [4] [5] [6] -->
-				<lv_obj width="100%" height="#keypad_button_height"
-					style_bg_opa="0%" style_border_width="0" style_pad_all="0"
-					flex_flow="row" style_flex_main_place="center" style_pad_gap="#keypad_button_gap" name="row_2">
+				<lv_obj width="100%" flex_grow="1"
+					style_bg_opa="0%" 
+					style_border_width="0" 
+					flex_flow="row" 
+					style_flex_main_place="space_evenly" 
+					style_flex_cross_place="center" 
+					style_pad_all="0"
+					style_pad_bottom="2"
+					name="row_2">
 
-					<lv_button name="btn_4" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="4" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_4" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="4" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_5" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="5" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_5" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="5" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_6" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="6" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_6" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="6" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 				</lv_obj>
 
 				<!-- Row 3: [1] [2] [3] -->
-				<lv_obj width="100%" height="#keypad_button_height"
-					style_bg_opa="0%" style_border_width="0" style_pad_all="0"
-					flex_flow="row" style_flex_main_place="center" style_pad_gap="#keypad_button_gap" name="row_3">
+				<lv_obj width="100%" flex_grow="1"
+					style_bg_opa="0%" 
+					style_border_width="0"
+					flex_flow="row" 
+					style_flex_main_place="space_evenly" 
+					style_flex_cross_place="center" 
+					style_pad_all="0" 
+					style_pad_bottom="2"
+					name="row_3">
 
-					<lv_button name="btn_1" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="1" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_1" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="1" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_2" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="2" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_2" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="2" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_3" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="3" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_3" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="3" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 				</lv_obj>
 
-				<!-- Row 4: [EMPTY] [0] [DEL] - 0 centered under 2 -->
-				<lv_obj width="100%" height="#keypad_button_height"
-					style_bg_opa="0%" style_border_width="0" style_pad_all="0"
-					flex_flow="row" style_flex_main_place="center" style_pad_gap="#keypad_button_gap" name="row_4">
+				<!-- Row 4: [EMPTY] [0] [BACKSPACE] - 0 centered under 2 -->
+				<lv_obj width="100%" flex_grow="1"
+					style_bg_opa="0%" 
+					style_border_width="0" 
+					flex_flow="row" 
+					style_flex_main_place="space_evenly" 
+					style_flex_cross_place="center" 
+					style_pad_all="0"
+					style_pad_bottom="2"
+					name="row_4">
 
 					<!-- Empty spacer to align 0 under 2 -->
-					<lv_obj width="#keypad_button_width" height="#keypad_button_height"
+					<lv_obj flex_grow="1" height="100%"
 						style_bg_opa="0%" style_border_width="0"/>
 
-					<lv_button name="btn_0" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<lv_label text="0" style_text_font="montserrat_28" style_text_color="#text_primary" align="center"/>
+					<lv_button name="btn_0" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="0" style_text_font="#button_font" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 
-					<lv_button name="btn_backspace" width="#keypad_button_width" height="#keypad_button_height"
-						style_bg_color="#keypad_button_bg" style_radius="12" style_border_width="0">
-						<icon src="mat_delete" size="md" variant="none" style_image_recolor="#keypad_accent_orange" style_image_recolor_opa="100%"/>
+					<lv_button name="btn_backspace" flex_grow="1" height="100%"
+						style_bg_color="#keypad_button_bg" style_radius="#button_radius" style_border_width="0">
+						<lv_label text="#icon_backspace" style_text_font="fa_icons_24" style_text_color="#text_primary" align="center"/>
 					</lv_button>
 				</lv_obj>
 			</lv_obj>

@@ -36,7 +36,7 @@
           style_pad_all="0"
           style_radius="0"
           align="center"
-          flag_clickable="true">
+          clickable="true">
 
         <!-- Dialog card (centered) -->
         <lv_obj width="400"
@@ -96,7 +96,7 @@
                           style_bg_color="#card_bg_dark"
                           style_radius="6"
                           style_border_width="0"
-                          flag_clickable="true">
+                          clickable="true">
                     <lv_label text="Cancel"
                               style_text_font="montserrat_16"
                               style_text_color="#text_primary"
@@ -110,7 +110,7 @@
                           style_bg_color="#primary_color"
                           style_radius="6"
                           style_border_width="0"
-                          flag_clickable="true">
+                          clickable="true">
                     <lv_label text="Delete"
                               style_text_font="montserrat_16"
                               style_text_color="#text_primary"

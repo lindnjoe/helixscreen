@@ -51,3 +51,16 @@ ui_panel_id_t ui_nav_get_active();
 // panels array should have UI_PANEL_COUNT elements (can have NULLs for not-yet-created panels)
 void ui_nav_set_panels(lv_obj_t** panels);
 
+// Set app_layout widget reference (to prevent hiding it when hiding overlays)
+void ui_nav_set_app_layout(lv_obj_t* app_layout);
+
+// Navigation history stack for overlay panels (motion, temp, extrusion, etc.)
+// Push an overlay panel onto the history stack and show it
+// When the overlay's back button is pressed, ui_nav_go_back() will restore the previous panel
+void ui_nav_push_overlay(lv_obj_t* overlay_panel);
+
+// Go back to the previous panel in the navigation history
+// Hides the current overlay and shows the previous panel
+// Returns true if navigation occurred, false if history is empty
+bool ui_nav_go_back();
+

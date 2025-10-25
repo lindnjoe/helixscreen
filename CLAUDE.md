@@ -123,62 +123,60 @@ See **docs/QUICK_REFERENCE.md** for common patterns.
 
 ### 4. Copyright Headers ⚠️
 
-**CRITICAL:** All new source files MUST include the GPL v3 copyright header.
+**CRITICAL:** All new source files MUST include GPL v3 copyright header.
 
-```bash
-# Reference templates are in:
-docs/COPYRIGHT_HEADERS.md
+**Reference:** `docs/COPYRIGHT_HEADERS.md` for templates (C/C++, XML variants)
+
+### 5. Image Scaling in Flex Layouts ⚠️
+
+**When scaling images immediately after layout changes:** Call `lv_obj_update_layout()` first, otherwise containers report 0x0 size (LVGL uses deferred layout calculation).
+
+**Utility functions:** `ui_image_scale_to_cover()` / `ui_image_scale_to_contain()` in ui_utils.h
+
+**Reference:** ui_panel_print_status.cpp:249-314, ui_utils.cpp:213-276
+
+### 6. Navigation History Stack ⚠️
+
+**Always use `ui_nav_push_overlay()` and `ui_nav_go_back()` for overlay panels (motion, temps, extrusion):**
+
+```cpp
+// When showing overlay
+ui_nav_push_overlay(motion_panel);  // Pushes current to history, shows overlay
+
+// In back button callback
+if (!ui_nav_go_back()) {
+    // Fallback: manual navigation if history is empty
+}
 ```
 
-**When creating new files:**
-1. For `.cpp` and `.h` files: Use the C-style comment header
-2. For `.xml` files: Use the XML comment header (after `<?xml version="1.0"?>` if present)
-3. Update copyright year if creating files in a new year
+**Behavior:**
+- Clicking nav bar icons clears history automatically
+- State preserved when navigating back
+- All back buttons should use this pattern
 
-The headers identify:
-- **Copyright holder:** 356C LLC
-- **Author:** Preston Brown <pbrown@brown-house.net>
-- **License:** GPL v3.0 or later
-
-**Never create files without copyright headers.** See `docs/COPYRIGHT_HEADERS.md` for complete templates.
+**Reference:** ui_nav.h:54-62, ui_nav.cpp:250-327, HANDOFF.md Pattern #0
 
 ## Common Gotchas
 
-1. **Subject registration conflict** - If `globals.xml` declares subjects, they're registered with empty values before C++ initialization. Solution: Remove `<subjects>` from globals.xml.
+1. **✅ LVGL 9 XML Flag Attribute Syntax** - NEVER use `flag_` prefix in XML attributes. LVGL 9 XML uses simplified syntax:
+   - ❌ Wrong: `flag_hidden="true"`, `flag_clickable="true"`, `flag_scrollable="false"`
+   - ✅ Correct: `hidden="true"`, `clickable="true"`, `scrollable="false"`
 
-2. **Icon constants not rendering** - Run `python3 scripts/generate-icon-consts.py` to regenerate UTF-8 byte sequences.
+   **Why:** LVGL 9 XML property system auto-generates simplified attribute names from enum values. The C enum is `LV_PROPERTY_OBJ_FLAG_HIDDEN` but the XML attribute is just `hidden`. Parser silently ignores attributes with `flag_` prefix.
 
-3. **BMP screenshots too large** - Always convert to PNG before reading: `magick screenshot.bmp screenshot.png`
+   **Status:** ✅ **FIXED** (2025-10-24) - All 12 XML files updated, 80+ incorrect usages corrected. See **STATUS.md** for details.
 
-4. **Labels not clickable** - Use `lv_button` instead of `lv_label` with `flag_clickable`. XML parser doesn't apply clickable flag to labels.
+2. **Subject registration conflict** - If `globals.xml` declares subjects, they're registered with empty values before C++ initialization. Solution: Remove `<subjects>` from globals.xml.
 
-5. **Component names** - LVGL uses **filename** as component name, not view's `name` attribute. File `nozzle_temp_panel.xml` → component `nozzle_temp_panel`.
+3. **Icon constants not rendering** - Run `python3 scripts/generate-icon-consts.py` to regenerate UTF-8 byte sequences. **Note:** Icon values appear empty in terminal/grep (FontAwesome uses Private Use Area U+F000-U+F8FF) but contain UTF-8 bytes. Verify with: `python3 -c "import re; f=open('ui_xml/globals.xml'); print([match.group(1).encode('utf-8').hex() for line in f for match in [re.search(r'icon_backspace.*value=\"([^\"]*)\"', line)] if match])"` should output `['ef959a']`
 
-6. **Right-aligned overlays** - Use `align="right_mid"` attribute for panels docked to right edge (motion, temp, keypad).
+4. **BMP screenshots too large** - Always convert to PNG before reading: `magick screenshot.bmp screenshot.png`
 
-## Screenshot Workflow
+5. **Labels not clickable** - Use `lv_button` instead of `lv_label`. While XML has a `clickable` attribute, it doesn't work reliably with labels.
 
-```bash
-./scripts/screenshot.sh                    # Auto-capture after 2s
-LATEST=$(ls -t /tmp/ui-screenshot-*.bmp | head -1)
-magick "$LATEST" "${LATEST%.bmp}.png"      # Convert BMP → PNG
-```
+6. **Component names** - LVGL uses **filename** as component name, not view's `name` attribute. File `nozzle_temp_panel.xml` → component `nozzle_temp_panel`.
 
-Press 'S' in running UI for manual screenshot.
-
-## UI Review System (Optional)
-
-For automated UI verification against requirements:
-
-```bash
-./scripts/review-ui-screenshot.sh \
-  --screenshot /tmp/screenshot.png \
-  --requirements docs/requirements/panel-v1.md \
-  --xml-source ui_xml/panel.xml \
-  --changelog docs/changelogs/panel-2025-01-13.md
-```
-
-Templates available in `docs/templates/`. See section in original CLAUDE.md for full details if needed.
+7. **Right-aligned overlays** - Use `align="right_mid"` attribute for panels docked to right edge (motion, temp, keypad).
 
 ## Documentation Structure
 
@@ -246,89 +244,12 @@ prototype-ui9/
 
 ## Using Claude Code Agents
 
-Claude Code provides specialized agents for complex tasks. **Use agents proactively** when tasks match their capabilities.
+Available specialized agents: **general-purpose**, **Explore**, **widget-maker**, **ui-reviewer**, **general-coding-agent**, **refractor**, **moonraker-api-agent**
 
-### Available Agents
+**When to use:** Multi-step implementations, codebase exploration, complex refactoring
+**When NOT to use:** Reading known files, simple searches, single-file edits
 
-**general-purpose**
-- Multi-step implementations requiring file searches, reads, and modifications
-- Researching complex questions across multiple files
-- When uncertain about file locations or need exploratory search
-- **Example:** "Implement temperature sub-screens" (Phase 5.4 - successfully used)
-
-**Explore**
-- Fast codebase exploration (glob/grep/read operations)
-- Quick searches for patterns, keywords, or file structures
-- Specify thoroughness: "quick", "medium", or "very thorough"
-- **Example:** "Find all panel navigation patterns" or "How do panels register themselves?"
-
-**widget-maker**
-- LVGL v9 widget creation using C/C++ and XML layouts
-- Implementing new UI components and panels
-- Working with LVGL 9 XML system patterns
-- **Example:** "Create a new progress bar component" or "Build fan control widget"
-
-**ui-reviewer**
-- LVGL v9 XML UI review against requirements
-- Analyzes UI screenshots and identifies issues
-- Provides detailed XML fixes and suggestions
-- **Example:** "Review the motion panel layout against spec"
-
-**general-coding-agent**
-- C++17 development and LVGL UI framework tasks
-- Implementing panels, UI components, or general C++ features
-- Follows GuppyScreen architectural patterns
-- **Example:** "Add error handling to WebSocket connection code"
-
-**refractor**
-- Code refactoring following best practices
-- Restructuring, optimization, improved readability
-- **Example:** "Refactor temperature panel code for better modularity"
-
-**moonraker-api-agent**
-- Klipper/Moonraker WebSocket/API implementation
-- JSON-RPC protocols, real-time state sync
-- **Example:** "Implement printer status WebSocket handler"
-
-### When NOT to Use Agents
-
-- Reading specific known file paths (use Read tool directly)
-- Searching for specific class definitions (use Glob tool)
-- Searching within 2-3 known files (use Read tool)
-- Simple, single-file operations
-
-### Agent Usage Examples
-
-**✅ Good Use Cases:**
-```
-User: "Implement the temperature sub-screens from the spec"
-→ Use general-purpose agent with full context and requirements
-
-User: "How does the panel navigation system work?"
-→ Use Explore agent with "medium" thoroughness
-
-User: "Create a new fan control widget"
-→ Use widget-maker agent with design requirements
-
-User: "Review the motion panel implementation"
-→ Use ui-reviewer agent with screenshot and requirements
-```
-
-**❌ Bad Use Cases:**
-```
-User: "Read ui_xml/globals.xml"
-→ Use Read tool directly (known path)
-
-User: "Find the motion_panel class definition"
-→ Use Grep/Glob directly (simple search)
-```
-
-### Agent Best Practices
-
-1. **Provide complete context:** Give agent full task description, expected deliverables
-2. **Run in parallel when possible:** Use single message with multiple agent calls
-3. **Trust agent outputs:** Agents are autonomous and return comprehensive results
-4. **Specify code vs research:** Tell agent if you expect code changes or just investigation
+**For agent details:** See "Using Claude Code Agents" section in user's global CLAUDE.md or invoke with `--help`
 
 ## Development Workflow
 
@@ -338,34 +259,12 @@ User: "Find the motion_panel class definition"
 4. Screenshot with `./scripts/screenshot.sh` or press 'S' in UI
 5. For complex multi-step tasks → use appropriate agent (see above)
 
-## Recent Accomplishments
+## Project Status
 
-**Phase 5.4 (2025-10-13) - Temperature Sub-Screens** ✅
-- Nozzle and Bed temperature control panels
-- Extended header_bar with optional right button
-- Material preset buttons (PLA, PETG, ABS)
-- Reactive temperature display (25 / 0°C format)
-- Successfully used general-purpose agent for implementation
+**Current state:** Navigation history stack complete. All UI panels functional with mock data. Ready for interactive testing and Moonraker integration.
 
-**Phase 5.3 (2025-10-13) - Motion Panel** ✅
-- 8-direction jog pad with custom Unicode arrow font
-- Z-axis controls, distance selector, position display
-- Fixed button event handling (removed nested containers)
+**Recent:** Navigation history (2025-10-25), Print status panel (2025-10-24), Print select/detail views with thumbnail scaling (2025-10-24)
 
-**Phase 5.2 (2025-10-12) - Numeric Keypad** ✅
-- Reusable integer input modal component
-- Right-docked overlay (700px) with backdrop
-
-**Phase 5.1 (2025-10-12) - Controls Launcher** ✅
-- 6-card menu for manual printer control
-- Navigation to sub-screens
-
-## Future Integration
-
-This prototype will integrate with main GuppyScreen:
-- Replace SDL2 with framebuffer for embedded hardware
-- Connect to Moonraker WebSocket for printer data
-- Complete remaining panel content (Extrusion, Fan Control)
-- Add animations and multi-language support
-- Implement temperature graphs/progress displays
-- Wire interactive buttons on completed panels
+**For development history:** See STATUS.md (chronological accomplishments)
+**For planned work:** See docs/ROADMAP.md (future features/milestones)
+**For handoff:** See HANDOFF.md (current focus and next priorities)

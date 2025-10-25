@@ -58,3 +58,9 @@
 // Calculate nav width based on actual screen
 #define UI_NAV_WIDTH(screen_w) ((screen_w) / 10)
 
+// Padding constants (matching globals.xml values)
+#define UI_PADDING_NORMAL      20  // padding_normal - standard padding
+#define UI_PADDING_MEDIUM      12  // padding_medium - buttons, flex items
+#define UI_PADDING_SMALL       10  // padding_small - compact layouts
+#define UI_PADDING_TINY        6   // padding_tiny - very small screens
+

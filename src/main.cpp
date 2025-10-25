@@ -33,6 +33,7 @@
 #include "ui_panel_controls_extrusion.h"
 #include "ui_panel_print_status.h"
 #include "ui_component_keypad.h"
+#include "ui_component_header_bar.h"
 #include "ui_icon.h"
 #include <SDL.h>
 #include <cstdio>
@@ -146,6 +147,8 @@ int main(int argc, char** argv) {
     bool show_bed_temp = false;  // Special flag for bed temp sub-screen
     bool show_extrusion = false;  // Special flag for extrusion sub-screen
     bool show_print_status = false;  // Special flag for print status screen
+    bool show_file_detail = false;  // Special flag for file detail view
+    bool show_keypad = false;  // Special flag for keypad testing
 
     // Parse arguments
     for (int i = 1; i < argc; i++) {
@@ -202,6 +205,9 @@ int main(int argc, char** argv) {
                     initial_panel = UI_PANEL_ADVANCED;
                 } else if (strcmp(panel_arg, "print-select") == 0 || strcmp(panel_arg, "print_select") == 0) {
                     initial_panel = UI_PANEL_PRINT_SELECT;
+                } else if (strcmp(panel_arg, "file-detail") == 0 || strcmp(panel_arg, "print-file-detail") == 0) {
+                    initial_panel = UI_PANEL_PRINT_SELECT;
+                    show_file_detail = true;
                 } else {
                     printf("Unknown panel: %s\n", panel_arg);
                     printf("Available panels: home, controls, motion, nozzle-temp, bed-temp, extrusion, print-status, filament, settings, advanced, print-select\n");
@@ -211,11 +217,14 @@ int main(int argc, char** argv) {
                 printf("Error: -p/--panel requires an argument\n");
                 return 1;
             }
+        } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keypad") == 0) {
+            show_keypad = true;
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("Usage: %s [options]\n", argv[0]);
             printf("Options:\n");
             printf("  -s, --size <size>    Screen size: tiny, small, medium, large (default: medium)\n");
             printf("  -p, --panel <panel>  Initial panel (default: home)\n");
+            printf("  -k, --keypad         Show numeric keypad for testing\n");
             printf("  -h, --help           Show this help message\n");
             printf("\nAvailable panels:\n");
             printf("  home, controls, motion, nozzle-temp, bed-temp, extrusion,\n");
@@ -292,12 +301,19 @@ int main(int argc, char** argv) {
                           "A:assets/images/filament_spool.png");
     lv_xml_register_image(NULL, "A:assets/images/placeholder_thumb_centered.png",
                           "A:assets/images/placeholder_thumb_centered.png");
+    lv_xml_register_image(NULL, "A:assets/images/thumbnail-gradient-bg.png",
+                          "A:assets/images/thumbnail-gradient-bg.png");
+    lv_xml_register_image(NULL, "A:assets/images/thumbnail-placeholder.png",
+                          "A:assets/images/thumbnail-placeholder.png");
 
     // Register Material Design icons (64x64, scalable)
     material_icons_register();
 
     // Register custom icon widget (must be before icon.xml component registration)
     ui_icon_register_widget();
+
+    // Initialize component systems (BEFORE XML registration)
+    ui_component_header_bar_init();
 
     // Register XML components (globals first to make constants available)
     LV_LOG_USER("Registering XML components...");
@@ -337,6 +353,9 @@ int main(int argc, char** argv) {
     // Create entire UI from XML (single component contains everything)
     lv_obj_t* app_layout = (lv_obj_t*)lv_xml_create(screen, "app_layout", NULL);
 
+    // Register app_layout with navigation system (to prevent hiding it)
+    ui_nav_set_app_layout(app_layout);
+
     // Find navbar and panel widgets
     // app_layout > navbar (child 0), content_area (child 1)
     lv_obj_t* navbar = lv_obj_get_child(app_layout, 0);
@@ -368,6 +387,20 @@ int main(int argc, char** argv) {
     // Initialize numeric keypad modal component (creates reusable keypad widget)
     ui_keypad_init(screen);
 
+    // Create print status panel (overlay for active prints)
+    lv_obj_t* print_status_panel = (lv_obj_t*)lv_xml_create(screen, "print_status_panel", nullptr);
+    if (print_status_panel) {
+        ui_panel_print_status_setup(print_status_panel, screen);
+        lv_obj_add_flag(print_status_panel, LV_OBJ_FLAG_HIDDEN);  // Hidden by default
+
+        // Wire print status panel to print select (for launching prints)
+        ui_panel_print_select_set_print_status_panel(print_status_panel);
+
+        LV_LOG_USER("Print status panel created and wired to print select");
+    } else {
+        LV_LOG_ERROR("Failed to create print status panel");
+    }
+
     LV_LOG_USER("XML UI created successfully with reactive navigation");
 
     // Switch to initial panel (if different from default HOME)
@@ -383,6 +416,23 @@ int main(int argc, char** argv) {
     }
 
     // Keypad is initialized and ready to be shown when controls panel buttons are clicked
+
+    // Special case: Show keypad for testing
+    if (show_keypad) {
+        printf("Auto-opening numeric keypad for testing...\n");
+        ui_keypad_config_t config = {
+            .initial_value = 210.0f,
+            .min_value = 0.0f,
+            .max_value = 350.0f,
+            .title_label = "Nozzle Temp",
+            .unit_label = "°C",
+            .allow_decimal = false,
+            .allow_negative = false,
+            .callback = nullptr,
+            .user_data = nullptr
+        };
+        ui_keypad_show(&config);
+    }
 
     // Special case: Show motion panel if requested
     if (show_motion) {
@@ -481,6 +531,21 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Special case: Show file detail view if requested
+    if (show_file_detail) {
+        printf("Showing print file detail view...\n");
+
+        // Set file data for the first test file
+        ui_panel_print_select_set_file("Benchy.gcode",
+                                       "A:assets/images/thumbnail-placeholder.png",
+                                       "2h 30m", "45g");
+
+        // Show detail view
+        ui_panel_print_select_show_detail_view();
+
+        printf("File detail view displayed\n");
+    }
+
     // Auto-screenshot timer (2 seconds after UI creation)
     uint32_t screenshot_time = SDL_GetTicks() + 2000;
     bool screenshot_taken = false;
@@ -491,6 +556,14 @@ int main(int argc, char** argv) {
     // Main event loop - Let LVGL handle SDL events internally via lv_timer_handler()
     // Loop continues while display exists (exits when window closed)
     while (lv_display_get_next(NULL)) {
+        // Check for Cmd+Q (macOS) or Win+Q (Windows) to quit
+        SDL_Keymod modifiers = SDL_GetModState();
+        const Uint8* keyboard_state = SDL_GetKeyboardState(NULL);
+        if ((modifiers & KMOD_GUI) && keyboard_state[SDL_SCANCODE_Q]) {
+            LV_LOG_USER("Cmd+Q/Win+Q pressed - exiting...");
+            break;
+        }
+
         // Auto-screenshot after 2 seconds
         if (!screenshot_taken && SDL_GetTicks() >= screenshot_time) {
             save_screenshot();

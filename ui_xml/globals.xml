@@ -47,6 +47,8 @@
 	<px name="padding_medium" value="12" />
 	<!-- Medium padding/gap for buttons and flex items -->
 	<px name="padding_small" value="10" />
+	<px name="padding_tiny" value="6" />
+	<!-- Minimal padding for very small screens -->
 	<px name="printer_img_size" value="400" />
 	<px name="accent_bar_width" value="4" />
 	<px name="accent_bar_height" value="28" />
@@ -104,6 +106,19 @@
 	<px name="padding_card_emphasis" value="20" />
 	<!-- Emphasis cards (progress, highlights) -->
 
+	<!-- Launcher card sizing (controls panel) -->
+	<!-- Percentage-based width for uniform sizing across rows -->
+	<percentage name="launcher_card_width" value="47%" />
+	<!-- 47% = 2 cards per row on tiny screens, wraps to 2-3-4 cards on larger screens -->
+	<px name="launcher_card_height" value="200" />
+	<!-- Fixed height for consistent appearance -->
+	<px name="launcher_card_padding" value="16" />
+	<!-- Reduced padding for compact layouts (was 24px) -->
+	<px name="launcher_card_icon_padding" value="12" />
+	<!-- Icon bottom padding (was 16px) -->
+	<px name="launcher_card_title_padding" value="6" />
+	<!-- Title bottom padding (was 8px) -->
+
 	<!-- Spacing and gaps -->
 	<px name="gap_normal" value="12" />
 	<!-- Standard gap between flex items -->
@@ -125,6 +140,12 @@
 	<!-- Component dimensions -->
 	<px name="header_height" value="60" />
 	<!-- Standard header bar height -->
+	<px name="header_back_button_size" value="60" />
+	<!-- Back button touch target size -->
+	<px name="header_right_button_width" value="120" />
+	<!-- Right action button width -->
+	<px name="header_right_button_height" value="40" />
+	<!-- Right action button height -->
 	<px name="progress_bar_height" value="16" />
 	<!-- Progress indicator height -->
 	<px name="divider_height" value="1" />
@@ -167,14 +188,8 @@
 	<percentage name="overlay_panel_width_large" value="83%" />
 	<!-- Large overlay width (motion, complex 2-column panels) -->
 
-	<!-- Numeric Keypad Modal dimensions -->
-	<!-- Now uses overlay_panel_width for consistency (68% responsive) -->
-	<px name="keypad_padding" value="40" />
-	<px name="keypad_section_gap" value="40" />
-	<px name="keypad_input_height" value="120" />
-	<px name="keypad_button_width" value="140" />
-	<px name="keypad_button_height" value="100" />
-	<px name="keypad_button_gap" value="20" />
+	<!-- Numeric Keypad Modal colors only - sizing uses semantic constants above -->
+	<!-- (keypad_padding, keypad_section_gap, etc. removed - use padding_small, gap_normal, etc.) -->
 
 	<!-- Keypad colors -->
 	<color name="keypad_bg" value="0x2a2a2a" />
@@ -196,6 +211,43 @@
 	<color name="jog_selected_distance" value="0xcc3333" />
 	<!-- Softer red for selected distance -->
 
+		<!-- ===================================================================== -->
+		<!-- FontAwesome icon constants - AUTO-GENERATED - DO NOT EDIT MANUALLY   -->
+		<!-- Run: python3 scripts/generate-icon-consts.py                         -->
+		<!-- ===================================================================== -->
+		<str name="icon_advanced" value=""/>  <!-- U+F142 ellipsis-vertical -->
+		<str name="icon_arrow_down" value="↓"/>  <!-- U+2193 downwards arrow -->
+		<str name="icon_arrow_down_left" value="↙"/>  <!-- U+2199 diagonal down-left -->
+		<str name="icon_arrow_down_right" value="↘"/>  <!-- U+2198 diagonal down-right -->
+		<str name="icon_arrow_left" value="←"/>  <!-- U+2190 leftwards arrow -->
+		<str name="icon_arrow_right" value="→"/>  <!-- U+2192 rightwards arrow -->
+		<str name="icon_arrow_up" value="↑"/>  <!-- U+2191 upwards arrow -->
+		<str name="icon_arrow_up_left" value="↖"/>  <!-- U+2196 diagonal up-left -->
+		<str name="icon_arrow_up_line" value=""/>  <!-- U+F342 arrow-up-from-line -->
+		<str name="icon_arrow_up_right" value="↗"/>  <!-- U+2197 diagonal up-right -->
+		<str name="icon_arrows_all" value=""/>  <!-- U+F0B2 arrows-up-down-left-right -->
+		<str name="icon_backspace" value=""/>  <!-- U+F55A delete-left -->
+		<str name="icon_chevron_down" value=""/>  <!-- U+F078 chevron-down -->
+		<str name="icon_chevron_left" value=""/>  <!-- U+F053 chevron-left -->
+		<str name="icon_chevron_up" value=""/>  <!-- U+F077 chevron-up -->
+		<str name="icon_clock" value=""/>  <!-- U+F017 clock-o -->
+		<str name="icon_controls" value=""/>  <!-- U+F1DE sliders -->
+		<str name="icon_ethernet" value=""/>  <!-- U+F796 ethernet -->
+		<str name="icon_fan" value=""/>  <!-- U+F863 fan -->
+		<str name="icon_filament" value=""/>  <!-- U+F008 film -->
+		<str name="icon_fire" value=""/>  <!-- U+F06D fire -->
+		<str name="icon_folder" value=""/>  <!-- U+F07C folder-open -->
+		<str name="icon_home" value=""/>  <!-- U+F015 house -->
+		<str name="icon_leaf" value=""/>  <!-- U+F06C leaf -->
+		<str name="icon_lightbulb" value=""/>  <!-- U+F0EB lightbulb -->
+		<str name="icon_list" value=""/>  <!-- U+F03A list -->
+		<str name="icon_power_off" value=""/>  <!-- U+F011 power-off -->
+		<str name="icon_settings" value=""/>  <!-- U+F013 gear -->
+		<str name="icon_temperature" value=""/>  <!-- U+F2C7 thermometer-half -->
+		<str name="icon_th_large" value=""/>  <!-- U+F009 th-large -->
+		<str name="icon_trash" value=""/>  <!-- U+F1F8 trash -->
+		<str name="icon_wifi" value=""/>  <!-- U+F1EB wifi -->
+		<str name="icon_wifi_slash" value=""/>  <!-- U+F127 wifi-slash -->
 	<!-- ===================================================================== -->
 	<!-- Subjects for reactive data binding                                   -->
 	<!-- Subjects are initialized in C++ code before XML loading              -->

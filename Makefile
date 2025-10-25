@@ -24,7 +24,7 @@ LVGL_OBJS := $(patsubst $(LVGL_DIR)/%.c,$(OBJ_DIR)/lvgl/%.o,$(LVGL_SRCS))
 LVGL_DEMO_SRCS := $(shell find $(LVGL_DIR)/demos -name "*.c")
 LVGL_DEMO_OBJS := $(patsubst $(LVGL_DIR)/%.c,$(OBJ_DIR)/lvgl/%.o,$(LVGL_DEMO_SRCS))
 
-# Application (exclude test binaries)
+# Application C++ sources (exclude test binaries)
 APP_SRCS := $(filter-out $(SRC_DIR)/test_dynamic_cards.cpp,$(wildcard $(SRC_DIR)/*.cpp))
 APP_OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(APP_SRCS))
 
@@ -52,8 +52,9 @@ TARGET := $(BIN_DIR)/guppy-ui-proto
 # LVGL configuration
 LV_CONF := -DLV_CONF_INCLUDE_SIMPLE
 
-# Parallel build
+# Parallel build (auto-detect CPU cores and enable by default)
 NPROC := $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+MAKEFLAGS += -j$(NPROC)
 
 # Test configuration
 TEST_DIR := tests
@@ -74,7 +75,7 @@ $(TARGET): $(APP_OBJS) $(LVGL_OBJS) $(FONT_OBJS) $(MATERIAL_ICON_OBJS)
 	@$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 	@echo "Build complete: $@"
 
-# Compile app sources
+# Compile app C++ sources
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	@echo "Compiling $<..."

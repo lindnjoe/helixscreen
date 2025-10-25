@@ -105,3 +105,9 @@ void ui_panel_print_select_show_detail_view();
  * Hide the detail view overlay
  */
 void ui_panel_print_select_hide_detail_view();
+
+/**
+ * Set the print status panel reference for launching prints
+ * @param panel The print status panel widget
+ */
+void ui_panel_print_select_set_print_status_panel(lv_obj_t* panel);

@@ -27,6 +27,7 @@
 
 // Navigation & Movement
 LV_IMG_DECLARE(home);
+LV_IMG_DECLARE(home_printer);
 LV_IMG_DECLARE(arrow_down);
 LV_IMG_DECLARE(arrow_left);
 LV_IMG_DECLARE(arrow_right);
@@ -39,6 +40,8 @@ LV_IMG_DECLARE(home_z);
 
 // Print & Files
 LV_IMG_DECLARE(print);
+LV_IMG_DECLARE(list);
+LV_IMG_DECLARE(grid_view);
 LV_IMG_DECLARE(pause_img);
 LV_IMG_DECLARE(resume);
 LV_IMG_DECLARE(cancel);

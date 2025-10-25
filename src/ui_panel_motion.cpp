@@ -19,6 +19,10 @@
  */
 
 #include "ui_panel_motion.h"
+#include "ui_component_header_bar.h"
+#include "ui_nav.h"
+#include "ui_utils.h"
+#include "ui_theme.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -82,16 +86,18 @@ static void update_distance_buttons() {
 static void back_button_cb(lv_event_t* e) {
     (void)e;  // Unused parameter
 
-    // Hide motion panel
-    if (motion_panel) {
-        lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
-    }
+    // Use navigation history to go back to previous panel
+    if (!ui_nav_go_back()) {
+        // Fallback: If navigation history is empty, manually hide and show controls launcher
+        if (motion_panel) {
+            lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
+        }
 
-    // Show controls panel launcher
-    if (parent_obj) {
-        lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-        if (controls_launcher) {
-            lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+        if (parent_obj) {
+            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
+            if (controls_launcher) {
+                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 }
@@ -189,11 +195,50 @@ static void home_button_cb(lv_event_t* e) {
     }
 }
 
+// Resize callback for responsive padding
+static void on_resize() {
+    if (!motion_panel || !parent_obj) {
+        return;
+    }
+
+    lv_obj_t* motion_content = lv_obj_find_by_name(motion_panel, "motion_content");
+    if (motion_content) {
+        lv_coord_t vertical_padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
+        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
+        lv_obj_set_style_pad_top(motion_content, vertical_padding, 0);
+        lv_obj_set_style_pad_bottom(motion_content, vertical_padding, 0);
+        lv_obj_set_style_pad_left(motion_content, UI_PADDING_MEDIUM, 0);
+        lv_obj_set_style_pad_right(motion_content, UI_PADDING_MEDIUM, 0);
+    }
+}
+
 void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     motion_panel = panel;
     parent_obj = parent_screen;
 
     printf("[Motion] Setting up event handlers...\n");
+
+    // Setup header for responsive height
+    lv_obj_t* motion_header = lv_obj_find_by_name(panel, "motion_header");
+    if (motion_header) {
+        ui_component_header_bar_setup(motion_header, parent_screen);
+    }
+
+    // Set responsive padding for content area
+    lv_obj_t* motion_content = lv_obj_find_by_name(panel, "motion_content");
+    if (motion_content) {
+        lv_coord_t vertical_padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
+        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
+        lv_obj_set_style_pad_top(motion_content, vertical_padding, 0);
+        lv_obj_set_style_pad_bottom(motion_content, vertical_padding, 0);
+        lv_obj_set_style_pad_left(motion_content, UI_PADDING_MEDIUM, 0);
+        lv_obj_set_style_pad_right(motion_content, UI_PADDING_MEDIUM, 0);
+        printf("[Motion]   ✓ Content padding: top/bottom=%dpx, left/right=%dpx (responsive)\n",
+               vertical_padding, UI_PADDING_MEDIUM);
+    }
+
+    // Register resize callback
+    ui_resize_handler_register(on_resize);
 
     // Back button
     lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");

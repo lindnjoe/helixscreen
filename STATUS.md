@@ -1,8 +1,922 @@
 # Project Status - LVGL 9 UI Prototype
 
-**Last Updated:** 2025-10-24 (List View Sort Indicator Fixes)
+**Last Updated:** 2025-10-25 (Responsive Headers & Vertical Padding)
 
-## Recent Updates (2025-10-24)
+## Recent Updates (2025-10-25)
+
+### Responsive Header Heights & Vertical Padding ✅ COMPLETE
+
+**Objective:** Reduce wasted vertical space on tiny/small screens by making header heights and content padding responsive
+
+**Problems Identified:**
+1. Fixed 60px header height consumed 18.75% of tiny screen's 320px vertical space
+2. Fixed 20px vertical padding at top/bottom of content areas wasted additional space
+3. Horizontal padding could stay consistent, but vertical needed to be responsive
+
+**Solution Implemented:**
+
+1. **Header Bar Component System**
+   - Created `ui_component_header_bar.cpp/h` for centralized header management
+   - Moved `ui_header_bar_*()` functions from ui_utils to dedicated component file
+   - Added `ui_component_header_bar_setup()` for responsive height application
+   - Integrated with global resize handler system for dynamic updates
+
+2. **Responsive Helper Functions**
+   ```cpp
+   ui_get_responsive_header_height(screen_height):
+     - Tiny (≤479px): 40px
+     - Small (480-599px): 48px
+     - Medium/Large (≥600px): 60px
+
+   ui_get_header_content_padding(screen_height):
+     - Tiny: 6px
+     - Small: 10px
+     - Medium/Large: 20px
+   ```
+
+3. **Split Padding Pattern**
+   - Vertical padding (top/bottom): Responsive (6/10/20px)
+   - Horizontal padding (left/right): Fixed at UI_PADDING_MEDIUM (12px)
+   - Rationale: Vertical space is scarce; horizontal can stay consistent
+
+**Vertical Space Savings:**
+- **Tiny (320px height):** Header 60→40px (-20px), padding 20→6px (-14px) = **34px saved** (10.6% more usable space)
+- **Small (480px height):** Header 60→48px (-12px), padding 20→10px (-10px) = **22px saved** (4.6% more usable space)
+- **Large (720px height):** No change (60px header, 20px padding maintained)
+
+**Files Modified:**
+- `include/ui_component_header_bar.h` - New component header (43 lines)
+- `src/ui_component_header_bar.cpp` - Component implementation (160 lines)
+- `include/ui_utils.h` - Added `ui_get_responsive_header_height()`, removed old header functions
+- `src/ui_utils.cpp` - Added responsive height helper, removed moved functions
+- `src/main.cpp` - Added `ui_component_header_bar_init()` call before XML registration
+- `src/ui_panel_motion.cpp` - Added header setup + split padding
+- `src/ui_panel_controls_extrusion.cpp` - Added header setup + split padding
+- `src/ui_panel_controls_temp.cpp` - Added header setup to both nozzle/bed panels
+- `src/ui_panel_print_status.cpp` - Added header setup
+- `Makefile` - Auto-picks up new ui_component_header_bar.cpp
+
+**Testing:**
+```bash
+# Verified responsive behavior on all screen sizes
+./build/bin/guppy-ui-proto -s tiny -p motion    # 40px header, 6px padding
+./build/bin/guppy-ui-proto -s small -p motion   # 48px header, 10px padding
+./build/bin/guppy-ui-proto -s large -p motion   # 60px header, 20px padding
+```
+
+**Pattern Established:**
+- Component wrappers for dynamic responsiveness when XML constants aren't sufficient
+- Single setup call per panel: `ui_component_header_bar_setup(header, screen)`
+- Global resize system handles all instances automatically
+- Follows LVGL patterns (explicit setup, no automatic constructors)
+
+**Documentation:**
+- Updated `docs/RESPONSIVE_DESIGN_PATTERN.md` with C++ component pattern examples
+
+**Benefits:**
+- ✅ 10%+ more usable vertical space on tiny screens
+- ✅ Clean component encapsulation (header manages its own behavior)
+- ✅ Minimal panel code (one setup line each)
+- ✅ Automatic resize handling
+- ✅ Consistent pattern for future responsive components
+
+---
+
+### Controls Panel Responsive Launcher Cards ✅ COMPLETE
+
+**Objective:** Fix oversized launcher cards on small screens and eliminate uneven card sizing across rows
+
+**Problems Identified:**
+1. Hardcoded 400×200px card dimensions made cards too large on tiny/small screens (480×320 only fit 1 card)
+2. `flex_grow` property caused uneven card sizing when rows had different numbers of cards
+3. Font sizes and padding too large for compact screens
+
+**Solution Implemented:**
+
+1. **Percentage-Based Width (No flex_grow)**
+   - Changed from flexbox constraints to simple percentage width
+   - `width="47%"` ensures exactly 2 cards per row on all screens
+   - Removed `flex_grow`, `style_flex_basis`, `min_width`, `max_width` complexity
+   - Result: All cards identical size across all rows
+
+2. **Semantic Constants for Compact Styling**
+   - `launcher_card_width: 47%` - Uniform width (2 cards per row + 20px gap)
+   - `launcher_card_padding: 16px` - Reduced from 24px
+   - `launcher_card_icon_padding: 12px` - Reduced from 16px
+   - `launcher_card_title_padding: 6px` - Reduced from 8px
+
+3. **Smaller Fonts for Better Density**
+   - Title font: `montserrat_20` → `montserrat_16`
+   - Subtitle font: `montserrat_16` → `montserrat_14`
+   - Direct font references (not `#font_heading` constant) for precise control
+
+**Results by Screen Size:**
+- **Tiny (480×320):** 2 cards per row - much more usable (was 1)
+- **Small (800×480):** 2 cards per row - perfect fit
+- **Medium (1024×600):** 2 cards per row - clean layout
+- **Large (1280×720):** 2 cards per row - consistent sizing
+
+**Files Modified:**
+- `ui_xml/globals.xml` - Added launcher card semantic constants (lines 107-118)
+- `ui_xml/controls_panel.xml` - Updated all 6 cards with responsive sizing
+
+**Testing:**
+```bash
+make clean && make
+./scripts/screenshot.sh guppy-ui-proto controls-tiny-fixed controls -s tiny
+./scripts/screenshot.sh guppy-ui-proto controls-small-fixed controls -s small
+./scripts/screenshot.sh guppy-ui-proto controls-medium-fixed controls
+./scripts/screenshot.sh guppy-ui-proto controls-large-fixed controls -s large
+```
+
+**Screenshots:**
+- `/tmp/ui-screenshot-controls-tiny-fixed.png` - 2 cards per row
+- `/tmp/ui-screenshot-controls-small-fixed.png` - 2 cards per row
+- `/tmp/ui-screenshot-controls-medium-fixed.png` - 2 cards per row
+- `/tmp/ui-screenshot-controls-large-fixed.png` - 2 cards per row
+
+**Pattern Established:**
+Percentage-based widths for uniform card sizing across rows (similar to print file cards pattern, but simpler - no dynamic C++ calculation needed for launcher cards).
+
+**Benefits:**
+- ✅ All cards identical size (no uneven rows)
+- ✅ Tiny screens now usable with 2 cards per row
+- ✅ Compact fonts/padding improve information density
+- ✅ Simple, maintainable approach (just percentage width)
+
+**Next:** Apply responsive design pattern to other panels as needed.
+
+---
+
+### Command-Q Quit Shortcut & Makefile Parallel Build Fix ✅ COMPLETE
+
+**Objective:** Add keyboard shortcut to quit application and ensure default make uses parallel building
+
+**Implementation:**
+
+1. **Command-Q Quit Shortcut**
+   - Added Cmd+Q (macOS) / Win+Q (Windows) keyboard shortcut to quit application
+   - Implementation in `src/main.cpp` lines 555-561 (main event loop)
+   - Uses SDL state query functions: `SDL_GetModState()` and `SDL_GetKeyboardState()`
+   - Detects `KMOD_GUI` modifier (Cmd/Win key) + `SDL_SCANCODE_Q` simultaneously
+   - Breaks main loop cleanly, allowing proper cleanup code to run
+   - Logs "Cmd+Q/Win+Q pressed - exiting..." when triggered
+
+2. **Makefile Parallel Building by Default**
+   - Added `MAKEFLAGS += -j$(NPROC)` to Makefile line 57
+   - Default `make` command now automatically uses all CPU cores
+   - NPROC auto-detects cores: `sysctl -n hw.ncpu` (macOS) / `nproc` (Linux) / fallback 4
+   - Significantly speeds up compilation without requiring `make build`
+
+**Technical Details:**
+- **State queries don't interfere with LVGL:** `SDL_GetModState()` and `SDL_GetKeyboardState()` query keyboard state without draining SDL event queue
+- **Respects LVGL architecture:** Project constraint prohibits calling `SDL_PollEvent()` manually - state queries are safe
+- **Cross-platform:** `KMOD_GUI` maps to Cmd (macOS), Windows key (Windows/Linux)
+- **Clean exit:** Breaking loop proceeds to `lv_deinit()` cleanup (line 576) and returns 0
+
+**Files Modified:**
+- `src/main.cpp` - Added Cmd+Q detection in main loop (lines 555-561)
+- `Makefile` - Added `MAKEFLAGS += -j$(NPROC)` for auto-parallel builds (line 57)
+
+**Testing:**
+```bash
+make                          # Now uses all cores automatically
+./build/bin/guppy-ui-proto    # Press Cmd+Q to quit
+```
+
+**Benefits:**
+- Faster default builds (no need to remember `make build` vs `make`)
+- Consistent with HANDOFF.md documentation ("make # Incremental build (auto-parallel)")
+- Convenient quit method for macOS users (standard Cmd+Q behavior)
+
+---
+
+### Documentation Cleanup - Keypad Event Handlers Clarification ✅ COMPLETE
+
+**Objective:** Clarify keypad implementation status and remove stale documentation
+
+**Status Clarification:**
+- **Event handlers are COMPLETE** - All numeric input, backspace, OK, cancel, and backdrop click handlers were implemented in Phase 5.2 (2025-10-12 Late Night)
+- Implementation includes: digit buttons (0-9), backspace, OK button with value parsing/clamping/callback, back button cancellation, backdrop click dismissal
+- See `src/ui_component_keypad.cpp` lines 176-356 for full implementation
+
+**Documentation Updates:**
+- Updated HANDOFF.md to remove stale "Wire Keypad Event Handlers" task from immediate next steps
+- Updated HANDOFF.md to mark keypad testing as complete
+- This entry added to STATUS.md to clarify implementation timeline
+
+**Timeline:**
+- 2025-10-12 Late Night: Numeric keypad component created with complete event handling (Phase 5.2)
+- 2025-10-25: Responsive design improvements and sizing fixes
+- 2025-10-25: FontAwesome backspace icon integration
+- 2025-10-25: Documentation cleanup (this entry)
+
+**Next Priority:** Apply responsive design pattern to other panels (motion, temp, extrusion)
+
+---
+
+### Keypad Button Sizing & FontAwesome Icon Integration ✅ COMPLETE
+
+**Objective:** Remove max button height constraint and replace placeholder backspace character with FontAwesome icon
+
+**Implementation:**
+
+1. **Removed Button Height Constraint**
+   - Removed `style_max_height="#button_max_height"` (70px cap) from all 11 keypad buttons
+   - Removed unused `button_max_height` constant from numeric_keypad_modal.xml
+   - Buttons now use `height="100%"` with `flex_grow="1"` to fill available space
+   - Result: Taller buttons on larger screens, better use of vertical space
+
+2. **FontAwesome Backspace Icon Integration**
+   - Fixed `scripts/generate-icon-consts.py` pattern matching for globals.xml
+   - Generated icon constants with proper UTF-8 encoding (U+F55A for backspace)
+   - Added 33 icon constants to `ui_xml/globals.xml` using script
+   - Updated backspace button to use `text="#icon_backspace" style_text_font="fa_icons_24"`
+   - Size consistency: fa_icons_24 matches montserrat_20 button labels better than fa_icons_32
+
+3. **Icon Generation Script Updates**
+   - Updated regex pattern to handle tab/space variations in globals.xml
+   - Script now properly replaces existing icon section instead of failing silently
+   - UTF-8 characters correctly embedded (appear empty in terminal but render with font)
+
+**Files Modified:**
+- `ui_xml/numeric_keypad_modal.xml` - Removed max height, added FA backspace icon
+- `ui_xml/globals.xml` - Added 33 icon constants with UTF-8 characters
+- `scripts/generate-icon-consts.py` - Fixed pattern matching for reliable updates
+
+**Technical Details:**
+- Icon constants use Private Use Area Unicode (U+F000-U+F8FF)
+- Characters appear empty in terminal/grep but contain UTF-8 bytes (e.g., ef959a for U+F55A)
+- FontAwesome fonts (fa_icons_16/24/32/48/64) already declared and registered in main.cpp
+- Icon constant validation: `python3 -c "print(repr(chr(0xF55A)))"` → `'\uf55a'`
+
+**Verification:**
+```bash
+# Check UTF-8 encoding
+python3 << 'EOF'
+with open('ui_xml/globals.xml', 'r') as f:
+    for line in f:
+        if 'icon_backspace' in line:
+            import re
+            match = re.search(r'value="([^"]*)"', line)
+            if match:
+                print(f"Bytes: {match.group(1).encode('utf-8').hex()}")  # ef959a
+EOF
+
+# Rebuild and test
+make clean && make
+./build/bin/guppy-ui-proto -k  # Auto-open keypad for testing
+```
+
+---
+
+## Recent Updates (2025-10-25)
+
+### Responsive Numeric Keypad - Mobile-First Design ✅ COMPLETE
+
+**Objective:** Make numeric keypad work across all screen sizes from tiny (480×320) to large (1280×720)
+
+**Approach:** Mobile-first XML-based design using semantic constants
+
+**Implementation:**
+
+1. **Removed All Hardcoded Sizing**
+   - Eliminated keypad-specific constants (keypad_padding, keypad_section_gap, etc.)
+   - Replaced with semantic constants: `#padding_small`, `#gap_normal`, `#gap_small`
+   - All sizing declarative in XML, zero C++ runtime adjustments
+
+2. **Responsive Flex Layout**
+   - Grid container: `flex_grow="1"` fills available vertical space
+   - Button rows: `flex_grow="1"` with `space_evenly` distribution
+   - Individual buttons: `flex_grow="1"` and `height="100%"`
+   - Input display/header: `height="content"` for natural sizing
+
+3. **Mobile-First Font Sizes**
+   - Header title: `montserrat_20` (was 28)
+   - Button labels: `montserrat_20` (was 28)
+   - Input display: `montserrat_28` (was 48)
+   - Icon size: `sm` instead of `md`
+
+4. **Testing Infrastructure**
+   - Added `-k`/`--keypad` flag to auto-open keypad for testing
+   - Created `scripts/test_keypad_sizes.sh` for automated multi-size testing
+
+**Results:**
+- ✅ Tiny (480×320): All buttons visible, compact but usable
+- ✅ Small (800×480): Comfortable spacing
+- ✅ Medium (1024×600): Perfect proportions
+- ✅ Large (1280×720): Spacious and comfortable
+
+**Files Modified:**
+- `ui_xml/numeric_keypad_modal.xml` - Responsive layout
+- `ui_xml/globals.xml` - Removed redundant constants
+- `src/main.cpp` - Added `-k` test flag
+- `scripts/test_keypad_sizes.sh` - New test script
+
+**Key Insight:** XML-first approach with semantic constants eliminates need for C++ runtime adjustments. This pattern should be applied to other panels (motion, temps, extrusion).
+
+---
+
+### Interactive Testing & Test Automation ✅ COMPLETE
+
+**Objective:** Verify navigation flows, UI polish, and panel rendering across all configurations.
+
+**Testing Approach:**
+
+**1. Automated Test Script** (`scripts/test_navigation.sh`)
+- Created comprehensive automated test suite
+- Tests all command-line panel flags (-p home, controls, motion, etc.)
+- Tests all screen size flags (-s tiny, small, medium, large)
+- Verifies all panels render without errors
+- **Results:** ✅ ALL TESTS PASS (26/26)
+  - 8 panel flags working correctly
+  - 4 screen sizes supported
+  - 9 panels render without errors
+  - Zero initialization failures
+
+**2. UI Polish Verification** (Screenshot Review)
+- Print select card view: ✅ Rounded corners visible, thumbnails scaled properly
+- Print file detail view: ✅ Rounded corners, object-fit:contain working
+- Print status panel: ✅ Perfect 2:1 layout, gradient backgrounds
+- Motion panel: ✅ Clean overlay, back chevron visible
+- Nozzle/Bed temp panels: ✅ Preset buttons, custom button, back chevron
+- Extrusion panel: ✅ Proper layout, all controls visible
+
+**3. Navigation Architecture Clarification**
+- **Panel Stack:** Motion, Nozzle Temp, Bed Temp, Extrusion, Print Status
+  - Use `ui_nav_push_overlay()` for stack-based navigation
+  - Back buttons use `ui_nav_go_back()` to pop stack
+- **Modal Dialogs:** Numeric keypad
+  - Simple show/hide (`lv_obj_remove_flag`/`lv_obj_add_flag`)
+  - Not part of navigation stack (appears on top)
+
+**Testing Summary:**
+```
+✓ All command line flags working
+✓ All screen sizes supported (480x320 to 1280x720)
+✓ All panels render without errors
+✓ Rounded corners visible on cards and detail views
+✓ Thumbnails scale properly (cover for cards, contain for detail)
+✓ Gradient backgrounds working correctly
+✓ Back chevrons visible on all overlay panels
+✓ Navigation bar highlights correct active panel
+```
+
+**Screenshots Generated:**
+- `/tmp/ui-screenshot-nav-test-home.png`
+- `/tmp/ui-screenshot-nav-test-controls.png`
+- `/tmp/ui-screenshot-nav-test-motion.png`
+- `/tmp/ui-screenshot-nav-test-nozzle-temp.png`
+- `/tmp/ui-screenshot-nav-test-bed-temp.png`
+- `/tmp/ui-screenshot-nav-test-extrusion.png`
+- `/tmp/ui-screenshot-nav-test-print-select.png`
+- `/tmp/ui-screenshot-nav-test-file-detail.png`
+- `/tmp/ui-screenshot-nav-test-print-status.png`
+
+**Manual Testing Still Required:**
+- Interactive navigation (click motion card → back button behavior)
+- Multi-level navigation (nozzle temp → keypad modal → ESC → back)
+- State preservation (set temp values, navigate away, navigate back)
+- Rapid button clicking (stress test event handlers)
+
+**Files Created:**
+- `scripts/test_navigation.sh` - Automated test suite
+
+**Status:** ✅ **Ready for Moonraker Integration** - All UI components functional, navigation system robust, visual polish complete.
+
+---
+
+## Previous Updates (2025-10-25)
+
+### Navigation System Refactoring & Bug Fixes ✅ COMPLETE
+
+**Objective:** Fix navigation system issues, UI polish bugs, and resolve critical blank screen bug.
+
+**Problems Addressed:**
+1. Print file cards lacked rounded corners (image overflow)
+2. Print detail view thumbnails not scaling when shown
+3. Navigation history not clearing when clicking nav bar icons
+4. Back button showing blank screen when history empty
+5. Nav buttons not properly showing clicked panel
+6. **CRITICAL:** Clicking nav buttons caused total blank screen (navbar and panels disappeared)
+
+**Solutions Implemented:**
+
+**1. UI Polish - Rounded Corners**
+- Added `style_clip_corner="true"` to `print_file_card.xml` card root (line 63)
+- Added same to `print_file_detail.xml` thumbnail section (line 62)
+- Prevents thumbnail images from overflowing rounded card backgrounds
+
+**2. Detail View Image Scaling** (`ui_panel_print_select.cpp`)
+- Created `scale_detail_images()` function (lines 633-662)
+- Calls `lv_obj_update_layout()` before scaling (CRITICAL for flex layouts)
+- Uses `ui_image_scale_to_cover()` for gradient background
+- Uses `ui_image_scale_to_contain()` for thumbnail (top-mid alignment)
+- Called when detail view is shown (line 671), not during creation
+- Follows print_status panel pattern for proper timing
+
+**3. Navigation System Refactoring** (`ui_nav.cpp`)
+- **Unified panel stack approach** - replaced dual system (panel_widgets + nav_history)
+- Changed `nav_history` to `panel_stack` (lines 43-48) - tracks ALL visible panels in z-order
+- Refactored `nav_button_clicked_cb()` (lines 82-136):
+  - Hides all visible overlay panels (not in panel_widgets array)
+  - Hides all main panels
+  - Clears stack completely
+  - Shows clicked panel and pushes to stack
+  - Updates active panel subject
+- Made `ui_nav_go_back()` defensive (lines 333-408):
+  - ALWAYS hides any visible overlay panels first
+  - Pops stack
+  - Fallback to HOME panel if stack empty
+  - Hides other main panels when showing previous main panel
+  - Returns true if navigation occurred, false if no previous panel
+
+**4. App Layout Protection - CRITICAL FIX** (`ui_nav.cpp`, `ui_nav.h`, `main.cpp`)
+- **Root cause of blank screen:** Navigation code was hiding `app_layout` container (which holds navbar + all panels)
+- Added `ui_nav_set_app_layout()` function (ui_nav.h:54-55)
+- Store `app_layout_widget` static reference (ui_nav.cpp:39-40, 183-186)
+- Modified `nav_button_clicked_cb()` to skip app_layout when hiding overlays (lines 91-94)
+- Modified `ui_nav_go_back()` to skip app_layout when hiding overlays (line 346)
+- Called `ui_nav_set_app_layout(app_layout)` in main.cpp after XML creation (line 346)
+
+**Architecture Context:**
+```
+screen
+└── app_layout (navbar + content_area container)
+    ├── navigation_bar
+    └── content_area
+        ├── home_panel
+        ├── controls_panel
+        ├── print_select_panel
+        └── ... other main panels
+```
+
+**Key Insight:** Navbar is inside `app_layout`, not a direct screen child. Comparing against `navbar_widget` didn't work because navigation code iterates screen children. Solution: Track and skip `app_layout` entirely.
+
+**Files Modified:**
+- `ui_xml/print_file_card.xml` - Added rounded corner clipping (line 63)
+- `ui_xml/print_file_detail.xml` - Added rounded corner clipping (line 62)
+- `src/ui_panel_print_select.cpp` - Detail view image scaling (lines 633-662, 671)
+- `include/ui_nav.h` - Added `ui_nav_set_app_layout()` declaration (lines 54-55)
+- `src/ui_nav.cpp` - Refactored to panel_stack, defensive navigation, app_layout protection (lines 39-40, 43-48, 82-136, 183-186, 333-408)
+- `src/main.cpp` - Register app_layout reference (line 346)
+
+**Testing:** ✅ All navigation flows working correctly. No blank screens. Back button defaults to home. Nav buttons clear history and show selected panel.
+
+---
+
+## Previous Updates (2025-10-25)
+
+### Navigation History Stack Implementation ✅ COMPLETE
+
+**Objective:** Implement back button navigation history for overlay panels with state preservation.
+
+**Problem:**
+- Back buttons on overlay panels (motion, temps, extrusion) manually show/hide specific panels
+- No navigation stack - can't track "previous panel" for multi-level navigation
+- User requested: clicking nav bar icons should clear history; back buttons should use history
+
+**Solution Implemented:**
+
+**1. Navigation History Stack** (`ui_nav.cpp`/`ui_nav.h`)
+- Added `std::vector<lv_obj_t*> nav_history` to track panel navigation
+- Created `ui_nav_push_overlay(lv_obj_t*)` - pushes current panel to history and shows overlay
+- Created `ui_nav_go_back()` - pops history and returns to previous panel
+- Updated nav bar button handler to **clear history** when clicking any nav icon
+
+**2. Updated All Overlay Show Functions** (use `ui_nav_push_overlay()`)
+- `ui_panel_controls.cpp`: motion, nozzle temp, bed temp, extrusion card click handlers
+- Each handler now calls `ui_nav_push_overlay()` instead of manual show/hide
+
+**3. Updated All Back Button Callbacks** (use `ui_nav_go_back()`)
+- `ui_panel_motion.cpp` - motion panel back button
+- `ui_panel_controls_temp.cpp` - nozzle & bed temp back buttons
+- `ui_panel_controls_extrusion.cpp` - extrusion back button
+- `ui_panel_print_status.cpp` - print status back button
+- Each includes fallback to manual show/hide if history is empty
+
+**How It Works:**
+1. **Opening overlay:** Current visible panel pushed to history, overlay shown
+2. **Back button:** Pops history, hides current overlay, shows previous panel
+3. **Nav bar click:** Clears history, shows selected main panel
+
+**Files Modified:**
+- `include/ui_nav.h` - Added function declarations
+- `src/ui_nav.cpp` - Implemented history stack (lines 44, 250-327)
+- `src/ui_panel_controls.cpp` - Updated card click handlers (lines 26, 128-130, 157-159, 185-187, 212-215)
+- `src/ui_panel_motion.cpp` - Updated back button (lines 22, 86-99)
+- `src/ui_panel_controls_temp.cpp` - Updated temp back buttons (lines 24, 112-125, 242-255)
+- `src/ui_panel_controls_extrusion.cpp` - Updated back button (lines 22, 176-189)
+- `src/ui_panel_print_status.cpp` - Updated back button (lines 23, 179-192)
+
+**Testing:** ✅ Build successful, navigation system ready for interactive testing
+
+---
+
+## Previous Updates (2025-10-24)
+
+### Image Scaling Refactoring & Pattern Documentation ✅ COMPLETE
+
+**Objective:** Fix gradient/thumbnail scaling issues in print status panel and extract reusable image scaling utilities.
+
+**Problem Identified:**
+- Print status panel gradient and thumbnail not displaying (appeared as black/empty)
+- Scaling code attempted to query layout dimensions before LVGL calculated them
+- Result: Container reported 0x0 size, scaling functions did nothing
+
+**Root Cause:**
+LVGL uses **deferred layout calculation**. After setting dimensions with `lv_obj_set_width()`, flex/grid layouts don't immediately recalculate child sizes - they mark layouts "dirty" and process during next render cycle. Without forcing synchronous update, widgets report incorrect dimensions.
+
+**Solution Implemented:**
+
+**1. Reusable Image Scaling Utilities** (ui_utils.h/cpp)
+- Added `ui_image_scale_to_cover()` - Like CSS object-fit: cover (fills area, may crop)
+- Added `ui_image_scale_to_contain()` - Like CSS object-fit: contain (fits within, no crop)
+- Both handle LVGL zoom calculation (256 = 1.0x scale)
+- Both include debug logging for troubleshooting
+
+**2. Fixed Print Status Panel** (ui_panel_print_status.cpp:297-314)
+- Added `lv_obj_update_layout(panel)` call before scaling images
+- Forces synchronous layout calculation so dimensions are available
+- Refactored scaling code to use new utility functions
+- Created `scale_thumbnail_images()` helper called on setup and resize
+
+**3. Documented Pattern** (CLAUDE.md Critical Pattern #5)
+- Brief explanation of why `lv_obj_update_layout()` is required
+- References to implementation locations for detailed examples
+- Keeps CLAUDE.md concise with pointers to supporting documentation
+
+**Testing:**
+- ✅ Print status panel: Gradient and thumbnail now display correctly
+- ✅ Print select panel: Continues to work (no changes needed, scales during dynamic creation)
+- Screenshot: `/tmp/ui-screenshot-print-status-fixed.png`
+
+**Key Learning:**
+Print select panel worked without explicit layout update because it scales images dynamically during `populate_card_view()`, called after setup. By then, LVGL's event loop naturally calculated layouts. Print status panel scales images immediately during `ui_panel_print_status_setup()`, requiring explicit `lv_obj_update_layout()`.
+
+**Files Changed:**
+- `include/ui_utils.h` - Added function declarations
+- `src/ui_utils.cpp` - Implemented scaling utilities (lines 213-276)
+- `src/ui_panel_print_status.cpp` - Added layout update and refactored scaling (lines 249-314)
+- `CLAUDE.md` - Added Critical Pattern #5, streamlined documentation
+
+---
+
+### Print Status Panel Layout Fix - Incremental Rebuild ✅ COMPLETE
+
+**Objective:** Fix the broken print status panel layout using an incremental approach, building up from a minimal working state.
+
+**Problem:** Previous layout used hardcoded percentage widths (`width="66%"` and `width="34%"`) which caused layout collapse and overflow. Multiple attempts to fix with various flex approaches failed. Root cause was trying to add all content at once without verifying each step.
+
+**Approach Taken:** **Incremental build with testing at each step**
+1. Strip down to minimal empty containers with `flex_grow` only
+2. Verify 2:1 ratio works
+3. Add content one piece at a time
+4. Test after each addition
+5. Fix immediately if something breaks
+
+**Changes Made:**
+
+**Phase 1: Minimal Empty Layout** ✅
+- Removed all content from `thumbnail_section` and `controls_section`
+- Used only `flex_grow="2"` and `flex_grow="1"` (no width attributes)
+- Kept `height="100%"` on both sections
+- Screenshot: `/tmp/ui-screenshot-print-status-empty.png`
+- **Result:** Perfect 2:1 ratio with empty containers
+
+**Phase 2: Thumbnail Images with Resize Callback** ✅
+- **XML Changes** (ui_xml/print_status_panel.xml):
+  - Added `gradient_background` image (thumbnail-gradient-bg.png)
+  - Added `print_thumbnail` image (placeholder with `bind_src="selected_thumbnail"`)
+  - Both images: `width="100%"`, `height="100%"`, centered alignment
+
+- **C++ Changes** (src/ui_panel_print_status.cpp:249-300):
+  - Added `#include "ui_utils.h"` for resize handler
+  - Created `on_resize()` callback function
+  - Gradient background: object-fit cover (use larger scale)
+  - Print thumbnail: object-fit contain (use smaller scale)
+  - Registered resize callback in setup: `ui_resize_handler_register(on_resize)`
+
+- **Why Resize Callback:** Initial attempt ran scaling during setup when dimensions were 0. Resize callback runs after layout is calculated, just like print_select panel's detail view.
+
+- Screenshot: `/tmp/ui-screenshot-print-status-resize-test.png`
+- **Result:** Thumbnail renders properly, 2:1 ratio maintained
+
+**Phase 3: Metadata Overlay** ✅
+- Added metadata overlay at bottom of thumbnail section
+- Includes progress bar (lv_bar bound to `print_progress` subject)
+- Filename label (bound to `print_filename`)
+- Time and percentage labels in horizontal row
+- Semi-transparent black background (opa=180) overlays thumbnail
+- Height: 120px, positioned with `align="bottom_mid"`
+- Screenshot: `/tmp/ui-screenshot-print-status-complete.png`
+
+**Phase 4: Controls Section - Temperature Cards & Buttons** ✅
+- Made controls_section background transparent (`style_bg_opa="0"`)
+- Added column flex layout with `#padding_normal` gap
+- **Temperature Cards:**
+  - Nozzle temp card: 100% width × 80px height
+  - Bed temp card: 100% width × 80px height
+  - Both display current/target temps (bound to `nozzle_temp_display`, `bed_temp_display`)
+  - Card background: `#card_bg`, radius: 8px
+- **Spacer:** `flex_grow="1"` transparent container pushes buttons to bottom
+- **Control Buttons (2×2 Grid):**
+  - Row 1: Light, Pause (120×54px each)
+  - Row 2: Tune, Cancel (120×54px each)
+  - Cancel button styled in red (0xE74C3C) for visual emphasis
+  - All others use `#jog_button_bg`
+- Screenshot: `/tmp/ui-screenshot-print-status-final.png`
+
+**Final Result:**
+- ✅ Perfect 2:1 layout ratio maintained (thumbnail_section flex_grow="2", controls_section flex_grow="1")
+- ✅ All content displays correctly with proper spacing
+- ✅ Temperature cards clickable (event handlers wired in C++)
+- ✅ No XML parsing errors, no layout collapse
+- ✅ Ready for integration with live printer data
+
+**Key Learning:** Incremental approach with testing prevents cascading failures. Build from known-good state, add one thing at a time.
+
+**Files Modified:**
+- `ui_xml/print_status_panel.xml` - Complete 2:1 layout with thumbnail, metadata overlay, temp cards, and control buttons
+- `src/ui_panel_print_status.cpp` - Added resize callback for thumbnail scaling
+
+**Status:** ✅ Foundation solid, 🔨 Content additions in progress
+
+---
+
+## Previous Updates (2025-10-24)
+
+### Print Button → Print Status Panel Integration ✅ COMPLETE
+
+**Objective:** Wire the Print button on file detail view to launch the print status panel with a mock print.
+
+**Problem:** Print status panel existed but had no way to access it from the UI. Print button on detail view was non-functional.
+
+**Changes Made:**
+
+**1. Print Select Panel Integration** (src/ui_panel_print_select.cpp)
+- Added `#include "ui_panel_print_status.h"`
+- Added static reference to print status panel widget
+- Added Print button event handler in `create_detail_view()`:
+  - Hides detail view and print select panel
+  - Shows print status panel overlay
+  - Starts mock print with selected filename (250 layers, 10800 seconds)
+  - Logs print start for debugging
+- Added `ui_panel_print_select_set_print_status_panel()` function to receive panel reference
+
+**2. Public API** (include/ui_panel_print_select.h)
+- Added function declaration for `ui_panel_print_select_set_print_status_panel(lv_obj_t* panel)`
+
+**3. Main Setup** (src/main.cpp:379-391)
+- Creates print status panel at startup as screen overlay
+- Hides it by default with `LV_OBJ_FLAG_HIDDEN`
+- Wires it to print select panel via setter function
+- Mock print tick already exists in main loop (line 540)
+
+**Test Flow:**
+1. Navigate to Print Select panel
+2. Click any file card → detail view opens
+3. Click green "Print" button
+4. Print status panel appears with mock print running
+5. Progress updates every second (0-100%)
+6. Temperatures, layers, times update realistically
+7. Back button returns to Home panel
+
+**Verification Logs:**
+```
+[User] Print status panel reference set
+[User] Print status panel created and wired to print select
+[User] Started mock print for: awesome_benchy.gcode
+```
+
+**Known Issues:**
+- ⚠️ **Print Status Panel UI needs complete redesign** - Current layout has:
+  - Overlapping elements
+  - Misaligned/missized components
+  - Poor visual hierarchy
+  - Not production-ready visually
+- **Logic and integration work correctly** - Data flow, mock simulation, and panel transitions all functional
+- **Next session should focus on UI refinement** - Interactive design iteration needed
+
+**Files Modified:**
+- `src/ui_panel_print_select.cpp` - Print button handler, panel reference
+- `include/ui_panel_print_select.h` - Public API for panel setter
+- `src/main.cpp` - Print status panel creation and wiring
+
+**Status:** ✅ Integration complete, ⚠️ UI design needs work
+
+---
+
+## Previous Updates (2025-10-24)
+
+### Header Bar Responsive Refactoring ✅ COMPLETE
+
+**Objective:** Remove hardcoded widths from header_bar component and use semantic constants for full responsiveness.
+
+**Problem:** Header bar used hardcoded pixel widths (400px for left container, 320px for title) that didn't adapt to different screen sizes or content lengths.
+
+**Changes Made:**
+
+**1. Added Semantic Constants** (ui_xml/globals.xml:126-133)
+- `header_back_button_size`: 60px (back button touch target)
+- `header_right_button_width`: 120px (action button width)
+- `header_right_button_height`: 40px (action button height)
+
+**2. Refactored Header Bar Layout** (ui_xml/header_bar.xml)
+- Root height: `40` → `#header_height` (60px from globals)
+- Left container: Fixed `width="400"` → removed width, added `flex_grow="1"` (responsive)
+- Title label: Fixed `width="320"` → removed width (auto-sizes to content)
+- Back button: `width="60" height="60"` → `width="#header_back_button_size" height="#header_back_button_size"`
+- Right button: `width="120" height="40"` → `width="#header_right_button_width" height="#header_right_button_height"`
+- Right button radius: `8` → `#card_radius` (consistency with global styling)
+- Added `style_pad_right="#padding_normal"` to root (20px spacing from right edge)
+
+**Benefits:**
+- Header bar now fully responsive - adapts to any screen size
+- Title text auto-sizes to content length
+- Left container grows to fill available space
+- All dimensions use semantic constants (easier to maintain/theme)
+- Proper visual spacing on right edge
+
+**Files Modified:**
+- `ui_xml/globals.xml` - Added 3 new header-specific constants
+- `ui_xml/header_bar.xml` - Removed all hardcoded values, added responsive layout
+
+**Verification:**
+- Tested with nozzle-temp panel (shows "Confirm" button)
+- Tested with motion panel (no right button)
+- Both render correctly with proper spacing
+
+---
+
+## Previous Updates (2025-10-24)
+
+### LVGL 9 XML Flag Syntax Cleanup ✅ COMPLETE
+
+**Objective:** Fix all incorrect `flag_*` attribute usage across entire codebase.
+
+**Problem:** LVGL 9 XML uses simplified attribute syntax without `flag_` prefix. Using `flag_hidden="true"`, `flag_clickable="true"`, etc. causes attributes to be silently ignored by the parser.
+
+**Scope:** 12 XML files with 80+ incorrect attribute usages
+
+**Files Fixed:**
+1. `print_file_detail.xml` - 5 occurrences (clickable, scrollable)
+2. `motion_panel.xml` - 16 occurrences (all scrollable in jog pad/controls)
+3. `numeric_keypad_modal.xml` - 9 occurrences (clickable, scrollable)
+4. `controls_panel.xml` - 1 occurrence (scrollable on main view)
+5. `nozzle_temp_panel.xml` - 10 occurrences (clickable, scrollable)
+6. `print_file_card.xml` - 3 occurrences (clickable, scrollable)
+7. `print_select_panel.xml` - 11 occurrences (scrollable, hidden)
+8. `print_status_panel.xml` - 1 occurrence (scrollable)
+9. `confirmation_dialog.xml` - 3 occurrences (clickable)
+10. `extrusion_panel.xml` - 9 occurrences (clickable, scrollable, hidden)
+11. `print_file_list_row.xml` - 1 occurrence (clickable)
+12. `bed_temp_panel.xml` - 10 occurrences (clickable, scrollable)
+
+**Replacements Made:**
+- `flag_clickable="true"` → `clickable="true"`
+- `flag_scrollable="false"` → `scrollable="false"`
+- `flag_scrollable="true"` → `scrollable="true"`
+- `flag_hidden="true"` → `hidden="true"`
+
+**Verification:** `grep -r 'flag_\w+="' ui_xml/` returns no matches - all incorrect syntax removed.
+
+**Impact:**
+- Backdrop click handlers now properly functional
+- Scrollable/non-scrollable containers behave as designed
+- Hidden elements properly hidden without C++ workarounds
+- List view sort indicators visibility now controlled declaratively
+
+**Technical Reference:**
+- Source: `lvgl/src/widgets/property/lv_obj_properties.c:34`
+- Documentation: `docs/LVGL9_XML_ATTRIBUTES_REFERENCE.md:91-123`
+
+---
+
+### Detail View Final Fixes + LVGL 9 XML Attribute Syntax Discovery ✅ COMPLETE
+
+**Objective:** Fix remaining issues with print file detail view and resolve header button visibility.
+
+**Issues Fixed:**
+1. **Gradient background too small** - Background image centered instead of filling entire thumbnail section
+2. **Header button still visible** - Button appeared in detail view header despite `flag_hidden="true"` in XML
+
+**Root Cause Discovery:**
+LVGL 9 XML uses **simplified attribute syntax** without `flag_` prefix:
+- ❌ Wrong: `flag_hidden="true"`, `flag_clickable="true"`, `flag_scrollable="false"`
+- ✅ Correct: `hidden="true"`, `clickable="true"`, `scrollable="false"`
+
+This is documented in `docs/LVGL9_XML_ATTRIBUTES_REFERENCE.md:97` but we were using the wrong syntax throughout the codebase.
+
+**Solutions Implemented:**
+
+**1. Fixed Gradient Background Scaling** (src/ui_panel_print_select.cpp:664-735)
+- Added C++ code to scale gradient background images to fill containers
+- Uses same "cover" fit algorithm as thumbnails: `scale = (scale_w > scale_h) ? scale_w : scale_h`
+- Applied to both card view gradients and detail view gradient
+- Gradient now fills entire thumbnail area (like CSS `object-fit: cover`)
+
+**2. Fixed Header Button Visibility** (ui_xml/header_bar.xml:41, 49, 60, 82-83)
+- Changed all `flag_scrollable` → `scrollable` (4 occurrences)
+- Changed `flag_hidden="true"` → `hidden="true"` (1 occurrence)
+- Button now properly hidden in detail view using declarative XML
+- No C++ workarounds needed
+
+**3. Fixed Button Color** (ui_xml/header_bar.xml:78)
+- Changed `style_bg_color="#success_color"` → `style_bg_color="#primary_color"`
+- Now uses global constant for consistency
+
+**Files Modified:**
+- `ui_xml/header_bar.xml` - Fixed all flag attribute syntax, updated button color
+- `src/ui_panel_print_select.cpp` - Added gradient background scaling code
+
+**Technical Lessons:**
+- LVGL 9 XML property system auto-generates simplified attribute names from enum values
+- See `lvgl/src/widgets/property/lv_obj_properties.c:34` - property is named `flag_hidden` in C but `hidden` in XML
+- Many files in codebase use incorrect `flag_*` syntax and may not work as expected
+- Future work: Audit all XML files for incorrect `flag_*` usage
+
+**Visual Results:**
+- Gradient background fills entire thumbnail section (no centering issues)
+- Header button properly hidden in detail view
+- Button uses correct primary color constant
+
+---
+
+## Previous Updates (2025-10-24)
+
+### Print File Detail View Redesign ✅ COMPLETE
+
+**Objective:** Fix major issues with print file detail overlay panel to match card view design.
+
+**Issues Fixed:**
+1. **Thumbnail not displaying** - Incorrect image path (`placeholder_thumb_centered.png` doesn't exist)
+2. **Wrong styling** - Detail view didn't match card appearance (no gradient, different metadata layout)
+3. **Positioning bug** - Detail view appeared below print select header instead of overlaying entire screen
+4. **Thumbnail cropping** - Image zoomed too much, cutting off top/bottom
+5. **Empty green button** - Right button visible in header despite not being needed
+6. **Wrong back icon** - Curved arrow instead of left chevron
+
+**Solutions Implemented:**
+
+**1. Fixed Thumbnail Path** (ui_xml/print_file_detail.xml:78)
+- Changed `placeholder_thumb_centered.png` → `thumbnail-placeholder.png`
+- Added `bind_src="selected_thumbnail"` for reactive updates
+
+**2. Redesigned Layout to Match Card View**
+- Changed from 3-section vertical layout to proper 2-column design
+- Header bar now full-width at top (60px, no excess padding)
+- Content area below with left (2/3) and right (1/3) sections
+- Left section styled exactly like large card:
+  - Gradient background (`thumbnail-gradient-bg.png`)
+  - Semi-transparent metadata overlay at bottom
+  - Filename + icon rows (mat_clock + time, mat_layers + filament)
+  - Uses same icon component pattern as cards
+
+**3. Fixed Positioning** (src/ui_panel_print_select.cpp:640)
+- Changed parent from `panel_root_widget` → `parent_screen_widget`
+- Detail view now created as direct child of screen, not panel
+- Properly overlays entire screen from top to bottom
+
+**4. Fixed Thumbnail Zoom Calculation** (src/ui_panel_print_select.cpp:670)
+- Changed from "cover" fit to "contain" fit
+- Before: `scale = (scale_w > scale_h) ? scale_w : scale_h;` (larger scale, crops)
+- After: `scale = (scale_w < scale_h) ? scale_w : scale_h;` (smaller scale, fits)
+- Full thumbnail now visible without cropping
+
+**5. Fixed Back Icon** (ui_xml/header_bar.xml:62)
+- Changed `mat_back` (curved arrow) → `mat_arrow_left` (left chevron)
+- Consistent with standard navigation patterns
+
+**6. Empty Button Investigation**
+- header_bar component correctly defaults to `flag_hidden="true"` for right button
+- Panels explicitly call `ui_header_bar_show_right_button()` to enable it
+- Detail view doesn't call this, so button stays hidden as designed
+- No component fix needed
+
+**7. Added Test Support** (src/main.cpp:149, 206-208, 493-505)
+- New command line flag: `--file-detail` or `--print-file-detail`
+- Automatically shows detail view with test data
+- Usage: `./build/bin/guppy-ui-proto file-detail`
+
+**Files Modified:**
+- `ui_xml/print_file_detail.xml` - Complete redesign to match card layout
+- `ui_xml/header_bar.xml` - Changed back icon to left chevron
+- `src/ui_panel_print_select.cpp` - Fixed positioning, zoom calculation, gradient background
+- `src/main.cpp` - Added file-detail test flag
+- `lv_conf.h` - Increased `LV_GRADIENT_MAX_STOPS` from 2 to 8 (prep for future LVGL gradient use; currently using image-based gradients)
+- `Makefile` - Updated comments for clarity
+
+**Visual Results:**
+- Proper full-screen overlay (no print select header showing through)
+- Left section looks like large version of card view
+- Gradient background, metadata overlay with icons
+- Thumbnail fully visible without cropping
+- Clean header with left chevron, no unwanted buttons
+
+---
+
+## Previous Updates (2025-10-24)
 
 ### Print Select List View Sort Indicators ✅ COMPLETE
 
@@ -1710,88 +2624,10 @@ lv_indev_t* mouse = lv_sdl_mouse_create();  // ESSENTIAL for clicks
 
 ## Completed Phases
 
-### ✅ Phase 1: Foundation
-- LVGL 9.3 with XML support
-- SDL2 display backend
-- Reactive data binding
-- Theme system
-- FontAwesome integration
-- Documentation
-
-### ✅ Phase 2: Navigation & Blank Panels
-- Clickable navigation
-- Reactive icon highlighting
-- Panel switching
-- All 5 panel placeholders
-
-## Upcoming Work
-
-### Phase 3: Panel Content (IN PROGRESS)
-Priority: High - Build out actual functionality for each panel
-
-### Phase 4: Enhanced UI Components
-- Integer subjects for progress bars/sliders
-- Custom reusable widgets
-- Modal dialogs
-- Scrolling lists
-
-### Phase 5: Transitions & Polish
-- Panel fade/slide animations
-- Button press feedback
-- Visual polish
-
-### Phase 6: Backend Integration
-- Moonraker WebSocket client
-- Real printer state updates
-- File operations
-- Live temperature/progress monitoring
-
-## Build & Run
-
-```bash
-# Build
-make
-
-# Run
-./build/bin/guppy-ui-proto
-
-# Screenshot
-./scripts/screenshot.sh
-```
-
-## Key Metrics
-
-- **Lines of XML:** ~550 (entire UI layout)
-- **Lines of C++:** ~700 (initialization + reactive logic)
-- **Lines of Test Code:** ~100 (unit tests)
-- **Panels:** 5 (1 with content, 4 blank)
-- **Subjects:** 10 (nav colors, active panel, home panel data)
-- **FontAwesome Sizes:** 3 (64px nav, 48px status cards, 32px inline)
-- **Test Coverage:** 5 test cases, 13 assertions (navigation system)
-- **Build Time:** ~3 seconds (incremental), ~45 seconds (clean)
-- **Test Time:** <1 second (unit tests)
-- **Binary Size:** ~2.5MB (debug build)
-- **Memory Usage:** ~15MB runtime (SDL backend)
-
-## Architecture Highlights
-
-**Separation of Concerns:**
-- XML = UI structure, layout, styling
-- C++ = Initialization, business logic, reactive updates
-- Subjects = Data flow (one-way: C++ → XML)
-
-**Zero Manual Widget Management:**
-- No `lv_obj_t*` stored in application code
-- No manual `lv_label_set_text()` calls
-- Subject updates trigger all bound widgets automatically
-
-**Display Driver Abstraction:**
-- Never call display-specific APIs (SDL, DRM, etc.) directly
-- LVGL handles all input/event processing internally
-- Portable across all LVGL display backends
-
 ---
 
-**Repository:** `prototype-ui9/` (LVGL 9 XML-based implementation)
+**End of Development History**
 
-**Status:** ✅ Navigation complete, home panel content reactive, testing framework operational, remaining panels pending
+For current project state, architecture patterns, and next priorities, see **[HANDOFF.md](HANDOFF.md)**.
+
+For technical reference and troubleshooting, see **[docs/LVGL9_XML_GUIDE.md](docs/LVGL9_XML_GUIDE.md)**.

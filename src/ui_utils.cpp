@@ -19,6 +19,7 @@
  */
 
 #include "ui_utils.h"
+#include "ui_theme.h"
 #include <cstdio>
 #include <ctime>
 #include <vector>
@@ -80,56 +81,34 @@ std::string format_modified_date(time_t timestamp) {
     return std::string(buf);
 }
 
-// ============================================================================
-// Header Bar Component Helpers
-// ============================================================================
+lv_coord_t ui_get_header_content_padding(lv_coord_t screen_height) {
+    // Aggressive space savings for small screens:
+    // Large/Medium (≥600px): UI_PADDING_NORMAL (20px)
+    // Small (480-599px): UI_PADDING_SMALL (10px)
+    // Tiny (≤479px): UI_PADDING_TINY (6px)
 
-bool ui_header_bar_show_right_button(lv_obj_t* header_bar_widget) {
-    if (!header_bar_widget) {
-        return false;
+    if (screen_height >= UI_SCREEN_MEDIUM_H) {
+        return UI_PADDING_NORMAL;
+    } else if (screen_height >= UI_SCREEN_SMALL_H) {
+        return UI_PADDING_SMALL;
+    } else {
+        return UI_PADDING_TINY;
     }
-
-    lv_obj_t* button = lv_obj_find_by_name(header_bar_widget, "right_button");
-    if (button) {
-        lv_obj_remove_flag(button, LV_OBJ_FLAG_HIDDEN);
-        return true;
-    }
-
-    return false;
 }
 
-bool ui_header_bar_hide_right_button(lv_obj_t* header_bar_widget) {
-    if (!header_bar_widget) {
-        return false;
+lv_coord_t ui_get_responsive_header_height(lv_coord_t screen_height) {
+    // Responsive header heights for space efficiency:
+    // Large/Medium (≥600px): 60px (comfortable)
+    // Small (480-599px): 48px (compact)
+    // Tiny (≤479px): 40px (minimal)
+
+    if (screen_height >= UI_SCREEN_MEDIUM_H) {
+        return 60;
+    } else if (screen_height >= UI_SCREEN_SMALL_H) {
+        return 48;
+    } else {
+        return 40;
     }
-
-    lv_obj_t* button = lv_obj_find_by_name(header_bar_widget, "right_button");
-    if (button) {
-        lv_obj_add_flag(button, LV_OBJ_FLAG_HIDDEN);
-        return true;
-    }
-
-    return false;
-}
-
-bool ui_header_bar_set_right_button_text(lv_obj_t* header_bar_widget, const char* text) {
-    if (!header_bar_widget || !text) {
-        return false;
-    }
-
-    lv_obj_t* button = lv_obj_find_by_name(header_bar_widget, "right_button");
-    if (!button) {
-        return false;
-    }
-
-    // Find the label child of the button
-    lv_obj_t* label = lv_obj_find_by_name(button, "right_button_label");
-    if (label) {
-        lv_label_set_text(label, text);
-        return true;
-    }
-
-    return false;
 }
 
 // ============================================================================
@@ -204,4 +183,73 @@ void ui_resize_handler_register(ui_resize_callback_t callback) {
 
     resize_callbacks.push_back(callback);
     LV_LOG_USER("Registered resize callback (%zu total)", resize_callbacks.size());
+}
+
+// ============================================================================
+// Image Scaling Utilities
+// ============================================================================
+
+bool ui_image_scale_to_cover(lv_obj_t* image_widget, lv_coord_t target_width, lv_coord_t target_height) {
+    if (!image_widget) {
+        LV_LOG_ERROR("Cannot scale image: widget is null");
+        return false;
+    }
+
+    // Get source image dimensions
+    lv_image_header_t header;
+    lv_result_t res = lv_image_decoder_get_info(lv_image_get_src(image_widget), &header);
+
+    if (res != LV_RESULT_OK || header.w == 0 || header.h == 0) {
+        LV_LOG_WARN("Cannot get image info for scaling (res=%d, w=%d, h=%d)", res, header.w, header.h);
+        return false;
+    }
+
+    // Calculate scale to cover the target area (like CSS object-fit: cover)
+    // Use larger scale factor so image fills entire area (may crop)
+    float scale_w = (float)target_width / header.w;
+    float scale_h = (float)target_height / header.h;
+    float scale = (scale_w > scale_h) ? scale_w : scale_h;  // Use larger scale to cover
+
+    // LVGL uses zoom as fixed-point: 256 = 1.0x, 512 = 2.0x, etc.
+    uint16_t zoom = (uint16_t)(scale * 256);
+    lv_image_set_scale(image_widget, zoom);
+    lv_image_set_inner_align(image_widget, LV_IMAGE_ALIGN_CENTER);
+
+    LV_LOG_USER("Image scale (cover): img=%dx%d, target=%dx%d, zoom=%d (%.1f%%)",
+               header.w, header.h, target_width, target_height, zoom, scale * 100);
+
+    return true;
+}
+
+bool ui_image_scale_to_contain(lv_obj_t* image_widget, lv_coord_t target_width, lv_coord_t target_height,
+                                lv_image_align_t align) {
+    if (!image_widget) {
+        LV_LOG_ERROR("Cannot scale image: widget is null");
+        return false;
+    }
+
+    // Get source image dimensions
+    lv_image_header_t header;
+    lv_result_t res = lv_image_decoder_get_info(lv_image_get_src(image_widget), &header);
+
+    if (res != LV_RESULT_OK || header.w == 0 || header.h == 0) {
+        LV_LOG_WARN("Cannot get image info for scaling (res=%d, w=%d, h=%d)", res, header.w, header.h);
+        return false;
+    }
+
+    // Calculate scale to contain the image (like CSS object-fit: contain)
+    // Use smaller scale factor so entire image fits within area (no crop)
+    float scale_w = (float)target_width / header.w;
+    float scale_h = (float)target_height / header.h;
+    float scale = (scale_w < scale_h) ? scale_w : scale_h;  // Use smaller scale to contain
+
+    // LVGL uses zoom as fixed-point: 256 = 1.0x, 512 = 2.0x, etc.
+    uint16_t zoom = (uint16_t)(scale * 256);
+    lv_image_set_scale(image_widget, zoom);
+    lv_image_set_inner_align(image_widget, align);
+
+    LV_LOG_USER("Image scale (contain): img=%dx%d, target=%dx%d, zoom=%d (%.1f%%)",
+               header.w, header.h, target_width, target_height, zoom, scale * 100);
+
+    return true;
 }

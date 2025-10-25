@@ -34,23 +34,23 @@
         style_pad_all="0"
         style_radius="0"
         align="center"
-        flag_clickable="true">
+        clickable="true">
 
     <!-- Motion panel content (docked right edge) -->
-    <lv_obj name="motion_panel" width="#overlay_panel_width_large" height="100%" align="right_mid" style_bg_color="#panel_bg" style_pad_all="0" style_border_width="0" flag_scrollable="false" flex_flow="column">
+    <lv_obj name="motion_panel" width="#overlay_panel_width_large" height="100%" align="right_mid" style_bg_color="#panel_bg" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column">
       <!-- Header Bar -->
       <header_bar name="motion_header" title="Motion: XYZ"/>
 
     <!-- Content Area: Two Columns -->
     <lv_obj name="motion_content" flex_grow="1" width="100%"
             style_bg_opa="0" style_pad_all="20"
-            flag_scrollable="false" style_border_width="0" style_border_opa="0"
+            scrollable="false" style_border_width="0" style_border_opa="0"
             flex_flow="row" style_flex_main_place="space_between">
 
       <!-- Left Column (65%): XY Jog Pad + Controls -->
       <lv_obj name="left_column" width="65%" height="100%"
               style_bg_opa="0" style_pad_all="0"
-              flag_scrollable="false" style_border_width="0" style_border_opa="0"
+              scrollable="false" style_border_width="0" style_border_opa="0"
               flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center"
               style_pad_gap="20">
 
@@ -58,13 +58,13 @@
         <lv_obj name="jog_pad_container" width="#jog_pad_size" height="#jog_pad_size"
                 style_bg_color="#card_bg" style_radius="12" style_pad_all="#jog_pad_padding"
                 style_border_width="0" style_border_opa="0"
-                flag_scrollable="false"
+                scrollable="false"
                 flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
                 style_pad_gap="#padding_medium">
 
           <!-- Row 1: NW, N, NE -->
           <lv_obj width="100%" height="80"
-                  flag_scrollable="false"
+                  scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_bg_opa="0" style_border_width="0" style_border_opa="0" style_pad_all="0" style_pad_gap="#padding_medium">
             <lv_button name="jog_nw" width="#jog_button_size" height="#jog_button_size"
@@ -83,7 +83,7 @@
 
           <!-- Row 2: W, Home, E -->
           <lv_obj width="100%" height="80"
-                  flag_scrollable="false"
+                  scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_bg_opa="0" style_border_width="0" style_border_opa="0" style_pad_all="0" style_pad_gap="#padding_medium">
             <lv_button name="jog_w" width="#jog_button_size" height="#jog_button_size"
@@ -92,7 +92,7 @@
             </lv_button>
             <lv_button name="jog_home_xy" width="#jog_button_size" height="#jog_button_size"
                     style_bg_color="#primary_color" style_radius="8" style_border_width="0">
-              <icon src="mat_home" size="md" variant="primary"/>
+              <icon src="mat_home_printer" size="md" variant="primary"/>
             </lv_button>
             <lv_button name="jog_e" width="#jog_button_size" height="#jog_button_size"
                     style_bg_color="#jog_button_bg" style_radius="8" style_border_width="0">
@@ -102,7 +102,7 @@
 
           <!-- Row 3: SW, S, SE -->
           <lv_obj width="100%" height="80"
-                  flag_scrollable="false"
+                  scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_bg_opa="0" style_border_width="0" style_border_opa="0" style_pad_all="0" style_pad_gap="#padding_medium">
             <lv_button name="jog_sw" width="#jog_button_size" height="#jog_button_size"
@@ -123,7 +123,7 @@
         <!-- Distance Selector: Radio Buttons -->
         <lv_obj name="distance_selector" width="100%" height="48"
                 style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0"
-                flag_scrollable="false"
+                scrollable="false"
                 flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                 style_pad_gap="8">
           <lv_button name="dist_0_1" width="#distance_button_width" height="#distance_button_height"
@@ -147,7 +147,7 @@
         <!-- Home Buttons Row -->
         <lv_obj name="home_buttons" width="100%" height="48"
                 style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0"
-                flag_scrollable="false"
+                scrollable="false"
                 flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                 style_pad_gap="#padding_medium">
           <lv_button name="home_all" width="#home_button_width" height="#home_button_height"
@@ -172,14 +172,14 @@
       <!-- Right Column (35%): Z-Axis Controls + Position Display -->
       <lv_obj name="right_column" width="35%" height="100%"
               style_bg_opa="0" style_pad_all="0"
-              flag_scrollable="false" style_border_width="0" style_border_opa="0"
+              scrollable="false" style_border_width="0" style_border_opa="0"
               flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center"
               style_pad_gap="20">
 
         <!-- Position Display Card -->
         <lv_obj name="position_card" width="100%" height="#position_card_height"
                 style_bg_color="#card_bg" style_radius="8" style_border_width="0" style_border_opa="0" style_border_color="#card_bg" style_pad_all="16"
-                flag_scrollable="false"
+                scrollable="false"
                 flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start"
                 style_pad_gap="8">
           <lv_label text="Position:" style_text_font="montserrat_16" style_text_color="#text_secondary"/>
@@ -191,7 +191,7 @@
         <!-- Z-Axis Button Group -->
         <lv_obj name="z_controls" width="100%" height="#z_controls_height"
                 style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0"
-                flag_scrollable="false"
+                scrollable="false"
                 flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center"
                 style_pad_gap="#padding_medium">
 

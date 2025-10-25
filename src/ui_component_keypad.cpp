@@ -20,6 +20,7 @@
 
 #include "ui_component_keypad.h"
 #include "ui_fonts.h"
+#include "ui_theme.h"
 #include "lvgl/src/others/xml/lv_xml.h"
 #include <cstdio>
 #include <cstring>

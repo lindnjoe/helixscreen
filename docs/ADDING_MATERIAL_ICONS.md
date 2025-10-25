@@ -4,10 +4,22 @@ This guide documents the complete process for adding new Material Design icons t
 
 ## Prerequisites
 
-- Python virtual environment with `pypng` installed (`.venv/bin/python3`)
+- Python 3 with virtual environment support
 - ImageMagick (`magick` command)
 - curl for downloading SVGs
 - Material Icons source: https://fonts.google.com/icons
+
+### First-Time Setup
+
+Create a Python virtual environment and install required packages:
+
+```bash
+# From project root directory
+python3 -m venv .venv
+.venv/bin/pip install pypng lz4
+```
+
+**Note:** The LVGLImage.py script requires both `pypng` and `lz4` packages. The venv only needs to be created once.
 
 ## Step-by-Step Process
 
@@ -47,23 +59,31 @@ This creates a C file with the image data in LVGL format.
 
 ### 4. Register the Icon in Code
 
-Edit `src/material_icons.cpp`:
+#### Add declaration to header file
 
-#### Add extern declaration at the top (after includes):
+Edit `include/material_icons.h` and add the declaration in the appropriate category section:
+
 ```cpp
-// Add with other extern declarations or create new section
-extern const lv_image_dsc_t list;
+// Print & Files (example category)
+LV_IMG_DECLARE(print);
+LV_IMG_DECLARE(list);
+LV_IMG_DECLARE(grid_view);  // Add your new icon here
 ```
 
-#### Register the icon in `material_icons_register()` function:
+#### Register in material_icons.cpp
+
+Edit `src/material_icons.cpp` and add the registration in the `material_icons_register()` function:
+
 ```cpp
-// Add in appropriate category section
+// Print & Files
+lv_xml_register_image(NULL, "mat_print", &print);
 lv_xml_register_image(NULL, "mat_list", &list);
+lv_xml_register_image(NULL, "mat_grid_view", &grid_view);  // Add your registration here
 ```
 
 #### Update the icon count in the log message:
 ```cpp
-LV_LOG_USER("Registering Material Design icons (57 total)...");  // Increment count
+LV_LOG_USER("Registering Material Design icons (58 total)...");  // Increment count
 ```
 
 ### 5. Build and Test
@@ -140,9 +160,14 @@ cd ../../..  # Back to project root
 .venv/bin/python3 scripts/LVGLImage.py assets/images/material/grid_view.png \
     --ofmt C --cf RGB565A8 -o assets/images/material/grid_view.c
 
-# 4. Register in src/material_icons.cpp
-# Add: extern const lv_image_dsc_t grid_view;
-# Add: lv_xml_register_image(NULL, "mat_grid_view", &grid_view);
+# 4. Register the icon
+# In include/material_icons.h, add to Print & Files section:
+#   LV_IMG_DECLARE(grid_view);
+#
+# In src/material_icons.cpp, add to Print & Files section:
+#   lv_xml_register_image(NULL, "mat_grid_view", &grid_view);
+#
+# Update count: LV_LOG_USER("Registering Material Design icons (58 total)...");
 
 # 5. Build and test
 make clean && make
