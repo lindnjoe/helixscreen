@@ -31,7 +31,7 @@
 		<!-- Top section: Printer visualization -->
 		<lv_obj
 			width="100%"
-			flex_grow="2"
+			flex_grow="17"
 			style_bg_opa="0%"
 			style_border_width="0"
 			style_pad_all="#padding_normal"
@@ -92,7 +92,7 @@
 		<!-- Bottom section: Info cards -->
 		<lv_obj
 			width="100%"
-			flex_grow="1"
+			flex_grow="10"
 			style_bg_opa="0%"
 			style_border_width="0"
 			style_pad_top="#padding_normal"

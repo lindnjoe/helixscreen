@@ -25,6 +25,7 @@
 #include "ui_theme.h"
 #include <stdio.h>
 #include <string.h>
+#include <cmath>
 
 // Position subjects (reactive data binding)
 static lv_subject_t pos_x_subject;
@@ -195,6 +196,256 @@ static void home_button_cb(lv_event_t* e) {
     }
 }
 
+// Helper: Calculate angle from center point (0° = North, clockwise)
+static float calculate_angle(lv_coord_t dx, lv_coord_t dy) {
+    // atan2 gives us angle with 0° = East, counter-clockwise
+    // We need 0° = North, clockwise
+    float angle = atan2f((float)dx, (float)-dy) * 180.0f / M_PI;
+    if (angle < 0) angle += 360.0f;
+    return angle;
+}
+
+// Helper: Determine jog direction from angle (8 wedges of 45° each)
+static jog_direction_t angle_to_direction(float angle) {
+    // Wedge boundaries (centered on cardinals):
+    // N: 337.5-22.5°, NE: 22.5-67.5°, E: 67.5-112.5°, SE: 112.5-157.5°
+    // S: 157.5-202.5°, SW: 202.5-247.5°, W: 247.5-292.5°, NW: 292.5-337.5°
+
+    if (angle >= 337.5f || angle < 22.5f) return JOG_DIR_N;
+    else if (angle >= 22.5f && angle < 67.5f) return JOG_DIR_NE;
+    else if (angle >= 67.5f && angle < 112.5f) return JOG_DIR_E;
+    else if (angle >= 112.5f && angle < 157.5f) return JOG_DIR_SE;
+    else if (angle >= 157.5f && angle < 202.5f) return JOG_DIR_S;
+    else if (angle >= 202.5f && angle < 247.5f) return JOG_DIR_SW;
+    else if (angle >= 247.5f && angle < 292.5f) return JOG_DIR_W;
+    else return JOG_DIR_NW;
+}
+
+// Custom draw event: Draw two-zone circular jog pad (Bambu Lab style)
+static void jog_pad_draw_cb(lv_event_t* e) {
+    lv_obj_t* obj = (lv_obj_t*)lv_event_get_target(e);
+    lv_layer_t* layer = lv_event_get_layer(e);
+
+    // Get container dimensions and center point
+    lv_area_t obj_coords;
+    lv_obj_get_coords(obj, &obj_coords);
+    lv_coord_t width = lv_area_get_width(&obj_coords);
+    lv_coord_t height = lv_area_get_height(&obj_coords);
+    lv_coord_t center_x = obj_coords.x1 + width / 2;
+    lv_coord_t center_y = obj_coords.y1 + height / 2;
+    lv_coord_t radius = width / 2;
+
+    // Zone boundary: Inner circle is 50% of total radius (30% smaller than before)
+    lv_coord_t inner_boundary = (lv_coord_t)(radius * 0.50f);
+
+    // LAYERED APPROACH: Draw from back to front
+    // Layer 1: Full light gray background circle (0% to 100% radius)
+    // Layer 2: Dark gray inner circle overlay (0% to 50% radius)
+    // Result: Outer ring (50-100%) shows as light gray, extends all the way to edge
+
+    // Layer 1: Full background circle (light gray)
+    lv_draw_arc_dsc_t bg_arc_dsc;
+    lv_draw_arc_dsc_init(&bg_arc_dsc);
+    bg_arc_dsc.color = lv_color_hex(0x3a3a3a);  // Light gray (outer ring color)
+    bg_arc_dsc.width = radius * 2;  // Width = diameter, fills entire circle
+    bg_arc_dsc.center.x = center_x;
+    bg_arc_dsc.center.y = center_y;
+    bg_arc_dsc.radius = radius;  // Centerline at outer edge
+    bg_arc_dsc.start_angle = 0;
+    bg_arc_dsc.end_angle = 360;
+    lv_draw_arc(layer, &bg_arc_dsc);
+
+    // Layer 2: Inner circle overlay (dark gray)
+    lv_draw_arc_dsc_t inner_arc_dsc;
+    lv_draw_arc_dsc_init(&inner_arc_dsc);
+    inner_arc_dsc.color = lv_color_hex(0x2a2a2a);  // Darker gray (inner circle color)
+    inner_arc_dsc.width = inner_boundary * 2;  // Width = inner diameter
+    inner_arc_dsc.center.x = center_x;
+    inner_arc_dsc.center.y = center_y;
+    inner_arc_dsc.radius = inner_boundary;  // Centerline at 70% boundary
+    inner_arc_dsc.start_angle = 0;
+    inner_arc_dsc.end_angle = 360;
+    lv_draw_arc(layer, &inner_arc_dsc);
+
+    // Draw 2 diagonal divider lines (NE-SW and NW-SE) like Bambu Lab
+    // Creates 4 pie-shaped quadrants for diagonal movements
+    lv_draw_line_dsc_t line_dsc;
+    lv_draw_line_dsc_init(&line_dsc);
+    line_dsc.color = lv_color_hex(0x000000);
+    line_dsc.width = 4;
+    line_dsc.opa = LV_OPA_50;
+
+    // NE-SW diagonal (45°-225°)
+    line_dsc.p1.x = center_x + radius * 0.707f;
+    line_dsc.p1.y = center_y - radius * 0.707f;
+    line_dsc.p2.x = center_x - radius * 0.707f;
+    line_dsc.p2.y = center_y + radius * 0.707f;
+    lv_draw_line(layer, &line_dsc);
+
+    // NW-SE diagonal (315°-135°)
+    line_dsc.p1.x = center_x - radius * 0.707f;
+    line_dsc.p1.y = center_y - radius * 0.707f;
+    line_dsc.p2.x = center_x + radius * 0.707f;
+    line_dsc.p2.y = center_y + radius * 0.707f;
+    lv_draw_line(layer, &line_dsc);
+
+    // Draw center home button area (doubled size for easier targeting)
+    lv_coord_t home_radius = (lv_coord_t)(radius * 0.25f);  // ~25% of total radius (was 12%)
+
+    // Draw filled background circle for home area
+    lv_draw_arc_dsc_t home_bg_dsc;
+    lv_draw_arc_dsc_init(&home_bg_dsc);
+    home_bg_dsc.color = lv_color_hex(0x404040);  // Slightly lighter than inner circle
+    home_bg_dsc.width = home_radius * 2;  // Fill entire circle
+    home_bg_dsc.center.x = center_x;
+    home_bg_dsc.center.y = center_y;
+    home_bg_dsc.radius = home_radius;
+    home_bg_dsc.start_angle = 0;
+    home_bg_dsc.end_angle = 360;
+    lv_draw_arc(layer, &home_bg_dsc);
+
+    // Draw visual ring border around home area
+    lv_draw_arc_dsc_t home_ring_dsc;
+    lv_draw_arc_dsc_init(&home_ring_dsc);
+    home_ring_dsc.color = lv_color_hex(0x606060);  // Lighter border color
+    home_ring_dsc.width = 3;  // Border thickness
+    home_ring_dsc.center.x = center_x;
+    home_ring_dsc.center.y = center_y;
+    home_ring_dsc.radius = home_radius;
+    home_ring_dsc.start_angle = 0;
+    home_ring_dsc.end_angle = 360;
+    lv_draw_arc(layer, &home_ring_dsc);
+
+    // Draw center home icon
+    // Use simple text icon as lv_draw_image doesn't work reliably in draw callbacks
+    lv_draw_label_dsc_t home_label_dsc;
+    lv_draw_label_dsc_init(&home_label_dsc);
+    home_label_dsc.color = lv_color_hex(0xffffff);
+    home_label_dsc.text = LV_SYMBOL_HOME;
+    home_label_dsc.font = &lv_font_montserrat_28;
+    home_label_dsc.align = LV_TEXT_ALIGN_CENTER;
+
+    lv_area_t home_label_area;
+    home_label_area.x1 = center_x - 20;
+    home_label_area.y1 = center_y - 14;
+    home_label_area.x2 = center_x + 20;
+    home_label_area.y2 = center_y + 14;
+    lv_draw_label(layer, &home_label_dsc, &home_label_area);
+
+    // Draw distance labels showing movement amounts for each ring
+    lv_draw_label_dsc_t label_dsc;
+    lv_draw_label_dsc_init(&label_dsc);
+    label_dsc.color = lv_color_hex(0xcccccc);
+    label_dsc.font = &lv_font_montserrat_14;
+    label_dsc.align = LV_TEXT_ALIGN_CENTER;
+
+    lv_area_t label_area;
+
+    // "1mm" label in inner ring (offset down and right from diagonal)
+    label_dsc.text = "1mm";
+    lv_coord_t inner_label_radius = (lv_coord_t)((home_radius + inner_boundary) * 0.5f);
+    label_area.x1 = center_x + (lv_coord_t)(inner_label_radius * 0.707f);
+    label_area.y1 = center_y - (lv_coord_t)(inner_label_radius * 0.707f) + 8;
+    label_area.x2 = label_area.x1 + 50;
+    label_area.y2 = label_area.y1 + 18;
+    lv_draw_label(layer, &label_dsc, &label_area);
+
+    // "10mm" label in outer ring (offset down and right from diagonal)
+    label_dsc.text = "10mm";
+    lv_coord_t outer_label_radius = (lv_coord_t)((radius + inner_boundary) * 0.5f);
+    label_area.x1 = center_x + (lv_coord_t)(outer_label_radius * 0.707f);
+    label_area.y1 = center_y - (lv_coord_t)(outer_label_radius * 0.707f) + 8;
+    label_area.x2 = label_area.x1 + 60;
+    label_area.y2 = label_area.y1 + 18;
+    lv_draw_label(layer, &label_dsc, &label_area);
+
+    // Draw axis labels (cardinal directions)
+    label_dsc.color = lv_color_hex(0xffffff);
+    label_dsc.font = &lv_font_montserrat_16;
+
+    // Y+ (North)
+    label_dsc.text = "Y+";
+    label_area.x1 = center_x - 12;
+    label_area.y1 = (int32_t)(center_y - radius * 0.80f) - 10;
+    label_area.x2 = label_area.x1 + 25;
+    label_area.y2 = label_area.y1 + 20;
+    lv_draw_label(layer, &label_dsc, &label_area);
+
+    // X+ (East)
+    label_dsc.text = "X+";
+    label_area.x1 = (int32_t)(center_x + radius * 0.80f) - 12;
+    label_area.y1 = center_y - 10;
+    label_area.x2 = label_area.x1 + 25;
+    label_area.y2 = label_area.y1 + 20;
+    lv_draw_label(layer, &label_dsc, &label_area);
+
+    // Y- (South)
+    label_dsc.text = "Y-";
+    label_area.x1 = center_x - 12;
+    label_area.y1 = (int32_t)(center_y + radius * 0.80f) - 10;
+    label_area.x2 = label_area.x1 + 25;
+    label_area.y2 = label_area.y1 + 20;
+    lv_draw_label(layer, &label_dsc, &label_area);
+
+    // X- (West)
+    label_dsc.text = "X-";
+    label_area.x1 = (int32_t)(center_x - radius * 0.80f) - 12;
+    label_area.y1 = center_y - 10;
+    label_area.x2 = label_area.x1 + 25;
+    label_area.y2 = label_area.y1 + 20;
+    lv_draw_label(layer, &label_dsc, &label_area);
+}
+
+// Click event: Detect zone and trigger jog
+static void jog_pad_click_cb(lv_event_t* e) {
+    lv_obj_t* obj = (lv_obj_t*)lv_event_get_target(e);
+    lv_point_t point;
+    lv_indev_get_point(lv_indev_get_act(), &point);
+
+    // Get container dimensions and center
+    lv_area_t obj_coords;
+    lv_obj_get_coords(obj, &obj_coords);
+    lv_coord_t width = lv_area_get_width(&obj_coords);
+    lv_coord_t center_x = obj_coords.x1 + width / 2;
+    lv_coord_t center_y = obj_coords.y1 + width / 2;
+    lv_coord_t radius = width / 2;
+
+    // Calculate distance and angle from center
+    lv_coord_t dx = point.x - center_x;
+    lv_coord_t dy = point.y - center_y;
+    float distance = sqrtf((float)(dx * dx + dy * dy));
+
+    // Check if click is within circular boundary
+    if (distance > radius) return;
+
+    // Home button: center 25% radius
+    if (distance < radius * 0.25f) {
+        ui_panel_motion_home('A');  // Home XY
+        printf("[Motion] Jog pad: Home XY\n");
+        return;
+    }
+
+    // Determine direction from angle
+    float angle = calculate_angle(dx, dy);
+    jog_direction_t direction = angle_to_direction(angle);
+
+    // Zone boundary: inner ring (25-50%) = 1mm, outer ring (50-100%) = 10mm
+    float inner_boundary = radius * 0.50f;
+    float jog_dist;
+
+    if (distance < inner_boundary) {
+        // Inner zone - small movements (0.1mm or 1mm based on selector)
+        jog_dist = (current_distance <= JOG_DIST_1MM) ?
+            distance_values[current_distance] : distance_values[JOG_DIST_1MM];
+    } else {
+        // Outer zone - large movements (10mm or 100mm based on selector)
+        jog_dist = (current_distance >= JOG_DIST_10MM) ?
+            distance_values[current_distance] : distance_values[JOG_DIST_10MM];
+    }
+
+    ui_panel_motion_jog(direction, jog_dist);
+}
+
 // Resize callback for responsive padding
 static void on_resize() {
     if (!motion_panel || !parent_obj) {
@@ -257,16 +508,41 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     update_distance_buttons();
     printf("[Motion]   ✓ Distance selector (4 buttons)\n");
 
-    // Jog pad buttons (8 directions + center home)
-    const char* jog_names[] = {"jog_n", "jog_s", "jog_e", "jog_w",
-                               "jog_ne", "jog_nw", "jog_se", "jog_sw", "jog_home_xy"};
-    for (const char* name : jog_names) {
-        lv_obj_t* btn = lv_obj_find_by_name(panel, name);
-        if (btn) {
-            lv_obj_add_event_cb(btn, jog_button_cb, LV_EVENT_CLICKED, nullptr);
-        }
+    // Circular jog pad with custom drawing and click detection
+    lv_obj_t* jog_pad = lv_obj_find_by_name(panel, "jog_pad_container");
+    if (jog_pad) {
+        // Set jog pad size as 80% of available vertical height (after header)
+        lv_display_t* disp = lv_display_get_default();
+        lv_coord_t screen_height = lv_display_get_vertical_resolution(disp);
+
+        // Get header height (varies by screen size: 50-70px)
+        lv_obj_t* header = lv_obj_find_by_name(panel, "motion_header");
+        lv_coord_t header_height = header ? lv_obj_get_height(header) : 60;
+
+        // Available height = screen height - header - padding (40px top+bottom)
+        lv_coord_t available_height = screen_height - header_height - 40;
+
+        // Jog pad = 80% of available height (leaves room for distance/home buttons)
+        lv_coord_t jog_size = (lv_coord_t)(available_height * 0.80f);
+
+        lv_obj_set_width(jog_pad, jog_size);
+        lv_obj_set_height(jog_pad, jog_size);
+        printf("[Motion]   Jog pad size: %dpx (available height: %dpx, screen: %dpx)\n",
+               jog_size, available_height, screen_height);
+
+        // Register custom draw event (draws circles, dividers, labels, home icon)
+        lv_obj_add_event_cb(jog_pad, jog_pad_draw_cb, LV_EVENT_DRAW_POST, nullptr);
+
+        // Register click event (angle-based direction detection)
+        lv_obj_add_event_cb(jog_pad, jog_pad_click_cb, LV_EVENT_CLICKED, nullptr);
+
+        // Force redraw to show custom graphics
+        lv_obj_invalidate(jog_pad);
+
+        printf("[Motion]   ✓ Circular jog pad (custom draw + angle-based click)\n");
+    } else {
+        printf("[Motion]   ✗ jog_pad_container NOT FOUND!\n");
     }
-    printf("[Motion]   ✓ Jog pad (9 buttons)\n");
 
     // Z-axis buttons
     const char* z_names[] = {"z_up_10", "z_up_1", "z_down_1", "z_down_10"};

@@ -164,6 +164,8 @@
 	<px name="jog_pad_size" value="320" />
 	<px name="jog_pad_padding" value="20" />
 	<px name="jog_pad_gap" value="12" />
+	<!-- Circular jog pad styling (container radius=160 = width/2 for perfect circle) -->
+	<!-- Individual button radii set inline: corners=24, cardinals=12, center=38 -->
 	<px name="distance_button_width" value="85" />
 	<!-- Increased from 70 to fit "100mm" text -->
 	<px name="distance_button_height" value="42" />
@@ -206,8 +208,10 @@
 	<!-- Orange backspace -->
 
 	<!-- Motion control button colors -->
-	<color name="jog_button_bg" value="0x505050" />
-	<!-- Jog pad buttons (much lighter for better contrast!) -->
+	<color name="jog_button_bg" value="0x3a3a3a" />
+	<!-- Jog pad buttons (spec: #3a3a3a) -->
+	<color name="jog_pad_border_color" value="0x3a3a3a" />
+	<!-- Subtle circular border ring -->
 	<color name="jog_selected_distance" value="0xcc3333" />
 	<!-- Softer red for selected distance -->
 
