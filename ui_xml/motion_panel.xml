@@ -51,8 +51,8 @@
       <lv_obj name="left_column" width="65%" height="100%"
               style_bg_opa="0" style_pad_all="0"
               scrollable="false" style_border_width="0" style_border_opa="0"
-              flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
-              style_pad_gap="20">
+              flex_flow="column" style_flex_main_place="space_evenly" style_flex_cross_place="center"
+              style_pad_gap="8">
 
         <!-- Circular Jog Pad: Custom-Drawn Two-Zone Design (Bambu Lab Style) -->
         <!-- Outer ring = large jogs, inner circle = small jogs -->
@@ -71,7 +71,7 @@
         <!-- Distance Selector: Radio Buttons -->
         <lv_obj name="distance_selector" width="100%" height="LV_SIZE_CONTENT"
                 style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0"
-                scrollable="false"
+                scrollable="false" flex_grow="0"
                 flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                 style_pad_gap="8">
           <lv_button name="dist_0_1" width="#distance_button_width" height="#distance_button_height"
@@ -95,7 +95,7 @@
         <!-- Home Buttons Row -->
         <lv_obj name="home_buttons" width="100%" height="LV_SIZE_CONTENT"
                 style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0"
-                scrollable="false"
+                scrollable="false" flex_grow="0"
                 flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                 style_pad_gap="#padding_medium">
           <lv_button name="home_all" width="#home_button_width" height="#home_button_height"
