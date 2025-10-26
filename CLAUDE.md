@@ -39,15 +39,28 @@ sudo yum install SDL2-devel bear ImageMagick python3 clang make
 **Optional (for screenshots):**
 - `imagemagick` - BMP to PNG conversion in screenshot script
 
-## Quick Commands
+## Build System
 
 ```bash
-make                          # Incremental build (auto-parallel)
-make clean && make            # Clean rebuild
-make compile_commands         # Generate compile_commands.json for IDE/LSP
-./build/bin/helix-ui-proto    # Run simulator
-python3 scripts/generate-icon-consts.py  # Regenerate icon constants
+# Common commands
+make -j8          # Parallel build (NOT auto-parallel by default)
+make build        # Clean parallel build with progress/timing
+make V=1          # Verbose mode (shows full compiler commands)
+make help         # Show all targets and options
+make check-deps   # Verify dependencies
+
+# Development
+make compile_commands  # Generate compile_commands.json for IDE/LSP
+make run              # Build and run
 ```
+
+**Key features:**
+- Color-coded output: `[CXX]` (blue), `[CC]` (cyan), `[LD]` (magenta)
+- Verbose mode with `V=1` shows full commands
+- Automatic dependency checking before builds
+- Fail-fast with clear error messages and full command on failure
+
+**Important:** Use `-j` flag explicitly for parallel builds. See `make help` for all options.
 
 **Binary:** `build/bin/helix-ui-proto`
 **Panels:** home, controls, motion, nozzle-temp, bed-temp, extrusion, filament, settings, advanced, print-select
@@ -335,16 +348,15 @@ if (!ui_nav_go_back()) {
 
 ### Quick-Start & Patterns
 
-**[HANDOFF.md](HANDOFF.md)** - **ACTIVE WORK & NEXT PRIORITIES**
-- **ONLY contains:** Ongoing work, current problems, active bugs, pending tasks
-- What's being worked on RIGHT NOW (incomplete work)
-- What needs to be done NEXT (priorities)
-- Critical architecture patterns (how-to sections)
-- Known gotchas that affect current work
+**[HANDOFF.md](HANDOFF.md)** - **ACTIVE WORK & ESSENTIAL PATTERNS ONLY**
+- **MAXIMUM SIZE:** ~150 lines. If larger, it needs aggressive pruning.
+- **Section 1:** Active work status (5-10 lines) + Next priorities (3-5 items)
+- **Section 2:** Critical architecture patterns (how-to reference, ~7-8 patterns max)
+- **Section 3:** Known issues/gotchas that affect current work (2-4 items max)
 - **Update this:** When starting new work, completing tasks, or changing priorities
-- **Do NOT put:** Completed work (goes in STATUS.md), historical details
-- **Rule:** If it's finished/resolved, remove it from HANDOFF and document in STATUS.md
-- **Clean up:** Remove stale completed items every session - keep it current
+- **CRITICAL RULE:** When work is COMPLETE, DELETE it from HANDOFF immediately and document in STATUS.md
+- **Do NOT put:** Historical details, completed work descriptions, implementation details
+- **Keep lean:** If a session added >50 lines to HANDOFF, you did it wrong - prune aggressively
 
 ### Technical Reference
 

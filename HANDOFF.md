@@ -1,500 +1,156 @@
 # Session Handoff Document
 
 **Last Updated:** 2025-10-26 Very Late Night
-**Current Focus:** Global Keyboard System & Wizard Layout Fixed
+**Current Focus:** All recent work committed, ready for next tasks
 
 ---
 
-## Current Session (2025-10-26 Very Late Night - Session 6)
+## 🎯 Active Work & Next Priorities
 
-### Global Keyboard System Implemented ✅ COMPLETE
+**Status:** Clean slate - keyboard system and wizard layout complete and committed
 
-**Created reusable virtual keyboard module with automatic show/hide on textarea focus.**
+**Next Steps (when ready):**
+1. Interactive keyboard testing with wizard screens
+2. Wizard hardware detection/mapping screens implementation
+3. Moonraker WebSocket integration for live printer communication
 
-**What Was Built:**
-- `include/ui_keyboard.h` + `src/ui_keyboard.cpp` - Full keyboard management system
-- Single global keyboard instance (memory efficient)
-- Auto show/hide on textarea focus/defocus events
-- Integrated with wizard connection and printer identify screens
+---
 
-**Key API:**
+## 📋 Critical Architecture Patterns (Essential How-To Reference)
+
+### Pattern #0: Navigation History Stack
+
+**When to use:** Overlay panels (motion, temps, extrusion, keypad)
+
 ```cpp
-// One-time initialization in main.cpp
+// When showing overlay
+ui_nav_push_overlay(motion_panel);  // Pushes current to history
+
+// In back button callback
+if (!ui_nav_go_back()) {
+    // Fallback if history empty
+}
+```
+
+**Files:** `ui_nav.h:54-62`, `ui_nav.cpp:250-327`
+
+### Pattern #1: Global Keyboard for Textareas
+
+**When to use:** Any textarea that needs text input
+
+```cpp
+// One-time init in main.cpp (already done)
 ui_keyboard_init(lv_screen_active());
 
-// Register any textarea for auto keyboard
+// For each textarea
 ui_keyboard_register_textarea(my_textarea);
-
-// Manual control (optional)
-ui_keyboard_show(textarea);
-ui_keyboard_hide();
-ui_keyboard_set_mode(LV_KEYBOARD_MODE_NUMBER);  // TEXT_LOWER/UPPER/SPECIAL/NUMBER
+// That's it! Auto show/hide on focus
 ```
 
-**Features:**
-- Positioned at `BOTTOM_MID` by default
-- iOS/Android-style key popovers enabled
-- Handles ABC/abc/1# mode switching automatically
-- Auto-hides on OK (`LV_EVENT_READY`) or Cancel (`LV_EVENT_CANCEL`)
-- Comprehensive spdlog logging for debugging
+**Files:** `include/ui_keyboard.h`, `src/ui_keyboard.cpp`, `src/main.cpp:514`
 
-**Integration Points:**
-- `src/main.cpp:514` - Keyboard initialized after app_layout
-- `src/ui_wizard.cpp:209-214` - Connection screen textareas registered (IP, port)
-- `src/ui_wizard.cpp:239-241` - Printer identify textarea registered (name)
+### Pattern #2: Subject Initialization Order
 
-**Testing:**
-- Built successfully, module ready for interactive use
-- To test: Run `./build/bin/helix-ui-proto --wizard -s small`, click on IP or port field
-- Keyboard will slide up from bottom automatically
-
-### Wizard First Screen Layout Fixed ✅ COMPLETE
-
-**Fixed excessive spacing and poor responsive layout across display sizes.**
-
-**Problems Solved:**
-1. Huge white header area wasting vertical space
-2. Content centered with massive gaps top/bottom on large screens
-3. Fonts too large, spacing too loose for tiny displays
-
-**Changes Made:**
-- `ui_xml/wizard_container.xml`:
-  - Header: Transparent background (`style_bg_opa="0"`), minimal padding (4px), tiny font (montserrat_10)
-  - Content: Changed from `center` to `start` alignment (eliminates top gap)
-  - Removed fixed heights, uses natural content sizing
-- `ui_xml/wizard_connection.xml`:
-  - Reduced font sizes (16→14 labels, 14→12 help text)
-  - Tighter column spacing (`style_pad_gap="4"`)
-  - Removed test button and status label for cleaner layout
-- `ui_xml/globals.xml`:
-  - Added wizard dimension constants for consistency
-
-**Results:**
-- ✅ Tiny (480x320): Fits without cutoff, minimal header
-- ✅ Small (800x480): Well-balanced, no wasted space
-- ✅ Large (1280x720): Content starts near top, efficient layout
-
-### Screenshot Script Enhanced ✅ COMPLETE
-
-**Removed build logic for better separation of concerns.**
-
-**Changes:**
-- Script now only captures screenshots (no compilation)
-- Better error handling and binary verification
-- Must run `make` separately before using screenshot script
-- Cleaner, more focused tool
-
-### LV_SIZE_CONTENT Research & Documentation ✅ COMPLETE
-
-**Deep dive into LVGL 9 deferred layout system to understand why LV_SIZE_CONTENT fails.**
-
-**Documented in `docs/LVGL9_XML_GUIDE.md:1241-1329`:**
-- Root cause: Deferred layout calculation (sizes computed lazily)
-- When it fails: Circular dependencies, pre-layout queries, nested LV_SIZE_CONTENT
-- Solutions: `lv_obj_update_layout()`, explicit dimensions, `style_min_height`
-- Source code references with line numbers
-
-**Benefits:**
-- Future developers understand why layouts collapse to 0
-- Multiple fix strategies documented
-- Comprehensive with LVGL source analysis
-
----
-
-## Previous Session (2025-10-26 Late Night - Session 4)
-
-### Logging System Refactoring ✅ COMPLETE
-
-**Standardized all debug/logging output to use spdlog consistently across the entire codebase.**
-
-**What Was Done:**
-- Converted 13 files from mixed logging (printf/cout/LV_LOG) to spdlog
-- Established log level guidelines (trace/debug/info/warn/error)
-- Added comprehensive logging policy to CLAUDE.md
-- Verified all code compiles and runs with proper timestamped output
-
-**Key Changes:**
-- Modern fmt-style formatting: `spdlog::info("Value: {}", val)` replaces `printf("Value: %d\n", val)`
-- Consistent log levels: debug for development, info for milestones, warn for validation, error for failures
-- Preserved component prefixes: `[Temp]`, `[Nav]`, `[Motion]` for context
-- Enum/pointer casting: `(int)panel_id`, `(void*)widget` for proper formatting
-
-**Benefits:**
-- ✅ Precise timestamps on every message
-- ✅ Log level filtering (can suppress debug in production)
-- ✅ Professional, structured output
-- ✅ Easy to add file logging or log rotation later
-
-**Documentation:**
-- CLAUDE.md lines 77-134: Complete logging policy with examples
-- Explicitly forbids printf/cout/LV_LOG usage going forward
-
-**Example Output:**
-```
-[2025-10-26 14:14:56.505] [info] Initializing navigation reactive subjects...
-[2025-10-26 14:14:56.505] [info] [Temp] Subjects initialized: nozzle=25/0°C, bed=25/0°C
-```
-
----
-
-## Earlier Work (2025-10-26 Very Late Night - Session 3)
-
-### Step Progress Widget Implementation ✅ COMPLETE
-
-**Created reusable step-by-step progress indicator widget for wizards and multi-step operations.**
-
-**What Was Built:**
-- Hybrid XML+C++ widget with clean API
-- Supports vertical and horizontal orientations
-- Three visual states: PENDING (gray filled), ACTIVE (red filled), COMPLETED (green filled)
-- Step numbers (1, 2, 3...) automatically toggle to checkmarks on completion
-- Seamless connector lines (1px width) between steps, colored based on completion
-
-**Files Created:**
-- `include/ui_step_progress.h` - Public API
-- `src/ui_step_progress.cpp` - Widget implementation (455 lines)
-- `ui_xml/step_progress_test.xml` - Test panel
-- `src/ui_panel_step_test.cpp` - Test panel implementation
-
-**API Usage:**
-```cpp
-// Create widget
-ui_step_t steps[] = {
-    {"Nozzle heating", UI_STEP_STATE_COMPLETED},
-    {"Prepare to retract", UI_STEP_STATE_ACTIVE},
-    {"Retracting", UI_STEP_STATE_PENDING},
-    {"Retract done", UI_STEP_STATE_PENDING}
-};
-lv_obj_t* progress = ui_step_progress_create(parent, steps, 4, false);  // false = vertical
-
-// Update current step
-ui_step_progress_set_current(progress, 2);  // Advances to step 3
-```
-
-**Key Technical Details:**
-- Connector positioning uses `lv_obj_update_layout()` + `LV_OBJ_FLAG_IGNORE_LAYOUT`
-- Border-aware positioning: 13px offset accounts for 2px border drawn inside circles
-- Separate `connector_index` tracking prevents state confusion during updates
-- Uses `LV_SYMBOL_OK` for cross-platform checkmark compatibility
-
-**Next Steps:**
-- Integrate into first-run wizard screens for progress tracking
-- Add to leveling wizard when implemented
-- Use in filament load/retract calibration workflows
-
----
-
-## Earlier Work (2025-10-26 Very Late Evening - Session 2)
-
-### Wizard Input Field Improvements + Design Token Cleanup ✅ COMPLETE
-
-**Fixed critical wizard UX bug and cleaned up design system.**
-
-**Bug Fixed:**
-- Wizard input fields were completely invisible due to LVGL flex layout bug
-- Root cause: `wizard_content` container with `flex_grow="1"` collapsed to zero height
-- Solution: Added `scrollable="true"` to force dimension calculation (wizard_container.xml:67)
-
-**Improvements Made:**
-1. Enhanced input field visibility:
-   - 3px white borders for definition
-   - Placeholder text ("192.168.1.100", "7125")
-   - Font size increased to montserrat_20
-   - Darker background (#card_bg_dark) for contrast
-
-2. Design token consolidation:
-   - Removed 4 duplicate constants from globals.xml
-   - Now reuse existing tokens: #header_height, #padding_card, #card_radius, "100%"
-   - Only kept #input_border_width (3px - unique value)
-   - Applied across all 6 wizard XML files
-
-**Files Modified:**
-- ui_xml/wizard_container.xml - Scrollable fix
-- ui_xml/wizard_connection.xml - Enhanced styling
-- ui_xml/globals.xml - Removed duplicates
-- ui_xml/wizard_*.xml (5 files) - Consolidated constants
-
-**Status:** All wizard screens now have consistent, visible input styling with minimal design token bloat.
-
----
-
-## Earlier Work (2025-10-26 Late Evening - Session 1)
-
-### Real Printer Connection Testing + First-Run Wizard Planning ✅ COMPLETE
-
-**Successfully connected to real Voron V2 printer at 192.168.1.112!**
-
-**Bug Fixes:**
-
-1. **Async Timing Issue** (`src/main.cpp:633-668`):
-   - **Problem**: Called `discover_printer()` before WebSocket actually connected
-   - **Fix**: Moved discovery into `on_connected` callback
-
-2. **Lambda Capture Error** (`src/main.cpp:637`):
-   - **Problem**: Tried to capture static `printer_state` by reference
-   - **Fix**: Removed capture (static vars don't need capture)
-
-3. **JSON-RPC Params Bug** (`src/moonraker_client.cpp:157-171`):
-   - **Problem**: Moonraker rejected empty params object `"params": {}`
-   - **Fix**: Only include params field if not null/empty:
-     ```cpp
-     if (!params.is_null() && !params.empty()) {
-         rpc["params"] = params;
-     }
-     ```
-
-**Real Printer Test Results:**
-- Connected to ws://192.168.1.112:7125/websocket
-- Moonraker v0.9.3, hostname: voronv2
-- Discovered: 2 heaters, 6 sensors, 6 fans, 3 LEDs
-- 22 objects subscribed successfully
-
-**First-Run Wizard Planning:**
-- Added Phase 11 to ROADMAP.md with comprehensive requirements
-- Wizard screens: Connection → Hardware Mapping → Summary → Save
-- Auto-default behavior when only one component exists
-- mDNS optional (not universally enabled), manual IP primary method
-
-**Files Modified:**
-- `helixconfig.json` - Changed moonraker_host to 192.168.1.112
-- `src/main.cpp` - Fixed async callback timing
-- `src/moonraker_client.cpp` - Fixed JSON-RPC params handling
-- `docs/ROADMAP.md` - Added Phase 11 (First-Run Configuration Wizard)
-
-### Earlier: Moonraker Integration Foundation ✅ COMPLETE (2025-10-26 Morning)
-- Integrated libhv WebSocket library (static linking via parent repo)
-- Created `MoonrakerClient` wrapper class with JSON-RPC support
-- Created `PrinterState` reactive state manager with LVGL subjects
-- Cross-platform build system (macOS/Linux-aware NPROC + linker flags)
-- Increased `LV_DRAW_THREAD_STACK_SIZE` to 32KB (eliminates warning)
-- Files: `include/moonraker_client.h`, `src/moonraker_client.cpp`, `include/printer_state.h`, `src/printer_state.cpp`, `Makefile`, `lv_conf.h`
-
----
-
-## Project Status
-
-**All UI components complete. Infrastructure ready for Moonraker integration.**
-
-Navigation system robust. All panels render correctly across all screen sizes. Reactive state management infrastructure in place with LVGL subjects.
-
-### What Works
-- ✅ Navigation system with history stack
-- ✅ All UI panels functional with mock data
-- ✅ Responsive design (480×320 to 1280×720)
-- ✅ Material Design icons with dynamic recoloring
-- ✅ **Config** - JSON-based configuration with auto-migration
-- ✅ **MoonrakerClient** - WebSocket client with auto-discovery
-- ✅ **PrinterState** - Reactive state manager with subjects
-- ✅ **Cross-platform build** - macOS/Linux-aware Makefile
-- ✅ **Connection on Startup** - Connects and discovers printer automatically
-
-### Next Steps (Priority Order)
-1. 🎯 **Implement First-Run Wizard** (Phase 11 in ROADMAP.md)
-   - Connection screen with IP/port entry
-   - Hardware mapping screens (bed, hotend, fans, LEDs)
-   - Config validation and storage
-   - Settings panel integration for re-running wizard
-
-2. 🔌 **Bind UI to real subjects** - Replace mock data with printer_state subjects in XML
-   - Home panel: connection state, temps, print status
-   - Controls panels: real-time position, temperatures
-
-3. 🔌 **Implement control actions** - Wire buttons to gcode_script() calls
-   - Motion: jog commands, homing
-   - Temps: SET_HEATER_TEMPERATURE commands
-   - Extrusion: EXTRUDE/RETRACT commands
-
-4. 📁 **File operations** - Get real print files from Moonraker
-   - server.files.list integration
-   - Print select panel with real data
-   - Thumbnail extraction
-
----
-
-## Critical Architecture Patterns
-
-### Navigation System
-
-Always use `ui_nav_push_overlay()` and `ui_nav_go_back()`:
+**MUST initialize subjects BEFORE creating XML:**
 
 ```cpp
-// Show overlay panel
-ui_nav_push_overlay(motion_panel);
-
-// Back button
-ui_nav_go_back();  // Handles stack, shows previous or HOME
-```
-
-Nav bar buttons clear stack automatically. State preserved when navigating back.
-
-**CRITICAL:** Never hide `app_layout` - prevents navbar disappearing.
-
-### Subject Initialization Order
-
-Subjects MUST be initialized BEFORE XML creation:
-
-```cpp
-// 1. Register XML components
+// CORRECT ORDER:
 lv_xml_component_register_from_file("A:/ui_xml/globals.xml");
+lv_xml_component_register_from_file("A:/ui_xml/my_panel.xml");
 
-// 2. Initialize subjects FIRST
-ui_nav_init();
-ui_panel_home_init_subjects();
+ui_my_panel_init_subjects();  // Initialize FIRST
 
-// 3. NOW create UI
-lv_obj_t* screen = lv_xml_create(NULL, "app_layout", NULL);
+lv_xml_create(screen, "my_panel", NULL);  // Create AFTER
 ```
 
-### Event Callbacks
+### Pattern #3: Component Instantiation Names
 
-Use `<lv_event-call_function>`, NOT `<event_cb>`:
+**Always add explicit `name` attributes:**
 
 ```xml
-<lv_button name="my_button">
-    <lv_event-call_function trigger="clicked" callback="my_handler"/>
-</lv_button>
+<!-- WRONG: No name on instantiation -->
+<app_layout>
+  <my_panel/>
+</app_layout>
+
+<!-- CORRECT: Explicit name -->
+<app_layout>
+  <my_panel name="my_panel"/>
+</app_layout>
 ```
 
-Register in C++ before XML loads:
-```cpp
-lv_xml_register_event_cb(NULL, "my_handler", my_handler_function);
-```
+**Why:** Component `<view name="...">` doesn't propagate to instantiation tags
 
-### Component Names
+### Pattern #4: Image Scaling in Flex Layouts
 
-Always add explicit `name` attributes to component tags:
-
-```xml
-<lv_obj name="content_area">
-  <controls_panel name="controls_panel"/>  <!-- Explicit name required -->
-</lv_obj>
-```
-
-### Name-Based Widget Lookup
-
-Always use names, never indices:
+**When scaling images after layout changes, call `lv_obj_update_layout()` first:**
 
 ```cpp
-// ✓ CORRECT
-lv_obj_t* widget = lv_obj_find_by_name(parent, "widget_name");
-
-// ✗ WRONG
-lv_obj_t* widget = lv_obj_get_child(parent, 3);
+lv_obj_update_layout(container);  // Force layout calculation
+ui_image_scale_to_cover(img, container);  // Now works correctly
 ```
 
----
+**Why:** LVGL uses deferred layout - containers report 0x0 until forced
 
-## Next Priority: Moonraker Integration 🔌
+**Files:** `ui_utils.cpp:213-276`, `ui_panel_print_status.cpp:249-314`
 
-**All UI complete. Ready to connect to live printer.**
+### Pattern #5: Copyright Headers
 
-### Step 1: WebSocket Foundation
-- Review existing HelixScreen Moonraker client code (parent repo)
-- Adapt libhv WebSocket implementation
-- Connect on startup, handle connection events
+**ALL new files MUST include GPL v3 header**
 
-### Step 2: Printer Status Updates
-- Subscribe to printer object updates
-- Wire temperature subjects to live data
-- Update home panel with real-time temps
+**Reference:** `docs/COPYRIGHT_HEADERS.md` for C/C++ and XML templates
 
-### Step 3: Motion & Control Commands
-- Jog buttons → `printer.gcode.script` (G0/G1)
-- Temperature presets → M104/M140 commands
-- Home buttons → G28 commands
+### Pattern #6: Logging Policy
 
-### Step 4: Print Management
-- File list → `server.files.list` API
-- Print start/pause/resume/cancel commands
-- Live print status updates
+**ALWAYS use spdlog, NEVER printf/cout/LV_LOG:**
 
-**Existing subjects (already wired):**
-- Print progress, layer, elapsed/remaining time
-- Nozzle/bed temps, speed, flow
-- Print state (Printing/Paused/Complete)
-
----
-
-## Testing Commands
-
-```bash
-# Build
-make                          # Incremental build (auto-parallel)
-make clean && make            # Clean rebuild
-
-# Run
-./build/bin/helix-ui-proto                    # Default (medium, home panel)
-./build/bin/helix-ui-proto -s tiny            # 480×320
-./build/bin/helix-ui-proto -s large           # 1280×720
-./build/bin/helix-ui-proto -p controls        # Start at Controls
-./build/bin/helix-ui-proto -p print-select    # Print select
-
-# Controls
-# Cmd+Q (macOS) / Win+Q (Windows) to quit
-# 'S' key to save screenshot
-
-# Screenshot
-./scripts/screenshot.sh helix-ui-proto output-name [panel-name]
-```
-
-**Screen sizes:** tiny (480×320), small (800×480), medium (1024×600), large (1280×720)
-
-**Panel names:** home, controls, motion, nozzle-temp, bed-temp, extrusion, print-select, file-detail, filament, settings, advanced
-
----
-
-## Documentation
-
-- **[STATUS.md](STATUS.md)** - Complete chronological development journal
-- **[ROADMAP.md](docs/ROADMAP.md)** - Planned features
-- **[LVGL9_XML_GUIDE.md](docs/LVGL9_XML_GUIDE.md)** - LVGL 9 XML reference
-- **[QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - Common patterns
-
----
-
-## Known Gotchas
-
-### LVGL 9 XML Attribute Names
-
-**No `flag_` prefix:**
-```xml
-<!-- ✓ CORRECT -->
-<lv_button hidden="true" clickable="false"/>
-
-<!-- ✗ WRONG -->
-<lv_button flag_hidden="true" flag_clickable="false"/>
-```
-
-**Use `style_image_*`, not `style_img_*`:**
-```xml
-<!-- ✓ CORRECT -->
-<lv_image style_image_recolor="#primary_color" style_image_recolor_opa="255"/>
-
-<!-- ✗ WRONG -->
-<lv_image style_img_recolor="#primary_color" style_img_recolor_opa="255"/>
-```
-
-**Use `scale_x`/`scale_y`, not `zoom`:**
-```xml
-<!-- ✓ CORRECT (256 = 100%) -->
-<lv_image scale_x="128" scale_y="128"/>
-
-<!-- ✗ WRONG -->
-<lv_image zoom="128"/>
-```
-
-### Subject Type Must Match API
-
-Image recoloring requires color subjects:
 ```cpp
-// ✓ CORRECT
-lv_subject_init_color(&subject, lv_color_hex(0xFFD700));
-lv_obj_set_style_img_recolor(widget, color, LV_PART_MAIN);
+#include <spdlog/spdlog.h>
 
-// ✗ WRONG
-lv_subject_init_string(&subject, buffer, NULL, size, "0xFFD700");
+spdlog::debug("[Component] Debug info: {}", value);
+spdlog::info("Operation complete");
+spdlog::warn("Validation failed, using default");
+spdlog::error("Critical failure: {}", error);
 ```
+
+**Formatting:**
+- Use fmt-style: `spdlog::info("Val: {}", x)` NOT printf-style
+- Cast enums: `(int)panel_id`
+- Cast pointers: `(void*)widget`
+
+**Reference:** `CLAUDE.md` lines 77-134
+
+### Pattern #7: LV_SIZE_CONTENT Pitfalls
+
+**Problem:** Evaluates to 0 due to deferred layout calculation
+
+**Solutions:**
+1. Call `lv_obj_update_layout()` after creation (forces layout)
+2. Use explicit pixel dimensions in XML (recommended)
+3. Use `style_min_height`/`style_min_width` for flex containers
+
+**Reference:** `docs/LVGL9_XML_GUIDE.md:1241-1329` (comprehensive guide)
 
 ---
 
-**For complete development history, see STATUS.md**
+## 🔧 Known Issues & Gotchas
+
+### LVGL 9 XML Flag Syntax ✅ FIXED
+
+**NEVER use `flag_` prefix in XML attributes:**
+- ❌ `flag_hidden="true"`, `flag_clickable="true"`
+- ✅ `hidden="true"`, `clickable="true"`
+
+**Status:** All 12 XML files fixed (2025-10-24)
+
+### Icon Constants Rendering
+
+Icon values appear empty in grep/terminal (FontAwesome uses Unicode Private Use Area U+F000-U+F8FF) but contain UTF-8 bytes.
+
+**Fix:** `python3 scripts/generate-icon-consts.py` regenerates constants
+
+**Verify:** `python3 -c "import re; f=open('ui_xml/globals.xml'); print([match.group(1).encode('utf-8').hex() for line in f for match in [re.search(r'icon_backspace.*value=\"([^\"]*)\"', line)] if match])"`
+
+---
+
+**Rule:** When work is complete, REMOVE it from HANDOFF and document in STATUS.md. Keep this document lean and current.
