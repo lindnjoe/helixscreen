@@ -26,7 +26,7 @@
 #define UI_TEMP_GRAPH_MAX_SERIES 8           // Maximum concurrent temperature series
 #define UI_TEMP_GRAPH_DEFAULT_POINTS 300     // Default point count (5 min @ 1s)
 #define UI_TEMP_GRAPH_DEFAULT_MIN_TEMP 0.0f  // Default Y-axis minimum
-#define UI_TEMP_GRAPH_DEFAULT_MAX_TEMP 300.0f // Default Y-axis maximum
+#define UI_TEMP_GRAPH_DEFAULT_MAX_TEMP 100.0f // Default Y-axis maximum
 
 // Gradient opacity defaults
 #define UI_TEMP_GRAPH_GRADIENT_BOTTOM_OPA LV_OPA_60  // Bottom of gradient (darker)

@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Helper: Find series metadata by ID
 static ui_temp_series_meta_t* find_series(ui_temp_graph_t* graph, int series_id) {
@@ -40,8 +41,6 @@ static ui_temp_series_meta_t* find_series(ui_temp_graph_t* graph, int series_id)
 }
 
 // Event callback for drawing gradient fills under curves
-// Note: This is a simplified implementation that draws gradient rectangles
-// For true area-under-curve fills, we'd need to use LVGL's polygon/triangle drawing
 static void draw_gradient_fill_cb(lv_event_t* e) {
     lv_obj_t* chart = (lv_obj_t*)lv_event_get_target(e);
     ui_temp_graph_t* graph = (ui_temp_graph_t*)lv_event_get_user_data(e);
@@ -69,37 +68,92 @@ static void draw_gradient_fill_cb(lv_event_t* e) {
     lv_coord_t data_h = lv_area_get_height(&chart_area) - pad_top - pad_bottom;
 
     // Data area coordinates
-    lv_area_t data_area;
-    data_area.x1 = chart_area.x1 + pad_left;
-    data_area.y1 = chart_area.y1 + pad_top;
-    data_area.x2 = data_area.x1 + data_w;
-    data_area.y2 = data_area.y1 + data_h;
+    lv_coord_t data_x1 = chart_area.x1 + pad_left;
+    lv_coord_t data_y1 = chart_area.y1 + pad_top;
+    lv_coord_t data_y2 = data_y1 + data_h;
+
+    // Get point count from chart
+    uint32_t point_cnt = lv_chart_get_point_count(chart);
+    if (point_cnt == 0) return;
 
     // Draw gradient fill for each visible series
-    // This simplified implementation draws a vertical gradient rectangle behind the chart
     for (int i = 0; i < graph->series_count; i++) {
         ui_temp_series_meta_t* meta = &graph->series_meta[i];
         if (!meta->visible || !meta->chart_series) continue;
 
-        // Setup vertical gradient descriptor
-        lv_draw_fill_dsc_t fill_dsc;
-        lv_draw_fill_dsc_init(&fill_dsc);
+        int32_t* y_points = meta->chart_series->y_points;
+        if (!y_points) continue;
 
-        // Vertical gradient (darker at bottom, lighter at top)
-        fill_dsc.grad.dir = LV_GRAD_DIR_VER;
-        fill_dsc.grad.stops[0].color = meta->color;
-        fill_dsc.grad.stops[0].opa = meta->gradient_bottom_opa;
-        fill_dsc.grad.stops[0].frac = 0;
+        // Calculate temperature range for Y mapping
+        float temp_range = graph->max_temp - graph->min_temp;
+        if (temp_range == 0.0f) continue;
 
-        fill_dsc.grad.stops[1].color = meta->color;
-        fill_dsc.grad.stops[1].opa = meta->gradient_top_opa;
-        fill_dsc.grad.stops[1].frac = 255;
+        // Draw triangular strips to fill area under curve with gradient
+        // We'll draw vertical strips for each segment between data points
+        for (uint32_t pt = 0; pt < point_cnt - 1; pt++) {
+            // Get Y values - skip if either point has no data
+            int32_t y_val1 = y_points[pt];
+            int32_t y_val2 = y_points[pt + 1];
 
-        fill_dsc.grad.stops_count = 2;
-        fill_dsc.opa = LV_OPA_COVER;
+            // Skip segments with no data (LV_CHART_POINT_NONE = INT32_MAX)
+            if (y_val1 == LV_CHART_POINT_NONE || y_val2 == LV_CHART_POINT_NONE) {
+                continue;
+            }
 
-        // Draw gradient rectangle in data area
-        lv_draw_fill(layer, &fill_dsc, &data_area);
+            // Calculate X positions for this segment
+            float x_frac1 = (float)pt / (float)(point_cnt - 1);
+            float x_frac2 = (float)(pt + 1) / (float)(point_cnt - 1);
+            lv_coord_t x1 = data_x1 + (lv_coord_t)(data_w * x_frac1);
+            lv_coord_t x2 = data_x1 + (lv_coord_t)(data_w * x_frac2);
+
+            // Map temperature values to Y pixel coordinates (inverted: high temp = low Y)
+            float y_frac1 = (float)(y_val1 - (int32_t)graph->min_temp) / temp_range;
+            float y_frac2 = (float)(y_val2 - (int32_t)graph->min_temp) / temp_range;
+
+            lv_coord_t y1 = data_y2 - (lv_coord_t)(data_h * y_frac1);
+            lv_coord_t y2 = data_y2 - (lv_coord_t)(data_h * y_frac2);
+
+            // Clamp Y values to data area
+            if (y1 < data_y1) y1 = data_y1;
+            if (y2 < data_y1) y2 = data_y1;
+            if (y1 > data_y2) y1 = data_y2;
+            if (y2 > data_y2) y2 = data_y2;
+
+            // Draw trapezoid (two triangles) for this segment
+            // Triangle 1: (x1,y1) -> (x2,y2) -> (x1,data_y2)
+            lv_draw_triangle_dsc_t tri1_dsc;
+            lv_draw_triangle_dsc_init(&tri1_dsc);
+            tri1_dsc.p[0].x = x1; tri1_dsc.p[0].y = y1;      // Top left
+            tri1_dsc.p[1].x = x2; tri1_dsc.p[1].y = y2;      // Top right
+            tri1_dsc.p[2].x = x1; tri1_dsc.p[2].y = data_y2; // Bottom left
+            tri1_dsc.grad.dir = LV_GRAD_DIR_VER;
+            tri1_dsc.grad.stops[0].color = meta->color;
+            tri1_dsc.grad.stops[0].opa = meta->gradient_bottom_opa;
+            tri1_dsc.grad.stops[0].frac = 0;
+            tri1_dsc.grad.stops[1].color = meta->color;
+            tri1_dsc.grad.stops[1].opa = meta->gradient_top_opa;
+            tri1_dsc.grad.stops[1].frac = 255;
+            tri1_dsc.grad.stops_count = 2;
+
+            // Triangle 2: (x2,y2) -> (x2,data_y2) -> (x1,data_y2)
+            lv_draw_triangle_dsc_t tri2_dsc;
+            lv_draw_triangle_dsc_init(&tri2_dsc);
+            tri2_dsc.p[0].x = x2; tri2_dsc.p[0].y = y2;      // Top right
+            tri2_dsc.p[1].x = x2; tri2_dsc.p[1].y = data_y2; // Bottom right
+            tri2_dsc.p[2].x = x1; tri2_dsc.p[2].y = data_y2; // Bottom left
+            tri2_dsc.grad.dir = LV_GRAD_DIR_VER;
+            tri2_dsc.grad.stops[0].color = meta->color;
+            tri2_dsc.grad.stops[0].opa = meta->gradient_bottom_opa;
+            tri2_dsc.grad.stops[0].frac = 0;
+            tri2_dsc.grad.stops[1].color = meta->color;
+            tri2_dsc.grad.stops[1].opa = meta->gradient_top_opa;
+            tri2_dsc.grad.stops[1].frac = 255;
+            tri2_dsc.grad.stops_count = 2;
+
+            // Draw both triangles
+            lv_draw_triangle(layer, &tri1_dsc);
+            lv_draw_triangle(layer, &tri2_dsc);
+        }
     }
 }
 
@@ -143,15 +197,23 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     lv_chart_set_axis_range(graph->chart, LV_CHART_AXIS_PRIMARY_Y,
                             (int32_t)graph->min_temp, (int32_t)graph->max_temp);
 
-    // Style chart
+    // Style chart background
     lv_obj_set_style_bg_color(graph->chart, UI_COLOR_PANEL_BG, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(graph->chart, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(graph->chart, 1, LV_PART_MAIN);
-    lv_obj_set_style_border_color(graph->chart, lv_color_hex(0x3A3A3A), LV_PART_MAIN);
-    lv_obj_set_style_pad_all(graph->chart, 8, LV_PART_MAIN);
+    lv_obj_set_style_border_width(graph->chart, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(graph->chart, 12, LV_PART_MAIN);
 
-    // Style chart lines (series will inherit)
-    lv_obj_set_style_line_width(graph->chart, 2, LV_PART_ITEMS);
+    // Style division lines - use LV_PART_MAIN but only for line properties
+    lv_obj_set_style_line_color(graph->chart, lv_color_hex(0x505050), LV_PART_MAIN);
+    lv_obj_set_style_line_width(graph->chart, 1, LV_PART_MAIN);
+    lv_obj_set_style_line_opa(graph->chart, LV_OPA_30, LV_PART_MAIN);  // Subtle - 30% opacity
+
+    // Style data series lines
+    lv_obj_set_style_line_width(graph->chart, 3, LV_PART_ITEMS);  // Thicker series lines
+    lv_obj_set_style_line_opa(graph->chart, LV_OPA_COVER, LV_PART_ITEMS);  // Full opacity for series
+
+    // Configure division line count
+    lv_chart_set_div_line_count(graph->chart, 5, 10);  // 5 horizontal, 10 vertical division lines
 
     // Attach gradient draw callback
     lv_obj_add_event_cb(graph->chart, draw_gradient_fill_cb, LV_EVENT_DRAW_MAIN, graph);

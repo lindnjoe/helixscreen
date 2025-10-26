@@ -24,8 +24,10 @@
 #include "ui_utils.h"
 #include "ui_nav.h"
 #include "ui_theme.h"
+#include "ui_temp_graph.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 // Temperature subjects (reactive data binding)
 static lv_subject_t nozzle_current_subject;
@@ -60,9 +62,39 @@ static lv_obj_t* nozzle_panel = nullptr;
 static lv_obj_t* bed_panel = nullptr;
 static lv_obj_t* parent_obj = nullptr;
 
+// Temperature graph widgets
+static ui_temp_graph_t* nozzle_graph = nullptr;
+static ui_temp_graph_t* bed_graph = nullptr;
+static int nozzle_series_id = -1;
+static int bed_series_id = -1;
+
 // Forward declarations for callbacks
 static void update_nozzle_display();
 static void update_bed_display();
+
+// Generate mock temperature data for realistic heating curve with dramatic changes
+static void generate_mock_temp_data(float* temps, int count, float start_temp, float target_temp) {
+    const float room_temp = 25.0f;
+    const float actual_start = start_temp > 0 ? start_temp : room_temp;
+
+    for (int i = 0; i < count; i++) {
+        float progress = (float)i / (float)(count - 1);
+
+        if (target_temp == 0.0f) {
+            // Cooling curve (exponential decay to room temp)
+            temps[i] = room_temp + (actual_start - room_temp) * expf(-progress * 4.5f);
+        } else {
+            // Heating curve with more dramatic overshoot and oscillation
+            float base_curve = actual_start + (target_temp - actual_start) * (1.0f - expf(-progress * 6.0f));
+            float overshoot = (target_temp - actual_start) * 0.12f * expf(-progress * 8.0f) * sinf(progress * 3.14159f * 3.0f);
+            temps[i] = base_curve + overshoot;
+
+            // Add some noise for realism
+            float noise = ((float)(i % 7) - 3.0f) * 0.5f;
+            temps[i] += noise;
+        }
+    }
+}
 
 void ui_panel_controls_temp_init_subjects() {
     // Initialize temperature subjects with default values
@@ -208,6 +240,35 @@ void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_scree
     parent_obj = parent_screen;
 
     printf("[Temp] Setting up nozzle panel event handlers...\n");
+
+    // Create temperature graph widget
+    lv_obj_t* graph_container = lv_obj_find_by_name(panel, "graph_container");
+    if (graph_container) {
+        nozzle_graph = ui_temp_graph_create(graph_container);
+        if (nozzle_graph) {
+            lv_obj_t* chart = ui_temp_graph_get_chart(nozzle_graph);
+            lv_obj_set_size(chart, lv_pct(100), lv_pct(100));
+
+            // Configure temperature range for nozzle (0-320°C)
+            ui_temp_graph_set_temp_range(nozzle_graph, 0.0f, 320.0f);
+
+            // Add nozzle series (red color)
+            nozzle_series_id = ui_temp_graph_add_series(nozzle_graph, "Nozzle", lv_color_hex(0xFF4444));
+
+            if (nozzle_series_id >= 0) {
+                // Set target temperature line
+                ui_temp_graph_set_series_target(nozzle_graph, nozzle_series_id, (float)nozzle_target, true);
+
+                // Generate and populate mock temperature data
+                const int point_count = 100;
+                float temps[point_count];
+                generate_mock_temp_data(temps, point_count, 25.0f, (float)nozzle_target);
+                ui_temp_graph_set_series_data(nozzle_graph, nozzle_series_id, temps, point_count);
+
+                printf("[Temp]   ✓ Temperature graph created with mock data\n");
+            }
+        }
+    }
 
     // Setup header for responsive height
     lv_obj_t* nozzle_temp_header = lv_obj_find_by_name(panel, "nozzle_temp_header");
@@ -367,6 +428,35 @@ void ui_panel_controls_temp_bed_setup(lv_obj_t* panel, lv_obj_t* parent_screen) 
     parent_obj = parent_screen;
 
     printf("[Temp] Setting up bed panel event handlers...\n");
+
+    // Create temperature graph widget
+    lv_obj_t* graph_container = lv_obj_find_by_name(panel, "graph_container");
+    if (graph_container) {
+        bed_graph = ui_temp_graph_create(graph_container);
+        if (bed_graph) {
+            lv_obj_t* chart = ui_temp_graph_get_chart(bed_graph);
+            lv_obj_set_size(chart, lv_pct(100), lv_pct(100));
+
+            // Configure temperature range for bed (0-140°C)
+            ui_temp_graph_set_temp_range(bed_graph, 0.0f, 140.0f);
+
+            // Add bed series (teal/cyan color like Creality style)
+            bed_series_id = ui_temp_graph_add_series(bed_graph, "Bed", lv_color_hex(0x00CED1));
+
+            if (bed_series_id >= 0) {
+                // Set target temperature line
+                ui_temp_graph_set_series_target(bed_graph, bed_series_id, (float)bed_target, true);
+
+                // Generate and populate mock temperature data
+                const int point_count = 100;
+                float temps[point_count];
+                generate_mock_temp_data(temps, point_count, 25.0f, (float)bed_target);
+                ui_temp_graph_set_series_data(bed_graph, bed_series_id, temps, point_count);
+
+                printf("[Temp]   ✓ Temperature graph created with mock data\n");
+            }
+        }
+    }
 
     // Setup header for responsive height
     lv_obj_t* bed_temp_header = lv_obj_find_by_name(panel, "bed_temp_header");

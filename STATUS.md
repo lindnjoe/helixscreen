@@ -1,8 +1,51 @@
 # Project Status - LVGL 9 UI Prototype
 
-**Last Updated:** 2025-10-25 (Temperature Graph Widget)
+**Last Updated:** 2025-10-25 (Temperature Graph Gradient Fix)
 
 ## Recent Updates (2025-10-25)
+
+### Temperature Graph Gradient Rendering Fix ✅ COMPLETE
+
+**Objective:** Fix gradient fills to only render under the actual temperature curve, not the entire chart height
+
+**Problem:**
+- Gradient fills were using simple rectangles spanning full chart height
+- Resulted in gradient appearing even where no data existed
+- Needed area-under-curve visualization following the actual temperature line
+
+**Solution:**
+- Replaced rectangle-based gradient with triangle-based area fills
+- Decompose area into trapezoid segments between adjacent data points
+- Each trapezoid rendered as two triangles with vertical gradients
+- Skip segments where data doesn't exist (`LV_CHART_POINT_NONE` validation)
+
+**Implementation Details:**
+1. **Triangle-Based Rendering** (src/ui_temp_graph.cpp:43-159):
+   - Uses LVGL 9's `lv_draw_triangle_dsc_t` API
+   - Points stored in descriptor's `p[3]` array (not passed separately)
+   - Vertical gradient applied to each triangle (darker bottom, lighter top)
+
+2. **Data Validation**:
+   - Check for `LV_CHART_POINT_NONE` (INT32_MAX) before rendering each segment
+   - Skip segments where either endpoint has no data
+   - Ensures gradient only appears where actual temperature measurements exist
+
+3. **Coordinate Mapping**:
+   - Map temperature values to Y coordinates (inverted axis)
+   - Calculate X positions based on point index and chart width
+   - Clamp Y values to chart data area bounds
+
+**Files Modified:**
+- `src/ui_temp_graph.cpp` (lines 43-159) - Rewrote `draw_gradient_fill_cb()` function
+
+**Testing:**
+- Screenshots verify gradient only fills area under curve
+- No gradient in empty chart regions
+- Proper vertical gradient (darker at bottom, lighter at top)
+
+**Result:** Clean area-under-curve visualization that follows temperature data exactly, similar to professional printer UIs (Creality, Prusa).
+
+---
 
 ### Temperature Graph Widget: Dynamic Multi-Series Charting ✅ COMPLETE
 
