@@ -21,6 +21,7 @@
 #include "ui_wizard.h"
 #include "ui_keyboard.h"
 #include "wizard_validation.h"
+#include "wifi_manager.h"
 #include "spdlog/spdlog.h"
 #include <algorithm>
 #include <cstdio>
@@ -32,7 +33,7 @@ static lv_obj_t* wizard_content_area = nullptr;
 static lv_obj_t* btn_back = nullptr;
 static lv_obj_t* btn_next = nullptr;
 
-static WizardStep current_step = WizardStep::CONNECTION;
+static WizardStep current_step = WizardStep::WIFI_SETUP;
 static Config* config_instance = nullptr;
 static MoonrakerClient* mr_client_instance = nullptr;
 static std::function<void()> completion_callback;
@@ -59,9 +60,16 @@ static char connection_ip_buffer[64];
 static lv_subject_t connection_port;
 static char connection_port_buffer[16];
 
+static lv_subject_t wifi_status;
+static char wifi_status_buffer[128];
+
+static lv_subject_t ethernet_status;
+static char ethernet_status_buffer[128];
+
 static bool subjects_initialized = false;
 
 // Screen object references
+static lv_obj_t* wifi_setup_screen = nullptr;
 static lv_obj_t* connection_screen = nullptr;
 static lv_obj_t* printer_identify_screen = nullptr;
 static lv_obj_t* bed_select_screen = nullptr;
@@ -148,6 +156,14 @@ void ui_wizard_init_subjects() {
                            sizeof(connection_port_buffer), "7125");
     lv_xml_register_subject(nullptr, "connection_port", &connection_port);
 
+    lv_subject_init_string(&wifi_status, wifi_status_buffer, nullptr,
+                           sizeof(wifi_status_buffer), "Enable WiFi to scan for networks");
+    lv_xml_register_subject(nullptr, "wifi_status", &wifi_status);
+
+    lv_subject_init_string(&ethernet_status, ethernet_status_buffer, nullptr,
+                           sizeof(ethernet_status_buffer), "Checking...");
+    lv_xml_register_subject(nullptr, "ethernet_status", &ethernet_status);
+
     subjects_initialized = true;
     spdlog::info("Wizard subjects initialized");
 }
@@ -202,8 +218,8 @@ lv_obj_t* ui_wizard_create(lv_obj_t* parent,
     // Create timer to check connection timeout (runs every second)
     lv_timer_create(check_connection_timeout, 1000, nullptr);
 
-    // Show first step
-    ui_wizard_goto_step(WizardStep::CONNECTION);
+    // Show first step (WiFi setup if hardware available, otherwise skip to CONNECTION)
+    ui_wizard_goto_step(WizardStep::WIFI_SETUP);
 
     spdlog::info("Wizard created successfully");
     return wizard_root;
@@ -213,6 +229,7 @@ void ui_wizard_goto_step(WizardStep step) {
     current_step = step;
 
     // Hide all screens
+    if (wifi_setup_screen) lv_obj_add_flag(wifi_setup_screen, LV_OBJ_FLAG_HIDDEN);
     if (connection_screen) lv_obj_add_flag(connection_screen, LV_OBJ_FLAG_HIDDEN);
     if (printer_identify_screen) lv_obj_add_flag(printer_identify_screen, LV_OBJ_FLAG_HIDDEN);
     if (bed_select_screen) lv_obj_add_flag(bed_select_screen, LV_OBJ_FLAG_HIDDEN);
@@ -224,6 +241,41 @@ void ui_wizard_goto_step(WizardStep step) {
     // Create and show current step screen
     lv_obj_t* screen = nullptr;
     switch (step) {
+        case WizardStep::WIFI_SETUP:
+            // Check if WiFi hardware is available
+            if (!WiFiManager::has_hardware()) {
+                spdlog::info("[Wizard] No WiFi hardware detected, skipping WiFi setup");
+                ui_wizard_goto_step(WizardStep::CONNECTION);
+                return;
+            }
+
+            if (!wifi_setup_screen && wizard_content_area) {
+                wifi_setup_screen = (lv_obj_t*)lv_xml_create(wizard_content_area, "wizard_wifi_setup", nullptr);
+                if (wifi_setup_screen) {
+                    // Check Ethernet status and update subject
+                    if (WiFiManager::has_ethernet()) {
+                        std::string eth_ip = WiFiManager::get_ethernet_ip();
+                        if (!eth_ip.empty()) {
+                            std::string status = "Connected: " + eth_ip;
+                            lv_subject_copy_string(&ethernet_status, status.c_str());
+                        } else {
+                            lv_subject_copy_string(&ethernet_status, "Present (Not Connected)");
+                        }
+                    } else {
+                        lv_subject_copy_string(&ethernet_status, "Not Present");
+                    }
+
+                    // Force layout update AFTER subject bindings are populated
+                    lv_obj_update_layout(wifi_setup_screen);
+
+                    // TODO: Wire up WiFi toggle event handler
+                    // TODO: Start WiFi scanning when enabled
+                    spdlog::info("[Wizard] WiFi setup screen created");
+                }
+            }
+            screen = wifi_setup_screen;
+            break;
+
         case WizardStep::CONNECTION:
             if (!connection_screen && wizard_content_area) {
                 connection_screen = (lv_obj_t*)lv_xml_create(wizard_content_area, "wizard_connection", nullptr);
@@ -411,7 +463,7 @@ void ui_wizard_next() {
 }
 
 void ui_wizard_back() {
-    if (current_step == WizardStep::CONNECTION) {
+    if (current_step == WizardStep::WIFI_SETUP) {
         spdlog::warn("Already at first wizard step, cannot go back");
         return;
     }
@@ -614,6 +666,9 @@ static void on_test_connection_clicked(lv_event_t* e) {
 static void update_ui_for_step(WizardStep step) {
     // Update title
     switch (step) {
+        case WizardStep::WIFI_SETUP:
+            lv_subject_copy_string(&wizard_title, "WiFi Setup");
+            break;
         case WizardStep::CONNECTION:
             lv_subject_copy_string(&wizard_title, "Connect to Moonraker");
             break;
@@ -654,7 +709,7 @@ static void update_ui_for_step(WizardStep step) {
     }
 
     // Show/hide Back button
-    if (step == WizardStep::CONNECTION) {
+    if (step == WizardStep::WIFI_SETUP) {
         lv_obj_add_flag(btn_back, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_remove_flag(btn_back, LV_OBJ_FLAG_HIDDEN);
@@ -663,6 +718,10 @@ static void update_ui_for_step(WizardStep step) {
 
 static bool validate_current_step() {
     switch (current_step) {
+        case WizardStep::WIFI_SETUP:
+            // WiFi setup is optional - always allow proceeding
+            return true;
+
         case WizardStep::CONNECTION:
             if (!connection_tested || !connection_successful) {
                 lv_subject_copy_string(&connection_status, "Please test connection first");

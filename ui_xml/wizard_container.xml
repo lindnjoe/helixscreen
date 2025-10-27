@@ -20,29 +20,29 @@
 <component>
 	<!-- First-Run Configuration Wizard Container -->
 	<!-- Full-screen overlay with progress indicator and navigation controls -->
-	<view extends="lv_obj" 
-		  width="100%" 
-		  height="100%" 
-		  style_bg_color="#panel_bg" 
-		  style_bg_opa="255" 
-		  style_border_width="0" 
-		  style_pad_all="0" 
+	<view extends="lv_obj"
+		  width="100%"
+		  height="100%"
+		  style_bg_color="#card_bg_dark"
+		  style_bg_opa="255"
+		  style_border_width="0"
+		  style_radius="0"
+		  style_pad_all="0"
 		  flex_flow="column"
-          style_flex_main_place="center"
-		   
+		  style_flex_main_place="start"
 		  name="wizard_root">
 		<!-- HEADER: Progress Indicator Only (minimal padding) -->
-		<lv_obj width="100%" 
+		<lv_obj width="100%"
+				height="LV_SIZE_CONTENT"
          		style_min_height="#wizard_header_min_height"
-				flex_grow="1"
 				scrollable="false"
 		        style_bg_opa="0"
 				style_radius="0"
-				style_border_width="0" 
-				style_pad_all="#padding_small" 
+				style_border_width="0"
+				style_pad_all="#padding_small"
 				flex_flow="row"
-				style_flex_main_place="center" 
-				style_flex_cross_place="center" 
+				style_flex_main_place="center"
+				style_flex_cross_place="center"
 				name="wizard_header">
 			<!-- Progress indicator: "Step 1 of 7" -->
 			<lv_label name="wizard_progress" 
@@ -54,8 +54,7 @@
 		<!-- CONTENT AREA: Wizard screens load here dynamically -->
 		<lv_obj name="wizard_content"
 		        width="100%"
-				height="100%"
-				flex_grow="100"
+				flex_grow="1"
 		        scrollable="false"
 				style_bg_opa="0"
 		        style_border_width="0"
@@ -66,30 +65,31 @@
 		        style_flex_cross_place="start">
 			<!-- Content screens inserted here by C++ -->
 		</lv_obj>
+
 		<!-- FOOTER: Navigation Buttons (Back / Next or Finish) -->
-		<lv_obj width="100%"
-				flex_grow="10"
-			    style_min_height="#wizard_footer_min_height" 
+		<lv_obj name="wizard_footer"
+				width="100%"
+				height="LV_SIZE_CONTENT"
+			    style_min_height="#wizard_footer_min_height"
 				scrollable="false"
-				style_bg_opa="0"
+				style_bg_opa="200"
 				style_radius="0"
-				style_border_width="0" 
-				style_pad_left="#padding_small" 
+				style_border_width="0"
+				style_pad_left="#padding_small"
 				style_pad_right="#padding_small"
-				style_pad_top="0" 
-				style_pad_bottom="0" 
-				style_pad_gap="#gap_normal" 
-				flex_flow="row" 
-				style_flex_main_place="space_between" 
-				style_flex_cross_place="center" 
-				name="wizard_footer">
+				style_pad_top="0"
+				style_pad_bottom="0"
+				style_pad_gap="#gap_normal"
+				flex_flow="row"
+				style_flex_main_place="space_between"
+				style_flex_cross_place="center">
 			<!-- Back Button (hidden on first screen) -->
 			<lv_button name="btn_back" 
 					   width="#wizard_button_width" 
-					   style_min_height="#button_height_small" 
+					   style_min_height="#button_height_small"
 					   style_bg_color="#button_secondary_bg" 
 					   style_text_color="#text_primary">
-				<lv_label text="Back" style_text_font="montserrat_16"/>
+				<lv_label text="Back" align="center" style_text_font="montserrat_16"/>
 			</lv_button>
 			<!-- Spacer -->
 			<lv_obj flex_grow="1" style_bg_opa="0" style_border_width="0"/>

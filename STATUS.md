@@ -16,6 +16,7 @@ This project uses **git history** and **focused documentation** instead of maint
 👉 **[docs/LVGL9_XML_GUIDE.md](docs/LVGL9_XML_GUIDE.md)** - Complete LVGL 9 XML reference
 👉 **[docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - Common code patterns
 👉 **[docs/COPYRIGHT_HEADERS.md](docs/COPYRIGHT_HEADERS.md)** - GPL v3 header templates
+👉 **[docs/MEMORY_ANALYSIS.md](docs/MEMORY_ANALYSIS.md)** - Memory profiling & lifecycle patterns
 
 ### Development History
 👉 **Git commits** - Use descriptive commit messages
@@ -71,6 +72,19 @@ This section captures **non-obvious design choices** that aren't clear from code
 - Designer-friendly (future LVGL SquareLine Studio integration)
 
 **Trade-offs:** Steeper learning curve, requires understanding LVGL 9 XML property system.
+
+### Create-Once Panel Lifecycle (2025-10-27)
+
+**Decision:** Pre-create all panels at startup, toggle visibility for navigation instead of dynamic create/delete.
+
+**Rationale:**
+- Memory profiling shows negligible cost (<2 MB for all panels vs framework's 55 MB)
+- Instant panel switching (0ms flag toggle vs 50-100ms creation)
+- State preservation automatic (no serialization needed)
+- Predictable memory usage (no runtime allocation failures)
+- See docs/MEMORY_ANALYSIS.md for detailed profiling data
+
+**When to reconsider:** If running on <256 MB RAM hardware or supporting 50+ panels.
 
 ---
 

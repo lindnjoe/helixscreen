@@ -115,11 +115,26 @@ Components are reusable UI pieces defined with the `<component>` tag.
 
 ```xml
 <component>
-    <!-- Optional: Component API properties -->
+    <!-- Optional: Component API (properties passed from parent) -->
     <api>
+        <!-- Simple properties -->
         <prop name="text" type="string" default="Click me"/>
-        <prop name="subject" type="subject" default=""/>
         <prop name="enabled" type="bool" default="true"/>
+        <prop name="count" type="int" default="0"/>
+
+        <!-- Multi-parameter property (e.g., bind_text with format) -->
+        <prop name="temperature">
+            <param name="temperature" type="subject"/>
+            <param name="fmt" type="string" default="%.1f°C"/>
+        </prop>
+
+        <!-- Enum property (predefined values) -->
+        <enumdef name="button_size">
+            <enum name="small" value="32"/>
+            <enum name="medium" value="48"/>
+            <enum name="large" value="64"/>
+        </enumdef>
+        <prop name="size" type="button_size" default="medium"/>
     </api>
 
     <!-- Optional: Local constants -->
@@ -181,6 +196,124 @@ The `globals.xml` file contains all shared resources:
 <lv_obj width="#nav_width" style_bg_color="#primary_color"/>
 ```
 
+### 1b. Custom Component API (Advanced)
+
+The `<api>` tag defines the interface for components, creating reusable widgets with custom properties.
+
+#### Property Types
+
+**Simple types:**
+- `string` - Text values
+- `int` - Integer numbers
+- `bool` - true/false
+- `color` - Color values (hex)
+- `subject` - Subject references
+- `float` - Floating point numbers
+
+**Complex types:**
+- Multi-parameter properties (see below)
+- Enum definitions (predefined value sets)
+- Element accessors (for widget internals)
+
+#### Multi-Parameter Properties
+
+When a property needs multiple inputs (like format strings):
+
+```xml
+<api>
+    <prop name="bind_temperature">
+        <param name="bind_temperature" type="subject"/>
+        <param name="fmt" type="string" default="%.1f"/>
+    </prop>
+</api>
+
+<view>
+    <!-- Usage: parameters become hyphenated attributes -->
+    <lv_label bind_temperature="temp_subject" bind_temperature-fmt="%.2f°C"/>
+</view>
+```
+
+**Pattern:** Property name repeated as first param; others use `property-param` notation.
+
+#### Enum Definitions
+
+Define allowed values for properties:
+
+```xml
+<api>
+    <enumdef name="align_mode">
+        <enum name="left" value="0"/>
+        <enum name="center" value="1"/>
+        <enum name="right" value="2"/>
+    </enumdef>
+    <prop name="alignment" type="align_mode" default="center"/>
+</api>
+
+<view>
+    <!-- String names map to C enum values -->
+    <lv_label alignment="left"/>  <!-- Uses value 0 -->
+</view>
+```
+
+#### Element Definitions (Widget Internals)
+
+For widgets with complex internal structure (like chart series):
+
+```xml
+<api>
+    <!-- Add-type elements (dynamic creation) -->
+    <element name="series" type="lv_chart_series_t" access="add">
+        <arg name="color" type="color"/>
+        <prop name="width" type="int" default="2"/>
+    </element>
+
+    <!-- Get-type elements (access pre-existing parts) -->
+    <element name="indicator" type="lv_obj_t" access="get">
+        <arg name="index" type="int"/>
+        <prop name="color" type="color"/>
+    </element>
+
+    <!-- Set-type elements (indexed access, like table cells) -->
+    <element name="cell" access="set">
+        <arg name="row" type="int"/>
+        <arg name="col" type="int"/>
+        <prop name="value" type="string"/>
+    </element>
+</api>
+
+<view extends="lv_chart">
+    <!-- Usage: widget-element notation -->
+    <lv_chart-series color="#ff0000" width="3"/>
+    <lv_chart-series color="#00ff00" width="2"/>
+</view>
+```
+
+**Access patterns:**
+- `add` - Create multiple dynamically (chart series, list items)
+- `get` - Access pre-existing parts (slider indicator, bar parts)
+- `set` - Indexed access (table cells, matrix elements)
+- `custom` - Map to arbitrary C function
+
+#### Component vs Widget API
+
+**Components** (simple):
+- Only `<prop>` tags (no `<param>`, `<enumdef>`, `<element>`)
+- Generate single `create()` function with all props as arguments
+- Properties forward to child widgets
+
+**Widgets** (rich):
+- Full API model with all descriptor types
+- Map to C setter functions and internal structures
+- Built-in widgets already have parsers
+
+#### API Best Practices
+
+1. **Default values** - Always provide sensible defaults
+2. **Type safety** - Use enums instead of raw integers
+3. **Clear names** - Property names should be self-documenting
+4. **Multi-param sparingly** - Use only when truly needed
+5. **Document in comments** - Add `help="..."` attribute to props
+
 ### 2. Subjects (Reactive Data)
 
 Subjects are observable data containers that automatically update all bound widgets when changed.
@@ -229,31 +362,104 @@ lv_subject_copy_string(&status_subject, "New status");
 
 ### 3. Data Binding
 
-XML widgets can bind to subjects using special attributes.
+XML widgets can bind to subjects using **attribute bindings** (simple) or **child element bindings** (complex/conditional).
 
-#### Supported Bindings
+#### Simple Attribute Bindings
+
+For straightforward data binding, use `bind_*` attributes:
 
 ```xml
 <!-- Bind label text to string subject -->
 <lv_label bind_text="status_text" style_text_color="#text_primary"/>
 
-<!-- Bind with format string -->
+<!-- Bind with format string (multi-parameter property) -->
 <lv_label bind_text="temp_value" bind_text-fmt="%.1f°C"/>
+<!-- Format syntax: C printf format strings -->
+<!-- %d=integer, %f=float, %s=string, %.1f=1 decimal place -->
 
 <!-- Bind slider value to integer subject -->
 <lv_slider bind_value="volume" min_value="0" max_value="100"/>
 
-<!-- Conditional flag binding (show/hide based on subject value) -->
-<lv_obj bind_flag_if_eq="subject=active_panel flag=hidden ref_value=0"/>
-
-<!-- Conditional style binding -->
-<lv_obj>
-    <bind_style name="style_dark" subject="dark_theme" ref_value="1"/>
-</lv_obj>
+<!-- Bind arc value -->
+<lv_arc bind_value="progress" min_value="0" max_value="100"/>
 
 <!-- Reactive color binding -->
-<lv_label bind_style_text_color="nav_icon_0_color" text="#icon_home"/>
+<lv_label bind_style_text_color="icon_color" text="#icon_home"/>
+
+<!-- Bind image source (dynamic image switching) -->
+<lv_image bind_src="current_icon"/>
 ```
+
+**Naming pattern:** `bind_<property>` where `<property>` is the widget property name.
+
+#### Advanced Child Element Bindings
+
+For conditional logic and complex bindings, use child elements:
+
+```xml
+<!-- Conditional flag binding (show/hide based on subject) -->
+<lv_obj>
+    <lv_obj-bind_flag_if_eq subject="active_panel" flag="hidden" ref_value="0"/>
+</lv_obj>
+```
+
+**Available conditional flag bindings:**
+
+| Element | Condition | Example |
+|---------|-----------|---------|
+| `<lv_obj-bind_flag_if_eq>` | `subject == ref_value` | Show when equal |
+| `<lv_obj-bind_flag_if_ne>` | `subject != ref_value` | Show when not equal |
+| `<lv_obj-bind_flag_if_gt>` | `subject > ref_value` | Enable when greater |
+| `<lv_obj-bind_flag_if_ge>` | `subject >= ref_value` | Enable when >= |
+| `<lv_obj-bind_flag_if_lt>` | `subject < ref_value` | Disable when less |
+| `<lv_obj-bind_flag_if_le>` | `subject <= ref_value` | Disable when <= |
+
+**Flags you can bind:**
+
+```xml
+<!-- Common flags -->
+<lv_obj-bind_flag_if_eq subject="visible" flag="hidden" ref_value="0"/>
+<lv_obj-bind_flag_if_ge subject="level" flag="disabled" ref_value="100"/>
+<lv_obj-bind_flag_if_eq subject="interactive" flag="clickable" ref_value="1"/>
+<lv_obj-bind_flag_if_lt subject="size" flag="scrollable" ref_value="10"/>
+
+<!-- All LV_OBJ_FLAG_* flags supported: -->
+<!-- hidden, clickable, click_focusable, checkable, scrollable, -->
+<!-- scroll_elastic, scroll_momentum, scroll_one, scroll_chain_hor, -->
+<!-- scroll_chain_ver, scroll_on_focus, scroll_with_arrow, snappable, -->
+<!-- press_lock, event_bubble, gesture_bubble, adv_hittest, -->
+<!-- ignore_layout, floating, send_draw_task_events, overflow_visible, -->
+<!-- flex_in_new_track, layout_1, layout_2, widget_1, widget_2, -->
+<!-- user_1, user_2, user_3, user_4 -->
+```
+
+**Multiple conditional bindings:**
+
+```xml
+<lv_obj>
+    <!-- Hide when mode = 1 -->
+    <lv_obj-bind_flag_if_eq subject="mode" flag="hidden" ref_value="1"/>
+    <!-- Disable when level >= 100 -->
+    <lv_obj-bind_flag_if_ge subject="level" flag="disabled" ref_value="100"/>
+    <!-- Make scrollable when count > 5 -->
+    <lv_obj-bind_flag_if_gt subject="item_count" flag="scrollable" ref_value="5"/>
+</lv_obj>
+```
+
+**Conditional style binding:**
+
+```xml
+<lv_obj>
+    <!-- Apply style_dark when dark_mode subject equals 1 -->
+    <bind_style name="style_dark" subject="dark_mode" ref_value="1"/>
+    <!-- Apply style_warning when temperature >= 80 -->
+    <bind_style name="style_warning" subject="temperature" ref_value="80"/>
+</lv_obj>
+```
+
+**When to use child elements vs attributes:**
+- **Attributes** → Simple direct binding (`bind_text`, `bind_value`)
+- **Child elements** → Conditional logic, multiple subjects, complex rules
 
 #### Defining Subjects in globals.xml (Optional)
 
@@ -274,87 +480,352 @@ While subjects can be defined in XML, it's recommended to initialize them in C++
 
 ## Layouts & Positioning
 
-### Flex Layout Fundamentals
+LVGL 9 provides two powerful layout systems inspired by CSS: **Flex** (flexbox) and **Grid**. Layouts automatically position children, overriding manual positioning.
 
-LVGL 9 XML uses flexbox-style layouts for responsive positioning.
+### Layout Control Flags
 
-#### Flex Flow Options
+These flags affect how widgets participate in layouts:
 
 ```xml
-<lv_obj flex_flow="row">          <!-- Horizontal left to right -->
-<lv_obj flex_flow="row_reverse">  <!-- Horizontal right to left -->
-<lv_obj flex_flow="column">       <!-- Vertical top to bottom -->
-<lv_obj flex_flow="column_reverse"> <!-- Vertical bottom to top -->
+<!-- Exclude from layout calculations -->
+<lv_obj hidden="true"/>  <!-- LV_OBJ_FLAG_HIDDEN -->
+
+<!-- Remove from layout but keep manual position -->
+<lv_obj ignore_layout="true"/>  <!-- LV_OBJ_FLAG_IGNORE_LAYOUT -->
+
+<!-- Floating (like ignore_layout + excluded from content size) -->
+<lv_obj floating="true"/>  <!-- LV_OBJ_FLAG_FLOATING -->
 ```
 
-#### ⚠️ CRITICAL: `flex_align` DOES NOT WORK!
+---
 
-**❌ INCORRECT - This attribute is silently ignored:**
+### Flex Layout (Flexbox)
+
+Flex arranges children in rows or columns with wrapping, spacing, and proportional growth. Best for **1D layouts** (single row/column or wrapping).
+
+#### Flex Flow Options (VERIFIED in lvgl/src/others/xml/lv_xml_base_types.c)
+
 ```xml
-<lv_obj flex_flow="row" flex_align="center center center">
+<!-- Basic flow (no wrapping) -->
+<lv_obj flex_flow="row">           <!-- Horizontal left to right -->
+<lv_obj flex_flow="column">        <!-- Vertical top to bottom -->
+<lv_obj flex_flow="row_reverse">   <!-- Horizontal right to left -->
+<lv_obj flex_flow="column_reverse"><!-- Vertical bottom to top -->
+
+<!-- With wrapping (creates multiple tracks) -->
+<lv_obj flex_flow="row_wrap">              <!-- Wrap to new rows -->
+<lv_obj flex_flow="column_wrap">           <!-- Wrap to new columns -->
+<lv_obj flex_flow="row_wrap_reverse">      <!-- Wrap reversed -->
+<lv_obj flex_flow="column_wrap_reverse">   <!-- Wrap reversed -->
 ```
 
-**✓ CORRECT - Use `style_flex_*` properties:**
+#### Flex Alignment - Three Parameters
+
+Flex uses **three alignment properties** to control positioning:
+
+| Property | Controls | CSS Equivalent |
+|----------|----------|----------------|
+| `style_flex_main_place` | Item distribution along **main axis** | `justify-content` |
+| `style_flex_cross_place` | Item alignment along **cross axis** | `align-items` |
+| `style_flex_track_place` | Track distribution (multi-track wrapping) | `align-content` |
+
+**⚠️ CRITICAL:** Never use `flex_align` attribute - it doesn't exist in LVGL 9 XML!
+
+**✓ CORRECT XML usage:**
 ```xml
 <lv_obj flex_flow="row"
         style_flex_main_place="center"
-        style_flex_cross_place="center">
+        style_flex_cross_place="center"
+        style_flex_track_place="start">
+    <!-- Children -->
+</lv_obj>
 ```
 
-#### Flex Alignment Properties
+#### Alignment Values (All Three Properties)
 
-**Values for `style_flex_main_place`** (alignment along primary axis):
-- `start` - Align to start (default)
-- `center` - Center align
-- `end` - Align to end
-- `space_between` - Distribute with space between items
-- `space_evenly` - Distribute with even space around items
-- `space_around` - Distribute with space around items
+| Value | Behavior | Available For |
+|-------|----------|---------------|
+| `start` | Beginning (left/top, RTL-aware) | All three |
+| `center` | Centered | All three |
+| `end` | End (right/bottom, RTL-aware) | All three |
+| `space_evenly` | Equal space around all items | `main_place`, `track_place` |
+| `space_around` | Equal space, double at edges | `main_place`, `track_place` |
+| `space_between` | No edge space, even gaps | `main_place`, `track_place` |
 
-**Values for `style_flex_cross_place`** (alignment along cross axis):
-- `start` - Align to start (default)
-- `center` - Center align
-- `end` - Align to end
-- `stretch` - Stretch to fill
+**Note:** `space_*` values don't apply to `cross_place` (items don't "distribute" perpendicularly).
 
-#### Axis Direction
+#### Axis Direction Reference
 
 **For `flex_flow="row"` (horizontal):**
-- `style_flex_main_place` controls **horizontal** alignment
-- `style_flex_cross_place` controls **vertical** alignment
+- `style_flex_main_place` → **horizontal** distribution (left/center/right)
+- `style_flex_cross_place` → **vertical** alignment (top/center/bottom)
 
 **For `flex_flow="column"` (vertical):**
-- `style_flex_main_place` controls **vertical** alignment
-- `style_flex_cross_place` controls **horizontal** alignment
+- `style_flex_main_place` → **vertical** distribution (top/center/bottom)
+- `style_flex_cross_place` → **horizontal** alignment (left/center/right)
 
-#### Flex Grow for Responsive Distribution
+#### Flex Grow - Proportional Expansion
+
+Children with `flex_grow` expand to fill remaining space proportionally.
+
+**How it works:**
+- Available space ÷ total grow weight = space per unit
+- Each child gets (available space × its grow value) ÷ total grow weight
+
+**Example:** 400px available, grow values (1, 1, 2):
+- First two: 100px each (400 × 1 ÷ 4)
+- Third: 200px (400 × 2 ÷ 4)
 
 ```xml
-<lv_obj flex_flow="row">
-    <lv_label text="Left"/>
-    <lv_label text="Center" flex_grow="1"/>  <!-- Takes remaining space -->
-    <lv_label text="Right"/>
+<lv_obj flex_flow="row" width="400">
+    <lv_label text="Left"/>                      <!-- Fixed size -->
+    <lv_label text="Center" flex_grow="1"/>      <!-- Takes remaining space -->
+    <lv_label text="Right"/>                     <!-- Fixed size -->
 </lv_obj>
 ```
 
 **Equal distribution:**
 ```xml
 <lv_obj flex_flow="row">
-    <lv_obj flex_grow="1">Content 1</lv_obj>  <!-- 33% -->
-    <lv_obj flex_grow="1">Content 2</lv_obj>  <!-- 33% -->
-    <lv_obj flex_grow="1">Content 3</lv_obj>  <!-- 33% -->
+    <lv_obj flex_grow="1">33%</lv_obj>
+    <lv_obj flex_grow="1">33%</lv_obj>
+    <lv_obj flex_grow="1">33%</lv_obj>
 </lv_obj>
 ```
 
-#### Starting New Track (Line Wrap)
-
+**Weighted distribution:**
 ```xml
 <lv_obj flex_flow="row">
-    <lv_button/>
-    <lv_button/>
-    <lv_button flex_in_new_track="true"/>  <!-- Starts on new line -->
+    <lv_obj flex_grow="1">25%</lv_obj>
+    <lv_obj flex_grow="2">50%</lv_obj>
+    <lv_obj flex_grow="1">25%</lv_obj>
 </lv_obj>
 ```
+
+**Disable grow:** Set `flex_grow="0"` (default)
+
+#### Forcing New Track (Line Break)
+
+Use `flex_in_new_track="true"` to force an item to start a new row/column:
+
+```xml
+<lv_obj flex_flow="row_wrap">
+    <lv_button>Item 1</lv_button>
+    <lv_button>Item 2</lv_button>
+    <lv_button flex_in_new_track="true">Item 3</lv_button>  <!-- New row -->
+    <lv_button>Item 4</lv_button>
+</lv_obj>
+```
+
+**C flag:** `LV_OBJ_FLAG_FLEX_IN_NEW_TRACK`
+
+#### Flex Gaps (Spacing)
+
+Control spacing between items using padding style properties:
+
+```xml
+<lv_obj flex_flow="row"
+        style_pad_column="10"   <!-- 10px horizontal gap -->
+        style_pad_row="5">      <!-- 5px vertical gap (if wrapping) -->
+    <!-- Children -->
+</lv_obj>
+```
+
+#### 🚨 CRITICAL: Flex Layout Height Requirements
+
+**ESSENTIAL RULE:** When using `flex_grow` on children, **the parent MUST have an explicit height dimension**.
+
+Without an explicit parent height, `flex_grow` children will collapse to 0 size or cause unexpected layout behavior.
+
+**❌ BROKEN - Parent has no height:**
+```xml
+<lv_obj flex_flow="row">  <!-- No height specified -->
+    <lv_obj flex_grow="3">Left column (30%)</lv_obj>
+    <lv_obj flex_grow="7">Right column (70%)</lv_obj>
+</lv_obj>
+<!-- Result: Columns collapse or have unpredictable heights -->
+```
+
+**✓ CORRECT - Parent has explicit height:**
+```xml
+<!-- Option 1: Fixed height -->
+<lv_obj flex_flow="row" height="300">
+    <lv_obj flex_grow="3" height="100%">Left (30%)</lv_obj>
+    <lv_obj flex_grow="7" height="100%">Right (70%)</lv_obj>
+</lv_obj>
+
+<!-- Option 2: flex_grow from grandparent -->
+<lv_obj flex_flow="column" height="100%">
+    <lv_obj flex_flow="row" flex_grow="1">  <!-- Expands to fill parent -->
+        <lv_obj flex_grow="3" height="100%">Left (30%)</lv_obj>
+        <lv_obj flex_grow="7" height="100%">Right (70%)</lv_obj>
+    </lv_obj>
+</lv_obj>
+```
+
+**💡 Two-Column Layout Pattern (30/70 split):**
+
+This pattern is used extensively (wizard screens, settings pages, etc.):
+
+```xml
+<!-- CORRECT hierarchy for two-column layouts -->
+<view height="100%" flex_flow="column">
+    <!-- Top wrapper must expand to fill parent -->
+    <lv_obj width="100%" flex_grow="1" flex_flow="column">
+
+        <!-- Two-column row must expand within wrapper -->
+        <lv_obj width="100%" flex_grow="1" flex_flow="row">
+
+            <!-- LEFT COLUMN (30%) - must have height="100%" -->
+            <lv_obj flex_grow="3" height="100%"
+                    flex_flow="column"
+                    scrollable="true" scroll_dir="VER">
+                <!-- Cards with fixed heights -->
+                <lv_obj height="100">Card 1</lv_obj>
+                <lv_obj height="100">Card 2</lv_obj>
+            </lv_obj>
+
+            <!-- RIGHT COLUMN (70%) - must have height="100%" -->
+            <lv_obj flex_grow="7" height="100%"
+                    scrollable="true" scroll_dir="VER">
+                <!-- Content -->
+            </lv_obj>
+        </lv_obj>
+    </lv_obj>
+</view>
+```
+
+**⚠️ Common Pitfalls:**
+
+1. **Row height constrained by shortest column:**
+   - In `flex_flow="row"`, row height = tallest child
+   - If one column is short, it constrains the entire row
+   - **Solution:** Add `height="100%"` to ALL columns
+
+2. **LV_SIZE_CONTENT in nested flex:**
+   - `LV_SIZE_CONTENT` evaluates to 0 before `lv_obj_update_layout()` is called
+   - In deeply nested flex layouts, this causes collapse
+   - **Solution:** Use fixed heights or `style_min_height` for cards
+
+3. **Missing flex_grow chain:**
+   - Every level needs proper sizing: `wrapper → row → columns`
+   - Missing `flex_grow` at any level breaks the chain
+   - **Solution:** Trace from root to leaf, ensure each level expands
+
+**Diagnostic tip:** Add temporary `style_bg_color="#ff0000"` to containers to visualize their actual bounds.
+
+---
+
+### Grid Layout
+
+Grid arranges children in a **2D table structure** with explicit rows and columns. Best for **structured layouts** where items align both horizontally and vertically.
+
+#### When to Use Grid vs Flex
+
+**Use Grid when:**
+- You need precise 2D alignment (rows AND columns)
+- Items should align across multiple rows
+- You have a table-like structure
+- You need cells that span multiple rows/columns
+
+**Use Flex when:**
+- Single-direction flow (row or column)
+- Wrapping is simple (no cross-alignment needed)
+- Dynamic number of items
+- You need proportional growth (flex_grow)
+
+#### Defining Grid Structure
+
+Grids use **descriptor arrays** to define column/row sizes:
+
+```xml
+<!-- Not directly supported in XML - use C++ or component API -->
+```
+
+**⚠️ IMPORTANT:** Grid definitions require C API or custom component `<api>` tags. LVGL XML doesn't have direct `style_grid_column_dsc_array` attribute support.
+
+**C API approach:**
+```cpp
+// Define grid structure in C++
+static int32_t col_dsc[] = {100, 200, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
+static int32_t row_dsc[] = {50, 50, 50, LV_GRID_TEMPLATE_LAST};
+
+lv_obj_set_style_grid_column_dsc_array(container, col_dsc, 0);
+lv_obj_set_style_grid_row_dsc_array(container, row_dsc, 0);
+lv_obj_set_layout(container, LV_LAYOUT_GRID);
+```
+
+**Track sizing options:**
+- **Fixed pixels:** `100` (100px wide/tall)
+- **LV_GRID_CONTENT:** Size to fit largest child in that track
+- **LV_GRID_FR(n):** Fractional units (distribute free space proportionally)
+
+**Example:** `{100, LV_GRID_FR(1), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST}`
+- Column 1: 100px fixed
+- Column 2: 1/3 of remaining space
+- Column 3: 2/3 of remaining space
+
+#### Placing Grid Children
+
+Position children in grid cells using C API:
+
+```cpp
+lv_obj_set_grid_cell(
+    child,
+    LV_GRID_ALIGN_STRETCH,  // col_align
+    0,                       // col_pos (0-indexed)
+    2,                       // col_span (spans 2 columns)
+    LV_GRID_ALIGN_CENTER,   // row_align
+    1,                       // row_pos
+    1                        // row_span
+);
+```
+
+**Cell alignment values:**
+- `LV_GRID_ALIGN_START` - Left/top (default)
+- `LV_GRID_ALIGN_CENTER` - Centered in cell
+- `LV_GRID_ALIGN_END` - Right/bottom
+- `LV_GRID_ALIGN_STRETCH` - Fill entire cell
+
+#### Grid Track Alignment
+
+When free space exists in the grid container, control track distribution:
+
+```cpp
+lv_obj_set_grid_align(
+    container,
+    LV_GRID_ALIGN_SPACE_EVENLY,  // column alignment
+    LV_GRID_ALIGN_CENTER          // row alignment
+);
+```
+
+**Available values:** Same as flex alignment - `START`, `END`, `CENTER`, `SPACE_EVENLY`, `SPACE_AROUND`, `SPACE_BETWEEN`
+
+#### Grid Gaps (Spacing)
+
+```cpp
+lv_obj_set_style_pad_column(container, 10, 0);  // 10px column gap
+lv_obj_set_style_pad_row(container, 5, 0);      // 5px row gap
+```
+
+**XML equivalent (if grid setup done in C):**
+```xml
+<lv_obj style_pad_column="10" style_pad_row="5">
+    <!-- Grid children -->
+</lv_obj>
+```
+
+#### Sub-Grids (Inheritance)
+
+Setting grid descriptors to `NULL` makes a child inherit its parent's grid:
+
+```cpp
+lv_obj_set_grid_dsc_array(child, NULL, NULL);  // Inherit parent grid
+```
+
+**Use case:** Create wrapper objects that span multiple parent cells while their children align to the parent's grid.
+
+---
 
 ### Centering Techniques
 
@@ -1259,74 +1730,131 @@ When `lv_obj_refr_size()` calculates `LV_SIZE_CONTENT`, it reads child coordinat
 
 **Source:** `lvgl/src/core/lv_obj_pos.c:1077-1170, 1224-1247`
 
+**Verified Test Results** (from `test_size_content.cpp`):
+
+```
+Test 1: Label with LV_SIZE_CONTENT
+  BEFORE lv_obj_update_layout(): width=0, height=0
+  AFTER lv_obj_update_layout():  width=72, height=16  ✓
+
+Test 2: Container with LV_SIZE_CONTENT + child
+  BEFORE adding child:           width=0, height=0
+  AFTER adding child (no update): width=0, height=0
+  AFTER lv_obj_update_layout():  width=125, height=60 ✓
+
+Test 4: Flex container with LV_SIZE_CONTENT
+  BEFORE lv_obj_update_layout(): width=0, height=0
+  AFTER lv_obj_update_layout():  width=234, height=62 ✓
+
+Test 5: Nested LV_SIZE_CONTENT
+  BEFORE update:                 Outer=0x0, Inner=0x0
+  AFTER update:                  Outer=204x104, Inner=160x60 ✓
+```
+
 **When LV_SIZE_CONTENT Evaluates to Zero:**
 
 1. **Container queried before layout completes** - Layout update deferred via `layout_inv` flag
-2. **Flex container with children that also have LV_SIZE_CONTENT** - Circular dependency detected
-3. **Parent with LV_SIZE_CONTENT + child with percentage width** - Deliberately sized to 0 to prevent infinite loops (see `lvgl/src/core/lv_obj_pos.c:114-123`)
-4. **All children hidden or floating** - Calculation skips them, returns only intrinsic size
+2. **Container created but children not yet added** - No children to measure
+3. **All children hidden or floating** - Calculation skips them, returns only intrinsic size
 
-**Fix 1: Call lv_obj_update_layout() After Creation**
+**When LV_SIZE_CONTENT DOES Work (Verified):**
+
+1. **After `lv_obj_update_layout()` is called** - Forces immediate layout calculation
+2. **Widgets with intrinsic size** - Labels, buttons, checkboxes, images default to LV_SIZE_CONTENT
+3. **Flex containers** - Works correctly with flex_flow when layout is updated
+4. **Nested SIZE_CONTENT** - Parent and child both with SIZE_CONTENT work when updated
+5. **Percentage children** - LVGL 9 handles this intelligently (see Test 3: calculated 88x94, not 0)
+
+**Solution: Our Application Calls lv_obj_update_layout() Strategically**
+
+LV_SIZE_CONTENT is **ENCOURAGED** for appropriate use cases. Our application ensures layout updates happen at key points:
 
 ```cpp
-// Create structure
-lv_xml_create(screen, "app_layout", NULL);
+// Main UI initialization (main.cpp:671)
+lv_obj_t* app_layout = lv_xml_create(screen, "app_layout", NULL);
+lv_obj_update_layout(screen);  // Ensures all SIZE_CONTENT widgets sized
 
-// Force layout calculation BEFORE querying sizes
-lv_obj_update_layout(screen);  // Critical!
-
-// NOW LV_SIZE_CONTENT works correctly
-int32_t actual_width = lv_obj_get_width(container);
+// Dynamic component creation
+lv_obj_t* panel = lv_xml_create(parent, "my_panel", NULL);
+lv_obj_update_layout(panel);  // Force layout calculation
+int32_t width = lv_obj_get_width(panel);  // Now accurate
 ```
 
-**Why this works:** Forces deferred layout to run, recursively sizing all objects from children upward.
-
-**Fix 2: Use Explicit Dimensions (Recommended for XML)**
+**When to Use LV_SIZE_CONTENT (Encouraged ✅):**
 
 ```xml
-<!-- ✗ RISKY - May evaluate to 0 if layout not updated -->
-<lv_label text="$metadata"
+<!-- ✅ EXCELLENT - Flex container auto-sizes to children -->
+<lv_obj flex_flow="row" width="LV_SIZE_CONTENT" height="LV_SIZE_CONTENT"
+        style_pad_all="#padding_small">
+    <lv_button>Action</lv_button>
+    <lv_button>Cancel</lv_button>
+</lv_obj>
+
+<!-- ✅ GOOD - Label sizes to dynamic text -->
+<lv_label text="$status_message"
           width="LV_SIZE_CONTENT"
           height="LV_SIZE_CONTENT"/>
 
-<!-- ✓ SAFE - Always has predictable size -->
-<lv_label text="$metadata"
-          width="70"
-          height="20"/>
+<!-- ✅ GOOD - Vertical stack sizes to content -->
+<lv_obj flex_flow="column" width="100%" height="LV_SIZE_CONTENT">
+    <!-- Dynamic children added in C++ -->
+</lv_obj>
 ```
 
-**Fix 3: Use style_min_width / style_min_height for Flex Containers**
+**When to Use Explicit Dimensions:**
 
 ```xml
-<!-- ✗ PROBLEMATIC - header/footer may collapse -->
-<lv_obj width="100%" height="LV_SIZE_CONTENT" flex_flow="row">
+<!-- ✓ Fixed-size containers (nav bar, headers) -->
+<lv_obj width="#nav_width" height="100%"/>
 
-<!-- ✓ BETTER - Guarantees minimum size -->
-<lv_obj width="100%" style_min_height="48" flex_flow="row">
+<!-- ✓ Grid layouts requiring precise cell sizing -->
+<lv_obj width="200" height="150"/>
+
+<!-- ✓ Percentage-based responsive layouts -->
+<lv_obj width="33%" height="100%"/>
 ```
 
-**Circular Dependency Prevention:**
+**Circular Dependency Handling:**
 
-LVGL deliberately sets child size to 0 when:
+LVGL 9 has intelligent circular dependency prevention:
 - Parent has `width/height = LV_SIZE_CONTENT`
 - Child has `width/height = "100%"` (percentage)
 
-This prevents infinite loops where parent size depends on child, and child size depends on parent.
+**In LVGL 8:** Child was sized to 0 to prevent infinite loops
+**In LVGL 9:** Sizes both correctly using sophisticated layout solver (verified in test_size_content.cpp Test 3)
 
 **Source:** `lvgl/src/core/lv_obj_pos.c:114-123, 145-155`
 
-**Recommendations:**
+**Best Practices:**
 
-1. **For dynamic content in XML:** Use explicit pixel dimensions with 10-20% padding
-   - Short labels (5-10 chars): `width="60-80"`
-   - Medium labels (10-20 chars): `width="100-140"`
-   - Numbers/times: `width="40-70"`
+1. **Use LV_SIZE_CONTENT freely in XML** - Our application ensures layout updates at strategic points
 
-2. **For flex containers:** Use `style_min_width` / `style_min_height` instead of fixed `height` / `width`
+2. **For C++ dynamic creation:** ALWAYS call `lv_obj_update_layout()` after creating widgets
+   ```cpp
+   lv_obj_t* container = lv_xml_create(parent, "component", NULL);
+   lv_obj_update_layout(container);  // CRITICAL - ensures SIZE_CONTENT calculates
+   int32_t width = lv_obj_get_width(container);  // Now accurate
+   ```
 
-3. **For C++ dynamic creation:** Always call `lv_obj_update_layout()` before relying on LV_SIZE_CONTENT dimensions
+3. **Troubleshooting layout issues:** If you encounter sizing problems (0x0, collapsed, invisible):
+   - **BE SKEPTICAL** that `lv_obj_update_layout()` has been called recently enough
+   - Test by adding layout update after XML creation
+   - Check test_size_content.cpp for diagnostic patterns
 
-4. **Avoid circular dependencies:** Never use percentage-sized children inside LV_SIZE_CONTENT parents
+4. **Prefer semantic constants** for explicit dimensions:
+   ```xml
+   <!-- ✅ Use globals.xml constants -->
+   <lv_obj width="#nav_width" height="#button_height" style_bg_color="#panel_bg"/>
+
+   <!-- ❌ Avoid magic numbers -->
+   <lv_obj width="102" height="48" style_bg_color="0x1a1a1a"/>
+   ```
+
+5. **Strategic layout update locations** in our codebase:
+   - Main UI: main.cpp:671 (after app_layout creation)
+   - Print select: ui_panel_print_select.cpp:515, 675
+   - Print status: ui_panel_print_status.cpp:326
+   - Step progress: ui_step_progress.cpp:300, 343
 
 #### "No constant was found with name X"
 

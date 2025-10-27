@@ -141,7 +141,7 @@ CATCH2_OBJ := $(OBJ_DIR)/tests/catch_amalgamated.o
 MOCK_SRCS := $(wildcard $(TEST_MOCK_DIR)/*.cpp)
 MOCK_OBJS := $(patsubst $(TEST_MOCK_DIR)/%.cpp,$(OBJ_DIR)/tests/mocks/%.o,$(MOCK_SRCS))
 
-.PHONY: all clean run test test-integration test-cards test-print-select demo compile_commands libhv-build apply-patches help check-deps
+.PHONY: all clean run test test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches help check-deps
 
 # Default target
 .DEFAULT_GOAL := all
@@ -478,6 +478,25 @@ $(MOCK_FILES_OBJ): $(TEST_DIR)/mock_print_files.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[TEST]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) -I$(TEST_DIR) $(INCLUDES) $(LV_CONF) -c $< -o $@
+
+# LV_SIZE_CONTENT behavior test
+TEST_SIZE_CONTENT_BIN := $(BIN_DIR)/test_size_content
+TEST_SIZE_CONTENT_OBJ := $(OBJ_DIR)/test_size_content.o
+
+test-size-content: $(TEST_SIZE_CONTENT_BIN)
+	$(ECHO) "$(CYAN)Running LV_SIZE_CONTENT behavior test...$(RESET)"
+	$(Q)$(TEST_SIZE_CONTENT_BIN)
+
+$(TEST_SIZE_CONTENT_BIN): $(TEST_SIZE_CONTENT_OBJ) $(LVGL_OBJS) $(THORVG_OBJS)
+	$(Q)mkdir -p $(BIN_DIR)
+	$(ECHO) "$(MAGENTA)[LD]$(RESET) test_size_content"
+	$(Q)$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+	$(ECHO) "$(GREEN)✓ Test binary ready: $@$(RESET)"
+
+$(TEST_SIZE_CONTENT_OBJ): test_size_content.cpp
+	$(Q)mkdir -p $(dir $@)
+	$(ECHO) "$(BLUE)[TEST]$(RESET) $<"
+	$(Q)$(CXX) $(CXXFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@
 
 # Generate compile_commands.json for IDE/LSP support
 compile_commands:

@@ -1,0 +1,178 @@
+<!--
+  Copyright (C) 2025 356C LLC
+  Author: Preston Brown <pbrown@brown-house.net>
+
+  This file is part of HelixScreen.
+
+  HelixScreen is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  HelixScreen is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with HelixScreen. If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<component>
+	<!-- First-Run Wizard: WiFi Setup Screen -->
+	<!-- Configure WiFi connection (optional, can skip) -->
+
+	<view extends="lv_obj"
+	      width="100%"
+	      height="100%"
+	      scrollable="false"
+	      style_bg_opa="0"
+	      style_border_width="0"
+	      style_pad_all="0"
+	      flex_flow="column"
+	      style_flex_main_place="start"
+	      style_flex_cross_place="start"
+	      name="wizard_wifi_setup_root">
+
+		<!-- Top Section: Instructions and Two-Column Layout -->
+		<lv_obj width="100%"
+				flex_grow="1"
+				scrollable="false"
+				style_bg_opa="0"
+				style_radius="0"
+				style_border_width="0"
+				style_pad_all="0"
+				style_pad_gap="#gap_normal"
+				flex_flow="column"
+				style_flex_main_place="start"
+				style_flex_cross_place="start">
+
+			<!-- Help text -->
+			<lv_label text="Connect to WiFi network (optional)"
+			          width="100%"
+			          style_text_font="montserrat_16"
+			          style_text_color="#text_primary"
+			          style_margin_bottom="4"/>
+
+			<lv_label text="Configure WiFi now or skip to use Ethernet/localhost"
+			          width="100%"
+			          style_text_font="montserrat_12"
+			          style_text_color="#text_muted"
+			          style_margin_bottom="12"/>
+
+			<!-- Two-column row: WiFi/Ethernet (left) and Network List (right) -->
+			<lv_obj width="100%"
+			        flex_grow="1"
+			        style_bg_opa="0"
+			        style_border_width="0"
+			        style_pad_all="0"
+			        style_pad_gap="#gap_normal"
+			        flex_flow="row"
+			        style_flex_main_place="start"
+			        style_flex_cross_place="start">
+
+				<!-- LEFT COLUMN: WiFi and Ethernet Cards (30%) -->
+				<lv_obj flex_grow="3"
+				        height="100%"
+				        scrollable="true"
+				        scroll_dir="VER"
+				        style_bg_opa="0"
+				        style_border_width="0"
+				        style_pad_all="0"
+				        style_pad_gap="#gap_normal"
+				        flex_flow="column"
+				        style_flex_main_place="start"
+				        style_flex_cross_place="start">
+
+					<!-- WiFi Card -->
+					<lv_obj width="100%"
+					        height="100"
+					        style_bg_color="#card_bg"
+					        style_bg_opa="255"
+					        style_border_width="0"
+					        style_radius="12"
+					        style_pad_all="#padding_normal"
+					        flex_flow="column"
+					        style_flex_main_place="start"
+					        style_flex_cross_place="start">
+
+						<lv_label text="WiFi"
+						          style_text_font="montserrat_20"
+						          style_text_color="#text_primary"
+						          style_pad_bottom="#gap_small"/>
+
+						<ui_switch name="wifi_toggle"/>
+
+						<!-- WiFi Status label -->
+						<lv_label name="wifi_status"
+						          bind_text="wifi_status"
+						          width="100%"
+						          style_text_font="montserrat_14"
+						          style_text_color="#text_secondary"
+						          style_text_align="center"
+						          style_pad_top="#padding_normal"/>
+					</lv_obj>
+
+					<!-- Ethernet Status Card -->
+					<lv_obj width="100%"
+					        height="100"
+					        style_bg_color="#card_bg"
+					        style_bg_opa="255"
+					        style_border_width="0"
+					        style_radius="12"
+					        style_pad_all="#padding_normal"
+					        flex_flow="column"
+					        style_flex_main_place="start"
+					        style_flex_cross_place="start">
+
+						<lv_label text="Ethernet"
+						          style_text_font="montserrat_20"
+						          style_text_color="#text_primary"
+						          style_pad_bottom="#gap_small"/>
+
+						<!-- Ethernet Status label -->
+						<lv_label name="ethernet_status"
+						          bind_text="ethernet_status"
+						          width="100%"
+						          style_text_font="montserrat_14"
+						          style_text_color="#text_secondary"
+						          style_text_align="left"/>
+					</lv_obj>
+				</lv_obj>
+
+				<!-- RIGHT COLUMN: Network List (70%) -->
+				<lv_obj flex_grow="7"
+				        height="100%"
+				        name="network_list_container"
+				        style_bg_color="#card_bg"
+				        style_bg_opa="255"
+				        style_border_width="0"
+				        style_radius="12"
+				        style_pad_all="#padding_normal"
+				        flex_flow="column"
+				        scrollable="true"
+				        scroll_dir="VER"
+				        style_flex_main_place="start"
+				        style_flex_cross_place="start">
+
+					<!-- Title -->
+					<lv_label text="Available Networks"
+					          width="100%"
+					          style_text_font="montserrat_16"
+					          style_text_color="#text_primary"
+					          style_pad_bottom="#gap_small"/>
+
+					<!-- Network list populated dynamically from C++ -->
+					<!-- Placeholder when empty -->
+					<lv_label name="network_list_placeholder"
+					          text="Enable WiFi to scan for networks"
+					          width="100%"
+					          style_text_font="montserrat_14"
+					          style_text_color="#text_muted"
+					          style_text_align="center"
+					          style_pad_top="#padding_large"/>
+				</lv_obj>
+			</lv_obj>
+		</lv_obj>
+	</view>
+</component>

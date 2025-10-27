@@ -40,14 +40,15 @@
  * @brief Wizard steps enum
  */
 enum class WizardStep {
-  CONNECTION = 0,
-  PRINTER_IDENTIFY = 1,
-  BED_SELECT = 2,
-  HOTEND_SELECT = 3,
-  FAN_SELECT = 4,
-  LED_SELECT = 5,
-  SUMMARY = 6,
-  TOTAL_STEPS = 7
+  WIFI_SETUP = 0,
+  CONNECTION = 1,
+  PRINTER_IDENTIFY = 2,
+  BED_SELECT = 3,
+  HOTEND_SELECT = 4,
+  FAN_SELECT = 5,
+  LED_SELECT = 6,
+  SUMMARY = 7,
+  TOTAL_STEPS = 8
 };
 
 /**
