@@ -7,3 +7,6 @@
 * WiFi wizard password modal for encrypted networks
 * WiFi connection flow with visual feedback (connecting state, success/error messages)
 * Fix wizard Step 3 printer type roller collapsed/invisible issue
+* easy calibration workflow
+* AFC control
+* belt tension: The printer uses controlled belt excitation combined with stroboscopic feedback from the LED to visualize belt resonance
