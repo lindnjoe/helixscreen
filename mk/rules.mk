@@ -10,7 +10,7 @@ all: check-deps apply-patches generate-fonts $(TARGET)
 	$(ECHO) "$(CYAN)Run with: $(YELLOW)./$(TARGET)$(RESET)"
 
 # Link binary
-$(TARGET): $(APP_OBJS) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(MATERIAL_ICON_OBJS)
+$(TARGET): $(APP_OBJS) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(MATERIAL_ICON_OBJS) $(WPA_DEPS)
 	$(Q)mkdir -p $(BIN_DIR)
 	$(ECHO) "$(MAGENTA)$(BOLD)[LD]$(RESET) $@"
 	$(Q)$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) || { \
@@ -93,6 +93,12 @@ clean:
 		echo "$(GREEN)✓ Already clean (no build directory)$(RESET)"; \
 	fi
 	$(Q)rm -f .fonts.stamp
+ifneq ($(UNAME_S),Darwin)
+	$(Q)if [ -f "$(WPA_CLIENT_LIB)" ]; then \
+		echo "$(YELLOW)→ Cleaning wpa_supplicant...$(RESET)"; \
+		$(MAKE) -C $(WPA_DIR)/wpa_supplicant clean; \
+	fi
+endif
 
 # Parallel build target with progress
 build:

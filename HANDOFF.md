@@ -1,7 +1,7 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-10-27
-**Current Focus:** UI testing expansion (blocked by fixture issues)
+**Last Updated:** 2025-10-28
+**Current Focus:** WiFi wpa_supplicant implementation - Stage 3 (Backend Port)
 
 ---
 
@@ -9,23 +9,59 @@
 
 ### ✅ Recently Completed
 
-**WiFi Wizard UI Test Expansion:**
-- Added 10 comprehensive UI test cases (396 lines, only 1 passing)
-- Password modal validation (title, SSID, input fields, buttons)
-- Network list state verification tests
-- Connection flow integration tests
-- Test limitations documented (see Known Issues)
+**WiFi Stage 2: Build System Integration** (Completed 2025-10-28)
+- ✅ Added wpa_supplicant build variables to Makefile (WPA_DIR, WPA_CLIENT_LIB, WPA_INC)
+- ✅ Created wpa_supplicant/.config for libwpa_client.a build
+- ✅ Platform-specific LDFLAGS (Linux includes libwpa_client.a, macOS excluded)
+- ✅ Added wpa_supplicant build target in mk/deps.mk (Linux only)
+- ✅ Updated check-deps to verify wpa_supplicant submodule
+- ✅ Updated clean target to clean wpa_supplicant
+- ✅ Verified build: libwpa_client.a (220K) builds and links successfully
+
+**Stage 0-1: Submodule Setup** (Completed 2025-10-28)
+- ✅ Converted libhv from symlink to git submodule (v1.3.1-54 → v1.3.4)
+- ✅ Added wpa_supplicant v2.11 as git submodule (hostap_2_11 tag)
+- ✅ Makes prototype-ui9 self-contained and CI/CD friendly
+- Commits: `6025c3c`, `394f0b7`
+
+**Phase 1: Node.js v22 Compatibility** (Completed 2025-10-28)
+- ✅ Upgraded canvas from v2.11.2 to v3.2.0 (Node v22 pre-built binaries)
+- ✅ Fixed LVGL pthread compilation with -D_GNU_SOURCE
+- ✅ Fixed C++ standard compliance in main.cpp (compound literals)
+- ✅ Full build succeeds with all dependencies satisfied
+- Commit: `83a867a`
 
 **Previous Work:**
 - WiFi wizard step 0 with password modal (commit 8cab855)
 - UI testing infrastructure with virtual input device (commit ded96ef)
+- 10 WiFi UI tests written (see `docs/UI_TESTING.md` for status)
 
 ### Next Priorities
 
-1. **Fix wizard fixture cleanup** - Resolve segfaults when creating multiple wizard instances
-2. **Debug virtual input events** - ui_switch not responding to UITest::click()
-3. **Hardware detection screens** - Wizard steps 4-7 (bed, hotend, fan, LED selection)
-4. **Alternative test approach** - Consider single-fixture tests or direct API calls
+**WiFi Implementation** (Stages 3-6, ~3.5 hours remaining):
+
+**Stage 3**: Port WpaEvent backend (~90 min) **← NEXT**
+- Create include/wifi_backend_wpa.h with libhv EventLoopThread wrapper
+- Create src/wifi_backend_wpa.cpp with socket discovery
+- Reference parent GuppyScreen src/wpa_event.{h,cpp}
+- Platform guards for Linux-only code (#ifndef __APPLE__)
+
+**Stage 4**: WiFiManager integration (~60 min)
+- Update src/wifi_manager.cpp with real wpa_ctrl commands
+- Thread-safe event queue for LVGL updates
+- Keep mock mode working on macOS
+
+**Stage 5**: Testing with real wpa_supplicant (~45 min)
+- **CRITICAL**: Test with actual wpa_supplicant daemon on Linux
+- Verify scan returns real networks
+- Test WPA2 connection flow
+
+**Stage 6**: Documentation (~20 min)
+- Update CLAUDE.md, BUILD_SYSTEM.md
+- Create WIFI_SETUP.md for wpa_supplicant daemon config
+- Mark docs/WIFI_WPA_SUPPLICANT_MIGRATION.md as COMPLETED
+
+**Reference:** `docs/WIFI_WPA_SUPPLICANT_MIGRATION.md` (comprehensive migration guide)
 
 ---
 
@@ -160,87 +196,44 @@ spdlog::error("Failed: {}", (int)enum_val);     // Cast enums
 
 ### Pattern #9: UI Testing Infrastructure
 
-**Headless LVGL testing with virtual input device:**
+**See `docs/UI_TESTING.md` for complete UI testing guide**
 
-```cpp
-#include "../ui_test_utils.h"
-
-class MyUIFixture {
-    WizardWiFiUIFixture() {
-        static bool lvgl_initialized = false;
-        if (!lvgl_initialized) {
-            lv_init();
-            lvgl_initialized = true;
-        }
-
-        display = lv_display_create(800, 480);
-        lv_display_set_buffers(display, buf, nullptr, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
-        lv_display_set_flush_cb(display, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
-            lv_display_flush_ready(disp);
-        });
-
-        screen = lv_obj_create(lv_screen_active());
-        UITest::init(screen);
-    }
-};
-
-TEST_CASE_METHOD(MyUIFixture, "My UI test", "[tag]") {
-    lv_obj_t* btn = UITest::find_by_name(screen, "my_button");
-    UITest::click(btn);
-    UITest::wait_ms(100);
-    REQUIRE(some_state_changed);
-}
-```
-
-**Test Utilities:**
+**Quick reference:**
 - `UITest::click(widget)` - Simulate touch at widget center
-- `UITest::type_text(textarea, "text")` - Direct text input
-- `UITest::wait_until(condition, timeout)` - Async condition wait
-- `UITest::is_visible(widget)` - State verification
 - `UITest::find_by_name(parent, "name")` - Widget lookup
+- `UITest::wait_until(condition, timeout)` - Async condition wait
+- Run tests: `./build/bin/run_tests "[tag]"`
 
 **Files:** `tests/ui_test_utils.h/cpp`, `tests/unit/test_wizard_wifi_ui.cpp`
-
-**Run tests:** `./build/bin/run_tests "[tag]"`
 
 ---
 
 ## 🔧 Known Issues & Gotchas
 
-### UI Test Fixture Segfaults 🚨 CRITICAL
+### Node.js/npm Dependency for Icon Generation 📦
 
-**Problem:** Creating multiple wizard instances causes segmentation faults after first test
+**Current State:** canvas 3.2.0 requires Node.js v22 compatibility
 
-**Impact:** Only 1/10 WiFi UI tests can run (9 disabled with `[.disabled]` tag)
+**Dependencies:**
+- Node.js v22.20.0+ (for canvas pre-built binaries)
+- npm packages: lv_font_conv, lv_img_conv
+- Canvas native dependencies: cairo, pango, libpng, libjpeg, librsvg
 
-**Location:** `tests/unit/test_wizard_wifi_ui.cpp` (all tests using `WizardWiFiUIFixture`)
+**When Required:** Only when regenerating fonts/icons (`make generate-fonts`, `make material-icons-convert`)
 
-**Root Cause:** Wizard destructor doesn't properly clean up LVGL object hierarchy
-- First test runs successfully (9 assertions pass)
-- Second test segfaults during fixture construction
-- LVGL subjects or widget tree not being reset between tests
+**Phase 2 TODO:** Make npm optional for regular builds (check if fonts exist before requiring lv_font_conv)
 
-**Workaround:** Run tests individually with `[.disabled]` filter exclusion
+**Reference:** `package.json`, `mk/fonts.mk`, Phase 1 commit `83a867a`
 
-**Fix Required:**
-1. Investigate wizard cleanup in `~WizardWiFiUIFixture()` destructor
-2. Ensure all LVGL objects deleted before display deletion
-3. Verify subject cleanup in `ui_wizard_init_subjects()`
+### UI Testing Known Issues 🐛
 
-### UI Test Virtual Input Not Triggering Events 🐛
+**See `docs/UI_TESTING.md` for comprehensive testing documentation**
 
-**Problem:** `UITest::click()` doesn't trigger `ui_switch` VALUE_CHANGED events
+**Critical Issues:**
+1. Multiple fixture instances cause segfaults (only 1/10 WiFi tests passing)
+2. Virtual input events don't trigger ui_switch VALUE_CHANGED events
 
-**Impact:** WiFi toggle tests cannot verify state changes via UI interaction
-
-**Location:** `tests/unit/test_wizard_wifi_ui.cpp:169-190` (disabled)
-
-**Observation:** Virtual input device sends events, but ui_switch doesn't respond
-
-**Possible Solutions:**
-1. Call C++ APIs directly instead of simulating UI clicks
-2. Investigate why ui_switch doesn't process indev events in test environment
-3. Use subjects directly to test state without UI interaction
+**Status:** UI testing is a deferred project - documented for future work
 
 ### LVGL 9 XML Roller Options ⚠️ WORKAROUND
 

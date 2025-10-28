@@ -110,21 +110,28 @@ LIBHV_LIB := $(LIBHV_DIR)/lib/libhv.a
 SPDLOG_DIR := spdlog
 SPDLOG_INC := -I$(SPDLOG_DIR)/include
 
+# wpa_supplicant (WiFi control via wpa_ctrl interface)
+WPA_DIR := wpa_supplicant
+WPA_CLIENT_LIB := $(WPA_DIR)/wpa_supplicant/libwpa_client.a
+WPA_INC := -I$(WPA_DIR)/src/common -I$(WPA_DIR)/src/utils
+
 # Include paths
-INCLUDES := -I. -I$(INC_DIR) $(LVGL_INC) $(LIBHV_INC) $(SPDLOG_INC) $(SDL2_CFLAGS)
+INCLUDES := -I. -I$(INC_DIR) $(LVGL_INC) $(LIBHV_INC) $(SPDLOG_INC) $(WPA_INC) $(SDL2_CFLAGS)
 
 # Platform detection and configuration
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    # macOS
+    # macOS - No wpa_supplicant (WiFi uses mock mode)
     NPROC := $(shell sysctl -n hw.ncpu 2>/dev/null || echo 4)
     LDFLAGS := $(SDL2_LIBS) $(LIBHV_LIB) -lm -lpthread -framework CoreFoundation -framework Security
     PLATFORM := macOS
+    WPA_DEPS :=
 else
-    # Linux
+    # Linux - Include libwpa_client.a for WiFi control
     NPROC := $(shell nproc 2>/dev/null || echo 4)
-    LDFLAGS := $(SDL2_LIBS) $(LIBHV_LIB) -lm -lpthread
+    LDFLAGS := $(SDL2_LIBS) $(LIBHV_LIB) $(WPA_CLIENT_LIB) -lm -lpthread
     PLATFORM := Linux
+    WPA_DEPS := $(WPA_CLIENT_LIB)
 endif
 
 # Parallel build control
