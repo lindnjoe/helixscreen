@@ -352,18 +352,25 @@ make material-icons-convert SVGS="icon1.svg icon2.svg"
 **Manual Conversion (if needed):**
 
 ```bash
-# 1. SVG to PNG with ImageMagick (works well for Material Design)
-magick icon.svg -resize 64x64 -background none icon.png
+# 1. SVG to PNG with ImageMagick
+# CRITICAL: Use -density 300 for sharp rendering when upscaling
+# Material Design icons are 24x24 native, upscaling to 64x64 requires high DPI
+magick -density 300 -background none icon.svg \
+  -resize 64x64 -colorspace gray \
+  -channel RGB -evaluate set 0 +channel \
+  icon.png
 
 # 2. PNG to LVGL 9 C array with LVGLImage.py
 .venv/bin/python3 scripts/LVGLImage.py icon.png \
-  --ofmt C --cf RGB565A8 -o assets/images/material/icon.c
+  --ofmt C --cf RGB565A8 -o assets/images/material --name icon
 ```
 
 **Icon Format Requirements:**
 - **RGB565A8 format** - 16-bit RGB + 8-bit alpha, works with `lv_obj_set_style_img_recolor()`
 - **64x64 resolution** - Standard size for all Material Design icons
-- **Alpha channel preserved** - Without transparency, icons render as solid squares
+- **High-density rendering** - Use `-density 300` to avoid fuzzy upscaling from 24x24 SVGs
+- **Black base color** - Icons must be black (graya(0,*)) for recoloring to work
+- **Alpha channel preserved** - Smooth anti-aliased edges required for quality rendering
 
 **Registration Pattern:**
 ```cpp

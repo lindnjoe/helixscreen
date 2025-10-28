@@ -20,19 +20,15 @@
 
 <component>
 	<!-- WiFi Network List Item Component -->
-	<!-- Displays: SSID, signal strength, lock icon for encrypted networks -->
+	<!-- Displays: SSID, signal strength icon, lock icon for encrypted networks, connected indicator -->
 	<view extends="lv_obj"
 	      width="100%"
 	      height="LV_SIZE_CONTENT"
-	      style_min_height="50"
-	      style_bg_color="#card_bg_dark"
-	      style_bg_opa="255"
-	      style_border_width="1"
-	      style_border_color="#text_muted"
-	      style_border_opa="60"
-	      style_radius="8"
-	      style_pad_all="12"
-	      style_pad_gap="#gap_normal"
+	      style_min_height="44"
+	      style_bg_opa="0"
+	      style_border_width="0"
+	      style_pad_all="#gap_tiny"
+	      style_pad_gap="#gap_tiny"
 	      flex_flow="row"
 	      clickable="true"
 	      style_flex_main_place="space_between"
@@ -46,9 +42,9 @@
 		          style_text_color="#text_primary"
 		          flex_grow="1"/>
 
-		<!-- Right: Signal + Lock indicator -->
-		<lv_obj width="LV_SIZE_CONTENT"
-		        height="LV_SIZE_CONTENT"
+		<!-- Right: Connected indicator + Signal icon -->
+		<lv_obj width="60"
+		        height="32"
 		        style_bg_opa="0"
 		        style_border_width="0"
 		        style_pad_all="0"
@@ -57,18 +53,18 @@
 		        style_flex_main_place="end"
 		        style_flex_cross_place="center">
 
-			<!-- Signal strength -->
-			<lv_label name="network_signal"
-			          text="95%"
-			          style_text_font="montserrat_14"
-			          style_text_color="#text_secondary"/>
+			<!-- Connected indicator (check icon, hidden by default) -->
+			<icon name="network_connected"
+			      src="mat_wifi_check"
+			      size="sm"
+			      variant="primary"
+			      hidden="true"/>
 
-			<!-- Lock icon (hidden for open networks) -->
-			<lv_label name="network_lock"
-			          text="🔒"
-			          style_text_font="montserrat_14"
-			          style_text_color="#text_secondary"
-			          hidden="false"/>
+			<!-- WiFi signal strength icon (will be set dynamically in C++) -->
+			<icon name="network_signal"
+			      src="mat_wifi_strength_4"
+			      size="sm"
+			      variant="secondary"/>
 		</lv_obj>
 	</view>
 </component>

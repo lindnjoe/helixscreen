@@ -74,6 +74,21 @@ LV_IMG_DECLARE(light_off);
 // Network & Communication
 LV_IMG_DECLARE(network_img);
 
+// WiFi & Network
+LV_IMG_DECLARE(wifi);
+LV_IMG_DECLARE(wifi_off);
+LV_IMG_DECLARE(wifi_lock);
+LV_IMG_DECLARE(wifi_check);
+LV_IMG_DECLARE(wifi_alert);
+LV_IMG_DECLARE(wifi_strength_1);
+LV_IMG_DECLARE(wifi_strength_2);
+LV_IMG_DECLARE(wifi_strength_3);
+LV_IMG_DECLARE(wifi_strength_4);
+LV_IMG_DECLARE(wifi_strength_1_lock);
+LV_IMG_DECLARE(wifi_strength_2_lock);
+LV_IMG_DECLARE(wifi_strength_3_lock);
+LV_IMG_DECLARE(wifi_strength_4_lock);
+
 // Tuning & Adjustments
 LV_IMG_DECLARE(fine_tune_img);
 LV_IMG_DECLARE(flow_down_img);

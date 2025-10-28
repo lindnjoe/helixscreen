@@ -24,7 +24,7 @@
 #include <spdlog/spdlog.h>
 
 void material_icons_register() {
-    spdlog::info("Registering Material Design icons (59 total)...");
+    spdlog::info("Registering Material Design icons (72 total)...");
 
     // Navigation & Movement
     lv_xml_register_image(NULL, "mat_home", &home);
@@ -108,6 +108,23 @@ void material_icons_register() {
 
     // Misc
     lv_xml_register_image(NULL, "mat_spoolman", &spoolman_img);
+
+    // WiFi & Network
+    spdlog::debug("Registering WiFi icons...");
+    lv_xml_register_image(NULL, "mat_wifi", &wifi);
+    lv_xml_register_image(NULL, "mat_wifi_off", &wifi_off);
+    lv_xml_register_image(NULL, "mat_wifi_lock", &wifi_lock);
+    lv_xml_register_image(NULL, "mat_wifi_check", &wifi_check);
+    lv_xml_register_image(NULL, "mat_wifi_alert", &wifi_alert);
+    lv_xml_register_image(NULL, "mat_wifi_strength_1", &wifi_strength_1);
+    lv_xml_register_image(NULL, "mat_wifi_strength_2", &wifi_strength_2);
+    lv_xml_register_image(NULL, "mat_wifi_strength_3", &wifi_strength_3);
+    lv_xml_register_image(NULL, "mat_wifi_strength_4", &wifi_strength_4);
+    lv_xml_register_image(NULL, "mat_wifi_strength_1_lock", &wifi_strength_1_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_2_lock", &wifi_strength_2_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_3_lock", &wifi_strength_3_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_4_lock", &wifi_strength_4_lock);
+    spdlog::debug("WiFi icons registered (13 total)");
 
     LV_LOG_USER("Material Design icons registered successfully");
 }
