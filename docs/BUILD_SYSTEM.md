@@ -4,13 +4,27 @@ This document describes the HelixScreen prototype build system, including automa
 
 ## Build System Overview
 
-The project uses **GNU Make** with:
-- Color-coded output for easy visual parsing
-- Verbosity control to show/hide full compiler commands
-- Automatic dependency checking before builds
-- Fail-fast error handling with clear diagnostics
-- Parallel build support with output synchronization
-- Build timing for performance tracking
+The project uses **GNU Make** with a modular architecture:
+- **Modular design**: 960 lines split across 5 files for maintainability
+- **Color-coded output** for easy visual parsing
+- **Verbosity control** to show/hide full compiler commands
+- **Automatic dependency checking** before builds with smart canvas detection
+- **Interactive installation** of missing dependencies (`make install-deps`)
+- **Fail-fast error handling** with clear diagnostics
+- **Parallel build support** with output synchronization
+- **Build timing** for performance tracking
+
+### Modular Makefile Structure
+
+The build system is organized into focused modules:
+
+- **`Makefile`** (222 lines) - Configuration, variables, platform detection, module includes
+- **`mk/deps.mk`** (316 lines) - Dependency checking, installation, libhv building
+- **`mk/tests.mk`** (162 lines) - All test targets (unit, integration, specialized)
+- **`mk/fonts.mk`** (122 lines) - Font/icon generation, Material icons, LVGL patches
+- **`mk/rules.mk`** (138 lines) - Compilation rules, linking, main build targets
+
+Each module is self-contained with GPL-3 copyright headers and clear separation of concerns.
 
 ### Quick Start
 
@@ -24,8 +38,11 @@ make build
 # Verbose mode (shows full commands)
 make V=1
 
-# Dependency checking
+# Dependency checking (comprehensive)
 make check-deps
+
+# Auto-install missing dependencies (interactive)
+make install-deps
 
 # Help (shows all targets and options)
 make help
@@ -36,6 +53,56 @@ make apply-patches
 # Generate IDE/LSP support
 make compile_commands
 ```
+
+## Dependency Management
+
+The build system includes comprehensive dependency checking and automatic installation.
+
+### Checking Dependencies
+
+```bash
+make check-deps
+```
+
+This checks for:
+- **System tools**: C/C++ compiler, make, python3, npm
+- **Libraries**: SDL2, pkg-config
+- **Canvas dependencies**: cairo, pango, libpng, libjpeg, librsvg (for lv_img_conv)
+- **npm packages**: lv_font_conv, lv_img_conv
+- **Git submodules**: LVGL, spdlog, libhv
+
+The checker is **platform-aware** and shows the correct install commands for:
+- **macOS** (Homebrew)
+- **Debian/Ubuntu** (apt)
+- **Fedora/RHEL** (dnf)
+
+### Installing Dependencies
+
+```bash
+make install-deps
+```
+
+This **interactively installs** missing dependencies:
+1. Detects your platform
+2. Lists packages to be installed
+3. Shows the command it will run
+4. Asks for confirmation before proceeding
+5. Installs system packages via brew/apt/dnf
+6. Runs `npm install` for lv_font_conv/lv_img_conv
+7. Builds libhv if needed
+8. Initializes git submodules if needed
+
+**Smart Canvas Detection**: Uses `pkg-config` to detect exactly which canvas libraries are missing and only installs what's needed.
+
+### Test Harness
+
+The dependency system includes a comprehensive test suite:
+
+```bash
+./tests/test_deps.sh
+```
+
+Tests 9 scenarios with 22 assertions covering dependency detection, platform-specific commands, and auto-installation workflow.
 
 ### Build Options
 

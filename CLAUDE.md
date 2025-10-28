@@ -13,11 +13,13 @@ This is the **LVGL 9 UI Prototype** for HelixScreen - a declarative XML-based to
 ### macOS (Homebrew)
 ```bash
 brew install sdl2 bear imagemagick python3 node
+npm install  # Install lv_font_conv and other dev dependencies
 ```
 
 ### Debian/Ubuntu (apt)
 ```bash
 sudo apt install libsdl2-dev bear imagemagick python3 clang make npm
+npm install  # Install lv_font_conv and other dev dependencies
 ```
 
 ### Fedora/RHEL/CentOS (dnf/yum)
@@ -25,6 +27,7 @@ sudo apt install libsdl2-dev bear imagemagick python3 clang make npm
 sudo dnf install SDL2-devel bear ImageMagick python3 clang make npm
 # OR on older systems:
 sudo yum install SDL2-devel bear ImageMagick python3 clang make npm
+npm install  # Install lv_font_conv and other dev dependencies
 ```
 
 **Required:**
@@ -32,7 +35,8 @@ sudo yum install SDL2-devel bear ImageMagick python3 clang make npm
 - `libsdl2-dev` / `SDL2-devel` - SDL2 display simulator
 - `make` - GNU Make build system
 - `python3` - Icon generation scripts
-- `node` / `npm` - Font generation (lv_font_conv)
+- `node` / `npm` - Package manager for JavaScript dependencies
+- `lv_font_conv` - Font converter (installed via `npm install`, defined in package.json)
 
 **Optional (for IDE support):**
 - `bear` - Generates `compile_commands.json` for LSP/clangd
@@ -66,6 +70,18 @@ make run              # Build and run
 
 **Binary:** `build/bin/helix-ui-proto`
 **Panels:** home, controls, motion, nozzle-temp, bed-temp, extrusion, filament, settings, advanced, print-select
+
+### Modular Makefile Structure
+
+The build system uses a modular design for maintainability (960 lines total):
+
+- **Makefile** (222 lines) - Configuration, variables, platform detection, module includes
+- **mk/deps.mk** (316 lines) - Dependency checking (`check-deps`, `install-deps`, `libhv-build`)
+- **mk/tests.mk** (162 lines) - All test targets (unit, integration, specialized tests)
+- **mk/fonts.mk** (122 lines) - Font/icon generation, Material icons, LVGL patches
+- **mk/rules.mk** (138 lines) - Compilation rules, linking, main build targets
+
+This structure separates concerns, making it easier to navigate and maintain. Each module is self-contained and includes a GPL-3 copyright header.
 
 ### Multi-Display Support (macOS)
 

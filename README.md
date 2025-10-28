@@ -26,22 +26,35 @@ This is a prototype UI system for HelixScreen that demonstrates a modern approac
 
 **macOS:**
 ```bash
-brew install sdl2 bear imagemagick python3
+brew install sdl2 bear imagemagick python3 node
+npm install  # Install lv_font_conv and lv_img_conv
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install libsdl2-dev bear imagemagick python3 clang make
+sudo apt install libsdl2-dev bear imagemagick python3 clang make npm
+npm install  # Install lv_font_conv and lv_img_conv
 ```
 
 **Fedora/RHEL/CentOS:**
 ```bash
-sudo dnf install SDL2-devel bear ImageMagick python3 clang make
+sudo dnf install SDL2-devel bear ImageMagick python3 clang make npm
+npm install  # Install lv_font_conv and lv_img_conv
 ```
 
 **Dependencies:**
-- **Required:** `clang`, `libsdl2-dev`/`SDL2-devel`, `make`, `python3`
+- **Required:** `clang`, `libsdl2-dev`/`SDL2-devel`, `make`, `python3`, `node`/`npm`
+- **Font tools:** `lv_font_conv` (installed via `npm install`)
 - **Optional:** `bear` (IDE/LSP support), `imagemagick` (screenshots)
+
+**Auto-install:**
+```bash
+# Check what's missing
+make check-deps
+
+# Automatically install missing dependencies (interactive)
+make install-deps
+```
 
 ### Build & Run
 
