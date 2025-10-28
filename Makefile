@@ -322,6 +322,11 @@ run: $(TARGET)
 	$(Q)$(TARGET)
 
 # Clean build artifacts
+clean-tests:
+	$(ECHO) "$(YELLOW)Cleaning test artifacts...$(RESET)"
+	$(Q)rm -f $(TEST_BIN) $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(TEST_OBJS)
+	$(ECHO) "$(GREEN)✓ Test artifacts cleaned$(RESET)"
+
 clean:
 	$(ECHO) "$(YELLOW)Cleaning build artifacts...$(RESET)"
 	$(Q)if [ -d "$(BUILD_DIR)" ]; then \
@@ -362,6 +367,15 @@ $(OBJ_DIR)/lvgl/demos/%.o: $(LVGL_DIR)/demos/%.c
 	$(Q)$(CC) -c $< -o $@ $(LVGL_INC) $(CFLAGS)
 
 # Test targets (Catch2 v3)
+# Build tests in parallel
+test-build:
+	$(ECHO) "$(CYAN)$(BOLD)Building tests in parallel ($(NPROC) jobs)...$(RESET)"
+	@START_TIME=$$(date +%s); \
+	$(MAKE) -j$(NPROC) $(TEST_BIN) && \
+	END_TIME=$$(date +%s); \
+	DURATION=$$((END_TIME - START_TIME)); \
+	echo "$(GREEN)✓ Tests built in $${DURATION}s$(RESET)"
+
 # Unified test binary with all unit tests
 test: $(TEST_BIN)
 	$(ECHO) "$(CYAN)$(BOLD)Running unit tests...$(RESET)"
@@ -383,7 +397,7 @@ test-config: $(TEST_BIN)
 	}
 	$(ECHO) "$(GREEN)$(BOLD)✓ Config tests passed!$(RESET)"
 
-$(TEST_BIN): $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(TEST_OBJS) $(OBJ_DIR)/wizard_validation.o $(OBJ_DIR)/config.o $(LVGL_OBJS) $(THORVG_OBJS) $(OBJ_DIR)/ui_nav.o $(OBJ_DIR)/ui_temp_graph.o
+$(TEST_BIN): $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(TEST_OBJS) $(OBJ_DIR)/wizard_validation.o $(OBJ_DIR)/config.o $(LVGL_OBJS) $(THORVG_OBJS) $(OBJ_DIR)/ui_nav.o $(OBJ_DIR)/ui_temp_graph.o $(OBJ_DIR)/wifi_manager.o $(OBJ_DIR)/tips_manager.o
 	$(Q)mkdir -p $(BIN_DIR)
 	$(ECHO) "$(MAGENTA)$(BOLD)[LD]$(RESET) run_tests"
 	$(Q)$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) || { \

@@ -74,6 +74,17 @@ namespace WiFiManager {
     bool set_enabled(bool enabled);
 
     /**
+     * @brief Perform a single network scan (synchronous)
+     *
+     * Scans for available networks and returns results immediately.
+     * This function is synchronous and does not use timers.
+     * Useful for testing and one-off scans.
+     *
+     * @return Vector of discovered WiFi networks
+     */
+    std::vector<WiFiNetwork> scan_once();
+
+    /**
      * @brief Start periodic network scanning
      *
      * Scans for available networks and invokes callback with results.

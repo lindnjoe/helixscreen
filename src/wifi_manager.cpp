@@ -119,14 +119,8 @@ bool set_enabled(bool enabled) {
 // Network Scanning
 // ============================================================================
 
-static void scan_timer_callback(lv_timer_t* timer) {
-    (void)timer;
-
-    if (!scan_callback) {
-        spdlog::warn("[WiFi] Scan callback not set");
-        return;
-    }
-
+// Internal: Perform network scan and return results (timer-independent)
+static std::vector<WiFiNetwork> perform_scan() {
 #if WIFI_MOCK_MODE
     // Mock: Return static network list with slight randomization in signal strength
     std::vector<WiFiNetwork> networks = mock_networks;
@@ -137,12 +131,29 @@ static void scan_timer_callback(lv_timer_t* timer) {
     }
 
     spdlog::debug("[WiFi] Mock scan: {} networks found", networks.size());
-    scan_callback(networks);
+    return networks;
 #else
     // TODO: Linux implementation using nmcli device wifi list
     spdlog::warn("[WiFi] Linux scan not yet implemented");
-    scan_callback(std::vector<WiFiNetwork>());
+    return std::vector<WiFiNetwork>();
 #endif
+}
+
+static void scan_timer_callback(lv_timer_t* timer) {
+    (void)timer;
+
+    if (!scan_callback) {
+        spdlog::warn("[WiFi] Scan callback not set");
+        return;
+    }
+
+    std::vector<WiFiNetwork> networks = perform_scan();
+    scan_callback(networks);
+}
+
+std::vector<WiFiNetwork> scan_once() {
+    spdlog::debug("[WiFi] Performing single scan (synchronous)");
+    return perform_scan();
 }
 
 void start_scan(std::function<void(const std::vector<WiFiNetwork>&)> on_networks_updated) {
