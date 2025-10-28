@@ -1,5 +1,12 @@
 # HelixScreen LVGL 9 UI Prototype
 
+[![Build](https://github.com/prestonbrown/guppyscreen/actions/workflows/prototype-ui9-build.yml/badge.svg?branch=ui-redesign)](https://github.com/prestonbrown/guppyscreen/actions/workflows/prototype-ui9-build.yml)
+[![Code Quality](https://github.com/prestonbrown/guppyscreen/actions/workflows/prototype-ui9-quality.yml/badge.svg?branch=ui-redesign)](https://github.com/prestonbrown/guppyscreen/actions/workflows/prototype-ui9-quality.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![LVGL](https://img.shields.io/badge/LVGL-9.4.0-green.svg)](https://lvgl.io/)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)](#)
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+
 Modern, declarative XML-based touch UI for 3D printer control using LVGL 9 with reactive data binding.
 
 ## Overview
