@@ -21,9 +21,10 @@
 #pragma once
 
 #include "wifi_backend.h"
-#include "lvgl/lvgl.h"
 #include <map>
 #include <random>
+#include <thread>
+#include <atomic>
 
 /**
  * @brief Mock WiFi backend for simulator and testing
@@ -76,9 +77,11 @@ private:
     // Event system
     std::map<std::string, std::function<void(const std::string&)>> callbacks_;
 
-    // LVGL timers for async simulation
-    lv_timer_t* scan_timer_;
-    lv_timer_t* connect_timer_;
+    // Async timers for scan/connect simulation (std::thread based - no LVGL dependency)
+    std::thread scan_thread_;
+    std::thread connect_thread_;
+    std::atomic<bool> scan_active_{false};
+    std::atomic<bool> connect_active_{false};
 
     // Mock networks (realistic variety)
     std::vector<WiFiNetwork> mock_networks_;
@@ -92,9 +95,9 @@ private:
     void vary_signal_strengths();  // Add realism with signal variations
     void fire_event(const std::string& event_name, const std::string& data = "");
 
-    // LVGL timer callbacks (must be static)
-    static void scan_timer_callback(lv_timer_t* timer);
-    static void connect_timer_callback(lv_timer_t* timer);
+    // Thread functions for async scan/connect simulation
+    void scan_thread_func();
+    void connect_thread_func();
 
     // Connection simulation state
     std::string connecting_ssid_;

@@ -28,8 +28,6 @@ WifiBackendMock::WifiBackendMock()
     : running_(false)
     , connected_(false)
     , connected_signal_(0)
-    , scan_timer_(nullptr)
-    , connect_timer_(nullptr)
     , rng_(std::chrono::steady_clock::now().time_since_epoch().count())
 {
     spdlog::debug("[WifiBackend] Mock backend initialized");
@@ -60,14 +58,16 @@ WiFiError WifiBackendMock::start() {
 void WifiBackendMock::stop() {
     if (!running_) return;
 
-    // Clean up timers
-    if (scan_timer_) {
-        lv_timer_delete(scan_timer_);
-        scan_timer_ = nullptr;
+    // Signal threads to stop
+    scan_active_ = false;
+    connect_active_ = false;
+
+    // Wait for threads to complete
+    if (scan_thread_.joinable()) {
+        scan_thread_.join();
     }
-    if (connect_timer_) {
-        lv_timer_delete(connect_timer_);
-        connect_timer_ = nullptr;
+    if (connect_thread_.joinable()) {
+        connect_thread_.join();
     }
 
     running_ = false;
@@ -94,11 +94,16 @@ void WifiBackendMock::register_event_callback(const std::string& name,
 }
 
 void WifiBackendMock::fire_event(const std::string& event_name, const std::string& data) {
+    spdlog::info("[WifiBackend] fire_event ENTRY: event_name='{}'", event_name);
     auto it = callbacks_.find(event_name);
     if (it != callbacks_.end()) {
-        spdlog::debug("[WifiBackend] Mock: Firing event '{}'", event_name);
+        spdlog::info("[WifiBackend] fire_event: found callback for '{}', about to invoke", event_name);
         it->second(data);
+        spdlog::info("[WifiBackend] fire_event: callback returned");
+    } else {
+        spdlog::info("[WifiBackend] fire_event: no callback registered for '{}'", event_name);
     }
+    spdlog::info("[WifiBackend] fire_event EXIT");
 }
 
 // ============================================================================
@@ -116,15 +121,17 @@ WiFiError WifiBackendMock::trigger_scan() {
 
     spdlog::debug("[WifiBackend] Mock: Triggering network scan");
 
-    // Clean up existing scan timer
-    if (scan_timer_) {
-        lv_timer_delete(scan_timer_);
+    // Clean up any existing scan thread
+    scan_active_ = false;
+    if (scan_thread_.joinable()) {
+        scan_thread_.join();
     }
 
-    // Simulate scan delay (2 seconds)
-    scan_timer_ = lv_timer_create(scan_timer_callback, 2000, this);
-    lv_timer_set_repeat_count(scan_timer_, 1);  // One-shot
+    // Launch async scan thread (simulates 2-second scan delay)
+    scan_active_ = true;
+    scan_thread_ = std::thread(&WifiBackendMock::scan_thread_func, this);
 
+    spdlog::debug("[WifiBackend] Mock: Scan thread started");
     return WiFiErrorHelper::success();
 }
 
@@ -151,12 +158,18 @@ WiFiError WifiBackendMock::get_scan_results(std::vector<WiFiNetwork>& networks) 
     return WiFiErrorHelper::success();
 }
 
-void WifiBackendMock::scan_timer_callback(lv_timer_t* timer) {
-    WifiBackendMock* backend = static_cast<WifiBackendMock*>(lv_timer_get_user_data(timer));
-    backend->scan_timer_ = nullptr;  // Timer auto-deleted for one-shot
+void WifiBackendMock::scan_thread_func() {
+    // Simulate 2-second scan delay
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    // Check if still active (not canceled)
+    if (!scan_active_) {
+        spdlog::debug("[WifiBackend] Mock: Scan thread canceled");
+        return;
+    }
 
     spdlog::debug("[WifiBackend] Mock: Scan completed");
-    backend->fire_event("SCAN_COMPLETE");
+    fire_event("SCAN_COMPLETE");
 }
 
 // ============================================================================
@@ -195,15 +208,15 @@ WiFiError WifiBackendMock::connect_network(const std::string& ssid, const std::s
     connecting_ssid_ = ssid;
     connecting_password_ = password;
 
-    // Clean up existing connect timer
-    if (connect_timer_) {
-        lv_timer_delete(connect_timer_);
+    // Clean up any existing connect thread
+    connect_active_ = false;
+    if (connect_thread_.joinable()) {
+        connect_thread_.join();
     }
 
-    // Simulate connection delay (2-3 seconds)
-    int delay_ms = 2000 + (rng_() % 1000);  // 2-3 seconds
-    connect_timer_ = lv_timer_create(connect_timer_callback, delay_ms, this);
-    lv_timer_set_repeat_count(connect_timer_, 1);  // One-shot
+    // Launch async connect thread (simulates 2-3 second delay)
+    connect_active_ = true;
+    connect_thread_ = std::thread(&WifiBackendMock::connect_thread_func, this);
 
     return WiFiErrorHelper::success();
 }
@@ -226,50 +239,57 @@ WiFiError WifiBackendMock::disconnect_network() {
     return WiFiErrorHelper::success();
 }
 
-void WifiBackendMock::connect_timer_callback(lv_timer_t* timer) {
-    WifiBackendMock* backend = static_cast<WifiBackendMock*>(lv_timer_get_user_data(timer));
-    backend->connect_timer_ = nullptr;  // Timer auto-deleted for one-shot
+void WifiBackendMock::connect_thread_func() {
+    // Simulate connection delay (2-3 seconds)
+    int delay_ms = 2000 + (rng_() % 1000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+
+    // Check if still active (not canceled)
+    if (!connect_active_) {
+        spdlog::debug("[WifiBackend] Mock: Connect thread canceled");
+        return;
+    }
 
     // Find the network we're trying to connect to
-    auto it = std::find_if(backend->mock_networks_.begin(), backend->mock_networks_.end(),
-                          [&](const WiFiNetwork& net) {
-                              return net.ssid == backend->connecting_ssid_;
+    auto it = std::find_if(mock_networks_.begin(), mock_networks_.end(),
+                          [this](const WiFiNetwork& net) {
+                              return net.ssid == connecting_ssid_;
                           });
 
-    if (it == backend->mock_networks_.end()) {
+    if (it == mock_networks_.end()) {
         spdlog::error("[WifiBackend] Mock: Network '{}' disappeared during connection",
-                     backend->connecting_ssid_);
-        backend->fire_event("DISCONNECTED", "reason=network_not_found");
+                     connecting_ssid_);
+        fire_event("DISCONNECTED", "reason=network_not_found");
         return;
     }
 
     // Simulate authentication failure for secured networks with wrong password
-    if (it->is_secured && backend->connecting_password_.empty()) {
+    if (it->is_secured && connecting_password_.empty()) {
         spdlog::info("[WifiBackend] Mock: Auth failed - no password for secured network");
-        backend->fire_event("AUTH_FAILED", "reason=no_password");
+        fire_event("AUTH_FAILED", "reason=no_password");
         return;
     }
 
     // Simulate occasional auth failures (5% chance for secured networks)
-    if (it->is_secured && (backend->rng_() % 100) < 5) {
+    if (it->is_secured && (rng_() % 100) < 5) {
         spdlog::info("[WifiBackend] Mock: Auth failed - simulated wrong password");
-        backend->fire_event("AUTH_FAILED", "reason=wrong_password");
+        fire_event("AUTH_FAILED", "reason=wrong_password");
         return;
     }
 
     // Connection successful!
-    backend->connected_ = true;
-    backend->connected_ssid_ = backend->connecting_ssid_;
-    backend->connected_signal_ = it->signal_strength;
+    connected_ = true;
+    connected_ssid_ = connecting_ssid_;
+    connected_signal_ = it->signal_strength;
 
     // Generate mock IP address
-    int subnet = 100 + (backend->rng_() % 155);  // 192.168.1.100-255
-    backend->connected_ip_ = "192.168.1." + std::to_string(subnet);
+    int subnet = 100 + (rng_() % 155);  // 192.168.1.100-255
+    connected_ip_ = "192.168.1." + std::to_string(subnet);
 
     spdlog::info("[WifiBackend] Mock: Connected to '{}', IP: {}",
-                backend->connected_ssid_, backend->connected_ip_);
+                connected_ssid_, connected_ip_);
 
-    backend->fire_event("CONNECTED", "ip=" + backend->connected_ip_);
+    fire_event("CONNECTED", "ip=" + connected_ip_);
 }
 
 // ============================================================================
