@@ -26,6 +26,23 @@ check-deps:
 	else \
 		echo "$(GREEN)✓ $(CXX) found:$(RESET) $$($(CXX) --version | head -n1)"; \
 	fi; \
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+		MACOS_VERSION=$$(sw_vers -productVersion 2>/dev/null | cut -d. -f1-2); \
+		REQUIRED_VERSION="10.15"; \
+		if [ -n "$$MACOS_VERSION" ]; then \
+			MAJOR=$$(echo "$$MACOS_VERSION" | cut -d. -f1); \
+			MINOR=$$(echo "$$MACOS_VERSION" | cut -d. -f2); \
+			REQ_MAJOR=$$(echo "$$REQUIRED_VERSION" | cut -d. -f1); \
+			REQ_MINOR=$$(echo "$$REQUIRED_VERSION" | cut -d. -f2); \
+			if [ "$$MAJOR" -lt "$$REQ_MAJOR" ] || { [ "$$MAJOR" -eq "$$REQ_MAJOR" ] && [ "$$MINOR" -lt "$$REQ_MINOR" ]; }; then \
+				echo "$(RED)✗ macOS version $$MACOS_VERSION is too old$(RESET)"; ERROR=1; \
+				echo "  Required: macOS $$REQUIRED_VERSION (Catalina) or newer"; \
+				echo "  Reason: CoreWLAN/CoreLocation modern APIs for WiFi support"; \
+			else \
+				echo "$(GREEN)✓ macOS version $$MACOS_VERSION >= $$REQUIRED_VERSION$(RESET)"; \
+			fi; \
+		fi; \
+	fi; \
 	if ! command -v sdl2-config >/dev/null 2>&1; then \
 		echo "$(RED)✗ SDL2 not found$(RESET)"; ERROR=1; \
 		MISSING_DEPS="$$MISSING_DEPS sdl2"; \

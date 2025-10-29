@@ -89,6 +89,10 @@ LVGL_DEMO_OBJS := $(patsubst $(LVGL_DIR)/%.c,$(OBJ_DIR)/lvgl/%.o,$(LVGL_DEMO_SRC
 APP_SRCS := $(filter-out $(SRC_DIR)/test_dynamic_cards.cpp,$(wildcard $(SRC_DIR)/*.cpp))
 APP_OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(APP_SRCS))
 
+# Objective-C++ sources (macOS only - .mm files)
+OBJCPP_SRCS := $(wildcard $(SRC_DIR)/*.mm)
+OBJCPP_OBJS := $(patsubst $(SRC_DIR)/%.mm,$(OBJ_DIR)/%.o,$(OBJCPP_SRCS))
+
 # Fonts
 FONT_SRCS := assets/fonts/fa_icons_64.c assets/fonts/fa_icons_48.c assets/fonts/fa_icons_32.c assets/fonts/fa_icons_24.c assets/fonts/fa_icons_16.c assets/fonts/arrows_64.c assets/fonts/arrows_48.c assets/fonts/arrows_32.c
 FONT_OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(FONT_SRCS))
@@ -121,9 +125,16 @@ INCLUDES := -I. -I$(INC_DIR) $(LVGL_INC) $(LIBHV_INC) $(SPDLOG_INC) $(WPA_INC) $
 # Platform detection and configuration
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    # macOS - No wpa_supplicant (WiFi uses mock mode)
+    # macOS - Uses CoreWLAN framework for WiFi (with fallback to mock)
     NPROC := $(shell sysctl -n hw.ncpu 2>/dev/null || echo 4)
-    LDFLAGS := $(SDL2_LIBS) $(LIBHV_LIB) -lm -lpthread -framework CoreFoundation -framework Security
+
+    # Set minimum macOS version (10.15 Catalina for CoreWLAN/CoreLocation modern APIs)
+    MACOS_MIN_VERSION := 10.15
+    MACOS_DEPLOYMENT_TARGET := -mmacosx-version-min=$(MACOS_MIN_VERSION)
+
+    CFLAGS += $(MACOS_DEPLOYMENT_TARGET)
+    CXXFLAGS += $(MACOS_DEPLOYMENT_TARGET)
+    LDFLAGS := $(SDL2_LIBS) $(LIBHV_LIB) -lm -lpthread -framework Foundation -framework CoreFoundation -framework Security -framework CoreWLAN -framework CoreLocation
     PLATFORM := macOS
     WPA_DEPS :=
 else

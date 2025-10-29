@@ -12,6 +12,8 @@ brew install sdl2 bear imagemagick python3 node
 npm install  # Install lv_font_conv and lv_img_conv
 ```
 
+**Minimum macOS Version:** macOS 10.15 (Catalina) or newer required for CoreWLAN/CoreLocation WiFi APIs. The build system enforces this via `-mmacosx-version-min=10.15` deployment target.
+
 **Debian/Ubuntu (apt):**
 ```bash
 sudo apt install libsdl2-dev bear imagemagick python3 clang make npm
@@ -332,7 +334,8 @@ See **[BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md)** for complete patch management de
 - **NEVER invoke compilers directly** (`clang++`, `g++`) - always use `make`
 - Makefile auto-detects available compiler (clang > gcc priority)
 - Platform-specific features are handled via Makefile platform detection
-- Test on both platforms when possible (WiFi features are Linux-only)
+- Test on both platforms when possible
+- **WiFi Backend:** macOS uses CoreWLAN, Linux uses wpa_supplicant
 
 ### Memory & Performance Analysis
 

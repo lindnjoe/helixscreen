@@ -9,6 +9,17 @@
 
 ### ✅ Recently Completed
 
+**macOS WiFi Backend** (Completed 2025-10-28)
+- ✅ Created WifiBackendMacOS using CoreWLAN framework for real WiFi on macOS
+- ✅ Implemented network scanning, connection management, status queries
+- ✅ Location services permission handling (required for WiFi scanning on macOS 10.15+)
+- ✅ Factory pattern fallback chain: real backend → mock backend
+- ✅ Added .mm file support to build system (Objective-C++)
+- ✅ macOS frameworks: Foundation, CoreFoundation, Security, CoreWLAN, CoreLocation
+- ✅ Minimum macOS version enforced: 10.15 (Catalina) via deployment target
+- ✅ Build-time version checking in mk/deps.mk
+- ✅ LVGL public API compliance (timer user_data via public functions only)
+
 **WiFi Stage 2: Build System Integration** (Completed 2025-10-28)
 - ✅ Added wpa_supplicant build variables to Makefile (WPA_DIR, WPA_CLIENT_LIB, WPA_INC)
 - ✅ Created wpa_supplicant/.config for libwpa_client.a build
@@ -64,10 +75,11 @@
 
 **WiFi System Status:** PRODUCTION READY
 - Backend abstraction complete with pluggable implementations
+- **Cross-platform support**: macOS (CoreWLAN) + Linux (wpa_supplicant)
 - Security hardened (input validation, resource cleanup, thread safety)
 - Robust fallback behavior for diverse hardware scenarios
 - Comprehensive test coverage for real-world deployment
-- **NEW**: Comprehensive error handling with user-friendly messages
+- Comprehensive error handling with user-friendly messages
 
 ### Next Priorities
 

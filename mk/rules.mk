@@ -10,7 +10,7 @@ all: check-deps apply-patches generate-fonts $(TARGET)
 	$(ECHO) "$(CYAN)Run with: $(YELLOW)./$(TARGET)$(RESET)"
 
 # Link binary
-$(TARGET): $(APP_OBJS) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(MATERIAL_ICON_OBJS) $(WPA_DEPS)
+$(TARGET): $(APP_OBJS) $(OBJCPP_OBJS) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(MATERIAL_ICON_OBJS) $(WPA_DEPS)
 	$(Q)mkdir -p $(BIN_DIR)
 	$(ECHO) "$(MAGENTA)$(BOLD)[LD]$(RESET) $@"
 	$(Q)$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) || { \
@@ -26,6 +26,19 @@ HEADERS := $(shell find $(INC_DIR) -name "*.h" 2>/dev/null)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[CXX]$(RESET) $<"
+ifeq ($(V),1)
+	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
+endif
+	$(Q)$(CXX) $(CXXFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
+		echo "$(RED)$(BOLD)✗ Compilation failed:$(RESET) $<"; \
+		echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
+		exit 1; \
+	}
+
+# Compile app Objective-C++ sources (macOS .mm files, depend on headers)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(HEADERS)
+	$(Q)mkdir -p $(dir $@)
+	$(ECHO) "$(BLUE)[OBJCXX]$(RESET) $<"
 ifeq ($(V),1)
 	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
 endif

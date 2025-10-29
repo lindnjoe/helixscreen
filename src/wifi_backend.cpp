@@ -22,18 +22,42 @@
 #include "wifi_backend_mock.h"
 #include "spdlog/spdlog.h"
 
-#ifndef __APPLE__
+#ifdef __APPLE__
+#include "wifi_backend_macos.h"
+#else
 #include "wifi_backend_wpa_supplicant.h"
 #endif
 
 std::unique_ptr<WifiBackend> WifiBackend::create() {
 #ifdef __APPLE__
-    // macOS: Always use mock backend (no wpa_supplicant)
-    spdlog::info("[WifiBackend] Creating mock backend for macOS simulator");
+    // macOS: Try CoreWLAN backend first, fallback to mock if unavailable
+    spdlog::debug("[WifiBackend] Attempting CoreWLAN backend for macOS");
+    auto backend = std::make_unique<WifiBackendMacOS>();
+    WiFiError start_result = backend->start();
+
+    if (start_result.success()) {
+        spdlog::info("[WifiBackend] CoreWLAN backend started successfully");
+        return backend;
+    }
+
+    // Fallback to mock
+    spdlog::warn("[WifiBackend] CoreWLAN backend failed: {} - falling back to mock",
+                start_result.technical_msg);
     return std::make_unique<WifiBackendMock>();
 #else
-    // Linux: Use wpa_supplicant backend, fallback to mock if unavailable
-    spdlog::debug("[WifiBackend] Creating wpa_supplicant backend for Linux");
-    return std::make_unique<WifiBackendWpaSupplicant>();
+    // Linux: Try wpa_supplicant backend first, fallback to mock if unavailable
+    spdlog::debug("[WifiBackend] Attempting wpa_supplicant backend for Linux");
+    auto backend = std::make_unique<WifiBackendWpaSupplicant>();
+    WiFiError start_result = backend->start();
+
+    if (start_result.success()) {
+        spdlog::info("[WifiBackend] wpa_supplicant backend started successfully");
+        return backend;
+    }
+
+    // Fallback to mock
+    spdlog::warn("[WifiBackend] wpa_supplicant backend failed: {} - falling back to mock",
+                start_result.technical_msg);
+    return std::make_unique<WifiBackendMock>();
 #endif
 }
