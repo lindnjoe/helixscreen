@@ -2,6 +2,8 @@
 
 This document describes the HelixScreen prototype build system, including automatic patch application, multi-display support, and development workflows.
 
+**For common development tasks**, see **[DEVELOPMENT.md](../DEVELOPMENT.md)** - this document covers advanced build system internals.
+
 ## Build System Overview
 
 The project uses **GNU Make** with a modular architecture:
@@ -643,6 +645,9 @@ Only use `make clean && make` when:
 
 ## See Also
 
-- [README.md](../README.md) - Project overview and quick start
-- [CLAUDE.md](../CLAUDE.md) - Development context and guidelines
-- [patches/README.md](../patches/README.md) - Patch documentation
+- **[README.md](../README.md)** - Project overview and quick start
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development environment setup and daily workflow
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System design and technical patterns
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Code standards and submission guidelines
+- **[CLAUDE.md](../CLAUDE.md)** - Development context and AI assistant guidelines
+- **[patches/README.md](../patches/README.md)** - Patch documentation

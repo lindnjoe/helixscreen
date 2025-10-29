@@ -504,6 +504,36 @@ lv_obj_invalidate()              // Public redraw trigger
 - Major architectural decisions with rationale
 - **NOT a development journal** - use git history for that
 
+### Developer Documentation
+
+**[README.md](README.md)** - **PROJECT OVERVIEW & QUICK START**
+- Project description and goals
+- Target hardware overview
+- Essential build and run instructions
+- Key features demonstration
+- **Reference this:** For project introduction and getting started
+
+**[DEVELOPMENT.md](DEVELOPMENT.md)** - **BUILD SYSTEM & DAILY WORKFLOW**
+- Complete dependency installation guide
+- Build system usage and troubleshooting
+- Multi-display support and screenshot workflow
+- IDE setup and development tools
+- **Reference this:** For daily development tasks and environment setup
+
+**[ARCHITECTURE.md](ARCHITECTURE.md)** - **SYSTEM DESIGN & TECHNICAL PATTERNS**
+- XML → Subject → C++ data flow architecture
+- Component hierarchy and design decisions
+- Memory management and thread safety
+- Critical implementation patterns
+- **Reference this:** For understanding system design and architectural decisions
+
+**[CONTRIBUTING.md](CONTRIBUTING.md)** - **CODE STANDARDS & SUBMISSION GUIDELINES**
+- Git workflow and commit standards
+- Code style and logging requirements
+- Testing procedures and submission guidelines
+- Asset management workflows
+- **Reference this:** For code standards and contribution process
+
 ### Technical Reference
 
 **[LVGL9_XML_GUIDE.md](docs/LVGL9_XML_GUIDE.md)** - **COMPLETE LVGL 9 XML REFERENCE**
@@ -518,6 +548,12 @@ lv_obj_invalidate()              // Public redraw trigger
 - Widget lookup, subject binding, event handlers
 - Material icon conversion workflow
 - **Update this:** When establishing new repeatable patterns
+
+**[BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md)** - **BUILD CONFIGURATION & PATCHES**
+- Modular Makefile architecture
+- Automatic patch application system
+- Dependency management and platform detection
+- **Reference this:** For advanced build system details
 
 **[COPYRIGHT_HEADERS.md](docs/COPYRIGHT_HEADERS.md)** - **GPL v3 HEADER TEMPLATES**
 - Required copyright headers for new files
