@@ -181,7 +181,7 @@ Your current architecture is **well-optimized** for the use case. The create-onc
 
 ```bash
 # Build app
-make -j8
+make -j
 
 # Profile normal mode (all panels)
 ./build/bin/helix-ui-proto -s small --panel home &

@@ -29,8 +29,8 @@ Each module is self-contained with GPL-3 copyright headers and clear separation 
 ### Quick Start
 
 ```bash
-# Parallel build (use -j explicitly)
-make -j8
+# Parallel build (auto-detects CPU cores)
+make -j
 
 # Clean parallel build with progress/timing
 make build
@@ -274,9 +274,9 @@ endif
 ### Usage
 
 ```bash
-make -j          # Auto-detect CPU cores and parallelize
-make -j8         # Use 8 parallel jobs
-make JOBS=4      # Set job count via variable
+make -j          # Auto-detect CPU cores and parallelize (recommended)
+make -j16        # Explicit job count (current system has 16 cores)
+make JOBS=16     # Set job count via variable
 make build       # Clean parallel build (auto-detects cores)
 ```
 
@@ -582,8 +582,8 @@ git -C lvgl apply ../patches/lvgl_sdl_window_position.patch
 **Symptom**: Slow compilation
 
 **Solutions**:
-- Use parallel builds: `make -j8` or `make -j$(nproc)`
-- Use incremental builds: `make -j8` instead of `make clean && make`
+- Use parallel builds: `make -j` (auto-detects all cores)
+- Use incremental builds: `make -j` instead of `make clean && make`
 - Check CPU usage during build (should be near 100% with parallel builds)
 - Use `make build` for optimized clean builds with timing
 
@@ -609,7 +609,7 @@ sdl2-config --version
 ### Development Workflow
 
 1. **Edit code** in `src/` or `include/`
-2. **Run `make -j8`** - parallel incremental build with auto-patching
+2. **Run `make -j`** - parallel incremental build with auto-patching
 3. **Test** with `./build/bin/helix-ui-proto`
 4. **Screenshot** with `./scripts/screenshot.sh` (auto-opens on display 1)
 5. **Commit** with working incremental changes

@@ -136,7 +136,7 @@ cd ..
 # Remove "- symlinked from parent repo submodule"
 
 # 6. Test build
-make clean && make -j8
+make clean && make -j
 
 # 7. Commit
 git add .gitmodules libhv Makefile
@@ -243,7 +243,7 @@ cp ../wpa_supplicant/wpa_supplicant/.config wpa_supplicant/wpa_supplicant/
 **Test:**
 ```bash
 make clean
-make -j8
+make -j
 # macOS: Should skip wpa_supplicant
 # Linux: Should build libwpa_client.a first, then link
 ```

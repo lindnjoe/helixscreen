@@ -490,14 +490,14 @@ std::string WifiBackendWpa::send_command(const std::string& cmd) {
 
 **macOS:**
 ```bash
-make clean && make -j8
+make clean && make -j
 # Should compile stub class without errors
 # No wpa_supplicant dependencies
 ```
 
 **Linux:**
 ```bash
-make clean && make -j8
+make clean && make -j
 # Should build libwpa_client.a (220K)
 # Should compile wifi_backend_wpa.cpp
 # Should link without undefined symbols

@@ -286,7 +286,7 @@
 
 ```bash
 # Build latest
-make -j8
+make -j
 
 # Test WiFi toggle behavior
 ./build/bin/helix-ui-proto --wizard-step wifi -s small

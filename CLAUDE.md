@@ -49,7 +49,7 @@ npm install  # Install lv_font_conv and other dev dependencies
 
 ```bash
 # Common commands
-make -j8          # Parallel build (NOT auto-parallel by default)
+make -j           # Parallel build (auto-detects CPU cores)
 make build        # Clean parallel build with progress/timing
 make V=1          # Verbose mode (shows full compiler commands)
 make help         # Show all targets and options
@@ -65,8 +65,14 @@ make run              # Build and run
 - Verbose mode with `V=1` shows full commands
 - Automatic dependency checking before builds
 - Fail-fast with clear error messages and full command on failure
+- Auto-detects CPU cores: Use `make -j` for parallel builds (16 cores on current system)
 
-**Important:** Use `-j` flag explicitly for parallel builds. See `make help` for all options.
+**Cross-Platform Development:**
+- This project is developed on **both macOS and Linux**
+- **NEVER invoke compilers directly** (clang++, g++, etc.) - always use `make`
+- Makefile auto-detects available compiler (clang > gcc priority)
+- Platform-specific features are handled via Makefile platform detection
+- Test on both platforms when possible (WiFi features Linux-only)
 
 **Binary:** `build/bin/helix-ui-proto`
 **Panels:** home, controls, motion, nozzle-temp, bed-temp, extrusion, filament, settings, advanced, print-select
