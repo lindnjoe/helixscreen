@@ -728,6 +728,7 @@ int main(int argc, char** argv) {
     lv_xml_register_component_from_file("A:ui_xml/wizard_container.xml");
     lv_xml_register_component_from_file("A:ui_xml/network_list_item.xml");
     lv_xml_register_component_from_file("A:ui_xml/wifi_password_modal.xml");
+    lv_xml_register_component_from_file("A:ui_xml/wizard_test_rollers.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_wifi_setup.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_connection.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_printer_identify.xml");

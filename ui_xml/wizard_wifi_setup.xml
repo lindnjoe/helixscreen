@@ -86,7 +86,7 @@
 
 					<!-- WiFi Card -->
 					<lv_obj width="100%"
-					        height="110"
+					        height="120"
 							scrollable="false"
 					        style_bg_color="#card_bg"
 					        style_bg_opa="255"
@@ -113,7 +113,11 @@
 							          style_text_font="montserrat_20"
 							          style_text_color="#text_primary"/>
 
-							<ui_switch name="wifi_toggle"/>
+							<!-- WiFi toggle: wired to wifi_enabled subject via C++ event handler -->
+							<ui_switch name="wifi_toggle">
+								<!-- Bind checked state to wifi_enabled subject (bidirectional) -->
+								<event_cb trigger="value_changed" callback="on_wifi_toggle_changed"/>
+							</ui_switch>
 						</lv_obj>
 
 						<!-- WiFi Status label -->
@@ -154,6 +158,7 @@
 				</lv_obj>
 
 				<!-- RIGHT COLUMN: Network List (70%) -->
+				<!-- State-driven styling: automatically dims to 50% opacity when disabled -->
 				<lv_obj flex_grow="7"
 				        height="100%"
 				        name="network_list_container"
@@ -169,6 +174,12 @@
 				        style_flex_main_place="start"
 				        style_flex_cross_place="start">
 
+					<!-- Reactive state binding: set disabled state when wifi_enabled == 0 -->
+					<lv_obj-bind_state_if_eq subject="wifi_enabled" state="disabled" ref_value="0"/>
+
+					<!-- State-specific styling: dim to 50% opacity when disabled -->
+					<style opa="128" selector="disabled"/>
+
 					<!-- Title -->
 					<lv_label text="Available Networks"
 					          width="100%"
@@ -177,14 +188,17 @@
 					          style_pad_bottom="#gap_small"/>
 
 					<!-- Network list populated dynamically from C++ -->
-					<!-- Placeholder when empty -->
+					<!-- Placeholder shown when WiFi is disabled (wifi_enabled == 0) -->
 					<lv_label name="network_list_placeholder"
 					          text="Enable WiFi to scan for networks"
 					          width="100%"
 					          style_text_font="montserrat_14"
 					          style_text_color="#text_muted"
 					          style_text_align="center"
-					          style_pad_top="#padding_normal"/>
+					          style_pad_top="#padding_normal">
+						<!-- Show placeholder only when WiFi is disabled (hidden when enabled) -->
+						<lv_obj-bind_flag_if_eq subject="wifi_enabled" flag="hidden" ref_value="1"/>
+					</lv_label>
 				</lv_obj>
 			</lv_obj>
 		</lv_obj>

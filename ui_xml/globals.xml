@@ -106,9 +106,9 @@
 
 	<!-- Wizard-specific dimensions -->
 	<px name="wizard_header_min_height" value="32" />
-	<!-- Minimum header height for wizard screens (compact progress indicator) -->
-	<px name="wizard_footer_min_height" value="100" />
-	<!-- Minimum footer height for wizard screens (navigation buttons) -->
+	<!-- Header height for wizard screens (compact progress indicator) -->
+	<px name="wizard_footer_height" value="74" />
+	<!-- Footer height for wizard screens (navigation buttons) -->
 	<px name="wizard_button_width" value="140" />
 	<!-- Width for wizard navigation buttons (Back/Next) -->
 	<px name="wizard_input_height" value="48" />
@@ -154,6 +154,8 @@
 	<!-- Typography -->
 	<string name="font_body" value="montserrat_16" />
 	<!-- Standard body text -->
+	<string name="font_small" value="montserrat_10" />
+	<!-- Small text (captions, metadata, wizard progress) -->
 	<string name="font_heading" value="montserrat_20" />
 	<!-- Section headings -->
 	<string name="font_modal_title" value="montserrat_16" />
