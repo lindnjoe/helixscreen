@@ -50,13 +50,13 @@
 			<!-- Help text -->
 			<lv_label text="Connect to WiFi network (optional)"
 			          width="100%"
-			          style_text_font="montserrat_16"
+			          style_text_font="#wifi_help_font"
 			          style_text_color="#text_primary"
 			          style_margin_bottom="4"/>
 
 			<lv_label text="Configure WiFi now or skip to use Ethernet/localhost"
 			          width="100%"
-			          style_text_font="montserrat_12"
+			          style_text_font="#wifi_status_font"
 			          style_text_color="#text_muted"
 			          style_margin_bottom="12"/>
 
@@ -86,7 +86,7 @@
 
 					<!-- WiFi Card -->
 					<lv_obj width="100%"
-					        height="120"
+					        height="#wifi_card_height"
 							scrollable="false"
 					        style_bg_color="#card_bg"
 					        style_bg_opa="255"
@@ -100,7 +100,7 @@
 
 						<!-- Label + Switch horizontal container -->
 						<lv_obj width="100%"
-						        height="40"
+						        height="#wifi_toggle_height"
 						        style_bg_opa="0"
 						        style_border_width="0"
 						        style_pad_all="0"
@@ -110,11 +110,12 @@
 						        style_flex_cross_place="center">
 
 							<lv_label text="WiFi"
-							          style_text_font="montserrat_20"
+							          style_text_font="#wifi_title_font"
 							          style_text_color="#text_primary"/>
 
 							<!-- WiFi toggle: wired to wifi_enabled subject via C++ event handler -->
-							<ui_switch name="wifi_toggle">
+							<ui_switch name="wifi_toggle"
+							           size="medium">
 								<!-- Bind checked state to wifi_enabled subject (bidirectional) -->
 								<event_cb trigger="value_changed" callback="on_wifi_toggle_changed"/>
 							</ui_switch>
@@ -124,7 +125,7 @@
 						<lv_label name="wifi_status"
 						          bind_text="wifi_status"
 						          width="100%"
-						          style_text_font="montserrat_14"
+						          style_text_font="#wifi_status_font"
 						          style_text_color="#text_secondary"
 						          style_text_align="center"
 						          style_pad_top="#gap_small"/>
@@ -132,7 +133,7 @@
 
 					<!-- Ethernet Status Card -->
 					<lv_obj width="100%"
-					        height="100"
+					        height="#wifi_ethernet_height"
 					        style_bg_color="#card_bg"
 					        style_bg_opa="255"
 					        style_border_width="0"
@@ -143,7 +144,7 @@
 					        style_flex_cross_place="start">
 
 						<lv_label text="Ethernet"
-						          style_text_font="montserrat_20"
+						          style_text_font="#wifi_title_font"
 						          style_text_color="#text_primary"
 						          style_pad_bottom="#gap_small"/>
 
@@ -151,7 +152,7 @@
 						<lv_label name="ethernet_status"
 						          bind_text="ethernet_status"
 						          width="100%"
-						          style_text_font="montserrat_14"
+						          style_text_font="#wifi_status_font"
 						          style_text_color="#text_secondary"
 						          style_text_align="left"/>
 					</lv_obj>
@@ -166,8 +167,8 @@
 				        style_bg_opa="255"
 				        style_border_width="0"
 				        style_radius="12"
-				        style_pad_all="#padding_normal"
-				        style_pad_gap="#gap_small"
+				        style_pad_all="#list_item_padding"
+				        style_pad_gap="#list_item_padding"
 				        flex_flow="column"
 				        scrollable="true"
 				        scroll_dir="VER"
@@ -183,22 +184,35 @@
 					<!-- Title -->
 					<lv_label text="Available Networks"
 					          width="100%"
-					          style_text_font="montserrat_16"
+					          style_text_font="#wifi_network_title_font"
 					          style_text_color="#text_primary"
 					          style_pad_bottom="#gap_small"/>
 
-					<!-- Network list populated dynamically from C++ -->
+					<!-- Scanning indicator (shown when wifi_scanning == 1) -->
+					<lv_label name="network_list_scanning"
+					          text="Scanning for networks..."
+					          width="100%"
+					          style_text_font="#wifi_status_font"
+					          style_text_color="#text_secondary"
+					          style_text_align="center"
+					          style_pad_top="#padding_normal">
+						<!-- Show only when scanning (hide when wifi_scanning == 0) -->
+						<lv_obj-bind_flag_if_eq subject="wifi_scanning" flag="hidden" ref_value="0"/>
+					</lv_label>
+
 					<!-- Placeholder shown when WiFi is disabled (wifi_enabled == 0) -->
 					<lv_label name="network_list_placeholder"
 					          text="Enable WiFi to scan for networks"
 					          width="100%"
-					          style_text_font="montserrat_14"
+					          style_text_font="#wifi_status_font"
 					          style_text_color="#text_muted"
 					          style_text_align="center"
 					          style_pad_top="#padding_normal">
 						<!-- Show placeholder only when WiFi is disabled (hidden when enabled) -->
 						<lv_obj-bind_flag_if_eq subject="wifi_enabled" flag="hidden" ref_value="1"/>
 					</lv_label>
+
+					<!-- Network list populated dynamically from C++ -->
 				</lv_obj>
 			</lv_obj>
 		</lv_obj>

@@ -19,6 +19,7 @@
  */
 
 #include "ui_wizard.h"
+#include "ui_wizard_wifi.h"
 #include "lvgl/lvgl.h"
 #include <spdlog/spdlog.h>
 #include <cstdio>
@@ -41,6 +42,7 @@ static lv_obj_t* wizard_root = nullptr;
 // Forward declarations
 static void on_back_clicked(lv_event_t* e);
 static void on_next_clicked(lv_event_t* e);
+static void ui_wizard_load_screen(int step);
 
 void ui_wizard_init_subjects() {
     spdlog::debug("[Wizard] Initializing subjects");
@@ -77,6 +79,7 @@ void ui_wizard_register_responsive_constants() {
     // Calculate responsive values
     const char* padding_value;
     const char* gap_value;
+    const char* list_item_padding;
     const char* header_height;
     const char* button_width;
     const char* header_font;
@@ -85,6 +88,7 @@ void ui_wizard_register_responsive_constants() {
     if (width < 600) {  // TINY (480x320)
         padding_value = "6";
         gap_value = "4";
+        list_item_padding = "4";
         header_height = "32";  // Increased for better text fit
         button_width = "110";
         header_font = "montserrat_14";
@@ -93,6 +97,7 @@ void ui_wizard_register_responsive_constants() {
     } else if (width < 900) {  // SMALL (800x480)
         padding_value = "12";
         gap_value = "8";
+        list_item_padding = "6";
         header_height = "36";  // Increased for better text fit
         button_width = "140";
         header_font = "montserrat_16";
@@ -101,6 +106,7 @@ void ui_wizard_register_responsive_constants() {
     } else {  // LARGE (1024x600+)
         padding_value = "20";
         gap_value = "12";
+        list_item_padding = "8";
         header_height = "44";  // Increased for better text fit
         button_width = "160";
         header_font = "montserrat_20";
@@ -114,13 +120,14 @@ void ui_wizard_register_responsive_constants() {
     // Register constants BEFORE creating wizard
     lv_xml_register_const(scope, "wizard_padding", padding_value);
     lv_xml_register_const(scope, "wizard_gap", gap_value);
+    lv_xml_register_const(scope, "list_item_padding", list_item_padding);
     lv_xml_register_const(scope, "wizard_header_height", header_height);
     lv_xml_register_const(scope, "wizard_button_width", button_width);
     lv_xml_register_const(scope, "wizard_header_font", header_font);
     lv_xml_register_const(scope, "wizard_title_font", title_font);
 
-    spdlog::debug("[Wizard] Registered constants: padding={}, gap={}, header_height={}, button_width={}",
-                  padding_value, gap_value, header_height, button_width);
+    spdlog::debug("[Wizard] Registered constants: padding={}, gap={}, list_item_padding={}, header_height={}, button_width={}",
+                  padding_value, gap_value, list_item_padding, header_height, button_width);
 }
 
 void ui_wizard_register_event_callbacks() {
@@ -170,6 +177,9 @@ void ui_wizard_navigate_to_step(int step) {
     snprintf(progress_buf, sizeof(progress_buf), "Step %d of %d", step, total);
     lv_subject_copy_string(&wizard_progress, progress_buf);
 
+    // Load screen content
+    ui_wizard_load_screen(step);
+
     spdlog::debug("[Wizard] Updated to step {}/{}, button: {}",
                   step, total, (step == total) ? "Finish" : "Next");
 }
@@ -182,6 +192,81 @@ void ui_wizard_set_title(const char* title) {
 
     spdlog::debug("[Wizard] Setting title: {}", title);
     lv_subject_copy_string(&wizard_title, title);
+}
+
+// ============================================================================
+// Screen Loading
+// ============================================================================
+
+static void ui_wizard_load_screen(int step) {
+    spdlog::debug("[Wizard] Loading screen for step {}", step);
+
+    // Find wizard_content container
+    lv_obj_t* content = lv_obj_find_by_name(wizard_root, "wizard_content");
+    if (!content) {
+        spdlog::error("[Wizard] wizard_content container not found");
+        return;
+    }
+
+    // Cleanup previous screen resources BEFORE clearing widgets
+    ui_wizard_wifi_cleanup();
+
+    // Clear existing content
+    lv_obj_clean(content);
+    spdlog::debug("[Wizard] Cleared wizard_content container");
+
+    // Create appropriate screen based on step
+    switch (step) {
+        case 1:  // WiFi Setup
+            spdlog::info("[Wizard] Creating WiFi setup screen");
+            ui_wizard_wifi_init_subjects();
+            ui_wizard_wifi_register_callbacks();
+            ui_wizard_wifi_register_responsive_constants();
+            ui_wizard_wifi_create(content);
+            ui_wizard_wifi_init_wifi_manager();
+            ui_wizard_set_title("WiFi Setup");
+            break;
+
+        case 2:  // Moonraker Connection
+            spdlog::info("[Wizard] Step 2 (Moonraker) not yet implemented");
+            ui_wizard_set_title("Moonraker Connection");
+            // TODO: ui_wizard_connection_create(content);
+            break;
+
+        case 3:  // Printer Selection
+            spdlog::info("[Wizard] Step 3 (Printer) not yet implemented");
+            ui_wizard_set_title("Printer Selection");
+            // TODO: ui_wizard_printer_create(content);
+            break;
+
+        case 4:  // Hardware Configuration
+            spdlog::info("[Wizard] Step 4 (Hardware) not yet implemented");
+            ui_wizard_set_title("Hardware Configuration");
+            // TODO: ui_wizard_hardware_create(content);
+            break;
+
+        case 5:  // Additional Settings
+            spdlog::info("[Wizard] Step 5 (Settings) not yet implemented");
+            ui_wizard_set_title("Additional Settings");
+            // TODO: ui_wizard_settings_create(content);
+            break;
+
+        case 6:  // Review
+            spdlog::info("[Wizard] Step 6 (Review) not yet implemented");
+            ui_wizard_set_title("Review Settings");
+            // TODO: ui_wizard_review_create(content);
+            break;
+
+        case 7:  // Completion
+            spdlog::info("[Wizard] Step 7 (Complete) not yet implemented");
+            ui_wizard_set_title("Setup Complete");
+            // TODO: ui_wizard_complete_create(content);
+            break;
+
+        default:
+            spdlog::warn("[Wizard] Invalid step {}, ignoring", step);
+            break;
+    }
 }
 
 // ============================================================================

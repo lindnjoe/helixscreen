@@ -187,8 +187,22 @@ public:
      */
     std::string get_ethernet_ip();
 
+    /**
+     * @brief Initialize self-reference for async callback safety
+     *
+     * MUST be called immediately after construction when using shared_ptr.
+     * Enables async callbacks to safely check if manager still exists.
+     *
+     * @param self Shared pointer to this WiFiManager instance
+     */
+    void init_self_reference(std::shared_ptr<WiFiManager> self);
+
 private:
     std::unique_ptr<WifiBackend> backend_;
+
+    // Self-reference for async callback safety
+    // Weak pointers in async callbacks can safely check if manager still exists
+    std::shared_ptr<WiFiManager> self_;
 
     // Scanning state
     lv_timer_t* scan_timer_;
