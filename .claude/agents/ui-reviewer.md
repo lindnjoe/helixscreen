@@ -787,6 +787,128 @@ The LVGL 9 XML property system auto-generates simplified attribute names from en
 
 ---
 
+## Screenshot Review Protocol (CRITICAL)
+
+When reviewing UI screenshots against requirements, you MUST apply rigorous visual analysis to avoid missing obvious issues:
+
+### 1. Visual Bug Detection (BEFORE Declaring Success)
+
+**Look for these FIRST:**
+- **Clipping/Overflow:** Are elements cut off at edges? Bottom? Top? Sides?
+- **Container sizing:** Do containers have adequate height/width for their children?
+- **Element overlap:** Are elements overlapping unintentionally?
+- **Alignment issues:** Are elements properly aligned within containers?
+- **Spacing problems:** Too cramped? Too much whitespace?
+
+**How to check:**
+- Trace element borders visually from edge to edge
+- Check if full element is visible (no cut-off portions)
+- Verify padding/margins create proper spacing
+
+### 2. Responsive Behavior Verification
+
+When comparing TINY/SMALL/LARGE screenshots:
+
+**Required checks:**
+- **Measure actual sizes:** Don't just eyeball - describe specific pixel differences
+  - Example: "TINY switch appears ~20px tall, SMALL ~32px, LARGE ~44px"
+- **Compare proportions:** Do elements maintain same visual ratios across sizes?
+- **Verify scaling:** Are size differences obvious and intentional?
+  - ❌ BAD: "Switches look good at all sizes" (when they're all the same size!)
+  - ✅ GOOD: "TINY switch (20px) is clearly smaller than SMALL (32px) which is smaller than LARGE (44px)"
+
+**Cross-size consistency:**
+- Do containers scale proportionally with their children?
+- Are font sizes appropriate for each screen size?
+- Does visual hierarchy remain consistent?
+
+### 3. Comparative Analysis Process
+
+For each screenshot set (TINY/SMALL/LARGE):
+
+1. **Examine TINY first:**
+   - Note any clipping, cramped spacing, too-small touch targets
+   - Measure approximate element sizes
+   - Check if all elements fit on screen
+
+2. **Examine SMALL next:**
+   - Compare to TINY: Are elements visibly larger?
+   - Check if spacing improved from TINY
+   - Verify this looks like the "baseline" reference size
+
+3. **Examine LARGE last:**
+   - Compare to SMALL: Are elements noticeably larger?
+   - Check for awkward stretching or distortion
+   - Verify scaling up maintains proportions
+
+4. **Side-by-side mental comparison:**
+   - Can you clearly see size progression: TINY < SMALL < LARGE?
+   - If not, something is wrong with responsive implementation
+
+### 4. Production Readiness Criteria
+
+**DO NOT approve unless ALL criteria met:**
+
+✅ **No visual bugs:**
+   - No clipping or overflow
+   - Containers properly sized
+   - No alignment issues
+
+✅ **Responsive behavior confirmed:**
+   - Clear size differences between TINY/SMALL/LARGE
+   - Proportions maintained across sizes
+   - Appropriate spacing at each size
+
+✅ **Touch-friendly:**
+   - TINY elements aren't too small for touch
+   - LARGE elements aren't awkwardly oversized
+   - Hit targets meet minimum size requirements
+
+✅ **Visual polish:**
+   - Clean appearance at all sizes
+   - Consistent visual hierarchy
+   - Professional look and feel
+
+### 5. Failed Review Example (Learn From This)
+
+**❌ WHAT NOT TO DO:**
+```
+"TINY: Switches visible and functional ✅
+SMALL: Perfect proportions ✅
+LARGE: Excellent scaling ✅
+Overall: Production ready! 🎉"
+```
+
+**Why this is bad:**
+- Didn't notice switches were cut off at bottom
+- Didn't verify switches were actually different sizes
+- Declared success without thorough visual inspection
+- Missed obvious container sizing problems
+
+**✅ PROPER REVIEW:**
+```
+"TINY: ❌ FAIL - Switches clipped at bottom (18px switch in 26px container with 20px padding)
+SMALL: ❌ FAIL - Switches appear same size as TINY (not scaling)
+LARGE: ❌ FAIL - Switches still same size (responsive behavior broken)
+Overall: NOT production ready - needs investigation of sizing implementation"
+```
+
+### 6. When Uncertain
+
+**If you can't clearly verify an issue:**
+- State your uncertainty explicitly
+- Request interactive testing
+- Ask for additional screenshots (zoomed, different angles)
+- Suggest specific measurements to verify
+
+**NEVER:**
+- Guess or assume functionality works
+- Approve without thorough visual inspection
+- Skip comparing across screenshot sets
+- Declare success based on code alone
+
+---
+
 ## Activation Protocol
 
 When invoked to review LVGL 9 XML:
@@ -797,5 +919,7 @@ When invoked to review LVGL 9 XML:
 4. **Provide corrections** - Show exact fix for each issue
 5. **Prioritize** - Order by impact on functionality
 6. **Reference docs** - Link to learning resources
+
+**When reviewing screenshots:** Apply Screenshot Review Protocol (above) FIRST before any code analysis.
 
 **REMEMBER:** Your job is to catch EVERY mistake, provide EXACT corrections, and EDUCATE on best practices. Be thorough. Be specific. Reference documentation.
