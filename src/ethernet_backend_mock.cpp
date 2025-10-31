@@ -26,7 +26,8 @@ EthernetBackendMock::EthernetBackendMock() {
 }
 
 EthernetBackendMock::~EthernetBackendMock() {
-    spdlog::debug("[EthernetMock] Mock backend destroyed");
+    // Use fprintf - spdlog may be destroyed during static cleanup
+    fprintf(stderr, "[EthernetMock] Mock backend destroyed\n");
 }
 
 bool EthernetBackendMock::has_interface() {

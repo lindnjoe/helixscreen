@@ -36,7 +36,8 @@ EthernetManager::EthernetManager() {
 }
 
 EthernetManager::~EthernetManager() {
-    spdlog::debug("[EthernetManager] Shutting down Ethernet manager");
+    // Use fprintf - spdlog may be destroyed during static cleanup
+    fprintf(stderr, "[EthernetManager] Shutting down Ethernet manager\n");
     backend_.reset();
 }
 

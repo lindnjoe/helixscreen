@@ -29,7 +29,8 @@ EthernetBackendLinux::EthernetBackendLinux() {
 }
 
 EthernetBackendLinux::~EthernetBackendLinux() {
-    spdlog::debug("[EthernetLinux] Linux backend destroyed");
+    // Use fprintf - spdlog may be destroyed during static cleanup
+    fprintf(stderr, "[EthernetLinux] Linux backend destroyed\n");
 }
 
 bool EthernetBackendLinux::is_ethernet_interface(const std::string& name) {

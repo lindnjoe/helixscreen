@@ -28,7 +28,8 @@ EthernetBackendMacOS::EthernetBackendMacOS() {
 }
 
 EthernetBackendMacOS::~EthernetBackendMacOS() {
-    spdlog::debug("[EthernetMacOS] macOS backend destroyed");
+    // Use fprintf - spdlog may be destroyed during static cleanup
+    fprintf(stderr, "[EthernetMacOS] macOS backend destroyed\n");
 }
 
 bool EthernetBackendMacOS::is_ethernet_interface(const std::string& name) {
