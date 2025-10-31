@@ -24,7 +24,8 @@
 
 // Color scheme constants
 #define UI_COLOR_NAV_BG          lv_color_hex(0x242424)     // rgb(36, 36, 36) - Nav bar background
-#define UI_COLOR_PRIMARY         lv_color_hex(0xFF4444)     // rgb(255, 68, 68) - Primary/Active color (matches nav icons)
+#define UI_COLOR_PRIMARY         lv_color_hex(0xFF4444)     // rgb(255, 68, 68) - Primary/Active color (red)
+#define UI_COLOR_SECONDARY       lv_color_hex(0x00AAFF)     // rgb(0, 170, 255) - Secondary accent (blue)
 #define UI_COLOR_ACCENT          UI_COLOR_PRIMARY           // Accent color for status indicators
 #define UI_COLOR_PANEL_BG        lv_color_hex(0x141414)     // rgb(20, 20, 20) - Main panel background
 

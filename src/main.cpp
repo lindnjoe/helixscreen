@@ -119,9 +119,9 @@ static bool init_lvgl() {
 static void init_theme(bool dark_mode) {
     dark_mode_enabled = dark_mode;
 
-    // Use current red accent (#FF4444) as primary color
-    lv_color_t primary_color = lv_color_hex(0xFF4444);
-    lv_color_t secondary_color = lv_color_hex(0x00AAFF);  // Accent blue
+    // Use colors from ui_theme.h (single source of truth)
+    lv_color_t primary_color = UI_COLOR_PRIMARY;      // Red accent
+    lv_color_t secondary_color = UI_COLOR_SECONDARY;  // Blue accent
 
     // Initialize default theme with custom colors
     // LVGL 9.4 API takes single font parameter (uses it as base, auto-scales for headings)
@@ -130,7 +130,7 @@ static void init_theme(bool dark_mode) {
         primary_color,
         secondary_color,
         dark_mode,
-        &lv_font_montserrat_16   // Base font (16px body text)
+        UI_FONT_BODY   // Base font (16px body text) from ui_theme.h
     );
 
     if (current_theme) {
