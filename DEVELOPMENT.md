@@ -116,6 +116,51 @@ make V=1  # Shows full compiler commands
 
 For complete build system documentation, see **[BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md)**.
 
+## Configuration File Management
+
+**Pattern:** User-specific config files are git-ignored. Reference/default values live in `data/` directory as templates.
+
+### Template-Based Configuration
+
+```bash
+# First time setup: Copy template to create user config
+cp data/helixconfig.json.template helixconfig.json
+
+# Template is versioned, user config is git-ignored
+git status
+# helixconfig.json appears in .gitignore
+```
+
+**Why this pattern:**
+- **helixconfig.json** (top-level) - User-specific settings, git-ignored
+- **data/helixconfig.json.template** - Default values, versioned in git
+- Prevents accidental commits of user-specific settings (API keys, local paths, preferences)
+- Provides reference defaults for new developers/installations
+
+### Adding New Config Fields
+
+When adding new configuration options:
+
+1. **Add to template** (`data/helixconfig.json.template`)
+   ```json
+   {
+     "config_path": "helixconfig.json",
+     "dark_mode": false,          // NEW: Theme preference
+     "default_printer": "...",
+     ...
+   }
+   ```
+
+2. **Document in code** (src/config.cpp or relevant module)
+   ```cpp
+   // Read theme preference (default: false = light mode)
+   bool dark_mode = config->get<bool>("/dark_mode", false);
+   ```
+
+3. **Update user's config** (automatic via config->save() or manual copy from template)
+
+**Important:** NEVER commit `helixconfig.json` (top-level). Only commit template changes.
+
 ## Multi-Display Development (macOS)
 
 Control which display the UI window appears on for dual-monitor workflows:
