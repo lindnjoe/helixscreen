@@ -65,9 +65,9 @@ static void ui_switch_init_size_presets() {
         spdlog::debug("[Switch] Initialized SMALL screen presets ({}px wide)", width);
     } else {  // LARGE screen (1024x600+)
         SIZE_TINY   = {64, 32, 2};
-        SIZE_SMALL  = {88, 44, 3};
-        SIZE_MEDIUM = {112, 56, 4};
-        SIZE_LARGE  = {128, 64, 4};
+        SIZE_SMALL  = {88, 40, 3};
+        SIZE_MEDIUM = {112, 48, 4};
+        SIZE_LARGE  = {128, 56, 4};
         spdlog::debug("[Switch] Initialized LARGE screen presets ({}px wide)", width);
     }
 }
@@ -304,7 +304,7 @@ void ui_switch_register_responsive_constants()
         // Row: 44 + (2 * 20) = 84px
         switch_height = "44";
         switch_width = "88";
-        knob_pad = "3";
+        knob_pad = "6";
         row_height = "84";
         row_height_large = "104";
         label_font = "montserrat_20";

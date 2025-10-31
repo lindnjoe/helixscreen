@@ -96,15 +96,18 @@
 					        style_pad_gap="#gap_small"
 					        flex_flow="column"
 					        style_flex_main_place="start"
-					        style_flex_cross_place="start">
+					        style_flex_cross_place="center">
 
 						<!-- Label + Switch horizontal container -->
 						<lv_obj width="100%"
 						        height="#wifi_toggle_height"
+						        scrollable="false"
 						        style_bg_opa="0"
-						        style_border_width="0"
+						        style_border_width="2"
+								style_border_opa="255"
 						        style_pad_all="0"
-						        style_pad_gap="#gap_normal"
+								style_pad_top="6"
+								style_pad_right="#padding_tiny"
 						        flex_flow="row"
 						        style_flex_main_place="space_between"
 						        style_flex_cross_place="center">
@@ -178,8 +181,8 @@
 					<!-- Reactive state binding: set disabled state when wifi_enabled == 0 -->
 					<lv_obj-bind_state_if_eq subject="wifi_enabled" state="disabled" ref_value="0"/>
 
-					<!-- State-specific styling: dim to 50% opacity when disabled -->
-					<style opa="128" selector="disabled"/>
+					<!-- State-specific styling: dim to 25% opacity when disabled -->
+					<style opa="64" selector="disabled"/>
 
 					<!-- Title -->
 					<lv_label text="Available Networks"

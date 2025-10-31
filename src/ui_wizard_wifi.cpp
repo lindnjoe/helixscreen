@@ -148,7 +148,6 @@ void ui_wizard_wifi_register_responsive_constants() {
     const char* card_height;
     const char* ethernet_height;
     const char* toggle_height;
-    const char* switch_size;
     const char* title_font;
     const char* status_font;
     const char* help_font;
@@ -159,8 +158,7 @@ void ui_wizard_wifi_register_responsive_constants() {
     if (width < 600) {  // TINY (480x320)
         card_height = "80";
         ethernet_height = "70";
-        toggle_height = "30";
-        switch_size = "24";  // Small enough to fit in 30px row
+        toggle_height = "32";  // size="medium" at TINY: 24px + 2*2px pad = 28px
         title_font = "montserrat_14";
         status_font = "montserrat_12";
         help_font = "montserrat_12";
@@ -171,8 +169,7 @@ void ui_wizard_wifi_register_responsive_constants() {
     } else if (width < 900) {  // SMALL (800x480)
         card_height = "120";
         ethernet_height = "100";
-        toggle_height = "40";
-        switch_size = "44";  // Proportional to row height
+        toggle_height = "48";  // size="medium" at SMALL: 40px + 2*3px pad = 46px
         title_font = "montserrat_20";
         status_font = "montserrat_14";
         help_font = "montserrat_16";
@@ -183,8 +180,7 @@ void ui_wizard_wifi_register_responsive_constants() {
     } else {  // LARGE (1024x600+)
         card_height = "140";
         ethernet_height = "120";
-        toggle_height = "48";
-        switch_size = "56";  // Proportional to row height
+        toggle_height = "64";  // size="medium" switch (56px) + breathing room
         title_font = "montserrat_24";
         status_font = "montserrat_16";
         help_font = "montserrat_18";
@@ -201,7 +197,6 @@ void ui_wizard_wifi_register_responsive_constants() {
     lv_xml_register_const(scope, "wifi_card_height", card_height);
     lv_xml_register_const(scope, "wifi_ethernet_height", ethernet_height);
     lv_xml_register_const(scope, "wifi_toggle_height", toggle_height);
-    lv_xml_register_const(scope, "wifi_switch_size", switch_size);
     lv_xml_register_const(scope, "wifi_title_font", title_font);
     lv_xml_register_const(scope, "wifi_status_font", status_font);
     lv_xml_register_const(scope, "wifi_help_font", help_font);
@@ -209,8 +204,8 @@ void ui_wizard_wifi_register_responsive_constants() {
     lv_xml_register_const(scope, "network_item_height", network_item_height);
     lv_xml_register_const(scope, "network_icon_size", network_icon_size);
 
-    spdlog::debug("[WiFi Screen] Registered constants: card={}px, ethernet={}px, switch={}px, network_item={}px",
-                  card_height, ethernet_height, switch_size, network_item_height);
+    spdlog::debug("[WiFi Screen] Registered constants: card={}px, ethernet={}px, toggle={}px, network_item={}px",
+                  card_height, ethernet_height, toggle_height, network_item_height);
 }
 
 lv_obj_t* ui_wizard_wifi_create(lv_obj_t* parent) {

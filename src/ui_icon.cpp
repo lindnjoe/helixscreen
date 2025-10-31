@@ -19,6 +19,7 @@
  */
 
 #include "ui_icon.h"
+#include "ui_theme.h"
 #include "lvgl/lvgl.h"
 #include "lvgl/src/others/xml/lv_xml.h"
 #include "lvgl/src/others/xml/lv_xml_widget.h"
@@ -116,45 +117,30 @@ static void apply_size(lv_obj_t* obj, const IconSize& size) {
 }
 
 /**
- * Get theme color from globals.xml constants
- * Falls back to default if constant not found
- */
-static lv_color_t get_theme_color(const char* const_name, lv_color_t fallback) {
-    lv_xml_component_scope_t* globals_scope = lv_xml_component_get_scope("globals");
-    if (!globals_scope) {
-        spdlog::warn("[Icon] globals.xml scope not found, using fallback color");
-        return fallback;
-    }
-
-    const char* color_str = lv_xml_get_const(globals_scope, const_name);
-    if (!color_str) {
-        spdlog::debug("[Icon] Constant '{}' not found, using fallback", const_name);
-        return fallback;
-    }
-
-    return lv_xml_to_color(color_str);
-}
-
-/**
  * Apply variant color styling to icon widget
- * Reads colors from globals.xml theme constants with fallbacks
+ * Uses colors from ui_theme.h (single source of truth)
  */
 static void apply_variant(lv_obj_t* obj, IconVariant variant) {
+    (void)obj;  // Unused parameter
     lv_color_t color;
     lv_opa_t opa = LV_OPA_COVER;
 
     switch (variant) {
         case IconVariant::PRIMARY:
-            color = get_theme_color("text_primary", lv_color_hex(0xFFFFFF));
+            // Primary text color (white in dark mode)
+            color = UI_COLOR_TEXT_PRIMARY;
             break;
         case IconVariant::SECONDARY:
-            color = get_theme_color("text_secondary", lv_color_hex(0x909090));
+            // Secondary text color (gray)
+            color = UI_COLOR_TEXT_SECONDARY;
             break;
         case IconVariant::ACCENT:
-            color = get_theme_color("primary_color", lv_color_hex(0xFF4444));
+            // Accent color (red)
+            color = UI_COLOR_PRIMARY;
             break;
         case IconVariant::DISABLED:
-            color = get_theme_color("text_secondary", lv_color_hex(0x909090));
+            // Primary text color at 50% opacity
+            color = UI_COLOR_TEXT_PRIMARY;
             opa = LV_OPA_50;
             break;
         case IconVariant::NONE:

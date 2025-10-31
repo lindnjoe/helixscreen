@@ -61,6 +61,8 @@
 // LVGL display and input
 static lv_display_t* display = nullptr;
 static lv_indev_t* indev_mouse = nullptr;
+static lv_theme_t* current_theme = nullptr;
+static bool dark_mode_enabled = true;  // Start in dark mode
 
 // Screen dimensions (configurable via command line, default to medium size)
 static int SCREEN_WIDTH = UI_SCREEN_MEDIUM_W;
@@ -111,6 +113,49 @@ static bool init_lvgl() {
     lv_svg_decoder_init();
 
     return true;
+}
+
+// Initialize LVGL default theme with custom colors
+static void init_theme(bool dark_mode) {
+    dark_mode_enabled = dark_mode;
+
+    // Use current red accent (#FF4444) as primary color
+    lv_color_t primary_color = lv_color_hex(0xFF4444);
+    lv_color_t secondary_color = lv_color_hex(0x00AAFF);  // Accent blue
+
+    // Initialize default theme with custom colors
+    // LVGL 9.4 API takes single font parameter (uses it as base, auto-scales for headings)
+    current_theme = lv_theme_default_init(
+        display,
+        primary_color,
+        secondary_color,
+        dark_mode,
+        &lv_font_montserrat_16   // Base font (16px body text)
+    );
+
+    if (current_theme) {
+        lv_display_set_theme(display, current_theme);
+        spdlog::info("LVGL theme initialized: {} mode", dark_mode ? "dark" : "light");
+    } else {
+        spdlog::error("Failed to initialize LVGL theme");
+    }
+}
+
+// Toggle between dark and light modes
+static void toggle_dark_mode() {
+    bool new_dark_mode = !dark_mode_enabled;
+    spdlog::info("Toggling theme: {} → {} mode",
+                dark_mode_enabled ? "dark" : "light",
+                new_dark_mode ? "dark" : "light");
+
+    // Reinitialize theme with new mode
+    init_theme(new_dark_mode);
+
+    // Force redraw of entire screen to apply new theme
+    lv_obj_t* screen = lv_screen_active();
+    lv_obj_invalidate(screen);
+
+    spdlog::info("Theme toggled to {} mode", new_dark_mode ? "dark" : "light");
 }
 
 // Show splash screen with HelixScreen logo
@@ -619,12 +664,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Initialize LVGL theme with dark mode (auto-applies to all widgets)
+    init_theme(true);  // Start in dark mode
+
     // Show splash screen (DISABLED for faster dev iteration)
     // show_splash_screen();
 
     // Create main screen
     lv_obj_t* screen = lv_screen_active();
-    lv_obj_set_style_bg_color(screen, UI_COLOR_PANEL_BG, LV_PART_MAIN);
 
     // Set window icon (after screen is created)
     ui_set_window_icon(display);
@@ -770,7 +817,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < UI_PANEL_COUNT; i++) {
         panels[i] = lv_obj_get_child(content_area, i);
         if (!panels[i]) {
-            spdlog::error("Missing panel {} in content_area - expected {} panels", i, UI_PANEL_COUNT);
+            spdlog::error("Missing panel {} in content_area - expected {} panels", i, (int)UI_PANEL_COUNT);
             spdlog::error("XML structure changed or panels missing from app_layout.xml");
             lv_deinit();
             return 1;
