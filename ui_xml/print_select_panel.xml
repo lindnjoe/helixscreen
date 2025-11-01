@@ -107,7 +107,7 @@
 			        width="100%"
 			        height="#list_header_height"
 				        style_border_width="0"
-			        style_border_side="2"
+			        style_border_side="bottom"
 			        style_pad_left="#nav_padding"
 			        style_pad_right="#nav_padding"
 			        style_pad_top="0"

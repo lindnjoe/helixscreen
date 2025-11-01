@@ -74,6 +74,21 @@ static lv_display_t* create_test_display(int32_t hor_res, int32_t ver_res) {
     }
 
     lv_display_set_buffers(display, buf1, buf2, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    // Log DPI for debugging
+    int32_t dpi = lv_display_get_dpi(display);
+    spdlog::debug("Created display {}x{} with DPI={}", hor_res, ver_res, dpi);
+
+    return display;
+}
+
+// Helper: Create a test display with specific resolution AND custom DPI
+static lv_display_t* create_test_display_with_dpi(int32_t hor_res, int32_t ver_res, int32_t dpi) {
+    lv_display_t* display = create_test_display(hor_res, ver_res);
+    if (display) {
+        lv_display_set_dpi(display, dpi);
+        spdlog::debug("Set display DPI to {}", dpi);
+    }
     return display;
 }
 
@@ -96,11 +111,12 @@ bool test_breakpoint_small_480x320() {
 
     // Note: We can't directly access disp_size (private), but we can verify padding values
     // which are derived from it. For 480x320, LVGL should use DISP_SMALL → PAD_DEF=12
+    int32_t dpi = lv_display_get_dpi(disp);
     lv_obj_t* test_obj = lv_obj_create(lv_screen_active());
     int32_t pad = get_widget_pad_all(test_obj);
 
-    spdlog::info("480x320 actual widget padding: {}", pad);
-    TEST_ASSERT(pad == 12, ("Expected PAD_DEF=12 for SMALL screen, got " + std::to_string(pad)).c_str());
+    spdlog::info("480x320 DPI={}, actual widget padding: {}", dpi, pad);
+    TEST_ASSERT(pad == 12, ("Expected PAD_DEF=12 for SMALL screen, got " + std::to_string(pad) + " (DPI=" + std::to_string(dpi) + ")").c_str());
 
     lv_obj_delete(test_obj);
     lv_display_delete(disp);
@@ -347,6 +363,104 @@ bool test_theme_toggle_dark_light() {
 }
 
 //==============================================================================
+// Test Suite D: DPI Scaling
+//==============================================================================
+
+// Helper: Calculate expected padding after DPI scaling
+// Formula: LV_DPX_CALC(dpi, value) = (dpi * value + 80) / 160
+static int32_t calc_expected_padding(int32_t dpi, int32_t base_value) {
+    return (dpi * base_value + 80) / 160;
+}
+
+bool test_dpi_scaling_160_reference() {
+    // Reference DPI (160) - no scaling
+    lv_display_t* disp = create_test_display_with_dpi(480, 320, 160);
+    TEST_ASSERT(disp != nullptr, "Failed to create display");
+
+    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE),
+                                                lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    TEST_ASSERT(theme != nullptr, "Theme init failed");
+
+    lv_obj_t* test_obj = lv_obj_create(lv_screen_active());
+    int32_t pad = get_widget_pad_all(test_obj);
+
+    // At DPI=160 (reference), SMALL screen should use PAD_DEF=12 with no scaling
+    int32_t expected = calc_expected_padding(160, 12);  // (160*12+80)/160 = 12
+    spdlog::info("DPI=160 (reference): expected={}, actual={}", expected, pad);
+    TEST_ASSERT(pad == expected, "160 DPI should give exact base values");
+
+    lv_obj_delete(test_obj);
+    lv_display_delete(disp);
+    return true;
+}
+
+bool test_dpi_scaling_170_7inch() {
+    // 7" @ 1024x600 ≈ 170 DPI
+    lv_display_t* disp = create_test_display_with_dpi(1024, 600, 170);
+    TEST_ASSERT(disp != nullptr, "Failed to create display");
+
+    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE),
+                                                lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    TEST_ASSERT(theme != nullptr, "Theme init failed");
+
+    lv_obj_t* test_obj = lv_obj_create(lv_screen_active());
+    int32_t pad = get_widget_pad_all(test_obj);
+
+    // LARGE screen (>800), PAD_DEF=20, scaled by DPI
+    int32_t expected = calc_expected_padding(170, 20);  // (170*20+80)/160 = 21
+    spdlog::info("DPI=170 (7\" screen): expected={}, actual={}", expected, pad);
+    TEST_ASSERT(pad == expected, "170 DPI should scale correctly");
+
+    lv_obj_delete(test_obj);
+    lv_display_delete(disp);
+    return true;
+}
+
+bool test_dpi_scaling_187_5inch() {
+    // 5" @ 800x480 ≈ 187 DPI
+    lv_display_t* disp = create_test_display_with_dpi(800, 480, 187);
+    TEST_ASSERT(disp != nullptr, "Failed to create display");
+
+    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE),
+                                                lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    TEST_ASSERT(theme != nullptr, "Theme init failed");
+
+    lv_obj_t* test_obj = lv_obj_create(lv_screen_active());
+    int32_t pad = get_widget_pad_all(test_obj);
+
+    // MEDIUM screen (>480, ≤800), PAD_DEF=16, scaled by DPI
+    int32_t expected = calc_expected_padding(187, 16);  // (187*16+80)/160 = 19
+    spdlog::info("DPI=187 (5\" screen): expected={}, actual={}", expected, pad);
+    TEST_ASSERT(pad == expected, "187 DPI should scale correctly");
+
+    lv_obj_delete(test_obj);
+    lv_display_delete(disp);
+    return true;
+}
+
+bool test_dpi_scaling_201_4_3inch() {
+    // 4.3" @ 720x480 (AD5M) ≈ 201 DPI
+    lv_display_t* disp = create_test_display_with_dpi(720, 480, 201);
+    TEST_ASSERT(disp != nullptr, "Failed to create display");
+
+    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE),
+                                                lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    TEST_ASSERT(theme != nullptr, "Theme init failed");
+
+    lv_obj_t* test_obj = lv_obj_create(lv_screen_active());
+    int32_t pad = get_widget_pad_all(test_obj);
+
+    // MEDIUM screen (>480, ≤800), PAD_DEF=16, scaled by DPI
+    int32_t expected = calc_expected_padding(201, 16);  // (201*16+80)/160 = 20
+    spdlog::info("DPI=201 (4.3\" screen): expected={}, actual={}", expected, pad);
+    TEST_ASSERT(pad == expected, "201 DPI should scale correctly");
+
+    lv_obj_delete(test_obj);
+    lv_display_delete(disp);
+    return true;
+}
+
+//==============================================================================
 // Main Test Runner
 //==============================================================================
 
@@ -379,6 +493,14 @@ int main(int, char**) {
     printf("Test Suite C: Theme Toggle\n");
     printf("--------------------------\n");
     RUN_TEST(test_theme_toggle_dark_light);
+    printf("\n");
+
+    printf("Test Suite D: DPI Scaling (Hardware Profiles)\n");
+    printf("----------------------------------------------\n");
+    RUN_TEST(test_dpi_scaling_160_reference);
+    RUN_TEST(test_dpi_scaling_170_7inch);
+    RUN_TEST(test_dpi_scaling_187_5inch);
+    RUN_TEST(test_dpi_scaling_201_4_3inch);
     printf("\n");
 
     // Summary

@@ -398,7 +398,7 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     }
 
     // Get progress bar widget for direct updates
-    progress_bar = lv_obj_find_by_name(panel, "progress_bar");
+    progress_bar = lv_obj_find_by_name(panel, "print_progress");
     if (progress_bar) {
         lv_bar_set_range(progress_bar, 0, 100);
         lv_bar_set_value(progress_bar, 0, LV_ANIM_OFF);
@@ -451,7 +451,7 @@ void ui_panel_print_status_set_speeds(int speed_pct, int flow_pct) {
 void ui_panel_print_status_set_state(print_state_t state) {
     current_state = state;
     update_all_displays();
-    spdlog::debug("[PrintStatus] State changed to: %d", state);
+    spdlog::debug("[PrintStatus] State changed to: %d", static_cast<int>(state));
 }
 
 // ============================================================================

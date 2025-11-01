@@ -71,8 +71,7 @@
 				<!-- Thumbnail image (fills entire card background) -->
 				<lv_image name="detail_thumbnail"
 				          src="A:assets/images/thumbnail-placeholder.png"
-				          bind_src="selected_thumbnail"
-				          width="100%"
+					          width="100%"
 				          height="100%"
 				          style_bg_opa="0"
 				          align="top_mid"

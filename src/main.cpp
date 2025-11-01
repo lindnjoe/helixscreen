@@ -111,7 +111,8 @@ static bool parse_command_line_args(int argc, char** argv,
                                     int& timeout_sec,
                                     int& verbosity,
                                     bool& dark_mode,
-                                    bool& theme_requested) {
+                                    bool& theme_requested,
+                                    int& dpi) {
     // Parse arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--size") == 0) {
@@ -239,6 +240,19 @@ static bool parse_command_line_args(int argc, char** argv,
                 printf("Error: -y/--y-pos requires a number argument\n");
                 return false;
             }
+        } else if (strcmp(argv[i], "--dpi") == 0) {
+            if (i + 1 < argc) {
+                char* endptr;
+                long val = strtol(argv[++i], &endptr, 10);
+                if (*endptr != '\0' || val < 50 || val > 500) {
+                    printf("Error: invalid DPI (must be 50-500): %s\n", argv[i]);
+                    return false;
+                }
+                dpi = (int)val;
+            } else {
+                printf("Error: --dpi requires a number argument\n");
+                return false;
+            }
         } else if (strcmp(argv[i], "--screenshot") == 0) {
             screenshot_enabled = true;
             // Check if next arg is a number (delay in seconds)
@@ -292,6 +306,7 @@ static bool parse_command_line_args(int argc, char** argv,
             printf("  -d, --display <n>    Display number for window placement (0, 1, 2...)\n");
             printf("  -x, --x-pos <n>      X coordinate for window position\n");
             printf("  -y, --y-pos <n>      Y coordinate for window position\n");
+            printf("  --dpi <n>            Display DPI (50-500, default: %d)\n", LV_DPI_DEF);
             printf("  --screenshot [sec]   Take screenshot after delay (default: 2 seconds)\n");
             printf("  -t, --timeout <sec>  Auto-quit after specified seconds (1-3600)\n");
             printf("  --dark               Use dark theme (default)\n");
@@ -720,6 +735,7 @@ int main(int argc, char** argv) {
     int verbosity = 0;  // Verbosity level (0=warn, 1=info, 2=debug, 3=trace)
     bool dark_mode = true;  // Theme mode (true=dark, false=light, default until loaded from config)
     bool theme_requested = false;  // Track if user explicitly set theme via CLI
+    int dpi = -1;  // Display DPI (-1 means use LV_DPI_DEF from lv_conf.h)
 
     // Parse command-line arguments (returns false for help/error)
     if (!parse_command_line_args(argc, argv, initial_panel, show_motion, show_nozzle_temp,
@@ -727,7 +743,7 @@ int main(int argc, char** argv) {
                                   show_keypad, show_step_test, show_test_panel, force_wizard,
                                   wizard_step, panel_requested, display_num, x_pos, y_pos,
                                   screenshot_enabled, screenshot_delay_sec, timeout_sec,
-                                  verbosity, dark_mode, theme_requested)) {
+                                  verbosity, dark_mode, theme_requested, dpi)) {
         return 0;  // Help shown or parse error
     }
 
@@ -747,12 +763,12 @@ int main(int argc, char** argv) {
             break;
     }
 
-    printf("HelixScreen UI Prototype\n");
-    printf("========================\n");
-    printf("Target: %dx%d\n", SCREEN_WIDTH, SCREEN_HEIGHT);
-    printf("Nav Width: %d pixels\n", UI_NAV_WIDTH(SCREEN_WIDTH));
-    printf("Initial Panel: %d\n", initial_panel);
-    printf("\n");
+    spdlog::info("HelixScreen UI Prototype");
+    spdlog::info("========================");
+    spdlog::info("Target: {}x{}", SCREEN_WIDTH, SCREEN_HEIGHT);
+    spdlog::info("DPI: {}{}", (dpi > 0 ? dpi : LV_DPI_DEF), (dpi > 0 ? " (custom)" : " (default)"));
+    spdlog::info("Nav Width: {} pixels", UI_NAV_WIDTH(SCREEN_WIDTH));
+    spdlog::info("Initial Panel: {}", initial_panel);
 
     // Initialize config system
     Config* config = Config::get_instance();
@@ -772,7 +788,7 @@ int main(int argc, char** argv) {
             spdlog::error("Failed to set HELIX_SDL_DISPLAY environment variable");
             return 1;
         }
-        printf("Window will be centered on display %d\n", display_num);
+        spdlog::info("Window will be centered on display {}", display_num);
     }
     if (x_pos >= 0 && y_pos >= 0) {
         char x_str[32], y_str[32];
@@ -782,14 +798,22 @@ int main(int argc, char** argv) {
             spdlog::error("Failed to set window position environment variables");
             return 1;
         }
-        printf("Window will be positioned at (%d, %d)\n", x_pos, y_pos);
+        spdlog::info("Window will be positioned at ({}, {})", x_pos, y_pos);
     } else if ((x_pos >= 0 && y_pos < 0) || (x_pos < 0 && y_pos >= 0)) {
-        printf("Warning: Both -x and -y must be specified for exact positioning. Ignoring.\n");
+        spdlog::warn("Both -x and -y must be specified for exact positioning. Ignoring.");
     }
 
     // Initialize LVGL (handles SDL internally)
     if (!init_lvgl()) {
         return 1;
+    }
+
+    // Apply custom DPI if specified (before theme init)
+    if (dpi > 0) {
+        lv_display_set_dpi(display, dpi);
+        spdlog::info("Display DPI set to: {}", dpi);
+    } else {
+        spdlog::info("Display DPI: {} (from LV_DPI_DEF)", lv_display_get_dpi(display));
     }
 
     // Show splash screen (DISABLED for faster dev iteration)

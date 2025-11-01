@@ -1,56 +1,37 @@
 # Session Handoff Document
 
 **Last Updated:** 2025-10-31
-**Current Focus:** LVGL theme breakpoint patch + comprehensive testing framework
+**Current Focus:** Build warnings eliminated. Next: Wizard screens.
 
 ---
 
 ## ✅ Recently Completed (Session 2025-10-31)
 
-**LVGL Theme Breakpoint Customization (IN PROGRESS)**
-- ✅ **LVGL theme patch created** - `patches/lvgl_theme_breakpoints.patch` (6 lines changed)
-  - Breakpoints: 320→480 (SMALL), 720→800 (MEDIUM), hardware-aligned
-  - Padding: PAD_DEF (12/16/20), PAD_SMALL (8/10/12), PAD_TINY (2/4/6)
-- ✅ **Build system modularization** - Created `mk/patches.mk` for upstream patch management
-  - Auto-applies both SDL window + theme breakpoints patches
-  - Separated from fonts.mk (cleaner organization)
-- ✅ **Comprehensive test suite** - `src/test_responsive_theme.cpp` (13 tests)
-  - Breakpoint classification tests (480x320, 800x480, 1024x600, 1280x720)
-  - Edge case tests (479, 480, 481, 800, 801 pixel boundaries)
-  - Portrait/landscape rotation tests
-  - Theme toggle preservation tests
-- ✅ **Font size increases** - Heading (20→24), Small (10→12) for better readability
-- ✅ **Breakpoint centralization** - UI_BREAKPOINT_SMALL_MAX (480), UI_BREAKPOINT_MEDIUM_MAX (800) in ui_theme.h
-
-**Current State:**
-- Patch applied and verified in LVGL source code
-- Tests reveal widgets getting padding=10 instead of expected padding=12 for SMALL screens
-- **Issue:** Either DPI scaling or style inheritance affecting base widget padding
-- **Next:** Debug why `lv_obj_create()` padding differs from PAD_DEF macro values
+**Warning Elimination + spdlog Upgrade ✅ COMPLETE**
+- ✅ **Fixed 6 LVGL XML warnings**
+  - `border_side="2"` → `"bottom"` (print_select_panel.xml:110)
+  - Removed invalid `bind_src` on images (2 files - incompatible STRING subject)
+  - Fixed time display: split into `print_elapsed` + `print_remaining` subjects (3 labels)
+  - Fixed percent subject: `print_percent` → `print_progress_text`
+  - Fixed progress bar lookup: `"progress_bar"` → `"print_progress"`
+- ✅ **Separated spdlog submodule** (independent from parent guppyscreen)
+  - Removed symlink to `../spdlog`
+  - Added as real submodule in prototype-ui9 directory
+  - Updated to `fmt-11.2.0` branch (fmt 9.0.1 → 11.2.0)
+- ✅ **Eliminated spdlog/fmt deprecation warnings**
+  - Fixed fmt 11 compatibility: enum casting in ui_panel_print_status.cpp:454
+  - Clean build with zero deprecation warnings
 
 **Files Modified:**
-- New: `patches/lvgl_theme_breakpoints.patch`, `mk/patches.mk`, `src/test_responsive_theme.cpp`
-- Modified: `mk/tests.mk`, `Makefile`, `lv_conf.h`, `main.cpp`, `globals.xml`
-- Updated: `ui_theme.h`, `ui_panel_test.cpp`, `ui_wizard.cpp`, `ui_wizard_wifi.cpp`, `ui_switch.cpp`
+- XML: `print_select_panel.xml`, `print_status_panel.xml`, `print_file_detail.xml`
+- C++: `ui_panel_print_status.cpp` (enum cast + widget name)
+- Git: `.gitmodules` (parent), `spdlog/` (symlink → submodule)
 
 ---
 
 ## 🎯 Active Work & Next Priorities
 
-1. **Debug Responsive Theme Test Failures** (IMMEDIATE)
-   - Widgets getting padding=10, not 12 (PAD_SMALL for MEDIUM, not PAD_DEF for SMALL)
-   - Investigate: DPI scaling via LV_DPX_CALC() macro
-   - Check: Which style property base widgets actually use (might not be pad_all)
-   - Test: Create buttons/cards vs base lv_obj to see if different widgets behave differently
-   - **Goal:** Understand LVGL's actual padding behavior, adjust tests or patch accordingly
-
-2. **Complete Responsive Theme Work** (After tests pass)
-   - Remove scattered `ui_theme_register_responsive_padding()` code (now redundant with patch)
-   - Simplify globals.xml padding constants (LVGL handles responsiveness now)
-   - Manual test all screen sizes (480x320, 800x480, 1024x600)
-   - Document patch system in BUILD_SYSTEM.md
-
-3. **Additional Wizard Screens** (Deferred)
+1. **Additional Wizard Screens** (Next)
    - Moonraker connection, printer identification, hardware selection, summary
 
 ---
