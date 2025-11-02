@@ -52,6 +52,10 @@ static bool subjects_initialized = false;
 static bool light_on = false;
 static network_type_t current_network = NETWORK_WIFI;
 
+// Theme-aware colors (loaded from component-local XML constants)
+static lv_color_t light_icon_on_color;
+static lv_color_t light_icon_off_color;
+
 // Tip of the day rotation
 static lv_timer_t* tip_rotation_timer = nullptr;
 static PrintingTip current_tip;  // Store full tip for dialog display
@@ -66,6 +70,37 @@ static void light_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 static void tip_rotation_timer_cb(lv_timer_t* timer);
 static void update_tip_of_day();
 
+/**
+ * @brief Initialize theme-aware colors from component scope
+ *
+ * Loads Home Panel light icon colors from home_panel.xml component-local constants.
+ * Supports light/dark mode with graceful fallback to defaults.
+ */
+static void init_home_panel_colors() {
+    lv_xml_component_scope_t* scope = lv_xml_component_get_scope("home_panel");
+    if (scope) {
+        bool use_dark_mode = ui_theme_is_dark_mode();
+
+        // Load light icon ON color
+        const char* on_str = lv_xml_get_const(scope, use_dark_mode ? "light_icon_on_dark" : "light_icon_on_light");
+        light_icon_on_color = on_str ? ui_theme_parse_color(on_str) : lv_color_hex(0xFFD700);
+
+        // Load light icon OFF color
+        const char* off_str = lv_xml_get_const(scope, use_dark_mode ? "light_icon_off_dark" : "light_icon_off_light");
+        light_icon_off_color = off_str ? ui_theme_parse_color(off_str) : lv_color_hex(0x909090);
+
+        spdlog::debug("[Home] Light icon colors loaded: on={}, off={} ({})",
+                     on_str ? on_str : "default",
+                     off_str ? off_str : "default",
+                     use_dark_mode ? "dark" : "light");
+    } else {
+        // Fallback to defaults if scope not found
+        light_icon_on_color = lv_color_hex(0xFFD700);
+        light_icon_off_color = lv_color_hex(0x909090);
+        spdlog::warn("[Home] Failed to get home_panel component scope, using defaults");
+    }
+}
+
 void ui_panel_home_init_subjects() {
     if (subjects_initialized) {
         spdlog::warn("Home panel subjects already initialized");
@@ -74,13 +109,16 @@ void ui_panel_home_init_subjects() {
 
     spdlog::debug("Initializing home panel subjects");
 
+    // Initialize theme-aware colors for light icon
+    init_home_panel_colors();
+
     // Initialize subjects with default values
     lv_subject_init_string(&status_subject, status_buffer, NULL, sizeof(status_buffer), "Welcome to HelixScreen");
     lv_subject_init_string(&temp_subject, temp_buffer, NULL, sizeof(temp_buffer), "30 °C");
     lv_subject_init_string(&network_icon_subject, network_icon_buffer, NULL, sizeof(network_icon_buffer), ICON_WIFI);
     lv_subject_init_string(&network_label_subject, network_label_buffer, NULL, sizeof(network_label_buffer), "Wi-Fi");
     lv_subject_init_string(&network_color_subject, network_color_buffer, NULL, sizeof(network_color_buffer), "0xff4444");
-    lv_subject_init_color(&light_icon_color_subject, lv_color_hex(0x909090));  // Muted gray for "off" state
+    lv_subject_init_color(&light_icon_color_subject, light_icon_off_color);  // Theme-aware "off" state color
 
     // Register subjects globally so XML can bind to them
     lv_xml_register_subject(NULL, "status_text", &status_subject);
@@ -271,11 +309,11 @@ void ui_panel_home_set_light(bool is_on) {
     light_on = is_on;
 
     if (is_on) {
-        // Light is on - show bright yellow/white
-        lv_subject_set_color(&light_icon_color_subject, lv_color_hex(0xFFD700));
+        // Light is on - show theme-aware ON color
+        lv_subject_set_color(&light_icon_color_subject, light_icon_on_color);
     } else {
-        // Light is off - show muted gray
-        lv_subject_set_color(&light_icon_color_subject, lv_color_hex(0x909090));
+        // Light is off - show theme-aware OFF color
+        lv_subject_set_color(&light_icon_color_subject, light_icon_off_color);
     }
     spdlog::debug("Updated light state to: {}", is_on ? "ON" : "OFF");
 }

@@ -18,6 +18,17 @@
   along with HelixScreen. If not, see <https://www.gnu.org/licenses/>.
 -->
 <component>
+	<!-- Component-local constants for theme-aware colors -->
+	<consts>
+		<!-- Light icon color when light is ON (bright yellow) -->
+		<const name="light_icon_on_light" value="#FFD700"/>
+		<const name="light_icon_on_dark" value="#FFD700"/>
+
+		<!-- Light icon color when light is OFF (muted gray) -->
+		<const name="light_icon_off_light" value="#707070"/>
+		<const name="light_icon_off_dark" value="#909090"/>
+	</consts>
+
 	<!-- Now references global constants from globals.xml -->
 	<view
 		extends="lv_obj"
