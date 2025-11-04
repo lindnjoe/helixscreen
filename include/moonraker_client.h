@@ -194,6 +194,14 @@ public:
   const std::vector<std::string>& get_leds() const { return leds_; }
 
   /**
+   * @brief Get printer hostname from printer.info
+   *
+   * Returns hostname discovered during printer discovery sequence.
+   * Empty string if discovery hasn't completed or printer.info unavailable.
+   */
+  const std::string& get_hostname() const { return hostname_; }
+
+  /**
    * @brief Get current connection state
    */
   ConnectionState get_connection_state() const { return connection_state_; }
@@ -276,6 +284,7 @@ protected:
   std::vector<std::string> sensors_;   // Read-only temperature sensors
   std::vector<std::string> fans_;      // All fan types
   std::vector<std::string> leds_;      // LED outputs
+  std::string hostname_;               // Printer hostname from printer.info
 
 private:
   // Pending requests keyed by request ID

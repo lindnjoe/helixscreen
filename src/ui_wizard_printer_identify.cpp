@@ -125,7 +125,7 @@ static PrinterDetectionHint detect_printer_type() {
     hardware.sensors = client->get_sensors();
     hardware.fans = client->get_fans();
     hardware.leds = client->get_leds();
-    hardware.hostname = "";  // TODO: Add hostname getter to MoonrakerClient
+    hardware.hostname = client->get_hostname();
 
     // Run detection engine
     PrinterDetectionResult result = PrinterDetector::detect(hardware);

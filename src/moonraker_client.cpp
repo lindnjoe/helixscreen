@@ -358,11 +358,11 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
       send_jsonrpc("printer.info", {}, [this, on_complete](json printer_response) {
         if (printer_response.contains("result")) {
           const json& result = printer_response["result"];
-          std::string hostname = result.value("hostname", "unknown");
+          hostname_ = result.value("hostname", "unknown");
           std::string software_version = result.value("software_version", "unknown");
           std::string state_message = result.value("state_message", "");
 
-          spdlog::info("Printer hostname: {}", hostname);
+          spdlog::info("Printer hostname: {}", hostname_);
           spdlog::info("Klipper software version: {}", software_version);
           if (!state_message.empty()) {
             spdlog::info("Printer state: {}", state_message);
