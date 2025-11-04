@@ -32,9 +32,9 @@ bool ui_set_window_icon(lv_display_t* disp) {
     }
 
     // Use embedded icon data from helix_icon_data.h
-    // 64x64 pixels, ARGB8888 format
-    lv_sdl_window_set_icon(disp, (void*)helix_icon_64x64, 64, 64);
+    // 128x128 pixels, ARGB8888 format
+    lv_sdl_window_set_icon(disp, (void*)helix_icon_128x128, 128, 128);
 
-    spdlog::debug("[Icon] Window icon set (64x64 embedded data)");
+    spdlog::debug("[Icon] Window icon set (128x128 embedded data)");
     return true;
 }

@@ -80,10 +80,10 @@ endif
 		-crop 700x580+162+100 +repage \
 		-gravity center -background none -extent 680x680 \
 		assets/images/helix-icon.png
-	$(ECHO) "$(CYAN)  [2/6] Generating 64x64 icon for window...$(RESET)"
-	$(Q)magick assets/images/helix-icon.png -resize 64x64 assets/images/helix-icon-64.png
+	$(ECHO) "$(CYAN)  [2/6] Generating 128x128 icon for window...$(RESET)"
+	$(Q)magick assets/images/helix-icon.png -resize 128x128 assets/images/helix-icon-128.png
 	$(ECHO) "$(CYAN)  [3/6] Generating C header file for embedded icon...$(RESET)"
-	$(Q)python3 scripts/generate_icon_header.py assets/images/helix-icon-64.png include/helix_icon_data.h
+	$(Q)python3 scripts/generate_icon_header.py assets/images/helix-icon-128.png include/helix_icon_data.h
 ifeq ($(UNAME_S),Darwin)
 	$(ECHO) "$(CYAN)  [4/6] Generating icon sizes (16px to 1024px)...$(RESET)"
 	$(Q)mkdir -p assets/images/icon.iconset
@@ -97,11 +97,11 @@ ifeq ($(UNAME_S),Darwin)
 	$(Q)iconutil -c icns assets/images/icon.iconset -o assets/images/helix-icon.icns
 	$(ECHO) "$(CYAN)  [6/6] Cleaning up temporary files...$(RESET)"
 	$(Q)rm -rf assets/images/icon.iconset
-	$(ECHO) "$(GREEN)✓ Icon generated: assets/images/helix-icon.icns + helix-icon-64.png + header$(RESET)"
-	@ls -lh assets/images/helix-icon.icns assets/images/helix-icon-64.png include/helix_icon_data.h | awk '{print "$(CYAN)  " $$9 ": " $$5 "$(RESET)"}'
+	$(ECHO) "$(GREEN)✓ Icon generated: assets/images/helix-icon.icns + helix-icon-128.png + header$(RESET)"
+	@ls -lh assets/images/helix-icon.icns assets/images/helix-icon-128.png include/helix_icon_data.h | awk '{print "$(CYAN)  " $$9 ": " $$5 "$(RESET)"}'
 else
 	$(ECHO) "$(CYAN)  [4/4] Icon generated (PNG format)...$(RESET)"
-	$(ECHO) "$(GREEN)✓ Icon generated: assets/images/helix-icon.png + helix-icon-64.png + header$(RESET)"
-	@ls -lh assets/images/helix-icon.png assets/images/helix-icon-64.png include/helix_icon_data.h | awk '{print "$(CYAN)  " $$9 ": " $$5 "$(RESET)"}'
+	$(ECHO) "$(GREEN)✓ Icon generated: assets/images/helix-icon.png + helix-icon-128.png + header$(RESET)"
+	@ls -lh assets/images/helix-icon.png assets/images/helix-icon-128.png include/helix_icon_data.h | awk '{print "$(CYAN)  " $$9 ": " $$5 "$(RESET)"}'
 	$(ECHO) "$(YELLOW)Note: .icns format requires macOS. PNG icons can be used for Linux apps.$(RESET)"
 endif

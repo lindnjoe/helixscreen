@@ -29,7 +29,7 @@ extern "C" {
 
 /**
  * Set the window icon for the LVGL SDL display.
- * Loads assets/images/helix-icon-64.png and applies it to the window.
+ * Loads assets/images/helix-icon-128.png and applies it to the window.
  *
  * @param disp  The LVGL display (from lv_sdl_window_create)
  * @return true if icon was loaded successfully, false otherwise

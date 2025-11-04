@@ -27,8 +27,8 @@ if result.returncode != 0:
 rgba_data = result.stdout
 pixel_count = len(rgba_data) // 4
 
-if pixel_count != 4096:
-    print(f"Error: Expected 4096 pixels (64x64), got {pixel_count}", file=sys.stderr)
+if pixel_count != 16384:
+    print(f"Error: Expected 16384 pixels (128x128), got {pixel_count}", file=sys.stderr)
     sys.exit(1)
 
 # Write header file
@@ -40,8 +40,8 @@ with open(output_h, 'w') as f:
     f.write(f"#ifndef HELIX_ICON_DATA_H\n")
     f.write(f"#define HELIX_ICON_DATA_H\n\n")
     f.write(f"#include <cstdint>\n\n")
-    f.write(f"// 64x64 pixels, ARGB8888 format ({pixel_count} pixels, {len(rgba_data)} bytes)\n")
-    f.write(f"static const uint32_t helix_icon_64x64[4096] = {{\n")
+    f.write(f"// 128x128 pixels, ARGB8888 format ({pixel_count} pixels, {len(rgba_data)} bytes)\n")
+    f.write(f"static const uint32_t helix_icon_128x128[16384] = {{\n")
 
     # Convert RGBA to ARGB8888 (SDL format) - 8 pixels per line
     for i in range(0, len(rgba_data), 32):
