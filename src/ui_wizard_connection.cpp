@@ -181,16 +181,6 @@ static void on_test_connection_clicked(lv_event_t* e) {
         return;
     }
 
-    // Update status to show testing
-    lv_subject_copy_string(&connection_status_icon, "");  // No icon while testing
-    lv_subject_copy_string(&connection_status_text, "Testing connection...");
-    lv_subject_set_int(&connection_testing, 1);  // Show spinner
-
-    // Build WebSocket URL
-    char ws_url[256];
-    snprintf(ws_url, sizeof(ws_url), "ws://%s:%s/websocket", ip, port_str);
-    spdlog::info("[Wizard Connection] Testing connection to: {}", ws_url);
-
     // Get MoonrakerClient instance
     MoonrakerClient* client = get_moonraker_client();
     if (!client) {
@@ -208,11 +198,37 @@ static void on_test_connection_clicked(lv_event_t* e) {
     saved_ip = ip;
     saved_port = port_str;
 
+    // Set UI to testing state
+    lv_subject_set_int(&connection_testing, 1);  // Disable button during test
+    // Use question mark icon during testing (no spinner icon defined)
+    const char* testing_icon = lv_xml_get_const(nullptr, "icon_question_circle");
+    lv_subject_copy_string(&connection_status_icon, testing_icon ? testing_icon : "");
+    lv_subject_copy_string(&connection_status_text, "Testing connection...");
+
+    spdlog::debug("[Wizard Connection] Starting connection test to {}:{}", ip, port_str);
+
+    // Disable automatic reconnection for wizard testing - we want manual control
+    // (MoonrakerClient enables auto-reconnect by default, which interferes with retries)
+    client->setReconnect(nullptr);
+
     // Set shorter timeout for wizard testing (5 seconds)
     client->set_connection_timeout(5000);
 
+    // Construct WebSocket URL
+    std::string ws_url = "ws://" + std::string(ip) + ":" + std::string(port_str) + "/websocket";
+
+    // Connection states explained:
+    // - CONNECTING (1): TCP connection attempt in progress
+    // - CONNECTED (2): TCP WebSocket connection succeeded (socket is open)
+    // - DISCONNECTED (0): Connection closed or failed
+    //
+    // IMPORTANT: CONNECTED state means the TCP socket opened successfully, NOT that
+    // the Moonraker application handshake succeeded. If there's no printer at the
+    // address, the socket will connect (state=2) but then immediately fail when
+    // trying the Moonraker protocol handshake, triggering on_disconnected callback.
+    //
     // Attempt connection
-    int result = client->connect(ws_url,
+    int result = client->connect(ws_url.c_str(),
         // On connected callback
         []() {
             spdlog::info("[Wizard Connection] Connection successful!");
@@ -425,7 +441,7 @@ void ui_wizard_connection_cleanup() {
     if (lv_subject_get_int(&connection_testing) == 1) {
         MoonrakerClient* client = get_moonraker_client();
         if (client) {
-            client->close();
+            client->disconnect();
         }
         lv_subject_set_int(&connection_testing, 0);
     }
