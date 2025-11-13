@@ -199,7 +199,7 @@ WiFiError WifiBackendMacOS::trigger_scan() {
     return WiFiErrorHelper::success();
 }
 
-void WifiBackendMacOS::scan_timer_callback(lv_timer_t* timer) {
+void WifiBackendMacOS::scan_timer_callback([[maybe_unused]] lv_timer_t* timer) {
     scan_timer_ = nullptr; // Timer will be auto-deleted
 
     @autoreleasepool {
@@ -315,7 +315,7 @@ WiFiError WifiBackendMacOS::connect_network(const std::string& ssid, const std::
     return WiFiErrorHelper::success();
 }
 
-void WifiBackendMacOS::connect_timer_callback(lv_timer_t* timer) {
+void WifiBackendMacOS::connect_timer_callback([[maybe_unused]] lv_timer_t* timer) {
     connect_timer_ = nullptr; // Timer will be auto-deleted
 
     @autoreleasepool {

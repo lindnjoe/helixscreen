@@ -36,7 +36,7 @@ MoonrakerClientMock::MoonrakerClientMock(PrinterType type) : printer_type_(type)
 }
 
 int MoonrakerClientMock::connect(const char* url, std::function<void()> on_connected,
-                                 std::function<void()> on_disconnected) {
+                                 [[maybe_unused]] std::function<void()> on_disconnected) {
     spdlog::info("[MoonrakerClientMock] Simulating connection to: {}", url ? url : "(null)");
 
     // Immediately invoke connection callback (no async delay in mock)
@@ -178,22 +178,25 @@ int MoonrakerClientMock::send_jsonrpc(const std::string& method) {
     return 0; // Success
 }
 
-int MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params) {
+int MoonrakerClientMock::send_jsonrpc(const std::string& method,
+                                      [[maybe_unused]] const json& params) {
     spdlog::debug("[MoonrakerClientMock] Mock send_jsonrpc: {} (with params)", method);
     return 0; // Success
 }
 
-int MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params,
-                                      std::function<void(json)> cb) {
+int MoonrakerClientMock::send_jsonrpc(const std::string& method,
+                                      [[maybe_unused]] const json& params,
+                                      [[maybe_unused]] std::function<void(json)> cb) {
     spdlog::debug("[MoonrakerClientMock] Mock send_jsonrpc: {} (with callback)", method);
     // Note: callback is not invoked in mock
     return 0; // Success
 }
 
-int MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params,
-                                      std::function<void(json)> success_cb,
-                                      std::function<void(const MoonrakerError&)> error_cb,
-                                      uint32_t timeout_ms) {
+int MoonrakerClientMock::send_jsonrpc(
+    const std::string& method, [[maybe_unused]] const json& params,
+    [[maybe_unused]] std::function<void(json)> success_cb,
+    [[maybe_unused]] std::function<void(const MoonrakerError&)> error_cb,
+    [[maybe_unused]] uint32_t timeout_ms) {
     spdlog::debug("[MoonrakerClientMock] Mock send_jsonrpc: {} (with success/error callbacks)",
                   method);
     // Note: callbacks are not invoked in mock
