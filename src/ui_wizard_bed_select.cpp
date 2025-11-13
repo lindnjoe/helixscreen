@@ -23,6 +23,8 @@
 
 #include "ui_wizard_bed_select.h"
 #include "ui_wizard.h"
+#include "ui_wizard_helpers.h"
+#include "wizard_config_paths.h"
 #include "app_globals.h"
 #include "config.h"
 #include "moonraker_client.h"
@@ -63,11 +65,8 @@ void ui_wizard_bed_select_init_subjects() {
 
     // Initialize subjects with default index 0
     // Actual selection will be restored from config during create() after hardware is discovered
-    lv_subject_init_int(&bed_heater_selected, 0);
-    lv_xml_register_subject(nullptr, "bed_heater_selected", &bed_heater_selected);
-
-    lv_subject_init_int(&bed_sensor_selected, 0);
-    lv_xml_register_subject(nullptr, "bed_sensor_selected", &bed_sensor_selected);
+    WizardHelpers::init_int_subject(&bed_heater_selected, 0, "bed_heater_selected");
+    WizardHelpers::init_int_subject(&bed_sensor_selected, 0, "bed_sensor_selected");
 
     spdlog::info("[Wizard Bed] Subjects initialized");
 }
@@ -132,85 +131,58 @@ lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
 
     // Build bed heater options from discovered hardware
     bed_heater_items.clear();
-    std::string heater_options_str;
-
     if (client) {
         const auto& heaters = client->get_heaters();
         for (const auto& heater : heaters) {
             // Filter for bed-related heaters
             if (heater.find("bed") != std::string::npos) {
                 bed_heater_items.push_back(heater);
-                if (!heater_options_str.empty()) heater_options_str += "\n";
-                heater_options_str += heater;
             }
         }
     }
 
-    // Always add "None" option
+    // Build dropdown options string with "None" option
+    std::string heater_options_str = WizardHelpers::build_dropdown_options(
+        bed_heater_items,
+        nullptr,  // No additional filter needed (already filtered above)
+        true      // Include "None" option
+    );
+
+    // Add "None" to items vector to match dropdown
     bed_heater_items.push_back("None");
-    if (!heater_options_str.empty()) heater_options_str += "\n";
-    heater_options_str += "None";
 
     // Build bed sensor options from discovered hardware
     bed_sensor_items.clear();
-    std::string sensor_options_str;
-
     if (client) {
-        const auto& sensors = client->get_sensors();
         // For bed sensors, include all sensors (user can choose chamber, bed, etc.)
-        for (const auto& sensor : sensors) {
-            bed_sensor_items.push_back(sensor);
-            if (!sensor_options_str.empty()) sensor_options_str += "\n";
-            sensor_options_str += sensor;
-        }
+        bed_sensor_items = client->get_sensors();
     }
 
-    // Always add "None" option
-    bed_sensor_items.push_back("None");
-    if (!sensor_options_str.empty()) sensor_options_str += "\n";
-    sensor_options_str += "None";
+    // Build dropdown options string with "None" option
+    std::string sensor_options_str = WizardHelpers::build_dropdown_options(
+        bed_sensor_items,
+        nullptr,  // No filter - include all sensors
+        true      // Include "None" option
+    );
 
-    // Get config for restoring saved selections
-    Config* config = Config::get_instance();
+    // Add "None" to items vector to match dropdown
+    bed_sensor_items.push_back("None");
 
     // Find and configure heater dropdown
     lv_obj_t* heater_dropdown = lv_obj_find_by_name(bed_select_screen_root, "bed_heater_dropdown");
     if (heater_dropdown) {
         lv_dropdown_set_options(heater_dropdown, heater_options_str.c_str());
 
-        // Restore saved selection OR use guessing as fallback
-        int selected_index = 0;  // Default to first option
-        if (config) {
-            std::string saved_heater = config->get<std::string>("/printer/bed_heater", "");
-            if (!saved_heater.empty()) {
-                // Search for saved name in discovered hardware
-                for (size_t i = 0; i < bed_heater_items.size(); i++) {
-                    if (bed_heater_items[i] == saved_heater) {
-                        selected_index = i;
-                        spdlog::debug("[Wizard Bed] Restored heater selection: {}", saved_heater);
-                        break;
-                    }
-                }
-            } else if (client) {
-                // No saved config, use guessing method
-                std::string guessed = client->guess_bed_heater();
-                if (!guessed.empty()) {
-                    // Search for guessed name in dropdown items
-                    for (size_t i = 0; i < bed_heater_items.size(); i++) {
-                        if (bed_heater_items[i] == guessed) {
-                            selected_index = i;
-                            spdlog::info("[Wizard Bed] Auto-selected bed heater: {}", guessed);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        lv_dropdown_set_selected(heater_dropdown, selected_index);
-        lv_subject_set_int(&bed_heater_selected, selected_index);
-        spdlog::debug("[Wizard Bed] Configured heater dropdown with {} options, selected index: {}",
-                     bed_heater_items.size(), selected_index);
+        // Restore saved selection with guessing fallback
+        WizardHelpers::restore_dropdown_selection(
+            heater_dropdown,
+            &bed_heater_selected,
+            bed_heater_items,
+            WizardConfigPaths::BED_HEATER,
+            client,
+            [](MoonrakerClient* c) { return c->guess_bed_heater(); },
+            "[Wizard Bed]"
+        );
     }
 
     // Find and configure sensor dropdown
@@ -218,39 +190,16 @@ lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
     if (sensor_dropdown) {
         lv_dropdown_set_options(sensor_dropdown, sensor_options_str.c_str());
 
-        // Restore saved selection OR use guessing as fallback
-        int selected_index = 0;  // Default to first option
-        if (config) {
-            std::string saved_sensor = config->get<std::string>("/printer/bed_sensor", "");
-            if (!saved_sensor.empty()) {
-                // Search for saved name in discovered hardware
-                for (size_t i = 0; i < bed_sensor_items.size(); i++) {
-                    if (bed_sensor_items[i] == saved_sensor) {
-                        selected_index = i;
-                        spdlog::debug("[Wizard Bed] Restored sensor selection: {}", saved_sensor);
-                        break;
-                    }
-                }
-            } else if (client) {
-                // No saved config, use guessing method
-                std::string guessed = client->guess_bed_sensor();
-                if (!guessed.empty()) {
-                    // Search for guessed name in dropdown items
-                    for (size_t i = 0; i < bed_sensor_items.size(); i++) {
-                        if (bed_sensor_items[i] == guessed) {
-                            selected_index = i;
-                            spdlog::info("[Wizard Bed] Auto-selected bed sensor: {}", guessed);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        lv_dropdown_set_selected(sensor_dropdown, selected_index);
-        lv_subject_set_int(&bed_sensor_selected, selected_index);
-        spdlog::debug("[Wizard Bed] Configured sensor dropdown with {} options, selected index: {}",
-                     bed_sensor_items.size(), selected_index);
+        // Restore saved selection with guessing fallback
+        WizardHelpers::restore_dropdown_selection(
+            sensor_dropdown,
+            &bed_sensor_selected,
+            bed_sensor_items,
+            WizardConfigPaths::BED_SENSOR,
+            client,
+            [](MoonrakerClient* c) { return c->guess_bed_sensor(); },
+            "[Wizard Bed]"
+        );
     }
 
     spdlog::info("[Wizard Bed] Screen created successfully");
@@ -265,25 +214,23 @@ void ui_wizard_bed_select_cleanup() {
     spdlog::debug("[Wizard Bed] Cleaning up resources");
 
     // Save current selections to config before cleanup (deferred save pattern)
+    WizardHelpers::save_dropdown_selection(
+        &bed_heater_selected,
+        bed_heater_items,
+        WizardConfigPaths::BED_HEATER,
+        "[Wizard Bed]"
+    );
+
+    WizardHelpers::save_dropdown_selection(
+        &bed_sensor_selected,
+        bed_sensor_items,
+        WizardConfigPaths::BED_SENSOR,
+        "[Wizard Bed]"
+    );
+
+    // Persist to disk
     Config* config = Config::get_instance();
     if (config) {
-        // Get heater selection index and save NAME (not index)
-        int heater_index = lv_subject_get_int(&bed_heater_selected);
-        if (heater_index >= 0 && heater_index < static_cast<int>(bed_heater_items.size())) {
-            const std::string& heater_name = bed_heater_items[heater_index];
-            config->set("/printer/bed_heater", heater_name);
-            spdlog::info("[Wizard Bed] Saved bed heater: {}", heater_name);
-        }
-
-        // Get sensor selection index and save NAME (not index)
-        int sensor_index = lv_subject_get_int(&bed_sensor_selected);
-        if (sensor_index >= 0 && sensor_index < static_cast<int>(bed_sensor_items.size())) {
-            const std::string& sensor_name = bed_sensor_items[sensor_index];
-            config->set("/printer/bed_sensor", sensor_name);
-            spdlog::info("[Wizard Bed] Saved bed sensor: {}", sensor_name);
-        }
-
-        // Persist to disk
         config->save();
     }
 

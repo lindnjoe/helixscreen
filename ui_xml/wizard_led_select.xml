@@ -33,7 +33,7 @@
 	      name="wizard_led_select_root">
 
 		<!-- Help text -->
-		<text_heading text="Choose your main LED strip (skip if you don't have LEDs)"
+		<text_body text="Choose your main LED strip (skip if you don't have LEDs)"
 		              width="100%"
 		              style_pad_bottom="#gap_small"/>
 
@@ -48,15 +48,13 @@
 		         style_flex_main_place="start" style_flex_cross_place="start">
 
 			<!-- LED selection -->
-			<text_heading text="Main LED Strip"
+			<text_body text="Main LED Strip"
 			              style_pad_bottom="#gap_small"/>
 
 			<lv_dropdown name="led_main_dropdown"
 			             options="(None)"
 			             width="100%"
 			             height="#header_height"
-			            			             style_text_color="#text_primary"
-			             style_text_font="montserrat_20"
 			             style_border_width="#input_border_width"
 			            			             style_border_opa="100%"
 			             style_radius="#border_radius"

@@ -23,6 +23,8 @@
 
 #include "ui_wizard_fan_select.h"
 #include "ui_wizard.h"
+#include "ui_wizard_helpers.h"
+#include "wizard_config_paths.h"
 #include "app_globals.h"
 #include "config.h"
 #include "moonraker_client.h"
@@ -61,35 +63,12 @@ static void on_part_fan_changed(lv_event_t* e);
 void ui_wizard_fan_select_init_subjects() {
     spdlog::debug("[Wizard Fan] Initializing subjects");
 
-    // Load existing values from config if available
-    Config* config = Config::get_instance();
+    // Initialize subjects with default index 0
+    // Actual selection will be restored from config during create() after hardware is discovered
+    WizardHelpers::init_int_subject(&hotend_fan_selected, 0, "hotend_fan_selected");
+    WizardHelpers::init_int_subject(&part_fan_selected, 0, "part_fan_selected");
 
-    // Initialize hotend fan selection (default to first option)
-    int32_t hotend_index = 0;
-    if (config) {
-        std::string fan = config->get<std::string>("/printer/hotend_fan", "heater_fan hotend_fan");
-        if (fan == "None" || fan.empty()) {
-            hotend_index = 1;  // "None" option
-        }
-    }
-    lv_subject_init_int(&hotend_fan_selected, hotend_index);
-    lv_xml_register_subject(nullptr, "hotend_fan_selected", &hotend_fan_selected);
-
-    // Initialize part fan selection (default to first option)
-    int32_t part_index = 0;
-    if (config) {
-        std::string fan = config->get<std::string>("/printer/part_fan", "fan");
-        if (fan == "fan_generic part_fan") {
-            part_index = 1;
-        } else if (fan == "None" || fan.empty()) {
-            part_index = 2;  // "None" option
-        }
-    }
-    lv_subject_init_int(&part_fan_selected, part_index);
-    lv_xml_register_subject(nullptr, "part_fan_selected", &part_fan_selected);
-
-    spdlog::info("[Wizard Fan] Subjects initialized - hotend: {}, part: {}",
-                 hotend_index, part_index);
+    spdlog::info("[Wizard Fan] Subjects initialized");
 }
 
 // ============================================================================
@@ -152,8 +131,6 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
 
     // Build hotend fan options from discovered hardware
     hotend_fan_items.clear();
-    std::string hotend_options_str;
-
     if (client) {
         const auto& fans = client->get_fans();
         for (const auto& fan : fans) {
@@ -161,21 +138,22 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
             if (fan.find("heater_fan") != std::string::npos ||
                 fan.find("hotend_fan") != std::string::npos) {
                 hotend_fan_items.push_back(fan);
-                if (!hotend_options_str.empty()) hotend_options_str += "\n";
-                hotend_options_str += fan;
             }
         }
     }
 
-    // Always add "None" option
+    // Build dropdown options string with "None" option
+    std::string hotend_options_str = WizardHelpers::build_dropdown_options(
+        hotend_fan_items,
+        nullptr,  // No additional filter needed (already filtered above)
+        true      // Include "None" option
+    );
+
+    // Add "None" to items vector to match dropdown
     hotend_fan_items.push_back("None");
-    if (!hotend_options_str.empty()) hotend_options_str += "\n";
-    hotend_options_str += "None";
 
     // Build part cooling fan options from discovered hardware
     part_fan_items.clear();
-    std::string part_options_str;
-
     if (client) {
         const auto& fans = client->get_fans();
         for (const auto& fan : fans) {
@@ -184,41 +162,52 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
                 fan.find("heater_fan") == std::string::npos &&
                 fan.find("hotend_fan") == std::string::npos) {
                 part_fan_items.push_back(fan);
-                if (!part_options_str.empty()) part_options_str += "\n";
-                part_options_str += fan;
             }
         }
     }
 
-    // Always add "None" option
+    // Build dropdown options string with "None" option
+    std::string part_options_str = WizardHelpers::build_dropdown_options(
+        part_fan_items,
+        nullptr,  // No additional filter needed (already filtered above)
+        true      // Include "None" option
+    );
+
+    // Add "None" to items vector to match dropdown
     part_fan_items.push_back("None");
-    if (!part_options_str.empty()) part_options_str += "\n";
-    part_options_str += "None";
 
     // Find and configure hotend fan dropdown
     lv_obj_t* hotend_dropdown = lv_obj_find_by_name(fan_select_screen_root, "hotend_fan_dropdown");
     if (hotend_dropdown) {
         lv_dropdown_set_options(hotend_dropdown, hotend_options_str.c_str());
-        int index = lv_subject_get_int(&hotend_fan_selected);
-        if (index >= static_cast<int>(hotend_fan_items.size())) {
-            index = 0;  // Reset to first option if out of range
-        }
-        lv_dropdown_set_selected(hotend_dropdown, index);
-        spdlog::debug("[Wizard Fan] Configured hotend fan dropdown with {} options, selected: {}",
-                     hotend_fan_items.size(), index);
+
+        // Restore saved selection (fan screen has no guessing methods)
+        WizardHelpers::restore_dropdown_selection(
+            hotend_dropdown,
+            &hotend_fan_selected,
+            hotend_fan_items,
+            WizardConfigPaths::HOTEND_FAN,
+            client,
+            nullptr,  // No guessing method for hotend fans
+            "[Wizard Fan]"
+        );
     }
 
     // Find and configure part fan dropdown
     lv_obj_t* part_dropdown = lv_obj_find_by_name(fan_select_screen_root, "part_cooling_fan_dropdown");
     if (part_dropdown) {
         lv_dropdown_set_options(part_dropdown, part_options_str.c_str());
-        int index = lv_subject_get_int(&part_fan_selected);
-        if (index >= static_cast<int>(part_fan_items.size())) {
-            index = 0;  // Reset to first option if out of range
-        }
-        lv_dropdown_set_selected(part_dropdown, index);
-        spdlog::debug("[Wizard Fan] Configured part fan dropdown with {} options, selected: {}",
-                     part_fan_items.size(), index);
+
+        // Restore saved selection (fan screen has no guessing methods)
+        WizardHelpers::restore_dropdown_selection(
+            part_dropdown,
+            &part_fan_selected,
+            part_fan_items,
+            WizardConfigPaths::PART_FAN,
+            client,
+            nullptr,  // No guessing method for part fans
+            "[Wizard Fan]"
+        );
     }
 
     spdlog::info("[Wizard Fan] Screen created successfully");
@@ -233,25 +222,23 @@ void ui_wizard_fan_select_cleanup() {
     spdlog::debug("[Wizard Fan] Cleaning up resources");
 
     // Save current selections to config before cleanup (deferred save pattern)
+    WizardHelpers::save_dropdown_selection(
+        &hotend_fan_selected,
+        hotend_fan_items,
+        WizardConfigPaths::HOTEND_FAN,
+        "[Wizard Fan]"
+    );
+
+    WizardHelpers::save_dropdown_selection(
+        &part_fan_selected,
+        part_fan_items,
+        WizardConfigPaths::PART_FAN,
+        "[Wizard Fan]"
+    );
+
+    // Persist to disk
     Config* config = Config::get_instance();
     if (config) {
-        // Get hotend fan selection index and save NAME (not index)
-        int hotend_index = lv_subject_get_int(&hotend_fan_selected);
-        if (hotend_index >= 0 && hotend_index < static_cast<int>(hotend_fan_items.size())) {
-            const std::string& hotend_fan_name = hotend_fan_items[hotend_index];
-            config->set("/printer/hotend_fan", hotend_fan_name);
-            spdlog::info("[Wizard Fan] Saved hotend fan: {}", hotend_fan_name);
-        }
-
-        // Get part fan selection index and save NAME (not index)
-        int part_index = lv_subject_get_int(&part_fan_selected);
-        if (part_index >= 0 && part_index < static_cast<int>(part_fan_items.size())) {
-            const std::string& part_fan_name = part_fan_items[part_index];
-            config->set("/printer/part_fan", part_fan_name);
-            spdlog::info("[Wizard Fan] Saved part cooling fan: {}", part_fan_name);
-        }
-
-        // Persist to disk
         config->save();
     }
 

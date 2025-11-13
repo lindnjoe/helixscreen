@@ -33,7 +33,7 @@
 	      name="wizard_hotend_select_root">
 
 		<!-- Help text -->
-		<text_heading text="Choose which heater controls your nozzle"
+		<text_body text="Choose which heater controls your nozzle"
 		              width="100%"
 		              style_pad_bottom="#gap_small"/>
 
@@ -41,29 +41,27 @@
 		<ui_card width="100%"
 		         flex_grow="1"
 		         style_bg_opa="255"
-		         style_radius="12"
+		         style_radius="#border_radius"
 		         style_pad_all="#padding_normal"
 		         style_pad_gap="#gap_normal"
 		         flex_flow="column"
 		         style_flex_main_place="start" style_flex_cross_place="start">
 
 			<!-- Heater selection -->
-			<text_heading text="Hotend Heater"
+			<text_body text="Hotend Heater"
 			              style_pad_bottom="#gap_small"/>
 
 			<lv_dropdown name="hotend_heater_dropdown"
 			             options="extruder"
 			             width="100%"
 			             height="#header_height"
-			            			             style_text_color="#text_primary"
-			             style_text_font="montserrat_20"
 			             style_border_width="#input_border_width"
 			            			             style_border_opa="100%"
 			             style_radius="#border_radius"
 			             style_pad_all="#padding_card"/>
 
 			<!-- Sensor selection -->
-			<text_heading text="Hotend Temperature Sensor"
+			<text_body text="Hotend Temperature Sensor"
 			              style_pad_top="#gap_normal"
 			              style_pad_bottom="#gap_small"/>
 
@@ -71,8 +69,6 @@
 			             options="extruder"
 			             width="100%"
 			             height="#header_height"
-			            			             style_text_color="#text_primary"
-			             style_text_font="montserrat_20"
 			             style_border_width="#input_border_width"
 			            			             style_border_opa="100%"
 			             style_radius="#border_radius"
