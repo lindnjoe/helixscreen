@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (C) 2025 HelixScreen Contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  G-Code Viewer Test Panel
+
+  Test/demonstration panel for the 3D G-code visualization widget.
+  Accessible via: ./build/bin/helix-ui-proto -p gcode-test
+
+  Features demonstrated:
+  - Basic gcode_viewer widget usage
+  - Full-screen 3D visualization
+  - Touch gesture controls (drag to rotate)
+  - Camera control buttons
+  - View preset buttons
+-->
+<component>
+  <view extends="lv_obj" width="100%" height="100%" style_pad_all="0" style_border_width="0" flex_flow="column">
+
+    <!-- Header with title and controls -->
+    <ui_card width="100%" height="80" flex_flow="row" style_pad_all="16" style_pad_gap="16" style_flex_main_place="space_between" style_flex_cross_place="center">
+      <lv_label text="G-Code 3D Viewer Test" style_text_font="#heading_font" style_text_color="#text_primary"/>
+
+      <!-- View preset buttons -->
+      <lv_obj flex_flow="row" style_pad_gap="8" width="LV_SIZE_CONTENT" height="LV_SIZE_CONTENT" style_bg_opa="0" style_border_width="0" style_pad_all="0">
+        <lv_button name="btn_isometric" width="60" height="40">
+          <lv_label text="Iso" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_view_preset_clicked"/>
+        </lv_button>
+        <lv_button name="btn_top" width="60" height="40">
+          <lv_label text="Top" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_view_preset_clicked"/>
+        </lv_button>
+        <lv_button name="btn_front" width="60" height="40">
+          <lv_label text="Front" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_view_preset_clicked"/>
+        </lv_button>
+        <lv_button name="btn_side" width="60" height="40">
+          <lv_label text="Side" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_view_preset_clicked"/>
+        </lv_button>
+        <lv_button name="btn_reset" width="60" height="40">
+          <lv_label text="Reset" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_view_preset_clicked"/>
+        </lv_button>
+      </lv_obj>
+    </ui_card>
+
+    <!-- G-Code Viewer Widget (fills remaining space) -->
+    <gcode_viewer
+      name="gcode_viewer"
+      width="100%"
+      flex_grow="1"
+      style_bg_color="#card_bg"
+      style_bg_opa="255"
+    />
+
+    <!-- Footer with stats and controls -->
+    <ui_card width="100%" height="60" flex_flow="row" style_pad_all="12" style_pad_gap="16" style_flex_main_place="space_between" style_flex_cross_place="center">
+      <lv_label name="stats_label" text="No file loaded" style_text_font="#body_font" style_text_color="#text_secondary"/>
+
+      <lv_obj flex_flow="row" style_pad_gap="8" width="LV_SIZE_CONTENT" height="LV_SIZE_CONTENT" style_bg_opa="0" style_border_width="0" style_pad_all="0">
+        <lv_button name="btn_load_test" width="120" height="40">
+          <lv_label text="Load Test File" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_load_test_file"/>
+        </lv_button>
+        <lv_button name="btn_clear" width="80" height="40">
+          <lv_label text="Clear" style_text_font="#body_font"/>
+          <event_cb trigger="clicked" callback="on_clear"/>
+        </lv_button>
+      </lv_obj>
+    </ui_card>
+  </view>
+</component>

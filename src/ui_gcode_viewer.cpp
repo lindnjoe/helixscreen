@@ -441,3 +441,58 @@ int ui_gcode_viewer_get_segments_rendered(lv_obj_t* obj) {
 
     return static_cast<int>(st->renderer->get_segments_rendered());
 }
+
+// ==============================================
+// LVGL XML Component Registration
+// ==============================================
+
+/**
+ * @brief XML create handler for gcode_viewer widget
+ */
+static void* gcode_viewer_xml_create(lv_xml_parser_state_t* state, const char** attrs) {
+    void* parent = lv_xml_state_get_parent(state);
+    if (!parent) {
+        spdlog::error("[GCodeViewer] XML create: no parent object");
+        return nullptr;
+    }
+
+    lv_obj_t* obj = ui_gcode_viewer_create((lv_obj_t*)parent);
+    if (!obj) {
+        spdlog::error("[GCodeViewer] XML create: failed to create widget");
+        return nullptr;
+    }
+
+    spdlog::trace("[GCodeViewer] XML created widget");
+    return (void*)obj;
+}
+
+/**
+ * @brief XML apply handler for gcode_viewer widget
+ * Applies XML attributes to the widget
+ */
+static void gcode_viewer_xml_apply(lv_xml_parser_state_t* state, const char** attrs) {
+    void* item = lv_xml_state_get_item(state);
+    lv_obj_t* obj = (lv_obj_t*)item;
+
+    if (!obj) {
+        spdlog::error("[GCodeViewer] XML apply: NULL object");
+        return;
+    }
+
+    // Apply standard lv_obj properties from XML
+    // This handles width, height, align, style_* attributes, etc.
+    lv_xml_obj_apply(state, attrs);
+
+    spdlog::trace("[GCodeViewer] XML applied attributes");
+}
+
+/**
+ * @brief Register gcode_viewer widget with LVGL XML system
+ *
+ * Call this during application initialization before loading any XML.
+ * Typically called from main() or ui_init().
+ */
+extern "C" void ui_gcode_viewer_register(void) {
+    lv_xml_register_widget("gcode_viewer", gcode_viewer_xml_create, gcode_viewer_xml_apply);
+    spdlog::info("[GCodeViewer] Registered <gcode_viewer> widget with LVGL XML system");
+}

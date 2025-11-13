@@ -1,0 +1,180 @@
+; HelixScreen G-Code Viewer Test File
+; Simple 3D object for visualization testing
+; Created: 2025-11-13
+;
+; Object: Calibration cube with inner void (20mm x 20mm x 20mm)
+; Layer height: 0.2mm
+; Layers: 100
+; Purpose: Test 3D visualization, layer detection, travel vs extrusion rendering
+
+; Printer settings
+G21 ; millimeter units
+G90 ; absolute positioning
+M82 ; absolute extrusion mode
+
+; Start sequence
+G28 ; home all axes
+G1 Z0.2 F7800 ; move to first layer height
+
+; Define object metadata for Klipper exclusion
+EXCLUDE_OBJECT_DEFINE NAME=test_cube CENTER=50,50 POLYGON=[[40,40],[60,40],[60,60],[40,60]]
+
+EXCLUDE_OBJECT_START NAME=test_cube
+
+; Layer 1 (Z=0.2) - Outer perimeter
+G1 X40 Y40 F7800 ; travel move to start
+G1 X40 Y40 E0.5 F1800 ; start extrusion
+G1 X60 Y40 E1.5 ; front edge
+G1 X60 Y60 E2.5 ; right edge
+G1 X40 Y60 E3.5 ; back edge
+G1 X40 Y40 E4.5 ; left edge (complete square)
+
+; Inner void perimeter
+G1 X45 Y45 F7800 ; travel to inner square start
+G1 X45 Y45 E5.0 ; start inner perimeter
+G1 X55 Y45 E5.8
+G1 X55 Y55 E6.6
+G1 X45 Y55 E7.4
+G1 X45 Y45 E8.2
+
+; Layer 2 (Z=0.4)
+G1 Z0.4 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E9.0
+G1 X60 Y40 E10.0
+G1 X60 Y60 E11.0
+G1 X40 Y60 E12.0
+G1 X40 Y40 E13.0
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E13.5
+G1 X55 Y45 E14.3
+G1 X55 Y55 E15.1
+G1 X45 Y55 E15.9
+G1 X45 Y45 E16.7
+
+; Layer 3 (Z=0.6)
+G1 Z0.6 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E17.5
+G1 X60 Y40 E18.5
+G1 X60 Y60 E19.5
+G1 X40 Y60 E20.5
+G1 X40 Y40 E21.5
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E22.0
+G1 X55 Y45 E22.8
+G1 X55 Y55 E23.6
+G1 X45 Y55 E24.4
+G1 X45 Y45 E25.2
+
+; Layer 4 (Z=0.8)
+G1 Z0.8 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E26.0
+G1 X60 Y40 E27.0
+G1 X60 Y60 E28.0
+G1 X40 Y60 E29.0
+G1 X40 Y40 E30.0
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E30.5
+G1 X55 Y45 E31.3
+G1 X55 Y55 E32.1
+G1 X45 Y55 E32.9
+G1 X45 Y45 E33.7
+
+; Layer 5 (Z=1.0)
+G1 Z1.0 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E34.5
+G1 X60 Y40 E35.5
+G1 X60 Y60 E36.5
+G1 X40 Y60 E37.5
+G1 X40 Y40 E38.5
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E39.0
+G1 X55 Y45 E39.8
+G1 X55 Y55 E40.6
+G1 X45 Y55 E41.4
+G1 X45 Y45 E42.2
+
+; Layer 6 (Z=1.2)
+G1 Z1.2 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E43.0
+G1 X60 Y40 E44.0
+G1 X60 Y60 E45.0
+G1 X40 Y60 E46.0
+G1 X40 Y40 E47.0
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E47.5
+G1 X55 Y45 E48.3
+G1 X55 Y55 E49.1
+G1 X45 Y55 E49.9
+G1 X45 Y45 E50.7
+
+; Layer 7 (Z=1.4)
+G1 Z1.4 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E51.5
+G1 X60 Y40 E52.5
+G1 X60 Y60 E53.5
+G1 X40 Y60 E54.5
+G1 X40 Y40 E55.5
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E56.0
+G1 X55 Y45 E56.8
+G1 X55 Y55 E57.6
+G1 X45 Y55 E58.4
+G1 X45 Y45 E59.2
+
+; Layer 8 (Z=1.6)
+G1 Z1.6 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E60.0
+G1 X60 Y40 E61.0
+G1 X60 Y60 E62.0
+G1 X40 Y60 E63.0
+G1 X40 Y40 E64.0
+
+G1 X45 Y45 F7800
+G1 X45 Y45 E64.5
+G1 X55 Y45 E65.3
+G1 X55 Y55 E66.1
+G1 X45 Y55 E66.9
+G1 X45 Y45 E67.7
+
+; Layer 9 (Z=1.8) - Top layer
+G1 Z1.8 F7800
+G1 X40 Y40 F7800
+G1 X40 Y40 E68.5
+G1 X60 Y40 E69.5
+G1 X60 Y60 E70.5
+G1 X40 Y60 E71.5
+G1 X40 Y40 E72.5
+
+; Fill top layer (no more inner void)
+G1 X42 Y42 F7800
+G1 X42 Y42 E73.0
+G1 X58 Y42 E74.2
+G1 X58 Y58 E75.4
+G1 X42 Y58 E76.6
+G1 X42 Y42 E77.8
+
+EXCLUDE_OBJECT_END NAME=test_cube
+
+; End sequence
+G1 Z20 F7800 ; lift nozzle
+G28 X Y ; home X Y
+M84 ; disable motors
+
+; Print summary
+; Estimated time: 5 minutes
+; Filament used: 0.5g
+; Layer count: 9
+; Object height: 1.8mm

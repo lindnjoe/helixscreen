@@ -216,6 +216,23 @@ int ui_gcode_viewer_get_layer_count(lv_obj_t* obj);
  */
 int ui_gcode_viewer_get_segments_rendered(lv_obj_t* obj);
 
+// ==============================================
+// LVGL XML Component Registration
+// ==============================================
+
+/**
+ * @brief Register gcode_viewer widget with LVGL XML system
+ *
+ * Must be called during application initialization before loading any XML
+ * that uses the <gcode_viewer> tag. Typically called from main() or ui_init().
+ *
+ * After registration, the widget can be used in XML like:
+ * @code{.xml}
+ *   <gcode_viewer name="my_viewer" width="100%" height="100%"/>
+ * @endcode
+ */
+void ui_gcode_viewer_register(void);
+
 #ifdef __cplusplus
 }
 #endif
