@@ -33,8 +33,12 @@
 #include "ui_wizard_summary.h"
 #include "ui_wizard_wifi.h"
 
+#include "app_globals.h"
+#include "config.h"
 #include "lvgl/lvgl.h"
 #include "lvgl/src/others/xml/lv_xml.h"
+#include "moonraker_client.h"
+#include "wizard_config_paths.h"
 
 #include <spdlog/spdlog.h>
 
@@ -462,6 +466,66 @@ static void ui_wizard_load_screen(int step) {
 }
 
 // ============================================================================
+// Wizard Completion
+// ============================================================================
+
+void ui_wizard_complete() {
+    spdlog::info("[Wizard] Completing wizard and transitioning to main UI");
+
+    // 1. Cleanup current wizard screen
+    ui_wizard_cleanup_current_screen();
+
+    // 2. Delete wizard container (main UI is already created underneath)
+    if (wizard_container) {
+        spdlog::debug("[Wizard] Deleting wizard container");
+        lv_obj_del(wizard_container);
+        wizard_container = nullptr;
+    }
+
+    // 3. Connect to Moonraker using saved configuration
+    Config* config = Config::get_instance();
+    MoonrakerClient* client = get_moonraker_client();
+
+    if (!config || !client) {
+        spdlog::error("[Wizard] Failed to get config or moonraker client");
+        return;
+    }
+
+    std::string moonraker_host = config->get<std::string>(WizardConfigPaths::MOONRAKER_HOST, "");
+    int moonraker_port = config->get<int>(WizardConfigPaths::MOONRAKER_PORT, 7125);
+
+    if (moonraker_host.empty()) {
+        spdlog::warn("[Wizard] No Moonraker host configured, skipping connection");
+        return;
+    }
+
+    // Build WebSocket URL
+    std::string moonraker_url =
+        "ws://" + moonraker_host + ":" + std::to_string(moonraker_port) + "/websocket";
+
+    // Connect to Moonraker
+    spdlog::info("[Wizard] Connecting to Moonraker at {}", moonraker_url);
+    int connect_result = client->connect(
+        moonraker_url.c_str(),
+        []() {
+            spdlog::info("✓ Connected to Moonraker");
+            // Start auto-discovery (must be called AFTER connection is established)
+            MoonrakerClient* client = get_moonraker_client();
+            if (client) {
+                client->discover_printer(
+                    []() { spdlog::info("✓ Printer auto-discovery complete"); });
+            }
+        },
+        []() { spdlog::warn("✗ Disconnected from Moonraker"); });
+
+    if (connect_result != 0) {
+        spdlog::error("[Wizard] Failed to initiate Moonraker connection (code {})", connect_result);
+    }
+
+    spdlog::info("[Wizard] Wizard complete, transitioned to main UI");
+}
+
+// ============================================================================
 // Event Handlers
 // ============================================================================
 
@@ -484,6 +548,6 @@ static void on_next_clicked(lv_event_t* e) {
         spdlog::debug("[Wizard] Next button clicked, step: {}", current + 1);
     } else {
         spdlog::info("[Wizard] Finish button clicked, completing wizard");
-        // TODO: Handle wizard completion (emit event or callback)
+        ui_wizard_complete();
     }
 }

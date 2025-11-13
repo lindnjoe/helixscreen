@@ -37,6 +37,7 @@
 #include "ui_panel_motion.h"
 #include "ui_panel_print_select.h"
 #include "ui_panel_print_status.h"
+#include "ui_panel_settings.h"
 #include "ui_panel_step_test.h"
 #include "ui_panel_test.h"
 #include "ui_switch.h"
@@ -546,6 +547,7 @@ static void initialize_subjects() {
     ui_panel_controls_temp_init_subjects();      // Temperature sub-screens
     ui_panel_controls_extrusion_init_subjects(); // Extrusion sub-screen
     ui_panel_filament_init_subjects();           // Filament panel
+    ui_panel_settings_init_subjects();           // Settings panel launcher
     ui_panel_print_status_init_subjects();       // Print status screen
     ui_wizard_init_subjects();                   // Wizard subjects (for first-run config)
     printer_state.init_subjects(); // Printer state subjects (CRITICAL: must be before XML creation)
@@ -1084,6 +1086,10 @@ int main(int argc, char** argv) {
     // Setup filament panel (wire preset/action button handlers)
     ui_panel_filament_setup(panels[UI_PANEL_FILAMENT], screen);
 
+    // Setup settings panel (wire launcher card click handlers)
+    ui_panel_settings_set(panels[UI_PANEL_SETTINGS]);
+    ui_panel_settings_wire_events(panels[UI_PANEL_SETTINGS], screen);
+
     // Initialize numeric keypad modal component (creates reusable keypad widget)
     ui_keypad_init(screen);
 
@@ -1113,6 +1119,7 @@ int main(int argc, char** argv) {
 
     // Check if first-run wizard is required (skip for special test panels and explicit panel
     // requests)
+    bool wizard_active = false;
     if ((force_wizard || config->is_wizard_required()) && !show_step_test && !show_test_panel &&
         !show_keypad && !panel_requested) {
         spdlog::info("Starting first-run configuration wizard");
@@ -1125,6 +1132,7 @@ int main(int argc, char** argv) {
 
         if (wizard) {
             spdlog::debug("Wizard created successfully");
+            wizard_active = true;
 
             // Set initial step (screen loader sets appropriate title)
             int initial_step = (wizard_step >= 1) ? wizard_step : 1;
@@ -1138,6 +1146,86 @@ int main(int argc, char** argv) {
             }
         } else {
             spdlog::error("Failed to create wizard");
+        }
+    }
+
+    // Navigate to initial panel (if not showing wizard and panel was requested)
+    if (!wizard_active && initial_panel >= 0) {
+        spdlog::info("Navigating to initial panel: {}", initial_panel);
+        ui_nav_set_active(static_cast<ui_panel_id_t>(initial_panel));
+    }
+
+    // Show requested overlay panels (motion, temp controls, etc.)
+    if (!wizard_active) {
+        if (show_motion) {
+            spdlog::debug("Opening motion overlay as requested by command-line flag");
+            overlay_panels.motion = (lv_obj_t*)lv_xml_create(screen, "motion_panel", nullptr);
+            if (overlay_panels.motion) {
+                ui_panel_motion_setup(overlay_panels.motion, screen);
+                ui_nav_push_overlay(overlay_panels.motion);
+            }
+        }
+        if (show_nozzle_temp) {
+            spdlog::debug("Opening nozzle temp overlay as requested by command-line flag");
+            overlay_panels.nozzle_temp =
+                (lv_obj_t*)lv_xml_create(screen, "nozzle_temp_panel", nullptr);
+            if (overlay_panels.nozzle_temp) {
+                ui_panel_controls_temp_nozzle_setup(overlay_panels.nozzle_temp, screen);
+                ui_nav_push_overlay(overlay_panels.nozzle_temp);
+            }
+        }
+        if (show_bed_temp) {
+            spdlog::debug("Opening bed temp overlay as requested by command-line flag");
+            overlay_panels.bed_temp = (lv_obj_t*)lv_xml_create(screen, "bed_temp_panel", nullptr);
+            if (overlay_panels.bed_temp) {
+                ui_panel_controls_temp_bed_setup(overlay_panels.bed_temp, screen);
+                ui_nav_push_overlay(overlay_panels.bed_temp);
+            }
+        }
+        if (show_extrusion) {
+            spdlog::debug("Opening extrusion overlay as requested by command-line flag");
+            overlay_panels.extrusion = (lv_obj_t*)lv_xml_create(screen, "extrusion_panel", nullptr);
+            if (overlay_panels.extrusion) {
+                ui_panel_controls_extrusion_setup(overlay_panels.extrusion, screen);
+                ui_nav_push_overlay(overlay_panels.extrusion);
+            }
+        }
+        if (show_print_status && overlay_panels.print_status) {
+            spdlog::debug("Opening print status overlay as requested by command-line flag");
+            ui_nav_push_overlay(overlay_panels.print_status);
+        }
+        if (show_keypad) {
+            spdlog::debug("Opening keypad modal as requested by command-line flag");
+            ui_keypad_config_t keypad_config = {.initial_value = 0.0f,
+                                                .min_value = 0.0f,
+                                                .max_value = 300.0f,
+                                                .title_label = "Test Keypad",
+                                                .unit_label = "°C",
+                                                .allow_decimal = true,
+                                                .allow_negative = false,
+                                                .callback = nullptr,
+                                                .user_data = nullptr};
+            ui_keypad_show(&keypad_config);
+        }
+        if (show_step_test) {
+            spdlog::debug("Creating step progress test widget as requested by command-line flag");
+            lv_obj_t* step_test = (lv_obj_t*)lv_xml_create(screen, "step_progress_test", nullptr);
+            if (step_test) {
+                ui_panel_step_test_setup(step_test);
+            }
+        }
+        if (show_test_panel) {
+            spdlog::debug("Opening test panel as requested by command-line flag");
+            lv_obj_t* test_panel_obj = (lv_obj_t*)lv_xml_create(screen, "test_panel", nullptr);
+            if (test_panel_obj) {
+                ui_panel_test_setup(test_panel_obj);
+            }
+        }
+        if (show_file_detail) {
+            spdlog::debug("File detail view requested - navigating to print select panel first");
+            ui_nav_set_active(UI_PANEL_PRINT_SELECT);
+            // Note: File detail requires selecting a specific file, which can't be automated via
+            // CLI flag
         }
     }
 

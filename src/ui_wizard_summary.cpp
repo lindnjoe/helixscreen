@@ -28,6 +28,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "lvgl/lvgl.h"
+#include "wizard_config_paths.h"
 
 #include <spdlog/spdlog.h>
 
@@ -41,18 +42,29 @@
 // Subject declarations (module scope)
 static lv_subject_t summary_printer_name;
 static lv_subject_t summary_printer_type;
-static lv_subject_t summary_network;
+static lv_subject_t summary_wifi_ssid;
+static lv_subject_t summary_moonraker_connection;
 static lv_subject_t summary_bed;
 static lv_subject_t summary_hotend;
 static lv_subject_t summary_part_fan;
+static lv_subject_t summary_hotend_fan;
+static lv_subject_t summary_led_strip;
+
+// Visibility control subjects (int: 1=visible, 0=hidden)
+static lv_subject_t summary_part_fan_visible;
+static lv_subject_t summary_hotend_fan_visible;
+static lv_subject_t summary_led_strip_visible;
 
 // String buffers (must be persistent)
 static char printer_name_buffer[128];
 static char printer_type_buffer[128];
-static char network_buffer[256];
+static char wifi_ssid_buffer[128];
+static char moonraker_connection_buffer[128];
 static char bed_buffer[256];
 static char hotend_buffer[256];
-static char part_fan_buffer[256];
+static char part_fan_buffer[128];
+static char hotend_fan_buffer[128];
+static char led_strip_buffer[128];
 
 // Screen instance
 static lv_obj_t* summary_screen_root = nullptr;
@@ -61,36 +73,11 @@ static lv_obj_t* summary_screen_root = nullptr;
 // Helper Functions
 // ============================================================================
 
-static std::string format_network_summary(Config* config) {
-    std::stringstream ss;
-
-    std::string connection_type = config->get<std::string>("/network/connection_type", "None");
-    if (connection_type == "wifi") {
-        std::string ssid = config->get<std::string>("/network/wifi_ssid", "");
-        if (!ssid.empty()) {
-            ss << "WiFi: " << ssid;
-        } else {
-            ss << "WiFi: Not configured";
-        }
-    } else if (connection_type == "ethernet") {
-        std::string ip = config->get<std::string>("/network/eth_ip", "");
-        if (!ip.empty()) {
-            ss << "Ethernet: " << ip;
-        } else {
-            ss << "Ethernet: DHCP";
-        }
-    } else {
-        ss << "Not configured";
-    }
-
-    return ss.str();
-}
-
 static std::string format_bed_summary(Config* config) {
     std::stringstream ss;
 
-    std::string heater = config->get<std::string>("/printer/bed_heater", "None");
-    std::string sensor = config->get<std::string>("/printer/bed_sensor", "None");
+    std::string heater = config->get<std::string>(WizardConfigPaths::BED_HEATER, "None");
+    std::string sensor = config->get<std::string>(WizardConfigPaths::BED_SENSOR, "None");
 
     ss << "Heater: " << (heater == "None" ? "None" : heater);
     ss << ", Sensor: " << (sensor == "None" ? "None" : sensor);
@@ -101,8 +88,8 @@ static std::string format_bed_summary(Config* config) {
 static std::string format_hotend_summary(Config* config) {
     std::stringstream ss;
 
-    std::string heater = config->get<std::string>("/printer/hotend_heater", "None");
-    std::string sensor = config->get<std::string>("/printer/hotend_sensor", "None");
+    std::string heater = config->get<std::string>(WizardConfigPaths::HOTEND_HEATER, "None");
+    std::string sensor = config->get<std::string>(WizardConfigPaths::HOTEND_SENSOR, "None");
 
     ss << "Heater: " << (heater == "None" ? "None" : heater);
     ss << ", Sensor: " << (sensor == "None" ? "None" : sensor);
@@ -117,57 +104,145 @@ static std::string format_hotend_summary(Config* config) {
 void ui_wizard_summary_init_subjects() {
     spdlog::debug("[Wizard Summary] Initializing subjects");
 
+    // Initialize empty subjects first
+    lv_subject_init_string(&summary_printer_name, printer_name_buffer, nullptr,
+                           sizeof(printer_name_buffer), "");
+    lv_xml_register_subject(nullptr, "summary_printer_name", &summary_printer_name);
+
     // Load all values from config
     Config* config = Config::get_instance();
 
-    // Printer name
+    // Printer name - set value AFTER initialization
     std::string printer_name =
-        config ? config->get<std::string>("/printer/name", "Unnamed Printer") : "Unnamed Printer";
+        config ? config->get<std::string>(WizardConfigPaths::PRINTER_NAME, "Unnamed Printer")
+               : "Unnamed Printer";
+    spdlog::debug("[Wizard Summary] Printer name from config: '{}'", printer_name);
     strncpy(printer_name_buffer, printer_name.c_str(), sizeof(printer_name_buffer) - 1);
     printer_name_buffer[sizeof(printer_name_buffer) - 1] = '\0';
-    lv_subject_init_string(&summary_printer_name, printer_name_buffer, nullptr,
-                           sizeof(printer_name_buffer), printer_name_buffer);
-    lv_xml_register_subject(nullptr, "summary_printer_name", &summary_printer_name);
+    lv_subject_copy_string(&summary_printer_name, printer_name_buffer);
 
-    // Printer type
-    std::string printer_type =
-        config ? config->get<std::string>("/printer/type", "Unknown") : "Unknown";
-    strncpy(printer_type_buffer, printer_type.c_str(), sizeof(printer_type_buffer) - 1);
-    printer_type_buffer[sizeof(printer_type_buffer) - 1] = '\0';
+    // Initialize and register remaining subjects
     lv_subject_init_string(&summary_printer_type, printer_type_buffer, nullptr,
-                           sizeof(printer_type_buffer), printer_type_buffer);
+                           sizeof(printer_type_buffer), "");
     lv_xml_register_subject(nullptr, "summary_printer_type", &summary_printer_type);
 
-    // Network configuration
-    std::string network_summary = config ? format_network_summary(config) : "Not configured";
-    strncpy(network_buffer, network_summary.c_str(), sizeof(network_buffer) - 1);
-    network_buffer[sizeof(network_buffer) - 1] = '\0';
-    lv_subject_init_string(&summary_network, network_buffer, nullptr, sizeof(network_buffer),
-                           network_buffer);
-    lv_xml_register_subject(nullptr, "summary_network", &summary_network);
+    lv_subject_init_string(&summary_wifi_ssid, wifi_ssid_buffer, nullptr, sizeof(wifi_ssid_buffer),
+                           "");
+    lv_xml_register_subject(nullptr, "summary_wifi_ssid", &summary_wifi_ssid);
+
+    lv_subject_init_string(&summary_moonraker_connection, moonraker_connection_buffer, nullptr,
+                           sizeof(moonraker_connection_buffer), "");
+    lv_xml_register_subject(nullptr, "summary_moonraker_connection", &summary_moonraker_connection);
+
+    lv_subject_init_string(&summary_bed, bed_buffer, nullptr, sizeof(bed_buffer), "");
+    lv_xml_register_subject(nullptr, "summary_bed", &summary_bed);
+
+    lv_subject_init_string(&summary_hotend, hotend_buffer, nullptr, sizeof(hotend_buffer), "");
+    lv_xml_register_subject(nullptr, "summary_hotend", &summary_hotend);
+
+    lv_subject_init_string(&summary_part_fan, part_fan_buffer, nullptr, sizeof(part_fan_buffer),
+                           "");
+    lv_xml_register_subject(nullptr, "summary_part_fan", &summary_part_fan);
+
+    lv_subject_init_int(&summary_part_fan_visible, 0);
+    lv_xml_register_subject(nullptr, "summary_part_fan_visible", &summary_part_fan_visible);
+
+    lv_subject_init_string(&summary_hotend_fan, hotend_fan_buffer, nullptr,
+                           sizeof(hotend_fan_buffer), "");
+    lv_xml_register_subject(nullptr, "summary_hotend_fan", &summary_hotend_fan);
+
+    lv_subject_init_int(&summary_hotend_fan_visible, 0);
+    lv_xml_register_subject(nullptr, "summary_hotend_fan_visible", &summary_hotend_fan_visible);
+
+    lv_subject_init_string(&summary_led_strip, led_strip_buffer, nullptr, sizeof(led_strip_buffer),
+                           "");
+    lv_xml_register_subject(nullptr, "summary_led_strip", &summary_led_strip);
+
+    lv_subject_init_int(&summary_led_strip_visible, 0);
+    lv_xml_register_subject(nullptr, "summary_led_strip_visible", &summary_led_strip_visible);
+
+    // NOW set all values from config
+    // Printer type
+    std::string printer_type =
+        config ? config->get<std::string>(WizardConfigPaths::PRINTER_TYPE, "Unknown") : "Unknown";
+    spdlog::debug("[Wizard Summary] Printer type from config: '{}'", printer_type);
+    strncpy(printer_type_buffer, printer_type.c_str(), sizeof(printer_type_buffer) - 1);
+    printer_type_buffer[sizeof(printer_type_buffer) - 1] = '\0';
+    lv_subject_copy_string(&summary_printer_type, printer_type_buffer);
+
+    // WiFi SSID
+    std::string wifi_ssid =
+        config ? config->get<std::string>(WizardConfigPaths::WIFI_SSID, "Not configured")
+               : "Not configured";
+    spdlog::debug("[Wizard Summary] WiFi SSID from config: '{}'", wifi_ssid);
+    strncpy(wifi_ssid_buffer, wifi_ssid.c_str(), sizeof(wifi_ssid_buffer) - 1);
+    wifi_ssid_buffer[sizeof(wifi_ssid_buffer) - 1] = '\0';
+    lv_subject_copy_string(&summary_wifi_ssid, wifi_ssid_buffer);
+
+    // Moonraker connection (host:port)
+    std::string moonraker_host =
+        config ? config->get<std::string>(WizardConfigPaths::MOONRAKER_HOST, "Not configured")
+               : "Not configured";
+    int moonraker_port = config ? config->get<int>(WizardConfigPaths::MOONRAKER_PORT, 7125) : 7125;
+    spdlog::debug("[Wizard Summary] Moonraker host from config: '{}', port: {}", moonraker_host,
+                  moonraker_port);
+    std::stringstream moonraker_ss;
+    if (moonraker_host != "Not configured") {
+        moonraker_ss << moonraker_host << ":" << moonraker_port;
+    } else {
+        moonraker_ss << "Not configured";
+    }
+    strncpy(moonraker_connection_buffer, moonraker_ss.str().c_str(),
+            sizeof(moonraker_connection_buffer) - 1);
+    moonraker_connection_buffer[sizeof(moonraker_connection_buffer) - 1] = '\0';
+    spdlog::debug("[Wizard Summary] Moonraker connection buffer: '{}'",
+                  moonraker_connection_buffer);
+    lv_subject_copy_string(&summary_moonraker_connection, moonraker_connection_buffer);
 
     // Bed configuration
     std::string bed_summary = config ? format_bed_summary(config) : "Not configured";
     strncpy(bed_buffer, bed_summary.c_str(), sizeof(bed_buffer) - 1);
     bed_buffer[sizeof(bed_buffer) - 1] = '\0';
-    lv_subject_init_string(&summary_bed, bed_buffer, nullptr, sizeof(bed_buffer), bed_buffer);
-    lv_xml_register_subject(nullptr, "summary_bed", &summary_bed);
+    lv_subject_copy_string(&summary_bed, bed_buffer);
 
     // Hotend configuration
     std::string hotend_summary = config ? format_hotend_summary(config) : "Not configured";
     strncpy(hotend_buffer, hotend_summary.c_str(), sizeof(hotend_buffer) - 1);
     hotend_buffer[sizeof(hotend_buffer) - 1] = '\0';
-    lv_subject_init_string(&summary_hotend, hotend_buffer, nullptr, sizeof(hotend_buffer),
-                           hotend_buffer);
-    lv_xml_register_subject(nullptr, "summary_hotend", &summary_hotend);
+    lv_subject_copy_string(&summary_hotend, hotend_buffer);
 
     // Part cooling fan
-    std::string part_fan = config ? config->get<std::string>("/printer/part_fan", "None") : "None";
+    std::string part_fan =
+        config ? config->get<std::string>(WizardConfigPaths::PART_FAN, "None") : "None";
     strncpy(part_fan_buffer, part_fan.c_str(), sizeof(part_fan_buffer) - 1);
     part_fan_buffer[sizeof(part_fan_buffer) - 1] = '\0';
-    lv_subject_init_string(&summary_part_fan, part_fan_buffer, nullptr, sizeof(part_fan_buffer),
-                           part_fan_buffer);
-    lv_xml_register_subject(nullptr, "summary_part_fan", &summary_part_fan);
+    lv_subject_copy_string(&summary_part_fan, part_fan_buffer);
+
+    // Part fan visibility (1 = visible, 0 = hidden)
+    int part_fan_visible = (part_fan != "None") ? 1 : 0;
+    lv_subject_set_int(&summary_part_fan_visible, part_fan_visible);
+
+    // Hotend cooling fan
+    std::string hotend_fan =
+        config ? config->get<std::string>(WizardConfigPaths::HOTEND_FAN, "None") : "None";
+    strncpy(hotend_fan_buffer, hotend_fan.c_str(), sizeof(hotend_fan_buffer) - 1);
+    hotend_fan_buffer[sizeof(hotend_fan_buffer) - 1] = '\0';
+    lv_subject_copy_string(&summary_hotend_fan, hotend_fan_buffer);
+
+    // Hotend fan visibility
+    int hotend_fan_visible = (hotend_fan != "None") ? 1 : 0;
+    lv_subject_set_int(&summary_hotend_fan_visible, hotend_fan_visible);
+
+    // LED strip
+    std::string led_strip =
+        config ? config->get<std::string>(WizardConfigPaths::LED_STRIP, "None") : "None";
+    strncpy(led_strip_buffer, led_strip.c_str(), sizeof(led_strip_buffer) - 1);
+    led_strip_buffer[sizeof(led_strip_buffer) - 1] = '\0';
+    lv_subject_copy_string(&summary_led_strip, led_strip_buffer);
+
+    // LED strip visibility
+    int led_strip_visible = (led_strip != "None") ? 1 : 0;
+    lv_subject_set_int(&summary_led_strip_visible, led_strip_visible);
 
     spdlog::info("[Wizard Summary] Subjects initialized with config values");
 }
@@ -216,10 +291,9 @@ lv_obj_t* ui_wizard_summary_create(lv_obj_t* parent) {
 void ui_wizard_summary_cleanup() {
     spdlog::debug("[Wizard Summary] Cleaning up resources");
 
-    if (summary_screen_root) {
-        lv_obj_del(summary_screen_root);
-        summary_screen_root = nullptr;
-    }
+    // NOTE: Wizard framework handles object deletion - we only null the pointer
+    // See HANDOFF.md Pattern #9: Wizard Screen Lifecycle
+    summary_screen_root = nullptr;
 }
 
 // ============================================================================

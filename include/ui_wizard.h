@@ -116,3 +116,16 @@ void ui_wizard_navigate_to_step(int step);
  * @param title New title string
  */
 void ui_wizard_set_title(const char* title);
+
+/**
+ * Complete wizard and transition to main UI
+ *
+ * Called when user clicks Finish on summary screen. Performs:
+ * - Cleans up all wizard screens
+ * - Deletes wizard container
+ * - Connects to Moonraker using saved config
+ * - Transitions to main UI (already created underneath)
+ *
+ * NOTE: Config should already be saved by wizard screens before calling this.
+ */
+void ui_wizard_complete();
