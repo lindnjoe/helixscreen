@@ -183,10 +183,10 @@ void ui_wizard_summary_register_callbacks() {
 lv_obj_t* ui_wizard_summary_create(lv_obj_t* parent) {
     spdlog::info("[Wizard Summary] Creating summary screen");
 
+    // Safety check: cleanup should have been called by wizard navigation
     if (summary_screen_root) {
-        spdlog::warn("[Wizard Summary] Screen already exists, destroying old instance");
-        lv_obj_del(summary_screen_root);
-        summary_screen_root = nullptr;
+        spdlog::warn("[Wizard Summary] Screen pointer not null - cleanup may not have been called properly");
+        summary_screen_root = nullptr;  // Reset pointer, wizard framework handles deletion
     }
 
     // Refresh subjects with latest config values before creating UI

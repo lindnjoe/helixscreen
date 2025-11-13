@@ -54,10 +54,14 @@ static char wizard_next_button_text_buffer[16];
 // Wizard container instance
 static lv_obj_t* wizard_container = nullptr;
 
+// Track current screen for proper cleanup
+static int current_screen_step = 0;
+
 // Forward declarations
 static void on_back_clicked(lv_event_t* e);
 static void on_next_clicked(lv_event_t* e);
 static void ui_wizard_load_screen(int step);
+static void ui_wizard_cleanup_current_screen();
 
 void ui_wizard_init_subjects() {
     spdlog::debug("[Wizard] Initializing subjects");
@@ -293,6 +297,54 @@ void ui_wizard_set_title(const char* title) {
 }
 
 // ============================================================================
+// Screen Cleanup
+// ============================================================================
+
+/**
+ * Cleanup the current wizard screen before navigating to a new one
+ *
+ * Calls the appropriate cleanup function based on current_screen_step.
+ * This ensures resources are properly released and screen pointers are reset.
+ */
+static void ui_wizard_cleanup_current_screen() {
+    if (current_screen_step == 0) {
+        return;  // No screen loaded yet
+    }
+
+    spdlog::debug("[Wizard] Cleaning up screen for step {}", current_screen_step);
+
+    switch (current_screen_step) {
+        case 1:  // WiFi Setup
+            ui_wizard_wifi_cleanup();
+            break;
+        case 2:  // Moonraker Connection
+            ui_wizard_connection_cleanup();
+            break;
+        case 3:  // Printer Identification
+            ui_wizard_printer_identify_cleanup();
+            break;
+        case 4:  // Bed Select
+            ui_wizard_bed_select_cleanup();
+            break;
+        case 5:  // Hotend Select
+            ui_wizard_hotend_select_cleanup();
+            break;
+        case 6:  // Fan Select
+            ui_wizard_fan_select_cleanup();
+            break;
+        case 7:  // LED Select
+            ui_wizard_led_select_cleanup();
+            break;
+        case 8:  // Summary
+            ui_wizard_summary_cleanup();
+            break;
+        default:
+            spdlog::warn("[Wizard] Unknown screen step {} during cleanup", current_screen_step);
+            break;
+    }
+}
+
+// ============================================================================
 // Screen Loading
 // ============================================================================
 
@@ -307,10 +359,9 @@ static void ui_wizard_load_screen(int step) {
     }
 
     // Cleanup previous screen resources BEFORE clearing widgets
-    ui_wizard_wifi_cleanup();
-    ui_wizard_printer_identify_cleanup();
+    ui_wizard_cleanup_current_screen();
 
-    // Clear existing content
+    // Clear existing content (widgets)
     lv_obj_clean(content);
     spdlog::debug("[Wizard] Cleared wizard_content container");
 
@@ -394,6 +445,9 @@ static void ui_wizard_load_screen(int step) {
             spdlog::warn("[Wizard] Invalid step {}, ignoring", step);
             break;
     }
+
+    // Update current screen step tracking
+    current_screen_step = step;
 }
 
 // ============================================================================

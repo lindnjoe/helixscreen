@@ -223,6 +223,46 @@ public:
   const std::vector<std::string>& get_leds() const { return leds_; }
 
   /**
+   * @brief Guess the most likely bed heater from discovered hardware
+   *
+   * Searches heaters_ for names containing "bed", "heated_bed", "heater_bed".
+   * Returns the first match found, or empty string if none found.
+   *
+   * @return Bed heater name or empty string
+   */
+  std::string guess_bed_heater() const;
+
+  /**
+   * @brief Guess the most likely hotend heater from discovered hardware
+   *
+   * Searches heaters_ for names containing "extruder", "hotend", "e0".
+   * Prioritizes "extruder" (base extruder) over numbered variants.
+   *
+   * @return Hotend heater name or empty string
+   */
+  std::string guess_hotend_heater() const;
+
+  /**
+   * @brief Guess the most likely bed temperature sensor from discovered hardware
+   *
+   * First checks heaters_ for bed heater (heaters have built-in sensors).
+   * If no bed heater found, searches sensors_ for names containing "bed".
+   *
+   * @return Bed sensor name or empty string
+   */
+  std::string guess_bed_sensor() const;
+
+  /**
+   * @brief Guess the most likely hotend temperature sensor from discovered hardware
+   *
+   * First checks heaters_ for extruder heater (heaters have built-in sensors).
+   * If no extruder heater found, searches sensors_ for names containing "extruder", "hotend", "e0".
+   *
+   * @return Hotend sensor name or empty string
+   */
+  std::string guess_hotend_sensor() const;
+
+  /**
    * @brief Get printer hostname from printer.info
    *
    * Returns hostname discovered during printer discovery sequence.

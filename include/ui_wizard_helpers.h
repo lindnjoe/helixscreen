@@ -1,0 +1,136 @@
+// Copyright 2025 HelixScreen
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/*
+ * Copyright (C) 2025 356C LLC
+ * Author: Preston Brown <pbrown@brown-house.net>
+ *
+ * This file is part of HelixScreen.
+ *
+ * HelixScreen is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * HelixScreen is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with HelixScreen. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef UI_WIZARD_HELPERS_H
+#define UI_WIZARD_HELPERS_H
+
+#include <string>
+#include <vector>
+#include <functional>
+#include "lvgl/lvgl.h"
+
+class MoonrakerClient;
+
+/**
+ * @file ui_wizard_helpers.h
+ * @brief Common helper functions for wizard screen implementations
+ *
+ * Provides reusable utilities for dropdown population, config management,
+ * and subject initialization to reduce code duplication across wizard screens.
+ */
+
+namespace WizardHelpers {
+    /**
+     * @brief Build dropdown options string from items vector
+     *
+     * Creates a newline-delimited string suitable for lv_dropdown_set_options(),
+     * optionally filtering items and appending "None" option.
+     *
+     * @param items Vector of item names to include
+     * @param filter Optional filter function (return true to include item)
+     * @param include_none Whether to append "None" option at end
+     * @return Newline-delimited dropdown options string
+     */
+    std::string build_dropdown_options(
+        const std::vector<std::string>& items,
+        std::function<bool(const std::string&)> filter = nullptr,
+        bool include_none = true
+    );
+
+    /**
+     * @brief Find item index in vector by name
+     *
+     * Searches for exact match of item name in vector.
+     *
+     * @param items Vector to search
+     * @param name Item name to find
+     * @param default_index Fallback index if not found
+     * @return Index of item, or default_index if not found
+     */
+    int find_item_index(
+        const std::vector<std::string>& items,
+        const std::string& name,
+        int default_index = 0
+    );
+
+    /**
+     * @brief Restore dropdown selection from config with guessing fallback
+     *
+     * Attempts to restore saved selection from config. If no saved value exists,
+     * calls the specified guessing method on MoonrakerClient. Updates both the
+     * dropdown widget and subject with selected index.
+     *
+     * @param dropdown LVGL dropdown widget
+     * @param subject Subject to update with selected index
+     * @param items Item names vector (must match dropdown options order)
+     * @param config_path JSON path to saved value (e.g., "/printer/bed_heater")
+     * @param client MoonrakerClient instance for hardware guessing (can be nullptr)
+     * @param guess_method_fn Function pointer to MoonrakerClient guess method (can be nullptr)
+     * @param log_prefix Logging prefix (e.g., "[Wizard Bed]")
+     * @return Selected index
+     */
+    int restore_dropdown_selection(
+        lv_obj_t* dropdown,
+        lv_subject_t* subject,
+        const std::vector<std::string>& items,
+        const char* config_path,
+        MoonrakerClient* client,
+        std::function<std::string(MoonrakerClient*)> guess_method_fn,
+        const char* log_prefix
+    );
+
+    /**
+     * @brief Save dropdown selection to config by index
+     *
+     * Converts subject index to item name and saves to config.
+     *
+     * @param subject Subject containing selected index
+     * @param items Item names vector (must match dropdown order)
+     * @param config_path JSON path to save to (e.g., "/printer/bed_heater")
+     * @param log_prefix Logging prefix (e.g., "[Wizard Bed]")
+     * @return true if saved successfully, false otherwise
+     */
+    bool save_dropdown_selection(
+        lv_subject_t* subject,
+        const std::vector<std::string>& items,
+        const char* config_path,
+        const char* log_prefix
+    );
+
+    /**
+     * @brief Initialize and register int subject
+     *
+     * Initializes integer subject and registers it with LVGL XML system.
+     *
+     * @param subject Subject to initialize
+     * @param initial_value Initial value
+     * @param subject_name XML registration name (e.g., "bed_heater_selected")
+     */
+    void init_int_subject(
+        lv_subject_t* subject,
+        int32_t initial_value,
+        const char* subject_name
+    );
+}
+
+#endif // UI_WIZARD_HELPERS_H

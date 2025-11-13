@@ -28,6 +28,11 @@ MoonrakerClientMock::MoonrakerClientMock(PrinterType type)
     : printer_type_(type) {
     spdlog::info("[MoonrakerClientMock] Created with printer type: {}",
                 static_cast<int>(type));
+
+    // Populate hardware immediately (available for wizard without calling discover_printer())
+    populate_hardware();
+    spdlog::debug("[MoonrakerClientMock] Hardware populated: {} heaters, {} sensors, {} fans, {} LEDs",
+                  heaters_.size(), sensors_.size(), fans_.size(), leds_.size());
 }
 
 int MoonrakerClientMock::connect(const char* url,
@@ -79,6 +84,8 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor (Klipper naming: bare heater name)
                 "temperature_sensor chamber",
                 "temperature_sensor raspberry_pi",
                 "temperature_sensor mcu_temp"
@@ -102,6 +109,8 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor (Klipper naming: bare heater name)
                 "temperature_sensor chamber",
                 "temperature_sensor raspberry_pi",
                 "temperature_sensor mcu_temp",
@@ -126,6 +135,8 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor (Klipper naming: bare heater name)
                 "temperature_sensor mcu_temp",
                 "temperature_sensor host_temp"
             };
@@ -146,6 +157,8 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor (Klipper naming: bare heater name)
                 "temperature_sensor chamber",
                 "temperature_sensor mcu_temp"
             };
@@ -166,6 +179,8 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor (Klipper naming: bare heater name)
                 "temperature_sensor raspberry_pi"
             };
             fans_ = {
@@ -181,7 +196,10 @@ void MoonrakerClientMock::populate_hardware() {
                 "heater_bed",
                 "extruder"
             };
-            sensors_ = {};
+            sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder"         // Hotend thermistor (Klipper naming: bare heater name)
+            };
             fans_ = {
                 "heater_fan hotend_fan",
                 "fan"
@@ -197,6 +215,9 @@ void MoonrakerClientMock::populate_hardware() {
                 "extruder1"
             };
             sensors_ = {
+                "heater_bed",      // Bed thermistor (Klipper naming: bare heater name)
+                "extruder",        // Hotend thermistor primary (Klipper naming: bare heater name)
+                "extruder1",       // Hotend thermistor secondary (Klipper naming: bare heater name)
                 "temperature_sensor chamber",
                 "temperature_sensor mcu_temp"
             };

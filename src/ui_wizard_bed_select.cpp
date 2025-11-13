@@ -61,35 +61,15 @@ static void on_bed_sensor_changed(lv_event_t* e);
 void ui_wizard_bed_select_init_subjects() {
     spdlog::debug("[Wizard Bed] Initializing subjects");
 
-    // Load existing values from config if available
-    Config* config = Config::get_instance();
-
-    // Initialize bed heater selection (default to first option)
-    int32_t heater_index = 0;
-    if (config) {
-        std::string heater = config->get<std::string>("/printer/bed_heater", "heater_bed");
-        if (heater == "None" || heater.empty()) {
-            heater_index = 1;  // "None" option
-        }
-    }
-    lv_subject_init_int(&bed_heater_selected, heater_index);
+    // Initialize subjects with default index 0
+    // Actual selection will be restored from config during create() after hardware is discovered
+    lv_subject_init_int(&bed_heater_selected, 0);
     lv_xml_register_subject(nullptr, "bed_heater_selected", &bed_heater_selected);
 
-    // Initialize bed sensor selection (default to second option)
-    int32_t sensor_index = 1;  // Default to "temperature_sensor bed"
-    if (config) {
-        std::string sensor = config->get<std::string>("/printer/bed_sensor", "temperature_sensor bed");
-        if (sensor == "temperature_sensor extruder") {
-            sensor_index = 0;
-        } else if (sensor == "None" || sensor.empty()) {
-            sensor_index = 2;  // "None" option
-        }
-    }
-    lv_subject_init_int(&bed_sensor_selected, sensor_index);
+    lv_subject_init_int(&bed_sensor_selected, 0);
     lv_xml_register_subject(nullptr, "bed_sensor_selected", &bed_sensor_selected);
 
-    spdlog::info("[Wizard Bed] Subjects initialized - heater: {}, sensor: {}",
-                 heater_index, sensor_index);
+    spdlog::info("[Wizard Bed] Subjects initialized");
 }
 
 // ============================================================================
@@ -102,15 +82,8 @@ static void on_bed_heater_changed(lv_event_t* e) {
 
     spdlog::debug("[Wizard Bed] Heater selection changed to index: {}", selected_index);
 
-    // Update subject
+    // Update subject (config will be saved in cleanup when leaving screen)
     lv_subject_set_int(&bed_heater_selected, selected_index);
-
-    // Save to config
-    Config* config = Config::get_instance();
-    if (config && selected_index < bed_heater_items.size()) {
-        config->set("/printer/bed_heater", bed_heater_items[selected_index]);
-        spdlog::debug("[Wizard Bed] Saved bed heater: {}", bed_heater_items[selected_index]);
-    }
 }
 
 static void on_bed_sensor_changed(lv_event_t* e) {
@@ -119,15 +92,8 @@ static void on_bed_sensor_changed(lv_event_t* e) {
 
     spdlog::debug("[Wizard Bed] Sensor selection changed to index: {}", selected_index);
 
-    // Update subject
+    // Update subject (config will be saved in cleanup when leaving screen)
     lv_subject_set_int(&bed_sensor_selected, selected_index);
-
-    // Save to config
-    Config* config = Config::get_instance();
-    if (config && selected_index < bed_sensor_items.size()) {
-        config->set("/printer/bed_sensor", bed_sensor_items[selected_index]);
-        spdlog::debug("[Wizard Bed] Saved bed sensor: {}", bed_sensor_items[selected_index]);
-    }
 }
 
 // ============================================================================
@@ -146,12 +112,12 @@ void ui_wizard_bed_select_register_callbacks() {
 // ============================================================================
 
 lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
-    spdlog::info("[Wizard Bed] Creating bed select screen");
+    spdlog::debug("[Wizard Bed] Creating bed select screen");
 
+    // Safety check: screen pointer should be nullptr (cleanup should have been called)
     if (bed_select_screen_root) {
-        spdlog::warn("[Wizard Bed] Screen already exists, destroying old instance");
-        lv_obj_del(bed_select_screen_root);
-        bed_select_screen_root = nullptr;
+        spdlog::warn("[Wizard Bed] Screen pointer not null - cleanup may not have been called properly");
+        bed_select_screen_root = nullptr;  // Reset pointer, wizard framework handles actual deletion
     }
 
     // Create screen from XML
@@ -204,30 +170,87 @@ lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
     if (!sensor_options_str.empty()) sensor_options_str += "\n";
     sensor_options_str += "None";
 
+    // Get config for restoring saved selections
+    Config* config = Config::get_instance();
+
     // Find and configure heater dropdown
     lv_obj_t* heater_dropdown = lv_obj_find_by_name(bed_select_screen_root, "bed_heater_dropdown");
     if (heater_dropdown) {
         lv_dropdown_set_options(heater_dropdown, heater_options_str.c_str());
-        int index = lv_subject_get_int(&bed_heater_selected);
-        if (index >= static_cast<int>(bed_heater_items.size())) {
-            index = 0;  // Reset to first option if out of range
+
+        // Restore saved selection OR use guessing as fallback
+        int selected_index = 0;  // Default to first option
+        if (config) {
+            std::string saved_heater = config->get<std::string>("/printer/bed_heater", "");
+            if (!saved_heater.empty()) {
+                // Search for saved name in discovered hardware
+                for (size_t i = 0; i < bed_heater_items.size(); i++) {
+                    if (bed_heater_items[i] == saved_heater) {
+                        selected_index = i;
+                        spdlog::debug("[Wizard Bed] Restored heater selection: {}", saved_heater);
+                        break;
+                    }
+                }
+            } else if (client) {
+                // No saved config, use guessing method
+                std::string guessed = client->guess_bed_heater();
+                if (!guessed.empty()) {
+                    // Search for guessed name in dropdown items
+                    for (size_t i = 0; i < bed_heater_items.size(); i++) {
+                        if (bed_heater_items[i] == guessed) {
+                            selected_index = i;
+                            spdlog::info("[Wizard Bed] Auto-selected bed heater: {}", guessed);
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        lv_dropdown_set_selected(heater_dropdown, index);
-        spdlog::debug("[Wizard Bed] Configured heater dropdown with {} options, selected: {}",
-                     bed_heater_items.size(), index);
+
+        lv_dropdown_set_selected(heater_dropdown, selected_index);
+        lv_subject_set_int(&bed_heater_selected, selected_index);
+        spdlog::debug("[Wizard Bed] Configured heater dropdown with {} options, selected index: {}",
+                     bed_heater_items.size(), selected_index);
     }
 
     // Find and configure sensor dropdown
     lv_obj_t* sensor_dropdown = lv_obj_find_by_name(bed_select_screen_root, "bed_sensor_dropdown");
     if (sensor_dropdown) {
         lv_dropdown_set_options(sensor_dropdown, sensor_options_str.c_str());
-        int index = lv_subject_get_int(&bed_sensor_selected);
-        if (index >= static_cast<int>(bed_sensor_items.size())) {
-            index = 0;  // Reset to first option if out of range
+
+        // Restore saved selection OR use guessing as fallback
+        int selected_index = 0;  // Default to first option
+        if (config) {
+            std::string saved_sensor = config->get<std::string>("/printer/bed_sensor", "");
+            if (!saved_sensor.empty()) {
+                // Search for saved name in discovered hardware
+                for (size_t i = 0; i < bed_sensor_items.size(); i++) {
+                    if (bed_sensor_items[i] == saved_sensor) {
+                        selected_index = i;
+                        spdlog::debug("[Wizard Bed] Restored sensor selection: {}", saved_sensor);
+                        break;
+                    }
+                }
+            } else if (client) {
+                // No saved config, use guessing method
+                std::string guessed = client->guess_bed_sensor();
+                if (!guessed.empty()) {
+                    // Search for guessed name in dropdown items
+                    for (size_t i = 0; i < bed_sensor_items.size(); i++) {
+                        if (bed_sensor_items[i] == guessed) {
+                            selected_index = i;
+                            spdlog::info("[Wizard Bed] Auto-selected bed sensor: {}", guessed);
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        lv_dropdown_set_selected(sensor_dropdown, index);
-        spdlog::debug("[Wizard Bed] Configured sensor dropdown with {} options, selected: {}",
-                     bed_sensor_items.size(), index);
+
+        lv_dropdown_set_selected(sensor_dropdown, selected_index);
+        lv_subject_set_int(&bed_sensor_selected, selected_index);
+        spdlog::debug("[Wizard Bed] Configured sensor dropdown with {} options, selected index: {}",
+                     bed_sensor_items.size(), selected_index);
     }
 
     spdlog::info("[Wizard Bed] Screen created successfully");
@@ -240,6 +263,29 @@ lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
 
 void ui_wizard_bed_select_cleanup() {
     spdlog::debug("[Wizard Bed] Cleaning up resources");
+
+    // Save current selections to config before cleanup (deferred save pattern)
+    Config* config = Config::get_instance();
+    if (config) {
+        // Get heater selection index and save NAME (not index)
+        int heater_index = lv_subject_get_int(&bed_heater_selected);
+        if (heater_index >= 0 && heater_index < static_cast<int>(bed_heater_items.size())) {
+            const std::string& heater_name = bed_heater_items[heater_index];
+            config->set("/printer/bed_heater", heater_name);
+            spdlog::info("[Wizard Bed] Saved bed heater: {}", heater_name);
+        }
+
+        // Get sensor selection index and save NAME (not index)
+        int sensor_index = lv_subject_get_int(&bed_sensor_selected);
+        if (sensor_index >= 0 && sensor_index < static_cast<int>(bed_sensor_items.size())) {
+            const std::string& sensor_name = bed_sensor_items[sensor_index];
+            config->set("/printer/bed_sensor", sensor_name);
+            spdlog::info("[Wizard Bed] Saved bed sensor: {}", sensor_name);
+        }
+
+        // Persist to disk
+        config->save();
+    }
 
     // Reset UI references
     // Note: Do NOT call lv_obj_del() here - the wizard framework handles

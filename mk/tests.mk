@@ -62,6 +62,7 @@ TEST_WIFI_DEPS := \
 # Note: LIBHV_LIB is in LDFLAGS via LIBHV_LIBS, not needed here
 TEST_MOONRAKER_DEPS := \
     $(OBJ_DIR)/moonraker_client.o \
+    $(OBJ_DIR)/moonraker_client_mock.o \
     $(OBJ_DIR)/moonraker_api.o \
     $(OBJ_DIR)/printer_state.o \
     $(OBJ_DIR)/printer_detector.o

@@ -102,15 +102,8 @@ static void on_hotend_fan_changed(lv_event_t* e) {
 
     spdlog::debug("[Wizard Fan] Hotend fan selection changed to index: {}", selected_index);
 
-    // Update subject
+    // Update subject (config will be saved in cleanup when leaving screen)
     lv_subject_set_int(&hotend_fan_selected, selected_index);
-
-    // Save to config
-    Config* config = Config::get_instance();
-    if (config && selected_index < hotend_fan_items.size()) {
-        config->set("/printer/hotend_fan", hotend_fan_items[selected_index]);
-        spdlog::debug("[Wizard Fan] Saved hotend fan: {}", hotend_fan_items[selected_index]);
-    }
 }
 
 static void on_part_fan_changed(lv_event_t* e) {
@@ -119,15 +112,8 @@ static void on_part_fan_changed(lv_event_t* e) {
 
     spdlog::debug("[Wizard Fan] Part fan selection changed to index: {}", selected_index);
 
-    // Update subject
+    // Update subject (config will be saved in cleanup when leaving screen)
     lv_subject_set_int(&part_fan_selected, selected_index);
-
-    // Save to config
-    Config* config = Config::get_instance();
-    if (config && selected_index < part_fan_items.size()) {
-        config->set("/printer/part_fan", part_fan_items[selected_index]);
-        spdlog::debug("[Wizard Fan] Saved part fan: {}", part_fan_items[selected_index]);
-    }
 }
 
 // ============================================================================
@@ -148,10 +134,10 @@ void ui_wizard_fan_select_register_callbacks() {
 lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
     spdlog::info("[Wizard Fan] Creating fan select screen");
 
+    // Safety check: cleanup should have been called by wizard navigation
     if (fan_select_screen_root) {
-        spdlog::warn("[Wizard Fan] Screen already exists, destroying old instance");
-        lv_obj_del(fan_select_screen_root);
-        fan_select_screen_root = nullptr;
+        spdlog::warn("[Wizard Fan] Screen pointer not null - cleanup may not have been called properly");
+        fan_select_screen_root = nullptr;  // Reset pointer, wizard framework handles deletion
     }
 
     // Create screen from XML
@@ -246,10 +232,35 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
 void ui_wizard_fan_select_cleanup() {
     spdlog::debug("[Wizard Fan] Cleaning up resources");
 
-    if (fan_select_screen_root) {
-        lv_obj_del(fan_select_screen_root);
-        fan_select_screen_root = nullptr;
+    // Save current selections to config before cleanup (deferred save pattern)
+    Config* config = Config::get_instance();
+    if (config) {
+        // Get hotend fan selection index and save NAME (not index)
+        int hotend_index = lv_subject_get_int(&hotend_fan_selected);
+        if (hotend_index >= 0 && hotend_index < static_cast<int>(hotend_fan_items.size())) {
+            const std::string& hotend_fan_name = hotend_fan_items[hotend_index];
+            config->set("/printer/hotend_fan", hotend_fan_name);
+            spdlog::info("[Wizard Fan] Saved hotend fan: {}", hotend_fan_name);
+        }
+
+        // Get part fan selection index and save NAME (not index)
+        int part_index = lv_subject_get_int(&part_fan_selected);
+        if (part_index >= 0 && part_index < static_cast<int>(part_fan_items.size())) {
+            const std::string& part_fan_name = part_fan_items[part_index];
+            config->set("/printer/part_fan", part_fan_name);
+            spdlog::info("[Wizard Fan] Saved part cooling fan: {}", part_fan_name);
+        }
+
+        // Persist to disk
+        config->save();
     }
+
+    // Reset UI references
+    // Note: Do NOT call lv_obj_del() here - the wizard framework handles
+    // object deletion when clearing wizard_content container
+    fan_select_screen_root = nullptr;
+
+    spdlog::info("[Wizard Fan] Cleanup complete");
 }
 
 // ============================================================================

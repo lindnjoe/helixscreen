@@ -1,7 +1,7 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-11-04
-**Current Focus:** WiFi password modal complete, ready for wizard polish
+**Last Updated:** 2025-11-12
+**Current Focus:** Wizard printer identification complete, hardware selection working
 
 ---
 
@@ -50,36 +50,51 @@
 7. **Phase 3: Mock Backend** - ✅ COMPLETE
    - `MoonrakerClientMock` with 7 printer profiles, factory pattern in main.cpp
 
+8. **Printer Identification (Step 3)** - ✅ COMPLETE
+   - Printer name input with validation (max 32 chars, red border for "too long" errors)
+   - Printer type selection via roller (33 common printer types)
+   - Theme color system improvements: added `error_color` to globals.xml
+   - Fixed theme API usage: `ui_theme_get_color()` for all color lookups
+   - Config persistence for printer name and type
+   - Virtual keyboard integration with auto-show on focus
+
+9. **Wizard Screen Lifecycle** - ✅ FIXED
+   - Fixed double-free segfault in bed select screen (src/ui_wizard_bed_select.cpp:148-155)
+   - Wizard framework handles object deletion - create functions must NOT call `lv_obj_del()`
+   - Correct pattern: create() stores pointer, cleanup() only nulls pointer
+
 ### What Works Now
 
+- ✅ Wizard WiFi setup (step 1) with network list, password modal, connection
 - ✅ Wizard connection screen (step 2) with reactive Next button control
-- ✅ Virtual keyboard with screen slide animation and auto-show on focus
+- ✅ Wizard printer identification (step 3) with name input and type selection
 - ✅ Wizard hardware selection (steps 4-7) dynamically populated from discovered hardware
+- ✅ Virtual keyboard with screen slide animation and auto-show on focus
 - ✅ Mock backend testing (`--test` flag)
 - ✅ Config persistence for all wizard fields
-- ✅ WiFi wizard screen with password modal, connection, and status display
+- ✅ Theme system with semantic color constants (error_color, primary_color, etc.)
 
 ### What Needs Work
 
-- ⚠️ Wizard steps 1-2 need polish and refinement (basic functionality complete)
-- ❌ Wizard steps 3 and 8 (printer ID, summary) need implementation
-- ❌ Real printer testing with connection screen (only tested with mock backend)
+- ❌ Wizard summary screen (step 8) needs implementation
+- ❌ Real printer testing with full wizard flow (only tested individual steps)
 - ❌ Printer auto-detection via mDNS (future enhancement)
 
 ---
 
 ## 🚀 NEXT PRIORITIES
 
-### 1. Polish Wizard Connection Screen (Step 2)
-- Improve error messaging and user feedback
-- Add timeout handling for connection attempts
-- Test with real printer (no `--test` flag)
-- Refine layout and visual feedback
+### 1. Implement Wizard Summary Screen (Step 8)
+- Display all configured settings (WiFi, connection, printer, hardware)
+- "Start Using HelixScreen" button to exit wizard
+- Save `wizard_completed=true` flag to config
+- Show friendly confirmation message
 
-### 2. Implement Printer Identification (Step 3)
-- Allow user to name their printer
-- Store printer name in config
-- Validate input (non-empty, reasonable length)
+### 2. End-to-End Wizard Testing
+- Test complete wizard flow from start to finish
+- Verify config persistence across all steps
+- Test with real printer (no `--test` flag)
+- Verify navigation (back/next) works reliably
 
 ---
 

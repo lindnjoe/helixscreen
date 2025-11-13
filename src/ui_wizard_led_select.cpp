@@ -23,6 +23,8 @@
 
 #include "ui_wizard_led_select.h"
 #include "ui_wizard.h"
+#include "ui_wizard_helpers.h"
+#include "wizard_config_paths.h"
 #include "app_globals.h"
 #include "config.h"
 #include "moonraker_client.h"
@@ -58,23 +60,11 @@ static void on_led_strip_changed(lv_event_t* e);
 void ui_wizard_led_select_init_subjects() {
     spdlog::debug("[Wizard LED] Initializing subjects");
 
-    // Load existing values from config if available
-    Config* config = Config::get_instance();
+    // Initialize subject with default index 0
+    // Actual selection will be restored from config during create() after hardware is discovered
+    WizardHelpers::init_int_subject(&led_strip_selected, 0, "led_strip_selected");
 
-    // Initialize LED strip selection (default to None)
-    int32_t led_index = 2;  // Default to "None"
-    if (config) {
-        std::string led = config->get<std::string>("/printer/led_strip", "None");
-        if (led == "neopixel my_neopixel") {
-            led_index = 0;
-        } else if (led == "dotstar my_dotstar") {
-            led_index = 1;
-        }
-    }
-    lv_subject_init_int(&led_strip_selected, led_index);
-    lv_xml_register_subject(nullptr, "led_strip_selected", &led_strip_selected);
-
-    spdlog::info("[Wizard LED] Subjects initialized - LED strip: {}", led_index);
+    spdlog::info("[Wizard LED] Subjects initialized");
 }
 
 // ============================================================================
@@ -87,15 +77,8 @@ static void on_led_strip_changed(lv_event_t* e) {
 
     spdlog::debug("[Wizard LED] LED strip selection changed to index: {}", selected_index);
 
-    // Update subject
+    // Update subject (config will be saved in cleanup when leaving screen)
     lv_subject_set_int(&led_strip_selected, selected_index);
-
-    // Save to config
-    Config* config = Config::get_instance();
-    if (config && selected_index < led_strip_items.size()) {
-        config->set("/printer/led_strip", led_strip_items[selected_index]);
-        spdlog::debug("[Wizard LED] Saved LED strip: {}", led_strip_items[selected_index]);
-    }
 }
 
 // ============================================================================
@@ -115,10 +98,10 @@ void ui_wizard_led_select_register_callbacks() {
 lv_obj_t* ui_wizard_led_select_create(lv_obj_t* parent) {
     spdlog::info("[Wizard LED] Creating LED select screen");
 
+    // Safety check: cleanup should have been called by wizard navigation
     if (led_select_screen_root) {
-        spdlog::warn("[Wizard LED] Screen already exists, destroying old instance");
-        lv_obj_del(led_select_screen_root);
-        led_select_screen_root = nullptr;
+        spdlog::warn("[Wizard LED] Screen pointer not null - cleanup may not have been called properly");
+        led_select_screen_root = nullptr;  // Reset pointer, wizard framework handles deletion
     }
 
     // Create screen from XML
@@ -133,34 +116,35 @@ lv_obj_t* ui_wizard_led_select_create(lv_obj_t* parent) {
 
     // Build LED strip options from discovered hardware
     led_strip_items.clear();
-    std::string led_options_str;
-
     if (client) {
-        const auto& leds = client->get_leds();
-        // Include all discovered LEDs (no filtering needed)
-        for (const auto& led : leds) {
-            led_strip_items.push_back(led);
-            if (!led_options_str.empty()) led_options_str += "\n";
-            led_options_str += led;
-        }
+        led_strip_items = client->get_leds();
     }
 
-    // Always add "None" option
+    // Build dropdown options string with "None" option
+    std::string led_options_str = WizardHelpers::build_dropdown_options(
+        led_strip_items,
+        nullptr,  // No filter - include all LEDs
+        true      // Include "None" option
+    );
+
+    // Add "None" to items vector to match dropdown
     led_strip_items.push_back("None");
-    if (!led_options_str.empty()) led_options_str += "\n";
-    led_options_str += "None";
 
     // Find and configure LED strip dropdown
     lv_obj_t* led_dropdown = lv_obj_find_by_name(led_select_screen_root, "led_main_dropdown");
     if (led_dropdown) {
         lv_dropdown_set_options(led_dropdown, led_options_str.c_str());
-        int index = lv_subject_get_int(&led_strip_selected);
-        if (index >= static_cast<int>(led_strip_items.size())) {
-            index = 0;  // Reset to first option if out of range
-        }
-        lv_dropdown_set_selected(led_dropdown, index);
-        spdlog::debug("[Wizard LED] Configured LED dropdown with {} options, selected: {}",
-                     led_strip_items.size(), index);
+
+        // Restore saved selection (LED screen has no guessing method)
+        WizardHelpers::restore_dropdown_selection(
+            led_dropdown,
+            &led_strip_selected,
+            led_strip_items,
+            WizardConfigPaths::LED_STRIP,
+            client,
+            nullptr,  // No guessing method for LED strips
+            "[Wizard LED]"
+        );
     }
 
     spdlog::info("[Wizard LED] Screen created successfully");
@@ -174,10 +158,26 @@ lv_obj_t* ui_wizard_led_select_create(lv_obj_t* parent) {
 void ui_wizard_led_select_cleanup() {
     spdlog::debug("[Wizard LED] Cleaning up resources");
 
-    if (led_select_screen_root) {
-        lv_obj_del(led_select_screen_root);
-        led_select_screen_root = nullptr;
+    // Save current selection to config before cleanup (deferred save pattern)
+    WizardHelpers::save_dropdown_selection(
+        &led_strip_selected,
+        led_strip_items,
+        WizardConfigPaths::LED_STRIP,
+        "[Wizard LED]"
+    );
+
+    // Persist to disk
+    Config* config = Config::get_instance();
+    if (config) {
+        config->save();
     }
+
+    // Reset UI references
+    // Note: Do NOT call lv_obj_del() here - the wizard framework handles
+    // object deletion when clearing wizard_content container
+    led_select_screen_root = nullptr;
+
+    spdlog::info("[Wizard LED] Cleanup complete");
 }
 
 // ============================================================================
