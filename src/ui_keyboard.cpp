@@ -199,9 +199,9 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl_alpha_lc[] = {
     static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 6), // Backspace
     // Row 5: ?123 + Space + Period + Enter (5 + 22 + 4 + 9 = 40)
     static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5), // ?123
-    static_cast<lv_buttonmatrix_ctrl_t>(22),                                 // Space (plain width, NO POPOVER!)
-    static_cast<lv_buttonmatrix_ctrl_t>(4),                                  // Period (plain width, NO POPOVER!)
-    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 9)  // Enter
+    static_cast<lv_buttonmatrix_ctrl_t>(22), // Space (plain width, NO POPOVER!)
+    static_cast<lv_buttonmatrix_ctrl_t>(4),  // Period (plain width, NO POPOVER!)
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 9) // Enter
 };
 
 // Uppercase alphabet (caps lock mode - uses eject symbol)
@@ -249,9 +249,9 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl_alpha_uc[] = {
     static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 6), // Backspace
     // Row 5: ?123 + Space + Period + Enter (5 + 22 + 4 + 9 = 40)
     static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5), // ?123
-    static_cast<lv_buttonmatrix_ctrl_t>(22),                                 // Space (plain width, NO POPOVER!)
-    static_cast<lv_buttonmatrix_ctrl_t>(4),                                  // Period (plain width, NO POPOVER!)
-    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 9)  // Enter
+    static_cast<lv_buttonmatrix_ctrl_t>(22), // Space (plain width, NO POPOVER!)
+    static_cast<lv_buttonmatrix_ctrl_t>(4),  // Period (plain width, NO POPOVER!)
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 9) // Enter
 };
 
 // Numbers and symbols layout
