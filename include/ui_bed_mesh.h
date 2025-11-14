@@ -34,7 +34,7 @@ extern "C" {
  * @brief Register <bed_mesh> widget with LVGL XML system
  *
  * Creates a canvas widget (600×400 RGB888) optimized for 3D bed mesh rendering.
- * Automatically allocates buffer memory in create handler.
+ * Automatically allocates buffer memory and renderer in create handler.
  *
  * Usage in XML:
  * @code{.xml}
@@ -42,6 +42,40 @@ extern "C" {
  * @endcode
  */
 void ui_bed_mesh_register(void);
+
+/**
+ * @brief Set mesh data for rendering
+ *
+ * Updates the renderer with new mesh height data. Mesh layout is row-major:
+ * - mesh[row][col] where row = Y-axis (front to back)
+ * - col = X-axis (left to right)
+ * - values are absolute Z heights from printer bed
+ *
+ * @param canvas The bed_mesh canvas widget
+ * @param mesh 2D array of height values (row-major)
+ * @param rows Number of rows in mesh
+ * @param cols Number of columns in mesh
+ * @return true on success, false on error (NULL pointer, invalid dimensions)
+ */
+bool ui_bed_mesh_set_data(lv_obj_t* canvas, const float* const* mesh, int rows, int cols);
+
+/**
+ * @brief Set camera rotation angles
+ *
+ * @param canvas The bed_mesh canvas widget
+ * @param angle_x Tilt angle in degrees (typically -85 to -10, negative = looking down)
+ * @param angle_z Spin angle in degrees (horizontal rotation around vertical axis)
+ */
+void ui_bed_mesh_set_rotation(lv_obj_t* canvas, int angle_x, int angle_z);
+
+/**
+ * @brief Force redraw of mesh visualization
+ *
+ * Clears the canvas and re-renders the mesh with current rotation angles.
+ *
+ * @param canvas The bed_mesh canvas widget
+ */
+void ui_bed_mesh_redraw(lv_obj_t* canvas);
 
 #ifdef __cplusplus
 }

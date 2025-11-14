@@ -23,10 +23,10 @@
 
 #include "ui_panel_bed_mesh.h"
 
+#include "ui_bed_mesh.h"
 #include "ui_nav.h"
 
 #include "app_globals.h"
-#include "bed_mesh_renderer.h"
 #include "moonraker_client.h"
 
 #include <spdlog/spdlog.h>
@@ -52,9 +52,7 @@ using json = nlohmann::json;
 #define ROTATION_Z_DEFAULT 45
 
 // Static state
-static bed_mesh_renderer_t* renderer = nullptr;
 static lv_obj_t* canvas = nullptr;
-static lv_obj_t* mesh_info_label = nullptr;
 static lv_obj_t* rotation_x_label = nullptr;
 static lv_obj_t* rotation_y_label = nullptr;
 static lv_obj_t* rotation_x_slider = nullptr;
@@ -62,7 +60,7 @@ static lv_obj_t* rotation_z_slider = nullptr;
 static lv_obj_t* bed_mesh_panel = nullptr;
 static lv_obj_t* parent_obj = nullptr;
 
-// Current rotation angles
+// Current rotation angles (for slider state tracking)
 static int current_rotation_x = ROTATION_X_DEFAULT;
 static int current_rotation_z = ROTATION_Z_DEFAULT;
 
@@ -86,15 +84,8 @@ static void panel_delete_cb(lv_event_t* e) {
 
     spdlog::debug("[BedMesh] Panel delete event - cleaning up resources");
 
-    // Destroy renderer
-    if (renderer) {
-        bed_mesh_renderer_destroy(renderer);
-        renderer = nullptr;
-    }
-
-    // Clear widget pointers
+    // Widget cleanup (renderer cleanup is handled by widget delete callback)
     canvas = nullptr;
-    mesh_info_label = nullptr;
     rotation_x_label = nullptr;
     rotation_y_label = nullptr;
     rotation_x_slider = nullptr;
@@ -120,10 +111,9 @@ static void rotation_x_slider_cb(lv_event_t* e) {
         lv_label_set_text(rotation_x_label, buf);
     }
 
-    // Update renderer and redraw
-    if (renderer) {
-        bed_mesh_renderer_set_rotation(renderer, current_rotation_x, current_rotation_z);
-        ui_panel_bed_mesh_redraw();
+    // Update widget rotation and redraw
+    if (canvas) {
+        ui_bed_mesh_set_rotation(canvas, current_rotation_x, current_rotation_z);
     }
 
     spdlog::debug("[BedMesh] X rotation updated: {}°", current_rotation_x);
@@ -146,10 +136,9 @@ static void rotation_z_slider_cb(lv_event_t* e) {
         lv_label_set_text(rotation_y_label, buf);
     }
 
-    // Update renderer and redraw
-    if (renderer) {
-        bed_mesh_renderer_set_rotation(renderer, current_rotation_x, current_rotation_z);
-        ui_panel_bed_mesh_redraw();
+    // Update widget rotation and redraw
+    if (canvas) {
+        ui_bed_mesh_set_rotation(canvas, current_rotation_x, current_rotation_z);
     }
 
     spdlog::debug("[BedMesh] Z rotation updated: {}°", current_rotation_z);
@@ -276,13 +265,7 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     }
     spdlog::debug("[BedMesh] Found canvas widget");
 
-    // Find info label
-    mesh_info_label = lv_obj_find_by_name(panel, "mesh_info_label");
-    if (!mesh_info_label) {
-        spdlog::warn("[BedMesh] Info label not found in XML");
-    }
-
-    // Find rotation labels
+    // Find rotation labels (mesh info labels are now reactively bound)
     rotation_x_label = lv_obj_find_by_name(panel, "rotation_x_label");
     if (!rotation_x_label) {
         spdlog::warn("[BedMesh] X rotation label not found in XML");
@@ -330,17 +313,8 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::warn("[BedMesh] Back button not found in XML");
     }
 
-    // Canvas buffer already allocated by <bed_mesh> widget
-    // Create renderer
-    renderer = bed_mesh_renderer_create();
-    if (!renderer) {
-        spdlog::error("[BedMesh] Failed to create renderer");
-        return;
-    }
-    spdlog::debug("[BedMesh] Renderer created");
-
-    // Set initial rotation angles
-    bed_mesh_renderer_set_rotation(renderer, current_rotation_x, current_rotation_z);
+    // Canvas buffer and renderer already created by <bed_mesh> widget
+    // Widget is initialized with default rotation angles matching our defaults
 
     // Update rotation labels with initial values
     if (rotation_x_label) {
@@ -390,8 +364,8 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 }
 
 void ui_panel_bed_mesh_set_data(const std::vector<std::vector<float>>& mesh_data) {
-    if (!renderer) {
-        spdlog::error("[BedMesh] Cannot set mesh data - renderer not initialized");
+    if (!canvas) {
+        spdlog::error("[BedMesh] Cannot set mesh data - canvas not initialized");
         return;
     }
 
@@ -403,45 +377,27 @@ void ui_panel_bed_mesh_set_data(const std::vector<std::vector<float>>& mesh_data
     int rows = mesh_data.size();
     int cols = mesh_data[0].size();
 
-    // Convert std::vector to C-style array for renderer API
+    // Convert std::vector to C-style array for widget API
     std::vector<const float*> row_pointers(rows);
     for (int i = 0; i < rows; i++) {
         row_pointers[i] = mesh_data[i].data();
     }
 
-    // Set mesh data in renderer
-    if (!bed_mesh_renderer_set_mesh_data(renderer, row_pointers.data(), rows, cols)) {
-        spdlog::error("[BedMesh] Failed to set mesh data in renderer");
+    // Set mesh data in widget (automatically triggers redraw)
+    if (!ui_bed_mesh_set_data(canvas, row_pointers.data(), rows, cols)) {
+        spdlog::error("[BedMesh] Failed to set mesh data in widget");
         return;
     }
 
-    spdlog::info("[BedMesh] Mesh data loaded: {}x{}", rows, cols);
-
-    // Update info label
-    if (mesh_info_label) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "Mesh: %dx%d points", rows, cols);
-        lv_label_set_text(mesh_info_label, buf);
-    }
-
-    // Render the mesh
-    ui_panel_bed_mesh_redraw();
+    // Info labels are updated reactively via subjects
 }
 
 void ui_panel_bed_mesh_redraw() {
-    if (!renderer || !canvas) {
-        spdlog::warn("[BedMesh] Cannot redraw - renderer or canvas not initialized");
+    if (!canvas) {
+        spdlog::warn("[BedMesh] Cannot redraw - canvas not initialized");
         return;
     }
 
-    // Clear canvas
-    lv_canvas_fill_bg(canvas, lv_color_black(), LV_OPA_COVER);
-
-    // Render mesh
-    if (!bed_mesh_renderer_render(renderer, canvas)) {
-        spdlog::error("[BedMesh] Render failed");
-        return;
-    }
-
-    spdlog::debug("[BedMesh] Render complete");
+    // Trigger redraw via widget API
+    ui_bed_mesh_redraw(canvas);
 }
