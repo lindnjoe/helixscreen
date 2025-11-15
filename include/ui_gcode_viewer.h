@@ -199,6 +199,144 @@ void ui_gcode_viewer_set_highlighted_object(lv_obj_t* obj, const char* object_na
 const char* ui_gcode_viewer_pick_object(lv_obj_t* obj, int x, int y);
 
 // ==============================================
+// Color & Rendering Control
+// ==============================================
+
+/**
+ * @brief Set custom extrusion color
+ * @param obj Viewer widget
+ * @param color Color for extrusion moves
+ *
+ * Overrides theme default color for extrusions.
+ */
+void ui_gcode_viewer_set_extrusion_color(lv_obj_t* obj, lv_color_t color);
+
+/**
+ * @brief Set custom travel move color
+ * @param obj Viewer widget
+ * @param color Color for travel moves
+ *
+ * Overrides theme default color for travels.
+ */
+void ui_gcode_viewer_set_travel_color(lv_obj_t* obj, lv_color_t color);
+
+/**
+ * @brief Enable/disable automatic filament color from G-code metadata
+ * @param obj Viewer widget
+ * @param enable true to use parsed filament color, false to use theme/custom colors
+ *
+ * When enabled, extrusion color is automatically set from G-code metadata (if available).
+ */
+void ui_gcode_viewer_use_filament_color(lv_obj_t* obj, bool enable);
+
+/**
+ * @brief Set global rendering opacity
+ * @param obj Viewer widget
+ * @param opacity Opacity value (0-255, where 255 = fully opaque)
+ *
+ * Affects all rendered segments. Useful for fade effects or overlays.
+ */
+void ui_gcode_viewer_set_opacity(lv_obj_t* obj, lv_opa_t opacity);
+
+/**
+ * @brief Set brightness factor
+ * @param obj Viewer widget
+ * @param factor Brightness multiplier (0.5-2.0, where 1.0 = normal)
+ *
+ * Values > 1.0 brighten colors, < 1.0 darken them.
+ */
+void ui_gcode_viewer_set_brightness(lv_obj_t* obj, float factor);
+
+// ==============================================
+// Layer Control Extensions
+// ==============================================
+
+/**
+ * @brief Set single layer mode
+ * @param obj Viewer widget
+ * @param layer Layer number (0-based) to display alone
+ *
+ * Convenience function equivalent to set_layer_range(layer, layer).
+ */
+void ui_gcode_viewer_set_single_layer(lv_obj_t* obj, int layer);
+
+/**
+ * @brief Get current layer range start
+ * @param obj Viewer widget
+ * @return Starting layer index
+ */
+int ui_gcode_viewer_get_current_layer_start(lv_obj_t* obj);
+
+/**
+ * @brief Get current layer range end
+ * @param obj Viewer widget
+ * @return Ending layer index (-1 = all layers)
+ */
+int ui_gcode_viewer_get_current_layer_end(lv_obj_t* obj);
+
+// ==============================================
+// Metadata Access
+// ==============================================
+
+/**
+ * @brief Get filament color from G-code metadata
+ * @param obj Viewer widget
+ * @return Hex color string (e.g., "#26A69A") or NULL if not available
+ *
+ * String is valid until next file load.
+ */
+const char* ui_gcode_viewer_get_filament_color(lv_obj_t* obj);
+
+/**
+ * @brief Get filament type from metadata
+ * @param obj Viewer widget
+ * @return Filament type (e.g., "PLA", "PETG") or NULL if not available
+ */
+const char* ui_gcode_viewer_get_filament_type(lv_obj_t* obj);
+
+/**
+ * @brief Get printer model from metadata
+ * @param obj Viewer widget
+ * @return Printer model name or NULL if not available
+ */
+const char* ui_gcode_viewer_get_printer_model(lv_obj_t* obj);
+
+/**
+ * @brief Get estimated print time
+ * @param obj Viewer widget
+ * @return Print time in minutes, or 0.0 if not available
+ */
+float ui_gcode_viewer_get_estimated_time_minutes(lv_obj_t* obj);
+
+/**
+ * @brief Get filament weight
+ * @param obj Viewer widget
+ * @return Filament weight in grams, or 0.0 if not available
+ */
+float ui_gcode_viewer_get_filament_weight_g(lv_obj_t* obj);
+
+/**
+ * @brief Get filament length
+ * @param obj Viewer widget
+ * @return Filament length in mm, or 0.0 if not available
+ */
+float ui_gcode_viewer_get_filament_length_mm(lv_obj_t* obj);
+
+/**
+ * @brief Get filament cost
+ * @param obj Viewer widget
+ * @return Estimated cost, or 0.0 if not available
+ */
+float ui_gcode_viewer_get_filament_cost(lv_obj_t* obj);
+
+/**
+ * @brief Get nozzle diameter
+ * @param obj Viewer widget
+ * @return Nozzle diameter in mm, or 0.0 if not available
+ */
+float ui_gcode_viewer_get_nozzle_diameter_mm(lv_obj_t* obj);
+
+// ==============================================
 // Statistics
 // ==============================================
 

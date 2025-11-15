@@ -140,6 +140,16 @@ struct ParsedGCodeFile {
     float estimated_print_time_minutes{0.0f}; ///< From metadata (if available)
     float total_filament_mm{0.0f};            ///< From metadata (if available)
 
+    // Slicer metadata (parsed from comments)
+    std::string slicer_name;        ///< Slicer software name and version
+    std::string filament_type;      ///< Filament material type (e.g., "PLA", "PETG")
+    std::string filament_color_hex; ///< Filament color in hex format (e.g., "#26A69A")
+    std::string printer_model;      ///< Printer model name
+    float nozzle_diameter_mm{0.0f}; ///< Nozzle diameter in mm
+    float filament_weight_g{0.0f};  ///< Total filament weight in grams
+    float filament_cost{0.0f};      ///< Estimated filament cost
+    int total_layer_count{0};       ///< Total layer count from metadata
+
     /**
      * @brief Get layer at specific index
      * @param index Layer index (0-based)
@@ -248,6 +258,18 @@ class GCodeParser {
     bool parse_exclude_object_command(const std::string& line);
 
     /**
+     * @brief Parse slicer metadata from comment line
+     * @param line Comment line (starts with ';')
+     *
+     * Extracts key-value pairs from slicer comments in OrcaSlicer/PrusaSlicer format.
+     * Examples:
+     * - "; filament_colour = #26A69A"
+     * - "; estimated printing time (normal mode) = 29m 25s"
+     * - "; printer_model = Flashforge Adventurer 5M Pro"
+     */
+    void parse_metadata_comment(const std::string& line);
+
+    /**
      * @brief Extract parameter value from G-code line
      * @param line G-code line
      * @param param Parameter letter (e.g., 'X', 'Y', 'Z')
@@ -298,6 +320,18 @@ class GCodeParser {
     std::vector<Layer> layers_;                  ///< All parsed layers
     std::map<std::string, GCodeObject> objects_; ///< Object metadata
     AABB global_bounds_;                         ///< Global bounding box
+
+    // Parsed metadata (transferred to ParsedGCodeFile on finalize())
+    std::string metadata_slicer_name_;
+    std::string metadata_filament_type_;
+    std::string metadata_filament_color_;
+    std::string metadata_printer_model_;
+    float metadata_nozzle_diameter_{0.0f};
+    float metadata_filament_length_{0.0f};
+    float metadata_filament_weight_{0.0f};
+    float metadata_filament_cost_{0.0f};
+    float metadata_print_time_{0.0f};
+    int metadata_layer_count_{0};
 
     // Progress tracking
     size_t lines_parsed_{0}; ///< Line counter

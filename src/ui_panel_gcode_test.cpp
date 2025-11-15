@@ -21,8 +21,8 @@ static lv_obj_t* panel_root = nullptr;
 static lv_obj_t* gcode_viewer = nullptr;
 static lv_obj_t* stats_label = nullptr;
 
-// Path to test G-code file (will be created in assets/)
-static const char* TEST_GCODE_PATH = "assets/test.gcode";
+// Path to default sample G-code file
+static const char* TEST_GCODE_PATH = "assets/OrcaCube AD5M.gcode";
 
 // ==============================================
 // Event Callbacks
@@ -142,6 +142,26 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
         lv_obj_add_event_cb(btn_load, on_load_test_file, LV_EVENT_CLICKED, nullptr);
     if (btn_clear)
         lv_obj_add_event_cb(btn_clear, on_clear, LV_EVENT_CLICKED, nullptr);
+
+    // Auto-load the default sample file
+    spdlog::info("[GCodeTest] Auto-loading sample file: {}", TEST_GCODE_PATH);
+    ui_gcode_viewer_load_file(gcode_viewer, TEST_GCODE_PATH);
+
+    // Update stats after loading
+    int layer_count = ui_gcode_viewer_get_layer_count(gcode_viewer);
+    gcode_viewer_state_enum_t state = ui_gcode_viewer_get_state(gcode_viewer);
+
+    if (stats_label) {
+        if (state == GCODE_VIEWER_STATE_LOADED) {
+            char buf[128];
+            snprintf(buf, sizeof(buf), "Loaded: %d layers | Drag to rotate", layer_count);
+            lv_label_set_text(stats_label, buf);
+        } else if (state == GCODE_VIEWER_STATE_ERROR) {
+            lv_label_set_text(stats_label, "Error loading file - check console");
+        } else {
+            lv_label_set_text(stats_label, "Loading...");
+        }
+    }
 
     spdlog::info("[GCodeTest] Panel created");
     return panel_root;

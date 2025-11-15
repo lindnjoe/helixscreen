@@ -17,6 +17,7 @@
 #include "gcode_renderer.h"
 
 #include <lvgl/src/xml/lv_xml_parser.h>
+#include <lvgl/src/xml/parsers/lv_xml_obj_parser.h>
 #include <spdlog/spdlog.h>
 
 #include <cstring>
@@ -491,14 +492,18 @@ static void* gcode_viewer_xml_create(lv_xml_parser_state_t* state, const char** 
  * Applies XML attributes to the widget
  */
 static void gcode_viewer_xml_apply(lv_xml_parser_state_t* state, const char** attrs) {
-    LV_UNUSED(state);
-    LV_UNUSED(attrs);
+    void* item = lv_xml_state_get_item(state);
+    lv_obj_t* obj = (lv_obj_t*)item;
 
-    // Standard lv_obj attributes (width, height, align, style_*, etc.) are
-    // automatically handled by LVGL's XML system.
-    // Custom attributes would be parsed here if needed.
+    if (!obj) {
+        spdlog::error("[GCodeViewer] NULL object in xml_apply");
+        return;
+    }
 
-    spdlog::trace("[GCodeViewer] XML apply called (no custom attributes yet)");
+    // Apply standard lv_obj properties from XML (size, style, align, name, etc.)
+    lv_xml_obj_apply(state, attrs);
+
+    spdlog::trace("[GCodeViewer] Applied XML attributes");
 }
 
 /**

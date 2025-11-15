@@ -83,6 +83,13 @@ void GCodeParser::reset() {
 void GCodeParser::parse_line(const std::string& line) {
     lines_parsed_++;
 
+    // Extract and parse metadata comments before trimming
+    size_t comment_pos = line.find(';');
+    if (comment_pos != std::string::npos) {
+        std::string comment = line.substr(comment_pos);
+        parse_metadata_comment(comment);
+    }
+
     std::string trimmed = trim_line(line);
     if (trimmed.empty()) {
         return;
@@ -238,6 +245,167 @@ bool GCodeParser::parse_exclude_object_command(const std::string& line) {
     return false;
 }
 
+void GCodeParser::parse_metadata_comment(const std::string& line) {
+    // OrcaSlicer/PrusaSlicer format: "; key = value"
+    // Use fuzzy matching to handle variations across slicers
+
+    if (line.length() < 3 || line[0] != ';') {
+        return;
+    }
+
+    // Skip '; ' to get key=value part
+    std::string content = line.substr(1);
+
+    // Trim leading whitespace
+    size_t start = 0;
+    while (start < content.length() && std::isspace(content[start])) {
+        start++;
+    }
+    content = content.substr(start);
+
+    // Look for '=' separator
+    size_t eq_pos = content.find('=');
+    if (eq_pos == std::string::npos) {
+        return;
+    }
+
+    // Extract key and value
+    std::string key = content.substr(0, eq_pos);
+    std::string value = content.substr(eq_pos + 1);
+
+    // Trim whitespace from key and value
+    auto trim = [](std::string& s) {
+        size_t start = 0;
+        while (start < s.length() && std::isspace(s[start]))
+            start++;
+        size_t end = s.length();
+        while (end > start && std::isspace(s[end - 1]))
+            end--;
+        s = s.substr(start, end - start);
+    };
+    trim(key);
+    trim(value);
+
+    // Convert key to lowercase for case-insensitive matching
+    std::string key_lower = key;
+    std::transform(key_lower.begin(), key_lower.end(), key_lower.begin(), ::tolower);
+
+    // Helper to check if key contains all substrings (fuzzy match)
+    auto contains_all = [&key_lower](std::initializer_list<const char*> terms) {
+        for (const char* term : terms) {
+            if (key_lower.find(term) == std::string::npos) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    // Parse specific metadata fields with fuzzy matching
+    if (contains_all({"filament", "col"})) { // "color" or "colour"
+        metadata_filament_color_ = value;
+        spdlog::trace("Parsed filament color: {}", value);
+    } else if (contains_all({"filament", "type"})) {
+        metadata_filament_type_ = value;
+        spdlog::trace("Parsed filament type: {}", value);
+    } else if (contains_all({"printer", "model"}) || contains_all({"printer", "name"})) {
+        metadata_printer_model_ = value;
+        spdlog::trace("Parsed printer model: {}", value);
+    } else if (contains_all({"nozzle", "diameter"})) {
+        try {
+            metadata_nozzle_diameter_ = std::stof(value);
+            spdlog::trace("Parsed nozzle diameter: {}mm", metadata_nozzle_diameter_);
+        } catch (...) {
+        }
+    } else if (contains_all({"filament"}) &&
+               (key_lower.find("[mm]") != std::string::npos || contains_all({"length"}))) {
+        try {
+            metadata_filament_length_ = std::stof(value);
+            spdlog::trace("Parsed filament length: {}mm", metadata_filament_length_);
+        } catch (...) {
+        }
+    } else if (contains_all({"filament"}) &&
+               (key_lower.find("[g]") != std::string::npos || contains_all({"weight"}))) {
+        try {
+            metadata_filament_weight_ = std::stof(value);
+            spdlog::trace("Parsed filament weight: {}g", metadata_filament_weight_);
+        } catch (...) {
+        }
+    } else if (contains_all({"filament", "cost"}) || contains_all({"material", "cost"})) {
+        try {
+            metadata_filament_cost_ = std::stof(value);
+            spdlog::trace("Parsed filament cost: ${}", metadata_filament_cost_);
+        } catch (...) {
+        }
+    } else if (contains_all({"layer"}) &&
+               (contains_all({"total"}) || contains_all({"number"}) || contains_all({"count"}))) {
+        try {
+            metadata_layer_count_ = std::stoi(value);
+            spdlog::trace("Parsed total layer count: {}", metadata_layer_count_);
+        } catch (...) {
+        }
+    } else if ((contains_all({"time"}) &&
+                (contains_all({"print"}) || contains_all({"estimated"}))) ||
+               contains_all({"print", "time"})) {
+        // Parse various time formats: "29m 25s", "1h 23m", "45s", etc.
+        float minutes = 0.0f;
+
+        // Try to find hours
+        size_t h_pos = value.find('h');
+        if (h_pos != std::string::npos) {
+            try {
+                float hours = std::stof(value.substr(0, h_pos));
+                minutes += hours * 60.0f;
+            } catch (...) {
+            }
+        }
+
+        // Try to find minutes
+        size_t m_pos = value.find('m');
+        if (m_pos != std::string::npos) {
+            try {
+                size_t start_pos = (h_pos != std::string::npos) ? h_pos + 1 : 0;
+                std::string min_str = value.substr(start_pos, m_pos - start_pos);
+                // Trim spaces
+                size_t min_start = 0;
+                while (min_start < min_str.length() && std::isspace(min_str[min_start]))
+                    min_start++;
+                if (min_start < min_str.length()) {
+                    minutes += std::stof(min_str.substr(min_start));
+                }
+            } catch (...) {
+            }
+        }
+
+        // Try to find seconds
+        size_t s_pos = value.find('s');
+        if (s_pos != std::string::npos) {
+            try {
+                size_t start_pos = (m_pos != std::string::npos)   ? m_pos + 1
+                                   : (h_pos != std::string::npos) ? h_pos + 1
+                                                                  : 0;
+                std::string sec_str = value.substr(start_pos, s_pos - start_pos);
+                // Trim spaces
+                size_t sec_start = 0;
+                while (sec_start < sec_str.length() && std::isspace(sec_str[sec_start]))
+                    sec_start++;
+                if (sec_start < sec_str.length()) {
+                    float seconds = std::stof(sec_str.substr(sec_start));
+                    minutes += seconds / 60.0f;
+                }
+            } catch (...) {
+            }
+        }
+
+        if (minutes > 0.0f) {
+            metadata_print_time_ = minutes;
+            spdlog::trace("Parsed estimated time: {:.2f} minutes", minutes);
+        }
+    } else if (contains_all({"generated"}) || contains_all({"slicer"})) {
+        metadata_slicer_name_ = value;
+        spdlog::trace("Parsed slicer: {}", value);
+    }
+}
+
 bool GCodeParser::extract_param(const std::string& line, char param, float& out_value) {
     size_t pos = line.find(param);
     if (pos == std::string::npos) {
@@ -383,6 +551,18 @@ ParsedGCodeFile GCodeParser::finalize() {
     for (const auto& layer : result.layers) {
         result.total_segments += layer.segments.size();
     }
+
+    // Transfer metadata
+    result.slicer_name = metadata_slicer_name_;
+    result.filament_type = metadata_filament_type_;
+    result.filament_color_hex = metadata_filament_color_;
+    result.printer_model = metadata_printer_model_;
+    result.nozzle_diameter_mm = metadata_nozzle_diameter_;
+    result.total_filament_mm = metadata_filament_length_;
+    result.filament_weight_g = metadata_filament_weight_;
+    result.filament_cost = metadata_filament_cost_;
+    result.estimated_print_time_minutes = metadata_print_time_;
+    result.total_layer_count = metadata_layer_count_;
 
     spdlog::info("Parsed G-code: {} layers, {} segments, {} objects", result.layers.size(),
                  result.total_segments, result.objects.size());

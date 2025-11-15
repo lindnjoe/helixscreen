@@ -510,6 +510,9 @@ static void register_xml_components() {
     // Register semantic text widgets (AFTER theme init, BEFORE components that use them)
     ui_text_init();
 
+    // Register custom widgets (BEFORE components that use them)
+    ui_gcode_viewer_register();
+
     lv_xml_register_component_from_file("A:ui_xml/icon.xml");
     lv_xml_register_component_from_file("A:ui_xml/header_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/confirmation_dialog.xml");
