@@ -31,6 +31,35 @@
 #include <cstring>
 #include <vector>
 
+// ============================================================================
+// Constants
+// ============================================================================
+
+namespace {
+
+// Default camera/view angles
+constexpr double DEFAULT_CAMERA_ANGLE_X = -85.0;  // Tilt angle (looking down)
+constexpr double DEFAULT_CAMERA_ANGLE_Z = 10.0;   // Horizontal rotation
+constexpr double DEFAULT_FOV_SCALE = 100.0;       // Initial field-of-view scale
+
+// Canvas rendering
+constexpr double CANVAS_PADDING_FACTOR = 0.9;     // 10% padding on each side
+const lv_color_t CANVAS_BG_COLOR = lv_color_make(40, 40, 40);  // Dark gray background
+
+// Grid and axis colors
+const lv_color_t GRID_LINE_COLOR = lv_color_make(80, 80, 80);   // Dark gray
+const lv_color_t AXIS_LINE_COLOR = lv_color_make(180, 180, 180); // Light gray
+
+// Axis extension (percentage beyond mesh bounds)
+constexpr double AXIS_EXTENSION_FACTOR = 0.1;     // 10% extension
+constexpr double Z_AXIS_HEIGHT_FACTOR = 1.1;      // 10% above mesh max
+
+// Color desaturation (for muted heat map appearance)
+constexpr double COLOR_SATURATION = 0.65;         // 65% original color
+constexpr double COLOR_DESATURATION = 0.35;       // 35% grayscale mix
+
+} // anonymous namespace
+
 // Internal renderer state
 struct bed_mesh_renderer {
     // Mesh data storage
@@ -210,10 +239,10 @@ bed_mesh_renderer_t* bed_mesh_renderer_create(void) {
     renderer->color_max_z = 0.0;
 
     // Default view state (looking down from above at an angle)
-    renderer->view_state.angle_x = -85.0;
-    renderer->view_state.angle_z = 10.0;
+    renderer->view_state.angle_x = DEFAULT_CAMERA_ANGLE_X;
+    renderer->view_state.angle_z = DEFAULT_CAMERA_ANGLE_Z;
     renderer->view_state.z_scale = BED_MESH_DEFAULT_Z_SCALE;
-    renderer->view_state.fov_scale = 100.0;
+    renderer->view_state.fov_scale = DEFAULT_FOV_SCALE;
     renderer->view_state.is_dragging = false;
 
     spdlog::debug("Created bed mesh renderer");
@@ -371,7 +400,7 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_obj_t* canvas) {
                   renderer->view_state.is_dragging);
 
     // Clear canvas
-    lv_canvas_fill_bg(canvas, lv_color_make(40, 40, 40), LV_OPA_COVER);
+    lv_canvas_fill_bg(canvas, CANVAS_BG_COLOR, LV_OPA_COVER);
 
     // Compute dynamic Z scale if needed
     double z_range = renderer->mesh_max_z - renderer->mesh_min_z;
@@ -471,8 +500,8 @@ static double compute_fov_scale(int rows, int cols, int canvas_width, int canvas
     double mesh_diagonal = std::sqrt(mesh_width * mesh_width + mesh_height * mesh_height);
 
     // Compute available canvas space (with 10% padding)
-    double available_width = canvas_width * 0.9;
-    double available_height = canvas_height * 0.9;
+    double available_width = canvas_width * CANVAS_PADDING_FACTOR;
+    double available_height = canvas_height * CANVAS_PADDING_FACTOR;
     double available_diagonal =
         std::sqrt(available_width * available_width + available_height * available_height);
 
@@ -566,9 +595,9 @@ static lv_color_t height_to_color(double value, double min_val, double max_val) 
 
     // Desaturate by 35% for muted appearance
     uint8_t gray = (r + g + b) / 3;
-    r = static_cast<uint8_t>(r * 0.65 + gray * 0.35);
-    g = static_cast<uint8_t>(g * 0.65 + gray * 0.35);
-    b = static_cast<uint8_t>(b * 0.65 + gray * 0.35);
+    r = static_cast<uint8_t>(r * COLOR_SATURATION + gray * COLOR_DESATURATION);
+    g = static_cast<uint8_t>(g * COLOR_SATURATION + gray * COLOR_DESATURATION);
+    b = static_cast<uint8_t>(b * COLOR_SATURATION + gray * COLOR_DESATURATION);
 
     return lv_color_make(r, g, b);
 }
@@ -845,7 +874,7 @@ static void render_grid_lines(lv_obj_t* canvas, const bed_mesh_renderer_t* rende
     // Configure line drawing style
     lv_draw_line_dsc_t line_dsc;
     lv_draw_line_dsc_init(&line_dsc);
-    line_dsc.color = lv_color_make(80, 80, 80); // Dark gray
+    line_dsc.color = GRID_LINE_COLOR;
     line_dsc.width = 1;
     line_dsc.opa = LV_OPA_60; // 60% opacity
 
@@ -954,7 +983,7 @@ static void render_axis_labels(lv_obj_t* canvas, const bed_mesh_renderer_t* rend
     // Configure axis line drawing style (brighter than grid lines)
     lv_draw_line_dsc_t axis_line_dsc;
     lv_draw_line_dsc_init(&axis_line_dsc);
-    axis_line_dsc.color = lv_color_make(180, 180, 180); // Light gray
+    axis_line_dsc.color = AXIS_LINE_COLOR;
     axis_line_dsc.width = 1;
     axis_line_dsc.opa = LV_OPA_80;
 
@@ -962,7 +991,7 @@ static void render_axis_labels(lv_obj_t* canvas, const bed_mesh_renderer_t* rend
     double x_axis_start_x = mesh_col_to_world_x(0, renderer->cols);
     double x_axis_base_end_x = mesh_col_to_world_x(renderer->cols - 1, renderer->cols);
     double x_axis_length = x_axis_base_end_x - x_axis_start_x;
-    double x_axis_end_x = x_axis_base_end_x + x_axis_length * 0.1; // Extend 10%
+    double x_axis_end_x = x_axis_base_end_x + x_axis_length * AXIS_EXTENSION_FACTOR;
     double x_axis_y = mesh_row_to_world_y(0, renderer->rows);      // Front edge (row=0)
     draw_axis_line(&layer, &axis_line_dsc, x_axis_start_x, x_axis_y, grid_z, x_axis_end_x, x_axis_y,
                    grid_z, canvas_width, canvas_height, &renderer->view_state);
@@ -971,7 +1000,7 @@ static void render_axis_labels(lv_obj_t* canvas, const bed_mesh_renderer_t* rend
     double y_axis_start_y = mesh_row_to_world_y(0, renderer->rows); // Front edge (row=0)
     double y_axis_base_end_y = mesh_row_to_world_y(renderer->rows - 1, renderer->rows); // Back edge
     double y_axis_length = y_axis_start_y - y_axis_base_end_y;
-    double y_axis_end_y = y_axis_base_end_y - y_axis_length * 0.1; // Extend 10%
+    double y_axis_end_y = y_axis_base_end_y - y_axis_length * AXIS_EXTENSION_FACTOR;
     double y_axis_x = mesh_col_to_world_x(0, renderer->cols);      // Left edge
     draw_axis_line(&layer, &axis_line_dsc, y_axis_x, y_axis_start_y, grid_z, y_axis_x, y_axis_end_y,
                    grid_z, canvas_width, canvas_height, &renderer->view_state);
@@ -980,8 +1009,9 @@ static void render_axis_labels(lv_obj_t* canvas, const bed_mesh_renderer_t* rend
     double z_axis_x = mesh_col_to_world_x(0, renderer->cols); // Left edge
     double z_axis_y = mesh_row_to_world_y(0, renderer->rows); // Front edge (row=0)
     double z_axis_bottom = grid_z;
-    double z_axis_top =
-        mesh_z_to_world_z(renderer->mesh_max_z, z_center, renderer->view_state.z_scale) * 1.1;
+    double z_axis_top = mesh_z_to_world_z(renderer->mesh_max_z, z_center,
+                                           renderer->view_state.z_scale) *
+                        Z_AXIS_HEIGHT_FACTOR;
     draw_axis_line(&layer, &axis_line_dsc, z_axis_x, z_axis_y, z_axis_bottom, z_axis_x, z_axis_y,
                    z_axis_top, canvas_width, canvas_height, &renderer->view_state);
 
