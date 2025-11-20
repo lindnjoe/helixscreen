@@ -315,7 +315,6 @@ typedef struct GLContext {
 	GLint specbuf_num_buffers;
 #endif
 	GLint zEnableSpecular;
-	GLint zEnablePhong;  /* Enable per-pixel Phong shading instead of Gouraud */
 
 	/* raster position */
 	GLint rasterpos_zz;

@@ -214,6 +214,7 @@ enum {
 	GL_SHADE_MODEL			= 0x0B54,
 	GL_FLAT				= 0x1D00,
 	GL_SMOOTH			= 0x1D01,
+	GL_PHONG			= 0x1D02,  /* TinyGL extension: per-pixel Phong shading */
 	GL_COLOR_MATERIAL		= 0x0B57,
 	GL_COLOR_MATERIAL_FACE		= 0x0B55,
 	GL_COLOR_MATERIAL_PARAMETER	= 0x0B56,
@@ -796,7 +797,6 @@ void glDrawArrays(	GLenum mode,
  					GLsizei count);
 
 void glSetEnableSpecular(GLint s);
-void glPhongShading(GLint enable);  /* Enable per-pixel Phong shading (optional, slower) */
 void* glGetTexturePixmap(GLint text, GLint level, GLint* xsize, GLint* ysize); 
 void glDrawText(const GLubyte* text, GLint x, GLint y, GLuint pixel); 
 void glTextSize(GLTEXTSIZE mode); 

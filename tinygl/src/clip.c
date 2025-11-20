@@ -431,23 +431,22 @@ void gl_draw_triangle_fill(GLVertex* p0, GLVertex* p1, GLVertex* p2) {
 #else
 		ZB_fillTriangleMappingPerspectiveNOBLEND(c->zb, &p0->zp, &p1->zp, &p2->zp);
 #endif
+	} else if (c->current_shade_model == GL_PHONG) {
+		/* Phong shading (per-pixel lighting) */
+		ZB_fillTrianglePhong(c->zb, &p0->zp, &p1->zp, &p2->zp,
+		                     p0->normal.v, p1->normal.v, p2->normal.v);
 	} else if (c->current_shade_model == GL_SMOOTH) {
-		/* Check if Phong shading is enabled (per-pixel lighting) */
-		if (c->zEnablePhong) {
-			ZB_fillTrianglePhong(c->zb, &p0->zp, &p1->zp, &p2->zp,
-			                     p0->normal.v, p1->normal.v, p2->normal.v);
-		} else {
-			/* Gouraud shading (per-vertex lighting) */
+		/* Gouraud shading (per-vertex lighting) */
 #if TGL_FEATURE_BLEND == 1
-			if (c->zb->enable_blend)
-				ZB_fillTriangleSmooth(c->zb, &p0->zp, &p1->zp, &p2->zp);
-			else
-				ZB_fillTriangleSmoothNOBLEND(c->zb, &p0->zp, &p1->zp, &p2->zp);
-#else
+		if (c->zb->enable_blend)
+			ZB_fillTriangleSmooth(c->zb, &p0->zp, &p1->zp, &p2->zp);
+		else
 			ZB_fillTriangleSmoothNOBLEND(c->zb, &p0->zp, &p1->zp, &p2->zp);
+#else
+		ZB_fillTriangleSmoothNOBLEND(c->zb, &p0->zp, &p1->zp, &p2->zp);
 #endif
-		}
 	} else {
+		/* GL_FLAT: flat shading */
 #if TGL_FEATURE_BLEND == 1
 		if (c->zb->enable_blend)
 			ZB_fillTriangleFlat(c->zb, &p0->zp, &p1->zp, &p2->zp);

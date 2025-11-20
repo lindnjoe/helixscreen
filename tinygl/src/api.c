@@ -117,11 +117,11 @@ void glShadeModel(GLint mode) {
 #define NEED_CONTEXT
 #include "error_check_no_context.h"
 #if TGL_FEATURE_ERROR_CHECK == 1
-	if (mode != GL_FLAT && mode != GL_SMOOTH)
+	if (mode != GL_FLAT && mode != GL_SMOOTH && mode != GL_PHONG)
 #define ERROR_FLAG GL_INVALID_ENUM
 #include "error_check.h"
 #else
-	if (mode != GL_FLAT && mode != GL_SMOOTH)
+	if (mode != GL_FLAT && mode != GL_SMOOTH && mode != GL_PHONG)
 		return;
 #endif
 		p[0].op = OP_ShadeModel;

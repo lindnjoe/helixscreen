@@ -46,8 +46,8 @@ static GLfloat edgeFunction(GLfloat ax, GLfloat ay, GLfloat bx, GLfloat by, GLfl
 #define NODRAWTEST(c) /* a comment */
 #endif
 
-#define ZCMP(z, zpix, _a, c) (((!zbdt) || (z <= zpix)) STIPTEST(_a) NODRAWTEST(c))
-#define ZCMPSIMP(z, zpix, _a, crabapple) (((!zbdt) || (z <= zpix)) STIPTEST(_a))
+#define ZCMP(z, zpix, _a, c) (((!zbdt) || (z >= zpix)) STIPTEST(_a) NODRAWTEST(c))
+#define ZCMPSIMP(z, zpix, _a, crabapple) (((!zbdt) || (z >= zpix)) STIPTEST(_a))
 
 void ZB_fillTriangleFlat(ZBuffer* zb, ZBufferPoint* p0, ZBufferPoint* p1, ZBufferPoint* p2) {
 	GLubyte zbdt = zb->depth_test;

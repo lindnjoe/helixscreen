@@ -49,6 +49,7 @@ const GLubyte* extensions_string =
 	(const GLubyte*)"TGL_TEXTURE "
 					"TGL_SMOOTHSHADING "
 					"TGL_LIGHTING "
+					"TGL_FEATURE_PHONG_SHADING "
 					"TGL_OPTIMIZATION_HINT_BRANCH_COST=" xstr(
 						TGL_OPTIMIZATION_HINT_BRANCH_COST) " "
 #if TGL_FEATURE_ERROR_CHECK == 1

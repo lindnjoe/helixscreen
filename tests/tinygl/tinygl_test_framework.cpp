@@ -4,12 +4,14 @@
 // TinyGL Test Framework - Implementation
 
 #include "tinygl_test_framework.h"
+
+#include <spdlog/spdlog.h>
+
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <spdlog/spdlog.h>
-#include <algorithm>
 
 namespace tinygl_test {
 
@@ -75,18 +77,14 @@ void TinyGLTestFramework::setup_standard_lighting(const SceneConfig& config) {
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
         // Set ambient light
-        float ambient[4] = {
-            config.ambient_intensity,
-            config.ambient_intensity,
-            config.ambient_intensity,
-            1.0f
-        };
+        float ambient[4] = {config.ambient_intensity, config.ambient_intensity,
+                            config.ambient_intensity, 1.0f};
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
 
         // Setup directional lights (matching OrcaSlicer)
         if (config.num_lights >= 1) {
             glEnable(GL_LIGHT0);
-            float light0_dir[4] = {-0.457f, 0.457f, 0.762f, 0.0f};  // Top-right
+            float light0_dir[4] = {-0.457f, 0.457f, 0.762f, 0.0f}; // Top-right
             float light0_color[4] = {0.6f, 0.6f, 0.6f, 1.0f};
             glLightfv(GL_LIGHT0, GL_POSITION, light0_dir);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
@@ -95,7 +93,7 @@ void TinyGLTestFramework::setup_standard_lighting(const SceneConfig& config) {
 
         if (config.num_lights >= 2) {
             glEnable(GL_LIGHT1);
-            float light1_dir[4] = {0.699f, 0.140f, 0.699f, 0.0f};  // Front-right
+            float light1_dir[4] = {0.699f, 0.140f, 0.699f, 0.0f}; // Front-right
             float light1_color[4] = {0.6f, 0.6f, 0.6f, 1.0f};
             glLightfv(GL_LIGHT1, GL_POSITION, light1_dir);
             glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_color);
@@ -103,12 +101,8 @@ void TinyGLTestFramework::setup_standard_lighting(const SceneConfig& config) {
         }
 
         // Setup material properties
-        float mat_specular[4] = {
-            config.specular_intensity,
-            config.specular_intensity,
-            config.specular_intensity,
-            1.0f
-        };
+        float mat_specular[4] = {config.specular_intensity, config.specular_intensity,
+                                 config.specular_intensity, 1.0f};
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
         glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, config.specular_shininess);
     }
@@ -129,7 +123,7 @@ void TinyGLTestFramework::clear_buffers() {
 }
 
 void TinyGLTestFramework::set_phong_shading(bool enable) {
-    glPhongShading(enable ? GL_TRUE : GL_FALSE);
+    glShadeModel(enable ? GL_PHONG : GL_SMOOTH);
 }
 
 void TinyGLTestFramework::render_scene(TestScene* scene, const SceneConfig& config) {
@@ -151,9 +145,9 @@ std::vector<uint8_t> TinyGLTestFramework::capture_framebuffer_rgb() {
     for (int i = 0; i < width_ * height_; i++) {
         unsigned int pixel = framebuffer_[i];
         // TinyGL uses ABGR format internally
-        rgb[i * 3 + 0] = pixel & 0xFF;           // R (from B channel)
-        rgb[i * 3 + 1] = (pixel >> 8) & 0xFF;    // G
-        rgb[i * 3 + 2] = (pixel >> 16) & 0xFF;   // B (from R channel)
+        rgb[i * 3 + 0] = pixel & 0xFF;         // R (from B channel)
+        rgb[i * 3 + 1] = (pixel >> 8) & 0xFF;  // G
+        rgb[i * 3 + 2] = (pixel >> 16) & 0xFF; // B (from R channel)
     }
 
     return rgb;
@@ -176,11 +170,9 @@ bool TinyGLTestFramework::save_screenshot(const std::string& filename) {
     return true;
 }
 
-ImageMetrics TinyGLTestFramework::compare_images(
-    const std::vector<uint8_t>& img1,
-    const std::vector<uint8_t>& img2,
-    int width, int height) {
-
+ImageMetrics TinyGLTestFramework::compare_images(const std::vector<uint8_t>& img1,
+                                                 const std::vector<uint8_t>& img2, int width,
+                                                 int height) {
     ImageMetrics metrics = {};
 
     if (img1.size() != img2.size() || img1.size() != static_cast<size_t>(width * height * 3)) {
@@ -208,10 +200,10 @@ ImageMetrics TinyGLTestFramework::compare_images(
     if (metrics.mse > 0) {
         metrics.psnr = 10.0 * log10(255.0 * 255.0 / metrics.mse);
     } else {
-        metrics.psnr = 100.0;  // Perfect match
+        metrics.psnr = 100.0; // Perfect match
     }
 
-    metrics.diff_pixels = diff_count / 3;  // Convert from color channels to pixels
+    metrics.diff_pixels = diff_count / 3; // Convert from color channels to pixels
 
     // Calculate SSIM (simplified version)
     metrics.ssim = utils::calculate_ssim(img1, img2, width, height);
@@ -219,9 +211,8 @@ ImageMetrics TinyGLTestFramework::compare_images(
     return metrics;
 }
 
-PerfMetrics TinyGLTestFramework::benchmark_scene(
-    TestScene* scene, const SceneConfig& config, int num_frames) {
-
+PerfMetrics TinyGLTestFramework::benchmark_scene(TestScene* scene, const SceneConfig& config,
+                                                 int num_frames) {
     PerfMetrics metrics = {};
 
     // Setup scene once
@@ -258,14 +249,13 @@ PerfMetrics TinyGLTestFramework::benchmark_scene(
     metrics.pixels_per_second = (pixels_per_frame * num_frames) / total_time_sec;
 
     // Memory usage estimation
-    metrics.memory_usage_bytes = sizeof(ZBuffer) + (width_ * height_ * 6);  // RGBA + Z
+    metrics.memory_usage_bytes = sizeof(ZBuffer) + (width_ * height_ * 6); // RGBA + Z
 
     return metrics;
 }
 
-std::vector<uint8_t> TinyGLTestFramework::load_ppm(
-    const std::string& filename, int& width, int& height) {
-
+std::vector<uint8_t> TinyGLTestFramework::load_ppm(const std::string& filename, int& width,
+                                                   int& height) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         spdlog::error("Failed to open PPM file: {}", filename);
@@ -304,8 +294,7 @@ double TinyGLTestFramework::measure_frame_time(std::function<void()> render_func
 // SphereTesselationScene Implementation
 // ============================================================================
 
-SphereTesselationScene::SphereTesselationScene(int subdivisions)
-    : subdivisions_(subdivisions) {}
+SphereTesselationScene::SphereTesselationScene(int subdivisions) : subdivisions_(subdivisions) {}
 
 void SphereTesselationScene::setup(const SceneConfig& /*config*/) {
     generate_sphere();
@@ -320,9 +309,9 @@ void SphereTesselationScene::render() {
     // Render triangles with vertex colors
     glBegin(GL_TRIANGLES);
     for (size_t i = 0; i < vertices_.size(); i += 3) {
-        glNormal3f(normals_[i], normals_[i+1], normals_[i+2]);
-        glColor3f(colors_[i], colors_[i+1], colors_[i+2]);
-        glVertex3f(vertices_[i], vertices_[i+1], vertices_[i+2]);
+        glNormal3f(normals_[i], normals_[i + 1], normals_[i + 2]);
+        glColor3f(colors_[i], colors_[i + 1], colors_[i + 2]);
+        glVertex3f(vertices_[i], vertices_[i + 1], vertices_[i + 2]);
     }
     glEnd();
 
@@ -338,53 +327,49 @@ void SphereTesselationScene::generate_sphere() {
     const float t = (1.0f + sqrtf(5.0f)) / 2.0f;
     const float s = 1.0f / sqrtf(1.0f + t * t);
 
-    float base_verts[][3] = {
-        {-s, t*s, 0}, {s, t*s, 0}, {-s, -t*s, 0}, {s, -t*s, 0},
-        {0, -s, t*s}, {0, s, t*s}, {0, -s, -t*s}, {0, s, -t*s},
-        {t*s, 0, -s}, {t*s, 0, s}, {-t*s, 0, -s}, {-t*s, 0, s}
-    };
+    float base_verts[][3] = {{-s, t * s, 0}, {s, t * s, 0}, {-s, -t * s, 0}, {s, -t * s, 0},
+                             {0, -s, t * s}, {0, s, t * s}, {0, -s, -t * s}, {0, s, -t * s},
+                             {t * s, 0, -s}, {t * s, 0, s}, {-t * s, 0, -s}, {-t * s, 0, s}};
 
     // Define icosahedron faces
-    int faces[][3] = {
-        {0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11},
-        {1, 5, 9}, {5, 11, 4}, {11, 10, 2}, {10, 7, 6}, {7, 1, 8},
-        {3, 9, 4}, {3, 4, 2}, {3, 2, 6}, {3, 6, 8}, {3, 8, 9},
-        {4, 9, 5}, {2, 4, 11}, {6, 2, 10}, {8, 6, 7}, {9, 8, 1}
-    };
+    int faces[][3] = {{0, 11, 5}, {0, 5, 1},  {0, 1, 7},   {0, 7, 10}, {0, 10, 11},
+                      {1, 5, 9},  {5, 11, 4}, {11, 10, 2}, {10, 7, 6}, {7, 1, 8},
+                      {3, 9, 4},  {3, 4, 2},  {3, 2, 6},   {3, 6, 8},  {3, 8, 9},
+                      {4, 9, 5},  {2, 4, 11}, {6, 2, 10},  {8, 6, 7},  {9, 8, 1}};
 
     // Subdivide faces
     for (auto& face : faces) {
-        subdivide_triangle(
-            base_verts[face[0]],
-            base_verts[face[1]],
-            base_verts[face[2]],
-            subdivisions_
-        );
+        subdivide_triangle(base_verts[face[0]], base_verts[face[1]], base_verts[face[2]],
+                           subdivisions_);
     }
 }
 
-void SphereTesselationScene::subdivide_triangle(
-    float* v1, float* v2, float* v3, int depth) {
-
+void SphereTesselationScene::subdivide_triangle(float* v1, float* v2, float* v3, int depth) {
     if (depth == 0) {
         // Normalize vertices to sphere surface
         float n1[3] = {v1[0], v1[1], v1[2]};
         float n2[3] = {v2[0], v2[1], v2[2]};
         float n3[3] = {v3[0], v3[1], v3[2]};
 
-        float len1 = sqrtf(n1[0]*n1[0] + n1[1]*n1[1] + n1[2]*n1[2]);
-        float len2 = sqrtf(n2[0]*n2[0] + n2[1]*n2[1] + n2[2]*n2[2]);
-        float len3 = sqrtf(n3[0]*n3[0] + n3[1]*n3[1] + n3[2]*n3[2]);
+        float len1 = sqrtf(n1[0] * n1[0] + n1[1] * n1[1] + n1[2] * n1[2]);
+        float len2 = sqrtf(n2[0] * n2[0] + n2[1] * n2[1] + n2[2] * n2[2]);
+        float len3 = sqrtf(n3[0] * n3[0] + n3[1] * n3[1] + n3[2] * n3[2]);
 
-        n1[0] /= len1; n1[1] /= len1; n1[2] /= len1;
-        n2[0] /= len2; n2[1] /= len2; n2[2] /= len2;
-        n3[0] /= len3; n3[1] /= len3; n3[2] /= len3;
+        n1[0] /= len1;
+        n1[1] /= len1;
+        n1[2] /= len1;
+        n2[0] /= len2;
+        n2[1] /= len2;
+        n2[2] /= len2;
+        n3[0] /= len3;
+        n3[1] /= len3;
+        n3[2] /= len3;
 
         // Add vertices
         for (int i = 0; i < 3; i++) {
             vertices_.push_back(n1[i]);
             normals_.push_back(n1[i]);
-            colors_.push_back(0.5f + 0.5f * n1[i]);  // Color based on position
+            colors_.push_back(0.5f + 0.5f * n1[i]); // Color based on position
         }
 
         for (int i = 0; i < 3; i++) {
@@ -416,8 +401,7 @@ void SphereTesselationScene::subdivide_triangle(
 // CubeGridScene Implementation
 // ============================================================================
 
-CubeGridScene::CubeGridScene(int grid_size)
-    : grid_size_(grid_size), rotation_(0.0f) {}
+CubeGridScene::CubeGridScene(int grid_size) : grid_size_(grid_size), rotation_(0.0f) {}
 
 void CubeGridScene::setup(const SceneConfig& /*config*/) {
     // Nothing to pre-setup, we generate cubes on the fly
@@ -439,11 +423,8 @@ void CubeGridScene::render() {
                 float pz = offset + z * spacing;
 
                 // Color based on position
-                glColor3f(
-                    (x + 1.0f) / grid_size_,
-                    (y + 1.0f) / grid_size_,
-                    (z + 1.0f) / grid_size_
-                );
+                glColor3f((x + 1.0f) / grid_size_, (y + 1.0f) / grid_size_,
+                          (z + 1.0f) / grid_size_);
 
                 render_cube(px, py, pz, 0.8f);
             }
@@ -451,7 +432,7 @@ void CubeGridScene::render() {
     }
 
     glPopMatrix();
-    rotation_ += 0.5f;  // For animated tests
+    rotation_ += 0.5f; // For animated tests
 }
 
 void CubeGridScene::render_cube(float x, float y, float z, float size) {
@@ -525,7 +506,7 @@ void GouraudArtifactScene::render() {
     glTranslatef(-2.0f, 0.0f, 0.0f);
     glRotatef(-20.0f, 1.0f, 0.0f, 0.0f);
     glColor3f(0.7f, 0.7f, 0.7f);
-    render_cylinder(1.0f, 3.0f, 8);  // Only 8 segments - very visible artifacts
+    render_cylinder(1.0f, 3.0f, 8); // Only 8 segments - very visible artifacts
     glPopMatrix();
 
     // Right: High-tessellation cylinder (smoother)
@@ -533,7 +514,7 @@ void GouraudArtifactScene::render() {
     glTranslatef(2.0f, 0.0f, 0.0f);
     glRotatef(-20.0f, 1.0f, 0.0f, 0.0f);
     glColor3f(0.7f, 0.7f, 0.7f);
-    render_cylinder(1.0f, 3.0f, 32);  // 32 segments - less visible artifacts
+    render_cylinder(1.0f, 3.0f, 32); // 32 segments - less visible artifacts
     glPopMatrix();
 
     glPopMatrix();
@@ -665,10 +646,10 @@ void ColorBandingScene::render_smooth_sphere() {
             float y2 = radius * cosf(phi2);
             float z2 = radius * sinf(phi2) * sinf(theta);
 
-            glNormal3f(x1/radius, y1/radius, z1/radius);
+            glNormal3f(x1 / radius, y1 / radius, z1 / radius);
             glVertex3f(x1, y1, z1);
 
-            glNormal3f(x2/radius, y2/radius, z2/radius);
+            glNormal3f(x2 / radius, y2 / radius, z2 / radius);
             glVertex3f(x2, y2, z2);
         }
         glEnd();
@@ -745,12 +726,9 @@ void setup_orcaslicer_lighting() {
     glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_col);
 }
 
-std::vector<uint8_t> create_diff_image(
-    const std::vector<uint8_t>& img1,
-    const std::vector<uint8_t>& img2,
-    int /*width*/, int /*height*/,
-    float amplification) {
-
+std::vector<uint8_t> create_diff_image(const std::vector<uint8_t>& img1,
+                                       const std::vector<uint8_t>& img2, int /*width*/,
+                                       int /*height*/, float amplification) {
     std::vector<uint8_t> diff_img(img1.size());
 
     for (size_t i = 0; i < img1.size(); i++) {
@@ -762,16 +740,13 @@ std::vector<uint8_t> create_diff_image(
     return diff_img;
 }
 
-double calculate_ssim(
-    const std::vector<uint8_t>& img1,
-    const std::vector<uint8_t>& img2,
-    int /*width*/, int /*height*/) {
-
+double calculate_ssim(const std::vector<uint8_t>& img1, const std::vector<uint8_t>& img2,
+                      int /*width*/, int /*height*/) {
     // Simplified SSIM calculation
     // Real SSIM uses sliding windows, this is a global approximation
 
-    const double c1 = 6.5025;   // (0.01 * 255)^2
-    const double c2 = 58.5225;  // (0.03 * 255)^2
+    const double c1 = 6.5025;  // (0.01 * 255)^2
+    const double c2 = 58.5225; // (0.03 * 255)^2
 
     double mean1 = 0.0, mean2 = 0.0;
     double var1 = 0.0, var2 = 0.0, covar = 0.0;

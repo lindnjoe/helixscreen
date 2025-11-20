@@ -225,15 +225,6 @@ void glSetEnableSpecular(GLint s) {
 }
 void glopSetEnableSpecular(GLParam* p) { gl_get_context()->zEnableSpecular = p[1].i; }
 
-void glPhongShading(GLint enable) {
-	GLParam p[2];
-#include "error_check_no_context.h"
-	p[1].i = enable;
-	p[0].op = OP_PhongShading;
-	gl_add_op(p);
-}
-void glopPhongShading(GLParam* p) { gl_get_context()->zEnablePhong = p[1].i; }
-
 /*
  * Per-pixel lighting for Phong shading
  * Simplified version that works with interpolated normals
