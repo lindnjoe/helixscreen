@@ -23,10 +23,15 @@
 
 #include "ui_panel_controls_extrusion.h"
 
+#include "app_constants.h"
 #include "ui_component_header_bar.h"
+#include "ui_event_safety.h"
 #include "ui_nav.h"
+#include "ui_temperature_utils.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
+
+#include <spdlog/spdlog.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -43,11 +48,10 @@ static char warning_temps_buf[64];
 static int nozzle_current = 25;
 static int nozzle_target = 0;
 static int selected_amount = 10; // Default: 10mm
-static const int MIN_EXTRUSION_TEMP = 170;
 
 // Temperature limits (can be updated from Moonraker heater config)
-static int nozzle_min_temp = 0;
-static int nozzle_max_temp = 500; // Safe default for most hotends
+static int nozzle_min_temp = AppConstants::Temperature::DEFAULT_MIN_TEMP;
+static int nozzle_max_temp = AppConstants::Temperature::DEFAULT_NOZZLE_MAX;
 
 // Panel widgets
 static lv_obj_t* extrusion_panel = nullptr;
@@ -81,15 +85,15 @@ void ui_panel_controls_extrusion_init_subjects() {
     lv_xml_register_subject(NULL, "extrusion_temp_status", &temp_status_subject);
     lv_xml_register_subject(NULL, "extrusion_warning_temps", &warning_temps_subject);
 
-    printf("[Extrusion] Subjects initialized: temp=%d/%d°C, amount=%dmm\n", nozzle_current,
-           nozzle_target, selected_amount);
+    spdlog::info("[Extrusion] Subjects initialized: temp={}/{}°C, amount={}mm",
+                 nozzle_current, nozzle_target, selected_amount);
 }
 
 // Update temperature status display text
 static void update_temp_status() {
     // Status indicator: ✓ (ready), ⚠ (heating), ✗ (too cold)
     const char* status_icon;
-    if (nozzle_current >= MIN_EXTRUSION_TEMP) {
+    if (UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
         // Within 5°C of target and hot enough (safe range check without overflow)
         if (nozzle_target > 0 && nozzle_current >= nozzle_target - 5 &&
             nozzle_current <= nozzle_target + 5) {
@@ -97,7 +101,7 @@ static void update_temp_status() {
         } else {
             status_icon = "✓"; // Hot enough
         }
-    } else if (nozzle_target >= MIN_EXTRUSION_TEMP) {
+    } else if (nozzle_target >= AppConstants::Temperature::MIN_EXTRUSION_TEMP) {
         status_icon = "⚠"; // Heating
     } else {
         status_icon = "✗"; // Too cold
@@ -117,7 +121,7 @@ static void update_warning_text() {
 
 // Update safety state (button enable/disable, warning visibility)
 static void update_safety_state() {
-    bool allowed = (nozzle_current >= MIN_EXTRUSION_TEMP);
+    bool allowed = UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 
     // Enable/disable extrude and retract buttons
     if (btn_extrude) {
@@ -145,7 +149,7 @@ static void update_safety_state() {
         }
     }
 
-    printf("[Extrusion] Safety state updated: allowed=%d (temp=%d°C)\n", allowed, nozzle_current);
+    spdlog::debug("[Extrusion] Safety state updated: allowed={} (temp={}°C)", allowed, nozzle_current);
 }
 
 // Update visual feedback for amount selector buttons
@@ -168,9 +172,7 @@ static void update_amount_buttons_visual() {
 // ============================================================================
 
 // Event handler: Back button
-static void back_button_cb(lv_event_t* e) {
-    (void)e;
-
+LVGL_SAFE_EVENT_CB(back_button_cb, {
     // Use navigation history to go back to previous panel
     if (!ui_nav_go_back()) {
         // Fallback: If navigation history is empty, manually hide and show controls launcher
@@ -185,11 +187,11 @@ static void back_button_cb(lv_event_t* e) {
             }
         }
     }
-}
+})
 
 // Event handler: Amount selector buttons
-static void amount_button_cb(lv_event_t* e) {
-    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(amount_button_cb, event, {
+    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(event);
     const char* name = lv_obj_get_name(btn);
 
     if (!name)
@@ -206,36 +208,32 @@ static void amount_button_cb(lv_event_t* e) {
     }
 
     update_amount_buttons_visual();
-    printf("[Extrusion] Amount selected: %dmm\n", selected_amount);
-}
+    spdlog::debug("[Extrusion] Amount selected: {}mm", selected_amount);
+})
 
 // Event handler: Extrude button
-static void extrude_button_cb(lv_event_t* e) {
-    (void)e;
-
-    if (nozzle_current < MIN_EXTRUSION_TEMP) {
-        printf("[Extrusion] ✗ Extrude blocked: nozzle too cold (%d°C < %d°C)\n", nozzle_current,
-               MIN_EXTRUSION_TEMP);
+LVGL_SAFE_EVENT_CB(extrude_button_cb, {
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Extrusion] Extrude blocked: nozzle too cold ({}°C < {}°C)",
+                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
-    printf("[Extrusion] ✓ Extruding %dmm of filament...\n", selected_amount);
+    spdlog::info("[Extrusion] Extruding {}mm of filament", selected_amount);
     // TODO: Send command to printer (moonraker_extrude(selected_amount))
-}
+})
 
 // Event handler: Retract button
-static void retract_button_cb(lv_event_t* e) {
-    (void)e;
-
-    if (nozzle_current < MIN_EXTRUSION_TEMP) {
-        printf("[Extrusion] ✗ Retract blocked: nozzle too cold (%d°C < %d°C)\n", nozzle_current,
-               MIN_EXTRUSION_TEMP);
+LVGL_SAFE_EVENT_CB(retract_button_cb, {
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Extrusion] Retract blocked: nozzle too cold ({}°C < {}°C)",
+                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
-    printf("[Extrusion] ✓ Retracting %dmm of filament...\n", selected_amount);
+    spdlog::info("[Extrusion] Retracting {}mm of filament", selected_amount);
     // TODO: Send command to printer (moonraker_retract(selected_amount))
-}
+})
 
 // ============================================================================
 // PUBLIC API
@@ -262,7 +260,7 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
     extrusion_panel = panel;
     parent_obj = parent_screen;
 
-    printf("[Extrusion] Setting up panel event handlers...\n");
+    spdlog::info("[Extrusion] Setting up panel event handlers");
 
     // Setup header for responsive height
     lv_obj_t* extrusion_header = lv_obj_find_by_name(panel, "extrusion_header");
@@ -280,8 +278,8 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
         lv_obj_set_style_pad_bottom(extrusion_content, vertical_padding, 0);
         lv_obj_set_style_pad_left(extrusion_content, UI_PADDING_MEDIUM, 0);
         lv_obj_set_style_pad_right(extrusion_content, UI_PADDING_MEDIUM, 0);
-        printf("[Extrusion]   ✓ Content padding: top/bottom=%dpx, left/right=%dpx (responsive)\n",
-               vertical_padding, UI_PADDING_MEDIUM);
+        spdlog::debug("[Extrusion]   ✓ Content padding: top/bottom={}px, left/right={}px (responsive)",
+                      vertical_padding, UI_PADDING_MEDIUM);
     }
 
     // Register resize callback
@@ -291,7 +289,7 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
     lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
     if (back_btn) {
         lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-        printf("[Extrusion]   ✓ Back button\n");
+        spdlog::debug("[Extrusion]   ✓ Back button");
     }
 
     // Amount selector buttons
@@ -302,20 +300,20 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
             lv_obj_add_event_cb(amount_buttons[i], amount_button_cb, LV_EVENT_CLICKED, nullptr);
         }
     }
-    printf("[Extrusion]   ✓ Amount buttons (4)\n");
+    spdlog::debug("[Extrusion]   ✓ Amount buttons (4)");
 
     // Extrude button
     btn_extrude = lv_obj_find_by_name(panel, "btn_extrude");
     if (btn_extrude) {
         lv_obj_add_event_cb(btn_extrude, extrude_button_cb, LV_EVENT_CLICKED, nullptr);
-        printf("[Extrusion]   ✓ Extrude button\n");
+        spdlog::debug("[Extrusion]   ✓ Extrude button");
     }
 
     // Retract button
     btn_retract = lv_obj_find_by_name(panel, "btn_retract");
     if (btn_retract) {
         lv_obj_add_event_cb(btn_retract, retract_button_cb, LV_EVENT_CLICKED, nullptr);
-        printf("[Extrusion]   ✓ Retract button\n");
+        spdlog::debug("[Extrusion]   ✓ Retract button");
     }
 
     // Safety warning card
@@ -327,21 +325,19 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
     update_warning_text();
     update_safety_state();
 
-    printf("[Extrusion] Panel setup complete!\n");
+    spdlog::info("[Extrusion] Panel setup complete!");
 }
 
 void ui_panel_controls_extrusion_set_temp(int current, int target) {
     // Validate temperature ranges using dynamic limits
     if (current < nozzle_min_temp || current > nozzle_max_temp) {
-        printf("[Extrusion] WARNING: Invalid nozzle current temperature %d°C (valid: %d-%d°C), "
-               "clamping\n",
-               current, nozzle_min_temp, nozzle_max_temp);
+        spdlog::warn("[Extrusion] Invalid nozzle current temperature {}°C (valid: {}-{}°C), clamping",
+                     current, nozzle_min_temp, nozzle_max_temp);
         current = (current < nozzle_min_temp) ? nozzle_min_temp : nozzle_max_temp;
     }
     if (target < nozzle_min_temp || target > nozzle_max_temp) {
-        printf("[Extrusion] WARNING: Invalid nozzle target temperature %d°C (valid: %d-%d°C), "
-               "clamping\n",
-               target, nozzle_min_temp, nozzle_max_temp);
+        spdlog::warn("[Extrusion] Invalid nozzle target temperature {}°C (valid: {}-{}°C), clamping",
+                     target, nozzle_min_temp, nozzle_max_temp);
         target = (target < nozzle_min_temp) ? nozzle_min_temp : nozzle_max_temp;
     }
 
@@ -357,11 +353,11 @@ int ui_panel_controls_extrusion_get_amount() {
 }
 
 bool ui_panel_controls_extrusion_is_allowed() {
-    return (nozzle_current >= MIN_EXTRUSION_TEMP);
+    return UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 }
 
 void ui_panel_controls_extrusion_set_limits(int min_temp, int max_temp) {
     nozzle_min_temp = min_temp;
     nozzle_max_temp = max_temp;
-    printf("[Extrusion] Nozzle temperature limits updated: %d-%d°C\n", min_temp, max_temp);
+    spdlog::info("[Extrusion] Nozzle temperature limits updated: {}-{}°C", min_temp, max_temp);
 }

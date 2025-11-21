@@ -48,6 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 4 | **NO auto-mock fallbacks** | `if(!start()) return Mock()` | Check `RuntimeConfig::should_mock_*()`, fail gracefully | Production security, no fake data | - |
 | 5 | **Read docs BEFORE coding** | Start coding immediately | Read LVGL9_XML_GUIDE.md, BUILD_SYSTEM.md for area | Avoid known gotchas | docs/ |
 | 6 | **Use `make -j` (auto-detect)** | `make -j4`, `make -j8` | `make -j` (no number) | Auto-detects cores via NPROC, works on any system | Makefile:202,215 |
+| 7 | **MANDATORY RAII for widgets** | `lv_malloc()` / `lv_free()` | `lvgl_make_unique<T>()` + `release()` | Exception safety, prevent memory leaks | ARCHITECTURE.md, `ui_widget_memory.h` |
 
 ---
 

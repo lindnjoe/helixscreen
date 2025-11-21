@@ -24,6 +24,7 @@
 #include "ui_jog_pad.h"
 
 #include "ui_theme.h"
+#include "ui_widget_memory.h"
 
 #include <spdlog/spdlog.h>
 
@@ -614,11 +615,10 @@ static void jog_pad_click_cb(lv_event_t* e) {
 // Cleanup callback: Free allocated state
 static void jog_pad_delete_cb(lv_event_t* e) {
     lv_obj_t* obj = (lv_obj_t*)lv_event_get_target(e);
-    jog_pad_state_t* state = get_state(obj);
-    if (state) {
-        lv_free(state);
-        lv_obj_set_user_data(obj, nullptr);
-    }
+    // Transfer ownership to RAII wrapper - automatic cleanup
+    lvgl_unique_ptr<jog_pad_state_t> state(get_state(obj));
+    lv_obj_set_user_data(obj, nullptr);
+    // state automatically freed via ~unique_ptr() when function exits
 }
 
 // Public API Implementation
@@ -628,20 +628,24 @@ lv_obj_t* ui_jog_pad_create(lv_obj_t* parent) {
     if (!obj)
         return nullptr;
 
-    // Allocate state
-    jog_pad_state_t* state = (jog_pad_state_t*)lv_malloc(sizeof(jog_pad_state_t));
-    if (!state) {
+    // Allocate state using RAII helper
+    auto state_ptr = lvgl_make_unique<jog_pad_state_t>();
+    if (!state_ptr) {
         lv_obj_delete(obj);
         return nullptr;
     }
 
+    // Get raw pointer for initialization
+    jog_pad_state_t* state = state_ptr.get();
+
     // Initialize state
-    memset(state, 0, sizeof(jog_pad_state_t));
     state->current_distance = JOG_DIST_1MM;
-    lv_obj_set_user_data(obj, state);
 
     // Load colors from component scope (tries "motion_panel" first, falls back to defaults)
     load_colors(state, "motion_panel");
+
+    // Transfer ownership to LVGL widget
+    lv_obj_set_user_data(obj, state_ptr.release());
 
     // Configure object appearance
     lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);

@@ -27,6 +27,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <memory>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -146,13 +147,14 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
         return nullptr;
     }
 
-    // Allocate graph structure
-    ui_temp_graph_t* graph = (ui_temp_graph_t*)malloc(sizeof(ui_temp_graph_t));
-    if (!graph) {
+    // Allocate graph structure using RAII
+    auto graph_ptr = std::make_unique<ui_temp_graph_t>();
+    if (!graph_ptr) {
         spdlog::error("[TempGraph] Failed to allocate graph structure");
         return nullptr;
     }
 
+    ui_temp_graph_t* graph = graph_ptr.get();
     memset(graph, 0, sizeof(ui_temp_graph_t));
 
     // Initialize defaults
@@ -166,8 +168,7 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     graph->chart = lv_chart_create(parent);
     if (!graph->chart) {
         spdlog::error("[TempGraph] Failed to create chart widget");
-        free(graph);
-        return nullptr;
+        return nullptr; // graph_ptr auto-freed
     }
 
     // Configure chart
@@ -212,7 +213,8 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     spdlog::info("[TempGraph] Created: {} points, {:.0f}-{:.0f}°C range", graph->point_count,
                  graph->min_temp, graph->max_temp);
 
-    return graph;
+    // Transfer ownership to caller
+    return graph_ptr.release();
 }
 
 // Destroy temperature graph widget
@@ -220,19 +222,22 @@ void ui_temp_graph_destroy(ui_temp_graph_t* graph) {
     if (!graph)
         return;
 
+    // Transfer ownership to RAII wrapper - automatic cleanup
+    std::unique_ptr<ui_temp_graph_t> graph_ptr(graph);
+
     // Remove all series (cursors will be cleaned up automatically)
-    for (int i = 0; i < graph->series_count; i++) {
-        if (graph->series_meta[i].chart_series) {
-            lv_chart_remove_series(graph->chart, graph->series_meta[i].chart_series);
+    for (int i = 0; i < graph_ptr->series_count; i++) {
+        if (graph_ptr->series_meta[i].chart_series) {
+            lv_chart_remove_series(graph_ptr->chart, graph_ptr->series_meta[i].chart_series);
         }
     }
 
     // Delete chart widget
-    if (graph->chart) {
-        lv_obj_del(graph->chart);
+    if (graph_ptr->chart) {
+        lv_obj_del(graph_ptr->chart);
     }
 
-    free(graph);
+    // graph_ptr automatically freed via ~unique_ptr()
     spdlog::debug("[TempGraph] Destroyed");
 }
 
@@ -370,9 +375,9 @@ void ui_temp_graph_set_series_data(ui_temp_graph_t* graph, int series_id, const 
     // Clear existing data using public API
     lv_chart_set_all_values(graph->chart, meta->chart_series, LV_CHART_POINT_NONE);
 
-    // Convert float array to int32_t array for LVGL API
+    // Convert float array to int32_t array for LVGL API (using RAII)
     int points_to_copy = count > graph->point_count ? graph->point_count : count;
-    int32_t* values = (int32_t*)malloc(points_to_copy * sizeof(int32_t));
+    auto values = std::make_unique<int32_t[]>(points_to_copy);
     if (!values) {
         spdlog::error("[TempGraph] Failed to allocate conversion buffer");
         return;
@@ -383,9 +388,9 @@ void ui_temp_graph_set_series_data(ui_temp_graph_t* graph, int series_id, const 
     }
 
     // Set data using public API
-    lv_chart_set_series_values(graph->chart, meta->chart_series, values, points_to_copy);
+    lv_chart_set_series_values(graph->chart, meta->chart_series, values.get(), points_to_copy);
 
-    free(values);
+    // values automatically freed via ~unique_ptr()
 
     lv_chart_refresh(graph->chart);
     spdlog::debug("[TempGraph] Series {} '{}' data set ({} points)", series_id, meta->name,

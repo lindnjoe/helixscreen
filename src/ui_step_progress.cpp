@@ -24,6 +24,7 @@
 #include "ui_step_progress.h"
 
 #include "ui_theme.h"
+#include "ui_widget_memory.h"
 
 #include <spdlog/spdlog.h>
 
@@ -192,22 +193,27 @@ static void apply_step_styling(lv_obj_t* step_item, ui_step_state_t state) {
  */
 static void step_progress_delete_cb(lv_event_t* e) {
     lv_obj_t* widget = lv_event_get_target_obj(e);
-    step_progress_data_t* data = (step_progress_data_t*)lv_obj_get_user_data(widget);
+    // Transfer ownership to RAII wrapper - automatic cleanup
+    lvgl_unique_ptr<step_progress_data_t> data(
+        (step_progress_data_t*)lv_obj_get_user_data(widget)
+    );
+    lv_obj_set_user_data(widget, nullptr);
 
     if (data) {
-        // Free label buffers
+        // Free nested allocations
         if (data->label_buffers) {
             for (int i = 0; i < data->step_count; i++) {
-                if (data->label_buffers[i]) {
-                    lv_free(data->label_buffers[i]);
-                }
+                // Use RAII for each label buffer
+                lvgl_unique_ptr<char> label(data->label_buffers[i]);
             }
-            lv_free(data->label_buffers);
+            // Wrap array itself
+            lvgl_unique_ptr<char*> buffers(data->label_buffers);
         }
 
-        if (data->states)
-            lv_free(data->states);
-        lv_free(data);
+        if (data->states) {
+            lvgl_unique_ptr<ui_step_state_t> states(data->states);
+        }
+        // data itself automatically freed via ~unique_ptr()
     }
 }
 
@@ -221,42 +227,44 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
     // Initialize theme-aware colors from component scope
     init_step_progress_colors(scope_name);
 
-    // Allocate widget data
-    step_progress_data_t* data = (step_progress_data_t*)lv_malloc(sizeof(step_progress_data_t));
-    if (!data) {
+    // Allocate widget data using RAII
+    auto data_ptr = lvgl_make_unique<step_progress_data_t>();
+    if (!data_ptr) {
         spdlog::error("Failed to allocate step progress data");
         return nullptr;
     }
-    memset(data, 0, sizeof(step_progress_data_t));
 
+    step_progress_data_t* data = data_ptr.get();
     data->step_count = step_count;
     data->horizontal = horizontal;
 
-    // Allocate arrays
-    data->label_buffers = (char**)lv_malloc(step_count * sizeof(char*));
-    data->states = (ui_step_state_t*)lv_malloc(step_count * sizeof(ui_step_state_t));
+    // Allocate arrays using RAII
+    auto label_buffers_ptr = lvgl_make_unique_array<char*>(step_count);
+    auto states_ptr = lvgl_make_unique_array<ui_step_state_t>(step_count);
 
-    if (!data->label_buffers || !data->states) {
+    if (!label_buffers_ptr || !states_ptr) {
         spdlog::error("Failed to allocate step data arrays");
-        if (data->label_buffers)
-            lv_free(data->label_buffers);
-        if (data->states)
-            lv_free(data->states);
-        lv_free(data);
         return nullptr;
     }
 
-    memset(data->label_buffers, 0, step_count * sizeof(char*));
-    memset(data->states, 0, step_count * sizeof(ui_step_state_t));
+    data->label_buffers = label_buffers_ptr.get();
+    data->states = states_ptr.get();
 
     // Copy initial data
     for (int i = 0; i < step_count; i++) {
-        data->label_buffers[i] = (char*)lv_malloc(128);
-        if (data->label_buffers[i]) {
-            snprintf(data->label_buffers[i], 128, "%s", steps[i].label);
+        auto label_buf = lvgl_make_unique_array<char>(128);
+        if (label_buf) {
+            snprintf(label_buf.get(), 128, "%s", steps[i].label);
+            data->label_buffers[i] = label_buf.release();
+        } else {
+            data->label_buffers[i] = nullptr;
         }
         data->states[i] = steps[i].state;
     }
+
+    // Release ownership of nested arrays (now owned by data struct)
+    label_buffers_ptr.release();
+    states_ptr.release();
 
     // Create container widget
     lv_obj_t* container = lv_obj_create(parent);
@@ -271,7 +279,9 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
     } else {
         lv_obj_set_style_pad_row(container, 24, 0); // 24px spacing between vertical steps
     }
-    lv_obj_set_user_data(container, data);
+
+    // Transfer ownership to LVGL widget
+    lv_obj_set_user_data(container, data_ptr.release());
 
     // Register cleanup callback
     lv_obj_add_event_cb(container, step_progress_delete_cb, LV_EVENT_DELETE, nullptr);

@@ -24,6 +24,7 @@
 #include "ui_panel_motion.h"
 
 #include "ui_component_header_bar.h"
+#include "ui_event_safety.h"
 #include "ui_jog_pad.h"
 #include "ui_nav.h"
 #include "ui_theme.h"
@@ -79,7 +80,7 @@ void ui_panel_motion_init_subjects() {
     lv_xml_register_subject(NULL, "motion_pos_y", &pos_y_subject);
     lv_xml_register_subject(NULL, "motion_pos_z", &pos_z_subject);
 
-    printf("[Motion] Subjects initialized: X/Y/Z position displays\n");
+    spdlog::info("[Motion] Subjects initialized: X/Y/Z position displays");
 }
 
 // Jog pad callback wrappers (bridge between widget and motion panel)
@@ -114,9 +115,7 @@ static void update_distance_buttons() {
 }
 
 // Event handler: Back button
-static void back_button_cb(lv_event_t* e) {
-    (void)e; // Unused parameter
-
+LVGL_SAFE_EVENT_CB(back_button_cb, {
     // Use navigation history to go back to previous panel
     if (!ui_nav_go_back()) {
         // Fallback: If navigation history is empty, manually hide and show controls launcher
@@ -131,55 +130,55 @@ static void back_button_cb(lv_event_t* e) {
             }
         }
     }
-}
+})
 
 // Event handler: Distance selector buttons
-static void distance_button_cb(lv_event_t* e) {
-    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(distance_button_cb, event, {
+    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(event);
 
     // Find which button was clicked
     for (int i = 0; i < 4; i++) {
         if (btn == dist_buttons[i]) {
             current_distance = (jog_distance_t)i;
-            printf("[Motion] Distance selected: %.1fmm\n", distance_values[i]);
+            spdlog::info("[Motion] Distance selected: {:.1f}mm", distance_values[i]);
             update_distance_buttons();
             return;
         }
     }
-}
+})
 
 // Event handler: Z-axis buttons
-static void z_button_cb(lv_event_t* e) {
-    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(z_button_cb, event, {
+    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(event);
     const char* name = lv_obj_get_name(btn);
 
-    printf("[Motion] Z button callback fired! Button name: '%s'\n", name ? name : "(null)");
+    spdlog::info("[Motion] Z button callback fired! Button name: '{}'", name ? name : "(null)");
 
     if (!name) {
-        printf("[Motion]   ERROR: Button has no name!\n");
+        spdlog::error("[Motion] Button has no name!");
         return;
     }
 
     if (strcmp(name, "z_up_10") == 0) {
         ui_panel_motion_set_position(current_x, current_y, current_z + 10.0f);
-        printf("[Motion] Z jog: +10mm (now %.1fmm)\n", current_z);
+        spdlog::info("[Motion] Z jog: +10mm (now {:.1f}mm)", current_z);
     } else if (strcmp(name, "z_up_1") == 0) {
         ui_panel_motion_set_position(current_x, current_y, current_z + 1.0f);
-        printf("[Motion] Z jog: +1mm (now %.1fmm)\n", current_z);
+        spdlog::info("[Motion] Z jog: +1mm (now {:.1f}mm)", current_z);
     } else if (strcmp(name, "z_down_1") == 0) {
         ui_panel_motion_set_position(current_x, current_y, current_z - 1.0f);
-        printf("[Motion] Z jog: -1mm (now %.1fmm)\n", current_z);
+        spdlog::info("[Motion] Z jog: -1mm (now {:.1f}mm)", current_z);
     } else if (strcmp(name, "z_down_10") == 0) {
         ui_panel_motion_set_position(current_x, current_y, current_z - 10.0f);
-        printf("[Motion] Z jog: -10mm (now %.1fmm)\n", current_z);
+        spdlog::info("[Motion] Z jog: -10mm (now {:.1f}mm)", current_z);
     } else {
-        printf("[Motion]   ERROR: Unknown button name: '%s'\n", name);
+        spdlog::error("[Motion] Unknown button name: '{}'", name);
     }
-}
+})
 
 // Event handler: Home buttons
-static void home_button_cb(lv_event_t* e) {
-    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(home_button_cb, event, {
+    lv_obj_t* btn = (lv_obj_t*)lv_event_get_target(event);
     const char* name = lv_obj_get_name(btn);
 
     if (!name)
@@ -194,7 +193,7 @@ static void home_button_cb(lv_event_t* e) {
     } else if (strcmp(name, "home_z") == 0) {
         ui_panel_motion_home('Z');
     }
-}
+})
 
 // Resize callback for responsive padding
 static void on_resize() {
@@ -217,7 +216,7 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     motion_panel = panel;
     parent_obj = parent_screen;
 
-    printf("[Motion] Setting up event handlers...\n");
+    spdlog::info("[Motion] Setting up event handlers...");
 
     // Setup header for responsive height
     lv_obj_t* motion_header = lv_obj_find_by_name(panel, "motion_header");
@@ -235,8 +234,8 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         lv_obj_set_style_pad_bottom(motion_content, vertical_padding, 0);
         lv_obj_set_style_pad_left(motion_content, UI_PADDING_MEDIUM, 0);
         lv_obj_set_style_pad_right(motion_content, UI_PADDING_MEDIUM, 0);
-        printf("[Motion]   ✓ Content padding: top/bottom=%dpx, left/right=%dpx (responsive)\n",
-               vertical_padding, UI_PADDING_MEDIUM);
+        spdlog::debug("[Motion] Content padding: top/bottom={}px, left/right={}px (responsive)",
+                      vertical_padding, UI_PADDING_MEDIUM);
     }
 
     // Register resize callback
@@ -257,7 +256,7 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         }
     }
     update_distance_buttons();
-    printf("[Motion]   ✓ Distance selector (4 buttons)\n");
+    spdlog::debug("[Motion] Distance selector (4 buttons)");
 
     // Find jog pad container from XML and replace it with the widget
     lv_obj_t* jog_pad_container = lv_obj_find_by_name(panel, "jog_pad_container");
@@ -311,15 +310,15 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     for (const char* name : z_names) {
         lv_obj_t* btn = lv_obj_find_by_name(panel, name);
         if (btn) {
-            printf("[Motion]     Found '%s' at %p\n", name, (void*)btn);
+            spdlog::debug("[Motion] Found '{}' at {}", name, (void*)btn);
             lv_obj_add_event_cb(btn, z_button_cb, LV_EVENT_CLICKED, nullptr);
-            printf("[Motion]     Event handler attached successfully\n");
+            spdlog::debug("[Motion] Event handler attached successfully");
             z_found++;
         } else {
-            printf("[Motion]   ✗ Z button '%s' NOT FOUND!\n", name);
+            spdlog::warn("[Motion] Z button '{}' NOT FOUND!", name);
         }
     }
-    printf("[Motion]   ✓ Z-axis controls (%d/4 buttons found)\n", z_found);
+    spdlog::debug("[Motion] Z-axis controls ({}/4 buttons found)", z_found);
 
     // Home buttons
     const char* home_names[] = {"home_all", "home_x", "home_y", "home_z"};
@@ -329,9 +328,9 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
             lv_obj_add_event_cb(btn, home_button_cb, LV_EVENT_CLICKED, nullptr);
         }
     }
-    printf("[Motion]   ✓ Home buttons (4 buttons)\n");
+    spdlog::debug("[Motion] Home buttons (4 buttons)");
 
-    printf("[Motion] Setup complete!\n");
+    spdlog::info("[Motion] Setup complete!");
 }
 
 void ui_panel_motion_set_position(float x, float y, float z) {
@@ -364,7 +363,7 @@ void ui_panel_motion_jog(jog_direction_t direction, float distance_mm) {
     const char* dir_names[] = {"N(+Y)",    "S(-Y)",    "E(+X)",    "W(-X)",
                                "NE(+X+Y)", "NW(-X+Y)", "SE(+X-Y)", "SW(-X-Y)"};
 
-    printf("[Motion] Jog command: %s %.1fmm\n", dir_names[direction], distance_mm);
+    spdlog::info("[Motion] Jog command: {} {:.1f}mm", dir_names[direction], distance_mm);
 
     // Mock position update (simulate jog movement)
     float dx = 0.0f, dy = 0.0f;
@@ -407,7 +406,7 @@ void ui_panel_motion_jog(jog_direction_t direction, float distance_mm) {
 }
 
 void ui_panel_motion_home(char axis) {
-    printf("[Motion] Home command: %c axis\n", axis);
+    spdlog::info("[Motion] Home command: {} axis", axis);
 
     // Mock position update (simulate homing)
     switch (axis) {

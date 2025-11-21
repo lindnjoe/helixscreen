@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <vector>
 
+#include "spdlog/spdlog.h"
+
 // ============================================================================
 // LIFECYCLE & RESPONSIVE BEHAVIOR
 // ============================================================================
@@ -45,7 +47,7 @@ static void header_bar_delete_cb(lv_event_t* e) {
     auto it = std::find(header_instances.begin(), header_instances.end(), header);
     if (it != header_instances.end()) {
         header_instances.erase(it);
-        printf("[HeaderBar] Removed from tracking (%zu remain)\n", header_instances.size());
+        spdlog::debug("[HeaderBar] Removed from tracking ({} remain)", header_instances.size());
     }
 }
 
@@ -64,7 +66,7 @@ static void on_app_resize() {
     }
 
     if (!header_instances.empty()) {
-        printf("[HeaderBar] Updated %zu header heights on resize\n", header_instances.size());
+        spdlog::debug("[HeaderBar] Updated {} header heights on resize", header_instances.size());
     }
 }
 
@@ -128,7 +130,7 @@ void ui_component_header_bar_init() {
     // Register global resize callback for all header_bar instances
     ui_resize_handler_register(on_app_resize);
 
-    printf("[HeaderBar] Component system initialized\n");
+    spdlog::info("[HeaderBar] Component system initialized");
 }
 
 void ui_component_header_bar_setup(lv_obj_t* header, lv_obj_t* screen) {
@@ -146,5 +148,5 @@ void ui_component_header_bar_setup(lv_obj_t* header, lv_obj_t* screen) {
     lv_coord_t header_height = ui_get_responsive_header_height(lv_obj_get_height(screen));
     lv_obj_set_height(header, header_height);
 
-    printf("[HeaderBar] Setup complete: height=%dpx\n", header_height);
+    spdlog::debug("[HeaderBar] Setup complete: height={}px", header_height);
 }

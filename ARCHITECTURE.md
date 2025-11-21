@@ -316,6 +316,161 @@ LVGL uses automatic memory management:
 - No manual `free()` calls needed for UI elements
 - Use LVGL's built-in reference counting for shared resources
 
+### ⚠️ **REQUIRED:** RAII for Custom Widget Memory
+
+**MANDATORY PATTERN for all custom widgets that allocate memory:**
+
+Custom widgets must use RAII (Resource Acquisition Is Initialization) for exception-safe memory management. Manual `lv_malloc/lv_free` is **forbidden** due to leak risks from exceptions or early returns.
+
+**Required header:** `#include "ui_widget_memory.h"`
+
+**Pattern 1: Widget user_data (most common):**
+
+```cpp
+// Widget state structure
+struct MyWidgetState {
+    int value;
+    lv_obj_t* button;
+};
+
+// ✅ REQUIRED: Delete callback uses RAII wrapper
+static void my_widget_delete_cb(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+    // Transfer ownership to RAII wrapper - automatic cleanup
+    lvgl_unique_ptr<MyWidgetState> state(
+        (MyWidgetState*)lv_obj_get_user_data(obj)
+    );
+    lv_obj_set_user_data(obj, nullptr);
+
+    // Even if cleanup code throws exceptions, state is freed
+    cleanup_resources();
+}
+
+// ✅ REQUIRED: Widget creation uses RAII helper
+lv_obj_t* my_widget_create(lv_obj_t* parent) {
+    lv_obj_t* obj = lv_obj_create(parent);
+    if (!obj) return nullptr;
+
+    // Allocate using RAII helper
+    auto state_ptr = lvgl_make_unique<MyWidgetState>();
+    if (!state_ptr) {
+        lv_obj_delete(obj);
+        return nullptr;
+    }
+
+    // Get raw pointer for initialization
+    MyWidgetState* state = state_ptr.get();
+    state->value = 0;
+    state->button = nullptr;
+
+    // Transfer ownership to LVGL widget
+    lv_obj_set_user_data(obj, state_ptr.release());
+
+    // Register cleanup
+    lv_obj_add_event_cb(obj, my_widget_delete_cb, LV_EVENT_DELETE, nullptr);
+
+    return obj;
+}
+```
+
+**Pattern 2: Standalone widget structures (e.g., ui_temp_graph):**
+
+```cpp
+// ✅ REQUIRED: Creation returns unique_ptr ownership
+ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
+    auto graph_ptr = std::make_unique<ui_temp_graph_t>();
+    if (!graph_ptr) return nullptr;
+
+    // Initialize...
+    graph_ptr->chart = lv_chart_create(parent);
+    if (!graph_ptr->chart) {
+        return nullptr; // graph_ptr auto-freed
+    }
+
+    // Transfer ownership to caller
+    return graph_ptr.release();
+}
+
+// ✅ REQUIRED: Destruction uses RAII wrapper
+void ui_temp_graph_destroy(ui_temp_graph_t* graph) {
+    if (!graph) return;
+
+    // Transfer ownership to RAII wrapper
+    std::unique_ptr<ui_temp_graph_t> graph_ptr(graph);
+
+    // Cleanup LVGL widgets
+    if (graph_ptr->chart) {
+        lv_obj_del(graph_ptr->chart);
+    }
+
+    // graph_ptr automatically freed via ~unique_ptr()
+}
+```
+
+**Pattern 3: Nested allocations (e.g., ui_step_progress):**
+
+```cpp
+struct WidgetData {
+    char** label_buffers;  // Array of strings
+    int count;
+};
+
+// Allocate nested arrays using RAII
+auto data_ptr = lvgl_make_unique<WidgetData>();
+auto label_buffers_ptr = lvgl_make_unique_array<char*>(count);
+
+// Initialize...
+data_ptr->label_buffers = label_buffers_ptr.get();
+data_ptr->count = count;
+
+for (int i = 0; i < count; i++) {
+    auto label = lvgl_make_unique_array<char>(128);
+    data_ptr->label_buffers[i] = label.release();
+}
+
+// Release ownership
+label_buffers_ptr.release();
+lv_obj_set_user_data(obj, data_ptr.release());
+```
+
+**Why RAII is mandatory:**
+1. **Exception Safety:** If code between malloc and free throws, memory leaks
+2. **Early Returns:** Manual free is skipped if function returns early
+3. **Maintenance:** RAII is self-documenting and enforces cleanup
+4. **Future-Proof:** Adding exception-throwing code won't introduce leaks
+
+**❌ FORBIDDEN ANTI-PATTERN:**
+
+```cpp
+// ❌ WRONG: Manual malloc/free is NOT ALLOWED
+lv_obj_t* my_widget_create(lv_obj_t* parent) {
+    MyWidgetState* state = (MyWidgetState*)lv_malloc(sizeof(MyWidgetState));
+    if (!state) return nullptr;
+
+    // If this throws exception, state leaks!
+    do_something_that_might_throw();
+
+    lv_obj_set_user_data(obj, state);
+    return obj;
+}
+
+static void my_widget_delete_cb(lv_event_t* e) {
+    MyWidgetState* state = ...;
+
+    // If this throws exception, state leaks!
+    cleanup_resources();
+
+    lv_free(state);  // ❌ Never reached if exception thrown
+}
+```
+
+**See also:** `include/ui_widget_memory.h` for full API documentation
+
+**Examples:**
+- `src/ui_jog_pad.cpp` - Simple widget user_data
+- `src/ui_step_progress.cpp` - Complex nested allocations
+- `src/ui_temp_graph.cpp` - Standalone structure with custom destroy
+
 ### Static Object Destructors and Logging
 
 **Problem:** Static/global objects are destroyed during `exit()` in undefined order across translation units (static destruction order fiasco). If your destructor tries to use spdlog, it may crash because spdlog's global logger might already be destroyed.
