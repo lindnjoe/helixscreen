@@ -777,10 +777,10 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     // ========== END CAP TRACKING ==========
     // Track end cap edge positions (first vertex of each face in curr ring)
     TubeCap end_cap(N);
-    uint32_t curr_faces_base = idx_start - 2*N;
+    uint32_t end_cap_base = idx_start - 2*N;
     for (int i = 0; i < N; i++) {
         // Track first vertex of each face (vertex i)
-        end_cap[i] = curr_faces_base + 2*i;
+        end_cap[i] = end_cap_base + 2*i;
     }
 
     static int debug_count = 0;
@@ -801,78 +801,57 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         debug_count++;
     }
 
-    // Generate triangle strips for the 4 faces
-    // Need to compute vertex indices based on whether this is first segment or not
+    // ========== TRIANGLE STRIPS GENERATION (Phase 4: N-based) ==========
+
+    // Calculate vertex base indices
+    uint32_t base, start_cap_base, prev_faces_base, curr_faces_base;
+
     if (is_first_segment) {
-        // First segment vertex layout:
-        //   Start cap: 0-3
-        //   Face1 prev: 4-5 (UP, RIGHT)
-        //   Face2 prev: 6-7 (RIGHT, DOWN)
-        //   Face3 prev: 8-9 (DOWN, LEFT)
-        //   Face4 prev: 10-11 (LEFT, UP)
-        //   Face1 curr: 12-13 (UP, RIGHT)
-        //   Face2 curr: 14-15 (RIGHT, DOWN)
-        //   Face3 curr: 16-17 (DOWN, LEFT)
-        //   Face4 curr: 18-19 (LEFT, UP)
-        uint32_t base = idx_start - 20;  // Total vertices: 4 (cap) + 8 (prev) + 8 (curr)
-        uint32_t start_cap_up = base + 0;
-        uint32_t start_cap_right = base + 1;
-        uint32_t start_cap_down = base + 2;
-        uint32_t start_cap_left = base + 3;
-
-        // Face strips: each face uses 2 prev + 2 curr vertices
-        uint32_t face1_prev_start = base + 4;
-        uint32_t face2_prev_start = base + 6;
-        uint32_t face3_prev_start = base + 8;
-        uint32_t face4_prev_start = base + 10;
-        uint32_t face1_curr_start = base + 12;
-        uint32_t face2_curr_start = base + 14;
-        uint32_t face3_curr_start = base + 16;
-        uint32_t face4_curr_start = base + 18;
-
-        // Four side faces - each face has 4 vertices in strip order [prev1, prev2, curr1, curr2]
-        geometry.strips.push_back({face1_prev_start, face1_prev_start+1, face1_curr_start, face1_curr_start+1});  // TOP-RIGHT (RED)
-        geometry.strips.push_back({face2_prev_start, face2_prev_start+1, face2_curr_start, face2_curr_start+1});  // RIGHT-BOTTOM (YELLOW)
-        geometry.strips.push_back({face3_prev_start, face3_prev_start+1, face3_curr_start, face3_curr_start+1});  // BOTTOM-LEFT (BLUE)
-        geometry.strips.push_back({face4_prev_start, face4_prev_start+1, face4_curr_start, face4_curr_start+1});  // LEFT-TOP (GREEN)
-
-        // Start cap - REAL 4-vertex strip creating 2 valid triangles
-        // Diamond quad with CCW winding (for GL_CULL_FACE)
-        // Strip [A,B,C,D] creates: Triangle1(A,B,C) Triangle2(B,D,C)
-        // From front (+X), we want CCW: UP → LEFT → RIGHT → DOWN
-        // So: [UP, LEFT, RIGHT, DOWN] creates triangles (UP,LEFT,RIGHT) and (LEFT,DOWN,RIGHT)
-        geometry.strips.push_back({start_cap_up, start_cap_left, start_cap_right, start_cap_down});
-
-        if (debug_face_colors_) {
-            spdlog::info("START CAP: Strip indices = [{}, {}, {}, {}]", start_cap_up, start_cap_left, start_cap_right, start_cap_down);
-            spdlog::info("  Triangle 1: ({},{},{}) = (UP,LEFT,RIGHT) - CCW from front", start_cap_up, start_cap_left, start_cap_right);
-            spdlog::info("  Triangle 2: ({},{},{}) = (LEFT,DOWN,RIGHT) - CCW from front", start_cap_left, start_cap_down, start_cap_right);
-        }
-
+        // First segment: N (start cap) + 2N (prev) + 2N (curr) = 5N vertices
+        base = idx_start - 5*N;
+        start_cap_base = base;
+        prev_faces_base = base + N;
+        curr_faces_base = base + N + 2*N;
     } else {
-        // Subsequent segments: For now,  continuing to generate all  prev vertices
-        // TODO: Implement true vertex sharing once we have a proper tracking mechanism
-        // This would require tracking the previous segment's 8 curr vertex indices
-
-        // Current approach: Same as first segment but without start cap
-        uint32_t base = idx_start - 16;  // 8 prev + 8 curr
-        uint32_t face1_prev_start = base + 0;
-        uint32_t face2_prev_start = base + 2;
-        uint32_t face3_prev_start = base + 4;
-        uint32_t face4_prev_start = base + 6;
-        uint32_t face1_curr_start = base + 8;
-        uint32_t face2_curr_start = base + 10;
-        uint32_t face3_curr_start = base + 12;
-        uint32_t face4_curr_start = base + 14;
-
-        // Four side faces
-        geometry.strips.push_back({face1_prev_start, face1_prev_start+1, face1_curr_start, face1_curr_start+1});  // TOP-RIGHT
-        geometry.strips.push_back({face2_prev_start, face2_prev_start+1, face2_curr_start, face2_curr_start+1});  // RIGHT-BOTTOM
-        geometry.strips.push_back({face3_prev_start, face3_prev_start+1, face3_curr_start, face3_curr_start+1});  // BOTTOM-LEFT
-        geometry.strips.push_back({face4_prev_start, face4_prev_start+1, face4_curr_start, face4_curr_start+1});  // LEFT-TOP
+        // Subsequent: 2N (prev) + 2N (curr) = 4N vertices
+        base = idx_start - 4*N;
+        prev_faces_base = base;
+        curr_faces_base = base + 2*N;
     }
 
-    // End cap - Use the SAME positions as end_cap array but with axial normals
+    // Generate N side face strips (one strip per face)
+    // Each face connects vertex i to vertex (i+1)%N
+    for (int i = 0; i < N; i++) {
+        geometry.strips.push_back({
+            prev_faces_base + 2*i,      // prev ring, vertex i
+            prev_faces_base + 2*i + 1,  // prev ring, vertex i+1
+            curr_faces_base + 2*i,      // curr ring, vertex i
+            curr_faces_base + 2*i + 1   // curr ring, vertex i+1
+        });
+    }
+
+    // Start cap (first segment only) - Triangle fan encoded as 4-vertex strips
+    if (is_first_segment) {
+        // For N=4: Creates 2 triangles (N-2)
+        // For N=8: Creates 6 triangles (N-2)
+        // For N=16: Creates 14 triangles (N-2)
+        // Triangle fan: v0 is center, connects to all edges
+        for (int i = 1; i < N - 1; i++) {
+            geometry.strips.push_back({
+                start_cap_base,         // v0 (fan center)
+                start_cap_base + i,     // vi (current edge)
+                start_cap_base + i + 1, // vi+1 (next edge)
+                start_cap_base + i + 1  // Duplicate (degenerate triangle)
+            });
+        }
+
+        if (debug_face_colors_) {
+            spdlog::info("START CAP: N={} vertices, {} triangles (triangle fan)", N, N-2);
+        }
+    }
+
+    // ========== END CAP VERTICES ==========
+    // Create N new vertices at the SAME POSITIONS as end_cap vertices but with axial normals
     uint8_t end_cap_color_idx = debug_face_colors_
         ? add_to_color_palette(geometry, DebugColors::END_CAP)
         : face_colors[0];
@@ -880,51 +859,57 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     glm::vec3 cap_normal_end = -dir;  // Same as start cap
     uint16_t end_cap_normal_idx = add_to_normal_palette(geometry, cap_normal_end);
 
-    // Create 4 new vertices at the SAME POSITIONS as end_cap but with axial normals
-    // end_cap[0] is UP, end_cap[1] is RIGHT, end_cap[2] is DOWN, end_cap[3] is LEFT
     uint32_t idx_end_cap_start = idx_start;
 
     if (debug_face_colors_) {
-        spdlog::info("END CAP SOURCE INDICES: end_cap[0]={}, end_cap[1]={}, end_cap[2]={}, end_cap[3]={}",
-                     end_cap[0], end_cap[1], end_cap[2], end_cap[3]);
-        spdlog::info("  geometry.vertices.size() = {}", geometry.vertices.size());
-        auto pos_up_dequant = quant.dequantize_vec3(geometry.vertices[end_cap[0]].position);
-        spdlog::info("  Source vertex[{}] position: ({:.3f},{:.3f},{:.3f})",
-                     end_cap[0], pos_up_dequant.x, pos_up_dequant.y, pos_up_dequant.z);
-    }
-
-    // Reuse the POSITIONS from the end_cap vertices (which are at curr_pos + d_*)
-    geometry.vertices.push_back({geometry.vertices[end_cap[0]].position, end_cap_normal_idx, end_cap_color_idx});  // UP
-    geometry.vertices.push_back({geometry.vertices[end_cap[1]].position, end_cap_normal_idx, end_cap_color_idx});  // RIGHT
-    geometry.vertices.push_back({geometry.vertices[end_cap[2]].position, end_cap_normal_idx, end_cap_color_idx});  // DOWN
-    geometry.vertices.push_back({geometry.vertices[end_cap[3]].position, end_cap_normal_idx, end_cap_color_idx});  // LEFT
-    idx_start += 4;
-
-    if (debug_face_colors_) {
-        // Verify the newly added end cap vertices
-        spdlog::info("END CAP VERTICES ADDED:");
-        for (int i = 0; i < 4; i++) {
-            auto pos = quant.dequantize_vec3(geometry.vertices[idx_end_cap_start + i].position);
-            spdlog::info("  Vertex[{}]: ({:.3f},{:.3f},{:.3f})", idx_end_cap_start + i, pos.x, pos.y, pos.z);
+        spdlog::info("END CAP SOURCE INDICES (first {} of {}):", std::min(N, 4), N);
+        for (int i = 0; i < std::min(N, 4); i++) {
+            spdlog::info("  end_cap[{}]={}", i, end_cap[i]);
         }
     }
 
-    // OPPOSITE winding from start cap (caps face opposite directions)
-    // Start cap: [UP, LEFT, RIGHT, DOWN] for normal pointing backward (-X)
-    // End cap: [UP, RIGHT, LEFT, DOWN] for normal pointing backward (-X) but at far end
-    geometry.strips.push_back({idx_end_cap_start + 0, idx_end_cap_start + 1, idx_end_cap_start + 3, idx_end_cap_start + 2});
+    // Create N end cap vertices with axial normals
+    for (int i = 0; i < N; i++) {
+        geometry.vertices.push_back({
+            geometry.vertices[end_cap[i]].position,
+            end_cap_normal_idx,
+            end_cap_color_idx
+        });
+    }
+    idx_start += N;
 
     if (debug_face_colors_) {
-        spdlog::info("END CAP: Strip indices = [{}, {}, {}, {}]",
-                     idx_end_cap_start + 0, idx_end_cap_start + 1, idx_end_cap_start + 3, idx_end_cap_start + 2);
+        spdlog::info("END CAP VERTICES ADDED: {} vertices", N);
+    }
+
+    // ========== END CAP STRIPS ==========
+    // Triangle fan with REVERSED winding (CW instead of CCW) for opposite-facing cap
+    for (int i = 1; i < N - 1; i++) {
+        geometry.strips.push_back({
+            idx_end_cap_start,             // v0 (fan center)
+            idx_end_cap_start + N - i,     // vN-i (reverse order)
+            idx_end_cap_start + N - i - 1, // vN-i-1
+            idx_end_cap_start + N - i - 1  // Duplicate (degenerate)
+        });
+    }
+
+    if (debug_face_colors_) {
+        spdlog::info("END CAP: N={} vertices, {} triangles (reversed triangle fan)", N, N-2);
         spdlog::info("  Total geometry.strips.size() = {}", geometry.strips.size());
     }
 
-    // Update counters
-    int triangle_count = 8 + 4; // 4 side faces (8 tri) + start cap (2 tri) + end cap (2 tri)
-    if (!is_first_segment) {
-        triangle_count -= 2; // No start cap for subsequent segments
-    }
+    // ========== TRIANGLE COUNT VALIDATION ==========
+    // Side faces: 2 triangles per face, N faces
+    // Start cap: N-2 triangles (triangle fan)
+    // End cap: N-2 triangles (triangle fan)
+    int side_triangles = 2*N;
+    int start_cap_triangles = is_first_segment ? (N-2) : 0;
+    int end_cap_triangles = N-2;
+    int triangle_count = side_triangles + start_cap_triangles + end_cap_triangles;
+
+    // Formula validation:
+    // First segment: 2N + (N-2) + (N-2) = 4N - 4
+    // Subsequent: 2N + (N-2) = 3N - 2
     if (segment.is_extrusion) {
         geometry.extrusion_triangle_count += triangle_count;
     } else {
