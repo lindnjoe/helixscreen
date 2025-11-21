@@ -255,6 +255,13 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
             continue;
         }
 
+        // Skip travel moves (non-extrusion moves)
+        // TODO: Make this configurable if we want to visualize travel paths
+        if (!segment.is_extrusion) {
+            segments_skipped++;
+            continue;
+        }
+
         // Track Y range
         seg_y_min = std::min({seg_y_min, segment.start.y, segment.end.y});
         seg_y_max = std::max({seg_y_max, segment.start.y, segment.end.y});
@@ -551,11 +558,8 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     glm::vec3 face_normal_bottom = glm::normalize(-perp_up - right);  // DOWN-LEFT diagonal
     glm::vec3 face_normal_left = glm::normalize(-right + perp_up);    // LEFT-UP diagonal
 
-    // Vertex normals: average of adjacent face normals (smooth shading)
-    const glm::vec3 normal_up = glm::normalize(face_normal_left + face_normal_top);
-    const glm::vec3 normal_right = glm::normalize(face_normal_top + face_normal_right);
-    const glm::vec3 normal_down = glm::normalize(face_normal_right + face_normal_bottom);
-    const glm::vec3 normal_left = glm::normalize(face_normal_bottom + face_normal_left);
+    // Note: Vertex normals not needed with current per-face vertex structure
+    // Each face has its own vertices with face normals for uniform shading
 
     uint32_t idx_start = geometry.vertices.size();
 
@@ -631,18 +635,26 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
             spdlog::info("    PREV_LEFT[{}]:  ({:.3f},{:.3f},{:.3f})", idx_start-1, pos_prev_left.x, pos_prev_left.y, pos_prev_left.z);
         }
     } else {
-        // Subsequent segments: only generate right/left prev vertices
-        geometry.vertices.push_back({
-            quant.quantize_vec3(prev_pos + d_right),
-            add_to_normal_palette(geometry, normal_right),
-            color_idx_right
-        });
-        geometry.vertices.push_back({
-            quant.quantize_vec3(prev_pos + d_left),
-            add_to_normal_palette(geometry, normal_left),
-            color_idx_left
-        });
-        idx_start += 2;
+        // Subsequent segments: Generate all 8 prev vertices (matching first segment structure)
+        // TODO: Optimize with vertex sharing once tracking mechanism is in place
+        glm::vec3 pos_prev_up = prev_pos + d_up;
+        glm::vec3 pos_prev_right = prev_pos + d_right;
+        glm::vec3 pos_prev_down = prev_pos + d_down;
+        glm::vec3 pos_prev_left = prev_pos + d_left;
+
+        // Face 1 (TOP-RIGHT): uses UP and RIGHT edge positions
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_up), add_to_normal_palette(geometry, face_normal_top), face_color_top_right});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_right), add_to_normal_palette(geometry, face_normal_top), face_color_top_right});
+        // Face 2 (RIGHT-BOTTOM): uses RIGHT and DOWN edge positions
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_right), add_to_normal_palette(geometry, face_normal_right), face_color_right_bottom});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_down), add_to_normal_palette(geometry, face_normal_right), face_color_right_bottom});
+        // Face 3 (BOTTOM-LEFT): uses DOWN and LEFT edge positions
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_down), add_to_normal_palette(geometry, face_normal_bottom), face_color_bottom_left});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_left), add_to_normal_palette(geometry, face_normal_bottom), face_color_bottom_left});
+        // Face 4 (LEFT-TOP): uses LEFT and UP edges
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_left), add_to_normal_palette(geometry, face_normal_left), face_color_left_top});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_prev_up), add_to_normal_palette(geometry, face_normal_left), face_color_left_top});
+        idx_start += 8;
     }
 
     // Generate curr vertices - one set per FACE (matching prev structure)
@@ -739,23 +751,26 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         }
 
     } else {
-        // Subsequent segments: reuse previous segment's end_cap for prev vertices
-        // We only generated 2 new prev vertices (right, left) at idx_start-6 and idx_start-5
-        // The other 2 (up, down) come from the previous segment's end_cap
-        uint32_t prev_up = prev_start_cap.value()[0];      // From previous segment
-        uint32_t prev_down = prev_start_cap.value()[2];    // From previous segment
-        uint32_t prev_right = idx_start - 6;               // Just generated
-        uint32_t prev_left = idx_start - 5;                // Just generated
-        uint32_t curr_up = idx_start - 4;
-        uint32_t curr_right = idx_start - 3;
-        uint32_t curr_down = idx_start - 2;
-        uint32_t curr_left = idx_start - 1;
+        // Subsequent segments: For now,  continuing to generate all  prev vertices
+        // TODO: Implement true vertex sharing once we have a proper tracking mechanism
+        // This would require tracking the previous segment's 8 curr vertex indices
 
-        // TESTING: ALL DISABLED
-        // geometry.strips.push_back({prev_up, prev_right, curr_up, curr_right});
-        // geometry.strips.push_back({prev_right, prev_down, curr_right, curr_down});
-        // geometry.strips.push_back({prev_down, prev_left, curr_down, curr_left});
-        // geometry.strips.push_back({prev_left, prev_up, curr_left, curr_up});
+        // Current approach: Same as first segment but without start cap
+        uint32_t base = idx_start - 16;  // 8 prev + 8 curr
+        uint32_t face1_prev_start = base + 0;
+        uint32_t face2_prev_start = base + 2;
+        uint32_t face3_prev_start = base + 4;
+        uint32_t face4_prev_start = base + 6;
+        uint32_t face1_curr_start = base + 8;
+        uint32_t face2_curr_start = base + 10;
+        uint32_t face3_curr_start = base + 12;
+        uint32_t face4_curr_start = base + 14;
+
+        // Four side faces
+        geometry.strips.push_back({face1_prev_start, face1_prev_start+1, face1_curr_start, face1_curr_start+1});  // TOP-RIGHT
+        geometry.strips.push_back({face2_prev_start, face2_prev_start+1, face2_curr_start, face2_curr_start+1});  // RIGHT-BOTTOM
+        geometry.strips.push_back({face3_prev_start, face3_prev_start+1, face3_curr_start, face3_curr_start+1});  // BOTTOM-LEFT
+        geometry.strips.push_back({face4_prev_start, face4_prev_start+1, face4_curr_start, face4_curr_start+1});  // LEFT-TOP
     }
 
     // End cap - Use the SAME positions as end_cap array but with axial normals

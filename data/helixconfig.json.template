@@ -58,5 +58,9 @@
     "name": "Unnamed Printer",
     "part_fan": "fan",
     "type": "Unknown"
+  },
+  "gcode_viewer": {
+    "shading_model": "phong",
+    "_shading_comment": "Shading model for G-code 3D preview. Options: 'flat' (faceted, lowest cost), 'smooth' (Gouraud/per-vertex), 'phong' (per-pixel, highest quality, default)"
   }
 }

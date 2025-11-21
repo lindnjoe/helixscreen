@@ -23,6 +23,7 @@
 
 #include "ui_component_keypad.h"
 
+#include "ui_event_safety.h"
 #include "ui_fonts.h"
 #include "ui_theme.h"
 
@@ -268,9 +269,11 @@ static void wire_button_events() {
             lv_obj_add_event_cb(
                 btn,
                 [](lv_event_t* e) {
-                    // Extract digit from user_data
-                    intptr_t digit = (intptr_t)lv_event_get_user_data(e);
-                    append_digit('0' + digit);
+                    ui_event_safe_call("keypad_digit_clicked", [&]() {
+                        // Extract digit from user_data
+                        intptr_t digit = (intptr_t)lv_event_get_user_data(e);
+                        append_digit('0' + digit);
+                    });
                 },
                 LV_EVENT_CLICKED, (void*)(intptr_t)i);
         } else {
@@ -284,8 +287,10 @@ static void wire_button_events() {
         lv_obj_add_event_cb(
             btn_back,
             [](lv_event_t* e) {
-                (void)e;
-                handle_backspace();
+                ui_event_safe_call("keypad_backspace_clicked", [&]() {
+                    (void)e;
+                    handle_backspace();
+                });
             },
             LV_EVENT_CLICKED, nullptr);
         spdlog::debug("Found backspace button");
@@ -299,8 +304,10 @@ static void wire_button_events() {
         lv_obj_add_event_cb(
             btn_ok,
             [](lv_event_t* e) {
-                (void)e;
-                handle_ok();
+                ui_event_safe_call("keypad_ok_clicked", [&]() {
+                    (void)e;
+                    handle_ok();
+                });
             },
             LV_EVENT_CLICKED, nullptr);
         spdlog::debug("Found OK button");
@@ -314,8 +321,10 @@ static void wire_button_events() {
         lv_obj_add_event_cb(
             back_button,
             [](lv_event_t* e) {
-                (void)e;
-                handle_esc();
+                ui_event_safe_call("keypad_back_clicked", [&]() {
+                    (void)e;
+                    handle_esc();
+                });
             },
             LV_EVENT_CLICKED, nullptr);
         spdlog::debug("Found back button");
@@ -327,12 +336,14 @@ static void wire_button_events() {
     lv_obj_add_event_cb(
         keypad_widget,
         [](lv_event_t* e) {
-            lv_obj_t* target = (lv_obj_t*)lv_event_get_target(e);
-            lv_obj_t* current_target = (lv_obj_t*)lv_event_get_current_target(e);
-            // Only handle if clicking the backdrop itself (not a child)
-            if (target == current_target) {
-                handle_esc();
-            }
+            ui_event_safe_call("keypad_backdrop_clicked", [&]() {
+                lv_obj_t* target = (lv_obj_t*)lv_event_get_target(e);
+                lv_obj_t* current_target = (lv_obj_t*)lv_event_get_current_target(e);
+                // Only handle if clicking the backdrop itself (not a child)
+                if (target == current_target) {
+                    handle_esc();
+                }
+            });
         },
         LV_EVENT_CLICKED, nullptr);
 }

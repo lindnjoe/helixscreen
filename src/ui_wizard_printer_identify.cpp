@@ -23,6 +23,7 @@
 
 #include "ui_wizard_printer_identify.h"
 
+#include "ui_event_safety.h"
 #include "ui_keyboard.h"
 #include "ui_theme.h"
 #include "ui_wizard.h"
@@ -63,13 +64,6 @@ static lv_obj_t* printer_identify_screen_root = nullptr;
 
 // Validation state
 static bool printer_identify_validated = false;
-
-// ============================================================================
-// Forward Declarations
-// ============================================================================
-
-static void on_printer_name_changed(lv_event_t* e);
-static void on_printer_type_changed(lv_event_t* e);
 
 // ============================================================================
 // Auto-Detection Infrastructure (Placeholder for Phase 3)
@@ -264,8 +258,8 @@ void ui_wizard_printer_identify_init_subjects() {
  * Validation feedback is shown via textarea error state (red border).
  * Config is persisted during cleanup, not on each keystroke.
  */
-static void on_printer_name_changed(lv_event_t* e) {
-    lv_obj_t* ta = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(on_printer_name_changed, event, {
+    lv_obj_t* ta = (lv_obj_t*)lv_event_get_target(event);
     const char* text = lv_textarea_get_text(ta);
 
     // Trim leading/trailing whitespace for validation
@@ -314,13 +308,13 @@ static void on_printer_name_changed(lv_event_t* e) {
     }
 
     // Detection status label remains unchanged (shows auto-detection results only)
-}
+})
 
 /**
  * @brief Handle printer type roller changes
  */
-static void on_printer_type_changed(lv_event_t* e) {
-    lv_obj_t* roller = (lv_obj_t*)lv_event_get_target(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(on_printer_type_changed, event, {
+    lv_obj_t* roller = (lv_obj_t*)lv_event_get_target(event);
     uint16_t selected = lv_roller_get_selected(roller);
 
     char buf[64];
@@ -332,7 +326,7 @@ static void on_printer_type_changed(lv_event_t* e) {
     lv_subject_set_int(&printer_type_selected, selected);
 
     // Config will be persisted on cleanup (saves type name, not index)
-}
+})
 
 // ============================================================================
 // Callback Registration

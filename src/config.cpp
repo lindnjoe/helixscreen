@@ -58,6 +58,7 @@ void Config::init(const std::string& config_path) {
                 {"display_rotate", 0},
                 {"dark_mode", true}, // Theme preference: true=dark, false=light
                 {"default_printer", "default_printer"},
+                {"gcode_viewer", {{"shading_model", "phong"}}}, // G-code viewer settings
                 {"printers",
                  {{"default_printer",
                    {{"moonraker_api_key", false},

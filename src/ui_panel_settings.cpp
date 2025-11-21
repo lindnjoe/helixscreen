@@ -23,6 +23,7 @@
 
 #include "ui_panel_settings.h"
 
+#include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_panel_bed_mesh.h"
 
@@ -33,13 +34,62 @@ static lv_obj_t* settings_panel = nullptr;
 static lv_obj_t* bed_mesh_panel = nullptr;
 static lv_obj_t* parent_screen = nullptr;
 
-// Card click event handlers
-static void card_network_clicked(lv_event_t* e);
-static void card_display_clicked(lv_event_t* e);
-static void card_bed_mesh_clicked(lv_event_t* e);
-static void card_z_offset_clicked(lv_event_t* e);
-static void card_printer_info_clicked(lv_event_t* e);
-static void card_about_clicked(lv_event_t* e);
+// ============================================================================
+// Card Click Event Handlers
+// ============================================================================
+
+LVGL_SAFE_EVENT_CB(card_network_clicked, {
+    spdlog::debug("Network card clicked (placeholder - not yet implemented)");
+    // TODO: Open network settings panel
+})
+
+LVGL_SAFE_EVENT_CB(card_display_clicked, {
+    spdlog::debug("Display card clicked (placeholder - not yet implemented)");
+    // TODO: Open display settings panel
+})
+
+LVGL_SAFE_EVENT_CB(card_bed_mesh_clicked, {
+    spdlog::debug("Bed Mesh card clicked - opening Bed Mesh Visualization");
+
+    // Create bed mesh panel on first access
+    if (!bed_mesh_panel && parent_screen) {
+        spdlog::debug("Creating bed mesh visualization panel...");
+
+        // Create from XML
+        bed_mesh_panel = (lv_obj_t*)lv_xml_create(parent_screen, "bed_mesh_panel", nullptr);
+        if (bed_mesh_panel) {
+            // Setup event handlers and renderer
+            ui_panel_bed_mesh_setup(bed_mesh_panel, parent_screen);
+
+            // Initially hidden
+            lv_obj_add_flag(bed_mesh_panel, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("Bed mesh visualization panel created");
+        } else {
+            spdlog::error("Failed to create bed mesh panel from XML");
+            return;
+        }
+    }
+
+    // Push bed mesh panel onto navigation history and show it
+    if (bed_mesh_panel) {
+        ui_nav_push_overlay(bed_mesh_panel);
+    }
+})
+
+LVGL_SAFE_EVENT_CB(card_z_offset_clicked, {
+    spdlog::debug("Z-Offset card clicked (placeholder - not yet implemented)");
+    // TODO: Open Z-offset adjustment panel
+})
+
+LVGL_SAFE_EVENT_CB(card_printer_info_clicked, {
+    spdlog::debug("Printer Info card clicked (placeholder - not yet implemented)");
+    // TODO: Open printer info panel
+})
+
+LVGL_SAFE_EVENT_CB(card_about_clicked, {
+    spdlog::debug("About card clicked (placeholder - not yet implemented)");
+    // TODO: Open about panel
+})
 
 void ui_panel_settings_init_subjects() {
     // Initialize bed mesh panel subjects
@@ -92,67 +142,4 @@ lv_obj_t* ui_panel_settings_get() {
 
 void ui_panel_settings_set(lv_obj_t* panel_obj) {
     settings_panel = panel_obj;
-}
-
-// ============================================================================
-// Card Click Event Handlers
-// ============================================================================
-
-static void card_network_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Network card clicked (placeholder - not yet implemented)");
-    // TODO: Open network settings panel
-}
-
-static void card_display_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Display card clicked (placeholder - not yet implemented)");
-    // TODO: Open display settings panel
-}
-
-static void card_bed_mesh_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Bed Mesh card clicked - opening Bed Mesh Visualization");
-
-    // Create bed mesh panel on first access
-    if (!bed_mesh_panel && parent_screen) {
-        spdlog::debug("Creating bed mesh visualization panel...");
-
-        // Create from XML
-        bed_mesh_panel = (lv_obj_t*)lv_xml_create(parent_screen, "bed_mesh_panel", nullptr);
-        if (bed_mesh_panel) {
-            // Setup event handlers and renderer
-            ui_panel_bed_mesh_setup(bed_mesh_panel, parent_screen);
-
-            // Initially hidden
-            lv_obj_add_flag(bed_mesh_panel, LV_OBJ_FLAG_HIDDEN);
-            spdlog::info("Bed mesh visualization panel created");
-        } else {
-            spdlog::error("Failed to create bed mesh panel from XML");
-            return;
-        }
-    }
-
-    // Push bed mesh panel onto navigation history and show it
-    if (bed_mesh_panel) {
-        ui_nav_push_overlay(bed_mesh_panel);
-    }
-}
-
-static void card_z_offset_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Z-Offset card clicked (placeholder - not yet implemented)");
-    // TODO: Open Z-offset adjustment panel
-}
-
-static void card_printer_info_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Printer Info card clicked (placeholder - not yet implemented)");
-    // TODO: Open printer info panel
-}
-
-static void card_about_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("About card clicked (placeholder - not yet implemented)");
-    // TODO: Open about panel
 }

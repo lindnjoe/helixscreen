@@ -23,6 +23,7 @@
 
 #include "ui_nav.h"
 
+#include "ui_event_safety.h"
 #include "ui_fonts.h"
 #include "ui_theme.h"
 
@@ -102,9 +103,9 @@ static void icon_image_opacity_observer_cb(lv_observer_t* observer, lv_subject_t
 }
 
 // Button click event handler - switches active panel
-static void nav_button_clicked_cb(lv_event_t* e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    int panel_id = (int)(uintptr_t)lv_event_get_user_data(e);
+LVGL_SAFE_EVENT_CB_WITH_EVENT(nav_button_clicked_cb, event, {
+    lv_event_code_t code = lv_event_get_code(event);
+    int panel_id = (int)(uintptr_t)lv_event_get_user_data(event);
 
     if (code == LV_EVENT_CLICKED) {
         // DEFENSIVE: Hide ALL visible overlay panels (not in panel_widgets)
@@ -162,7 +163,7 @@ static void nav_button_clicked_cb(lv_event_t* e) {
         // Update active panel state (triggers icon colors, etc.)
         ui_nav_set_active((ui_panel_id_t)panel_id);
     }
-}
+})
 
 void ui_nav_init() {
     if (subjects_initialized) {

@@ -218,7 +218,6 @@ static void on_view_preset_clicked(lv_event_t* e) {
     const char* name = lv_obj_get_name(btn);
 
     if (!gcode_viewer || !name) {
-        LVGL_SAFE_EVENT_CB_END();
         return;
     }
 
@@ -250,7 +249,6 @@ static void on_zoom_clicked(lv_event_t* e) {
     const char* name = lv_obj_get_name(btn);
 
     if (!gcode_viewer || !name) {
-        LVGL_SAFE_EVENT_CB_END();
         return;
     }
 
@@ -281,7 +279,6 @@ static void on_load_test_file(lv_event_t*) {
 static void on_clear(lv_event_t*) {
     LVGL_SAFE_EVENT_CB_BEGIN("[GCodeTest] on_clear");
     if (!gcode_viewer) {
-        LVGL_SAFE_EVENT_CB_END();
         return;
     }
 
@@ -300,7 +297,6 @@ static void on_clear(lv_event_t*) {
 static void on_specular_intensity_changed(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[GCodeTest] on_specular_intensity_changed");
     if (!gcode_viewer) {
-        LVGL_SAFE_EVENT_CB_END();
         return;
     }
 
@@ -333,7 +329,6 @@ static void on_specular_intensity_changed(lv_event_t* e) {
 static void on_shininess_changed(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[GCodeTest] on_shininess_changed");
     if (!gcode_viewer) {
-        LVGL_SAFE_EVENT_CB_END();
         return;
     }
 

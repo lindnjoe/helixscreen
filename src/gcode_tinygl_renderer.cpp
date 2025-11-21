@@ -7,6 +7,7 @@
 
 #include <spdlog/spdlog.h>
 #include "runtime_config.h"
+#include "config.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -154,8 +155,23 @@ void GCodeTinyGLRenderer::init_tinygl() {
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    // Enable Phong (per-pixel) shading for smoother appearance
-    glShadeModel(GL_PHONG);
+    // Set shading model from config (default: phong)
+    Config* cfg = Config::get_instance();
+    std::string shading_model = cfg->get<std::string>("/gcode_viewer/shading_model", "phong");
+
+    if (shading_model == "flat") {
+        glShadeModel(GL_FLAT);
+        spdlog::debug("G-code renderer using GL_FLAT shading");
+    } else if (shading_model == "smooth") {
+        glShadeModel(GL_SMOOTH);
+        spdlog::debug("G-code renderer using GL_SMOOTH (Gouraud) shading");
+    } else if (shading_model == "phong") {
+        glShadeModel(GL_PHONG);
+        spdlog::debug("G-code renderer using GL_PHONG (per-pixel) shading");
+    } else {
+        spdlog::warn("Unknown shading model '{}', defaulting to phong", shading_model);
+        glShadeModel(GL_PHONG);
+    }
 
     // Set material properties (use current specular settings)
     // GL_COLOR_MATERIAL only controls ambient/diffuse, so we must set specular separately

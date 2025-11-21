@@ -122,7 +122,8 @@ else
 fi
 
 # Run and capture output (binary will auto-quit after timeout)
-RUN_OUTPUT=$(${BINARY_PATH} ${EXTRA_ARGS} ${PANEL_ARG} 2>&1 || true)
+# IMPORTANT: Panel arg must come BEFORE other args for correct parsing
+RUN_OUTPUT=$(${BINARY_PATH} ${PANEL_ARG} ${EXTRA_ARGS} 2>&1 || true)
 
 # Check for errors in output
 if echo "$RUN_OUTPUT" | grep -qi "error"; then

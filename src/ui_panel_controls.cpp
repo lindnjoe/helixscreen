@@ -24,6 +24,7 @@
 #include "ui_panel_controls.h"
 
 #include "ui_component_keypad.h"
+#include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_panel_controls_extrusion.h"
 #include "ui_panel_controls_temp.h"
@@ -39,13 +40,131 @@ static lv_obj_t* bed_temp_panel = nullptr;
 static lv_obj_t* extrusion_panel = nullptr;
 static lv_obj_t* parent_screen = nullptr;
 
-// Card click event handlers
-static void card_motion_clicked(lv_event_t* e);
-static void card_nozzle_temp_clicked(lv_event_t* e);
-static void card_bed_temp_clicked(lv_event_t* e);
-static void card_extrusion_clicked(lv_event_t* e);
-static void card_fan_clicked(lv_event_t* e);
-static void card_motors_clicked(lv_event_t* e);
+// ============================================================================
+// Card Click Event Handlers
+// ============================================================================
+
+LVGL_SAFE_EVENT_CB(card_motion_clicked, {
+    spdlog::debug("Motion card clicked - opening Motion sub-screen");
+
+    // Create motion panel on first access
+    if (!motion_panel && parent_screen) {
+        spdlog::debug("Creating motion panel...");
+        motion_panel = (lv_obj_t*)lv_xml_create(parent_screen, "motion_panel", nullptr);
+
+        if (!motion_panel) {
+            spdlog::error("Failed to create motion panel from XML");
+            return;
+        }
+
+        // Setup event handlers for motion panel
+        ui_panel_motion_setup(motion_panel, parent_screen);
+
+        // Initially hidden
+        lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
+        spdlog::info("Motion panel created and initialized");
+    }
+
+    // Push motion panel onto navigation history and show it
+    if (motion_panel) {
+        ui_nav_push_overlay(motion_panel);
+    }
+})
+
+LVGL_SAFE_EVENT_CB(card_nozzle_temp_clicked, {
+    spdlog::debug("Nozzle Temp card clicked - opening Nozzle Temperature sub-screen");
+
+    // Create nozzle temp panel on first access
+    if (!nozzle_temp_panel && parent_screen) {
+        spdlog::debug("Creating nozzle temperature panel...");
+        nozzle_temp_panel = (lv_obj_t*)lv_xml_create(parent_screen, "nozzle_temp_panel", nullptr);
+
+        if (!nozzle_temp_panel) {
+            spdlog::error("Failed to create nozzle temp panel from XML");
+            return;
+        }
+
+        // Setup event handlers for nozzle temp panel
+        ui_panel_controls_temp_nozzle_setup(nozzle_temp_panel, parent_screen);
+
+        // Initially hidden
+        lv_obj_add_flag(nozzle_temp_panel, LV_OBJ_FLAG_HIDDEN);
+        spdlog::info("Nozzle temp panel created and initialized");
+    }
+
+    // Push nozzle temp panel onto navigation history and show it
+    if (nozzle_temp_panel) {
+        ui_nav_push_overlay(nozzle_temp_panel);
+    }
+})
+
+LVGL_SAFE_EVENT_CB(card_bed_temp_clicked, {
+    spdlog::debug("Bed Temp card clicked - opening Heatbed Temperature sub-screen");
+
+    // Create bed temp panel on first access
+    if (!bed_temp_panel && parent_screen) {
+        spdlog::debug("Creating bed temperature panel...");
+        bed_temp_panel = (lv_obj_t*)lv_xml_create(parent_screen, "bed_temp_panel", nullptr);
+
+        if (!bed_temp_panel) {
+            spdlog::error("Failed to create bed temp panel from XML");
+            return;
+        }
+
+        // Setup event handlers for bed temp panel
+        ui_panel_controls_temp_bed_setup(bed_temp_panel, parent_screen);
+
+        // Initially hidden
+        lv_obj_add_flag(bed_temp_panel, LV_OBJ_FLAG_HIDDEN);
+        spdlog::info("Bed temp panel created and initialized");
+    }
+
+    // Push bed temp panel onto navigation history and show it
+    if (bed_temp_panel) {
+        ui_nav_push_overlay(bed_temp_panel);
+    }
+})
+
+LVGL_SAFE_EVENT_CB(card_extrusion_clicked, {
+    spdlog::debug("Extrusion card clicked - opening Extrusion sub-screen");
+
+    // Create extrusion panel on first access
+    if (!extrusion_panel && parent_screen) {
+        spdlog::debug("Creating extrusion panel...");
+        extrusion_panel = (lv_obj_t*)lv_xml_create(parent_screen, "extrusion_panel", nullptr);
+
+        if (!extrusion_panel) {
+            spdlog::error("Failed to create extrusion panel from XML");
+            return;
+        }
+
+        // Setup event handlers for extrusion panel
+        ui_panel_controls_extrusion_setup(extrusion_panel, parent_screen);
+
+        // Initially hidden
+        lv_obj_add_flag(extrusion_panel, LV_OBJ_FLAG_HIDDEN);
+        spdlog::info("Extrusion panel created and initialized");
+    }
+
+    // Push extrusion panel onto navigation history and show it
+    if (extrusion_panel) {
+        ui_nav_push_overlay(extrusion_panel);
+    }
+})
+
+LVGL_SAFE_EVENT_CB(card_fan_clicked, {
+    spdlog::debug("Fan card clicked - Phase 2 feature");
+    // TODO: Create and show fan control sub-screen (Phase 2)
+})
+
+LVGL_SAFE_EVENT_CB(card_motors_clicked, {
+    spdlog::debug("Motors Disable card clicked");
+    // TODO: Show confirmation dialog, then send motors disable command
+})
+
+// ============================================================================
+// Public Functions
+// ============================================================================
 
 void ui_panel_controls_init_subjects() {
     // TODO: Initialize subjects for sub-screens
@@ -102,132 +221,4 @@ lv_obj_t* ui_panel_controls_get() {
 
 void ui_panel_controls_set(lv_obj_t* panel_obj) {
     controls_panel = panel_obj;
-}
-
-// ============================================================================
-// Card Click Event Handlers
-// ============================================================================
-
-static void card_motion_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Motion card clicked - opening Motion sub-screen");
-
-    // Create motion panel on first access
-    if (!motion_panel && parent_screen) {
-        spdlog::debug("Creating motion panel...");
-        motion_panel = (lv_obj_t*)lv_xml_create(parent_screen, "motion_panel", nullptr);
-
-        if (!motion_panel) {
-            spdlog::error("Failed to create motion panel from XML");
-            return;
-        }
-
-        // Setup event handlers for motion panel
-        ui_panel_motion_setup(motion_panel, parent_screen);
-
-        // Initially hidden
-        lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
-        spdlog::info("Motion panel created and initialized");
-    }
-
-    // Push motion panel onto navigation history and show it
-    if (motion_panel) {
-        ui_nav_push_overlay(motion_panel);
-    }
-}
-
-static void card_nozzle_temp_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Nozzle Temp card clicked - opening Nozzle Temperature sub-screen");
-
-    // Create nozzle temp panel on first access
-    if (!nozzle_temp_panel && parent_screen) {
-        spdlog::debug("Creating nozzle temperature panel...");
-        nozzle_temp_panel = (lv_obj_t*)lv_xml_create(parent_screen, "nozzle_temp_panel", nullptr);
-
-        if (!nozzle_temp_panel) {
-            spdlog::error("Failed to create nozzle temp panel from XML");
-            return;
-        }
-
-        // Setup event handlers for nozzle temp panel
-        ui_panel_controls_temp_nozzle_setup(nozzle_temp_panel, parent_screen);
-
-        // Initially hidden
-        lv_obj_add_flag(nozzle_temp_panel, LV_OBJ_FLAG_HIDDEN);
-        spdlog::info("Nozzle temp panel created and initialized");
-    }
-
-    // Push nozzle temp panel onto navigation history and show it
-    if (nozzle_temp_panel) {
-        ui_nav_push_overlay(nozzle_temp_panel);
-    }
-}
-
-static void card_bed_temp_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Bed Temp card clicked - opening Heatbed Temperature sub-screen");
-
-    // Create bed temp panel on first access
-    if (!bed_temp_panel && parent_screen) {
-        spdlog::debug("Creating bed temperature panel...");
-        bed_temp_panel = (lv_obj_t*)lv_xml_create(parent_screen, "bed_temp_panel", nullptr);
-
-        if (!bed_temp_panel) {
-            spdlog::error("Failed to create bed temp panel from XML");
-            return;
-        }
-
-        // Setup event handlers for bed temp panel
-        ui_panel_controls_temp_bed_setup(bed_temp_panel, parent_screen);
-
-        // Initially hidden
-        lv_obj_add_flag(bed_temp_panel, LV_OBJ_FLAG_HIDDEN);
-        spdlog::info("Bed temp panel created and initialized");
-    }
-
-    // Push bed temp panel onto navigation history and show it
-    if (bed_temp_panel) {
-        ui_nav_push_overlay(bed_temp_panel);
-    }
-}
-
-static void card_extrusion_clicked(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("Extrusion card clicked - opening Extrusion sub-screen");
-
-    // Create extrusion panel on first access
-    if (!extrusion_panel && parent_screen) {
-        spdlog::debug("Creating extrusion panel...");
-        extrusion_panel = (lv_obj_t*)lv_xml_create(parent_screen, "extrusion_panel", nullptr);
-
-        if (!extrusion_panel) {
-            spdlog::error("Failed to create extrusion panel from XML");
-            return;
-        }
-
-        // Setup event handlers for extrusion panel
-        ui_panel_controls_extrusion_setup(extrusion_panel, parent_screen);
-
-        // Initially hidden
-        lv_obj_add_flag(extrusion_panel, LV_OBJ_FLAG_HIDDEN);
-        spdlog::info("Extrusion panel created and initialized");
-    }
-
-    // Push extrusion panel onto navigation history and show it
-    if (extrusion_panel) {
-        ui_nav_push_overlay(extrusion_panel);
-    }
-}
-
-static void card_fan_clicked(lv_event_t* e) {
-    (void)e; // Unused - no event data needed
-    spdlog::debug("Fan card clicked - Phase 2 feature");
-    // TODO: Create and show fan control sub-screen (Phase 2)
-}
-
-static void card_motors_clicked(lv_event_t* e) {
-    (void)e; // Unused - no event data needed
-    spdlog::debug("Motors Disable card clicked");
-    // TODO: Show confirmation dialog, then send motors disable command
 }

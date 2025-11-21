@@ -24,6 +24,7 @@
 #include "ui_keyboard.h"
 
 #include "ui_theme.h"
+#include "ui_event_safety.h"
 
 #include "config.h"
 
@@ -143,10 +144,8 @@ static bool g_shift_just_pressed =
 static bool g_one_shot_shift = false; // Single-press: one uppercase letter then revert
 static bool g_caps_lock = false;      // Two consecutive presses: stay uppercase
 
-// Forward declarations for long-press event handlers
-static void longpress_event_handler(lv_event_t* e);
+// Forward declaration for helper function (not an event callback)
 static void overlay_cleanup();
-static void keyboard_draw_alternative_chars(lv_event_t* e);
 
 //=============================================================================
 // IMPROVED KEYBOARD LAYOUTS
@@ -377,6 +376,8 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl_num_improved[] = {
  * @brief Textarea focus event callback - handles auto show/hide
  */
 static void textarea_focus_event_cb(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("textarea_focus_event_cb");
+
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t* textarea = lv_event_get_target_obj(e);
 
@@ -389,6 +390,8 @@ static void textarea_focus_event_cb(lv_event_t* e) {
         g_context_textarea = NULL;
         ui_keyboard_hide();
     }
+
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 /**
@@ -533,6 +536,8 @@ static void show_overlay(const lv_area_t* key_area, const char* alternatives) {
  * Intercepts PRESSED, LONG_PRESSED, and RELEASED events to manage overlay
  */
 static void longpress_event_handler(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("longpress_event_handler");
+
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t* keyboard = lv_event_get_target_obj(e);
 
@@ -633,6 +638,8 @@ static void longpress_event_handler(lv_event_t* e) {
             overlay_cleanup();
         }
     }
+
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 /**
@@ -684,6 +691,8 @@ static void apply_keyboard_mode() {
  * @brief Keyboard event callback - handles ready/cancel events and mode switching
  */
 static void keyboard_event_cb(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("keyboard_event_cb");
+
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t* keyboard = lv_event_get_target_obj(e);
 
@@ -818,6 +827,8 @@ static void keyboard_event_cb(lv_event_t* e) {
             }
         }
     }
+
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 /**
@@ -826,6 +837,8 @@ static void keyboard_event_cb(lv_event_t* e) {
  * Uses LV_EVENT_DRAW_POST_END to render after main button drawing
  */
 static void keyboard_draw_alternative_chars(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("keyboard_draw_alternative_chars");
+
     lv_obj_t* keyboard = lv_event_get_target_obj(e);
     lv_layer_t* layer = lv_event_get_layer(e);
 
@@ -910,6 +923,8 @@ static void keyboard_draw_alternative_chars(lv_event_t* e) {
 
         btn_id++;
     }
+
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 void ui_keyboard_init(lv_obj_t* parent) {
