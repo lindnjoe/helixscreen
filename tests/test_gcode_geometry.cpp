@@ -17,7 +17,7 @@ using namespace gcode;
 TEST_CASE("Single horizontal line geometry validation", "[gcode][geometry]") {
     // Parse the single line test file
     GCodeParser parser;
-    bool success = parser.parse_file("assets/single_line_test.gcode");
+    bool success = parser.parse_file("assets/gcode/single_line_test.gcode");
     REQUIRE(success);
 
     const auto& metadata = parser.get_metadata();

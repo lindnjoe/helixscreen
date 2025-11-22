@@ -151,7 +151,7 @@ Run the standalone test panel:
 The test panel demonstrates:
 - Full-screen viewer layout
 - View control buttons (Iso/Top/Front/Side/Reset)
-- File loading (uses `assets/test.gcode`)
+- File loading (uses `assets/gcode/test.gcode`)
 - Real-time statistics display
 - Touch gesture support (drag to rotate)
 

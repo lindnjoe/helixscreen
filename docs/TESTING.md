@@ -238,17 +238,17 @@ int main() {
 
 ### G-code Test Files
 
-Test G-code files are located in `assets/`:
+Test G-code files are located in `assets/gcode/`:
 
-- `assets/OrcaCube_ABS_Multicolor.gcode` - 4-color multi-extruder test (5.8MB, 51 tool changes)
-- `assets/OrcaCube AD5M.gcode` - Single-color test
+- `assets/gcode/OrcaCube_ABS_Multicolor.gcode` - 4-color multi-extruder test (5.8MB, 51 tool changes)
+- `assets/gcode/OrcaCube AD5M.gcode` - Single-color test
 - Additional test files as needed
 
 ### Using Test Files in Tests
 
 ```cpp
 TEST_CASE("MultiColor - Real file parsing", "[gcode][multicolor][file]") {
-    const char* filename = "assets/OrcaCube_ABS_Multicolor.gcode";
+    const char* filename = "assets/gcode/OrcaCube_ABS_Multicolor.gcode";
 
     std::ifstream file(filename);
     if (!file.is_open()) {

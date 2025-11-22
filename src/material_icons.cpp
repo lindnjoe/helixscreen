@@ -29,7 +29,7 @@
 #include <spdlog/spdlog.h>
 
 void material_icons_register() {
-    spdlog::info("Registering Material Design icons (72 total)...");
+    spdlog::trace("Registering Material Design icons (72 total)...");
 
     // Navigation & Movement
     lv_xml_register_image(NULL, "mat_home", &home);
@@ -129,7 +129,7 @@ void material_icons_register() {
     lv_xml_register_image(NULL, "mat_wifi_strength_2_lock", &wifi_strength_2_lock);
     lv_xml_register_image(NULL, "mat_wifi_strength_3_lock", &wifi_strength_3_lock);
     lv_xml_register_image(NULL, "mat_wifi_strength_4_lock", &wifi_strength_4_lock);
-    spdlog::debug("WiFi icons registered (13 total)");
+    spdlog::trace("WiFi icons registered (13 total)");
 
-    spdlog::info("Material Design icons registered successfully");
+    spdlog::trace("Material Design icons registered successfully");
 }

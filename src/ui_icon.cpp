@@ -239,7 +239,7 @@ static void ui_icon_xml_apply(lv_xml_parser_state_t* state, const char** attrs) 
  */
 void ui_icon_register_widget() {
     lv_xml_register_widget("icon", ui_icon_xml_create, ui_icon_xml_apply);
-    spdlog::info("Icon widget registered with XML system");
+    spdlog::trace("Icon widget registered with XML system");
 }
 
 // Public API implementations

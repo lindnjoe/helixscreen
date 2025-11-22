@@ -30,9 +30,9 @@ static lv_obj_t* gcode_viewer = nullptr;
 static lv_obj_t* stats_label = nullptr;
 static lv_obj_t* file_picker_overlay = nullptr;
 
-// Path to default sample G-code file
-static const char* TEST_GCODE_PATH = "assets/OrcaCube AD5M.gcode";
-static const char* ASSETS_DIR = "assets";
+// G-code directory and default test file
+static const char* ASSETS_DIR = "assets/gcode";
+static const char* DEFAULT_TEST_FILE = "OrcaCube AD5M.gcode";
 
 // Store available files
 static std::vector<std::string> gcode_files;
@@ -497,7 +497,8 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
     ui_gcode_viewer_set_load_callback(gcode_viewer, on_gcode_load_complete, nullptr);
 
     // Auto-load file (either from config or default)
-    const char* file_to_load = config.gcode_test_file ? config.gcode_test_file : TEST_GCODE_PATH;
+    std::string default_path = std::string(ASSETS_DIR) + "/" + DEFAULT_TEST_FILE;
+    const char* file_to_load = config.gcode_test_file ? config.gcode_test_file : default_path.c_str();
     spdlog::info("[GCodeTest] Auto-loading file: {}", file_to_load);
 
     if (stats_label) {
