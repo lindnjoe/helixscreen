@@ -83,10 +83,8 @@ static lv_indev_t* indev_mouse = nullptr;
 static int SCREEN_WIDTH = UI_SCREEN_SMALL_W;
 static int SCREEN_HEIGHT = UI_SCREEN_SMALL_H;
 
-// Printer state management
+// Local instances (registered with app_globals via setters)
 static PrinterState printer_state;
-
-// Moonraker API instances (initialized in main after config load)
 static MoonrakerClient* moonraker_client = nullptr;
 static MoonrakerAPI* moonraker_api = nullptr;
 
@@ -105,19 +103,6 @@ struct OverlayPanels {
     lv_obj_t* extrusion = nullptr;
     lv_obj_t* print_status = nullptr;
 } static overlay_panels;
-
-// Global accessor functions implementation
-MoonrakerClient* get_moonraker_client() {
-    return moonraker_client;
-}
-
-MoonrakerAPI* get_moonraker_api() {
-    return moonraker_api;
-}
-
-PrinterState& get_printer_state() {
-    return printer_state;
-}
 
 const RuntimeConfig& get_runtime_config() {
     return g_runtime_config;
@@ -920,6 +905,9 @@ static void initialize_moonraker_client(Config* config) {
         moonraker_client = new MoonrakerClient();
     }
 
+    // Register with app_globals
+    set_moonraker_client(moonraker_client);
+
     // Configure timeouts from config file
     uint32_t connection_timeout =
         config->get<int>(config->df() + "moonraker_connection_timeout_ms", 10000);
@@ -969,6 +957,10 @@ static void initialize_moonraker_client(Config* config) {
     // Create MoonrakerAPI instance
     spdlog::info("Creating MoonrakerAPI instance...");
     moonraker_api = new MoonrakerAPI(*moonraker_client, printer_state);
+
+    // Register with app_globals
+    set_moonraker_api(moonraker_api);
+    set_printer_state(&printer_state);
 
     spdlog::info("Moonraker client initialized (not connected yet)");
 }

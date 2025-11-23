@@ -1,11 +1,42 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-01-23
-**Current Focus:** Notification History & Error Reporting System
+**Last Updated:** 2025-01-23 (Evening)
+**Current Focus:** Branch Integration & Linker Fixes
 
 ---
 
 ## 🔥 ACTIVE WORK
+
+### Linker Errors Fixed & Branch Merged (COMPLETED 2025-01-23 Evening)
+
+**Problem:** Duplicate symbol linker errors blocking builds.
+
+**Root Cause:** Functions `get_moonraker_api()`, `get_moonraker_client()`, and `get_printer_state()` were defined in BOTH `src/app_globals.cpp` AND `src/main.cpp`.
+
+**What Was Fixed:**
+1. ✅ Removed duplicate function implementations from `src/main.cpp` (lines 110-120)
+2. ✅ Added setter function calls after instance creation in `main.cpp`:
+   - `set_moonraker_client(moonraker_client)`
+   - `set_moonraker_api(moonraker_api)`
+   - `set_printer_state(&printer_state)`
+3. ✅ Merged branch `claude/cleanup-init-subjects-0189ZAJUrxfBQ2cQZguEzDFE`:
+   - Introduces SubjectRegistry system with INIT_SUBJECT macros
+   - Reduces boilerplate in init_subjects functions across 13 files
+   - Net code reduction: -5 lines (cleaner, more maintainable)
+4. ✅ Deleted merged remote branch
+
+**Commits:**
+- `3022ede` - refactor: reduce init_subjects boilerplate with SubjectRegistry macros
+- (pending) - fix: resolve duplicate symbol linker errors in app_globals
+
+**Files Modified:**
+- `src/main.cpp` - Removed duplicate implementations, added setter calls
+- `include/ui_subject_registry.h` - New SubjectRegistry system (from merge)
+- 13 panel/wizard files - Updated to use INIT_SUBJECT macros (from merge)
+
+**Build Status:** ✅ Clean build, no linker errors
+
+---
 
 ### Notification History & Error Reporting (COMPLETED 2025-01-23)
 
@@ -126,18 +157,12 @@ src/app_globals.cpp (new)
 
 **Integration Status:**
 - ✅ All core infrastructure implemented
-- ⚠️ **BLOCKER:** Linker errors - duplicate symbols in app_globals.cpp and main.cpp
-- ⚠️ Not yet tested (waiting for linker fix)
+- ✅ **FIXED:** Linker errors resolved (duplicate symbols removed)
+- ⚠️ Not yet tested visually
 - Status bar/notification system initialization already exists from previous work
 
 **Next Steps - PRIORITY 1:**
-1. **Fix duplicate symbol linker errors:**
-   - `get_moonraker_api()`, `get_moonraker_client()`, `get_printer_state()`
-   - These functions are defined in BOTH `src/app_globals.cpp` AND `src/main.cpp`
-   - **Solution:** Remove duplicate definitions from `src/main.cpp` (keep app_globals.cpp)
-   - This is a pre-existing issue, not caused by notification history work
-
-2. **Test notification history system:**
+1. **Test notification history system:**
    - Trigger test notifications using `NOTIFY_ERROR()`, `NOTIFY_WARNING()`, etc.
    - Verify unread badge appears on status bar bell icon
    - Click bell icon → should open history panel
@@ -145,7 +170,7 @@ src/app_globals.cpp (new)
    - Verify "Clear All" functionality
    - Check that panel refresh marks notifications as read
 
-3. **Begin Phase 2 migration** (see `docs/NOTIFICATION_HISTORY_PLAN.md`):
+2. **Begin Phase 2 migration** (see `docs/NOTIFICATION_HISTORY_PLAN.md`):
    - Convert high-priority spdlog calls to use new macros
    - Start with Moonraker connection errors (~20 calls)
    - Then WiFi errors (~15 calls)
@@ -186,6 +211,11 @@ src/app_globals.cpp (new)
 
 ### Recently Completed
 
+**Linker Errors & Branch Merge (2025-01-23 Evening)**
+- Fixed duplicate symbol linker errors (app_globals vs main.cpp)
+- Merged SubjectRegistry refactoring branch (cleaner init_subjects)
+- Clean build achieved, ready for testing
+
 **Notification System Foundation (2025-01-23)**
 - Complete toast/modal/status bar infrastructure
 - Reactive subject system for decoupled notifications
@@ -213,11 +243,11 @@ src/app_globals.cpp (new)
 **Tasks:**
 - [ ] Integrate status bar into main app layout (top of screen)
 - [ ] Update main.cpp to:
-  - Call `set_moonraker_client/api/printer_state()` setters
-  - Register XML components (status_bar, toast, error/warning dialogs)
-  - Call `app_globals_init_subjects()`
-  - Call `ui_notification_init()`
-  - Call `ui_status_bar_init()`
+  - ✅ Call `set_moonraker_client/api/printer_state()` setters (DONE)
+  - [ ] Register XML components (status_bar, toast, error/warning dialogs)
+  - [ ] Call `app_globals_init_subjects()`
+  - [ ] Call `ui_notification_init()`
+  - [ ] Call `ui_status_bar_init()`
 - [ ] Test notification system:
   - Show toast: `ui_notification_info("Test message")`
   - Show modal: `ui_notification_error("Error", "Test error", true)`
@@ -454,9 +484,11 @@ make clean && make -j
 3. Created new moonraker-agent for printer communication
 4. Refactored globals into dedicated app_globals module
 5. Wrote 15K-word implementation plan for notification history
+6. ✅ **Fixed duplicate symbol linker errors** (evening update)
+7. ✅ **Merged SubjectRegistry refactoring branch** (evening update)
 
 **Technical Debt Added:**
-- Notification system needs main.cpp integration
+- Notification system needs XML component registration in main.cpp
 - 505 spdlog calls need conversion to use notification API
 - Notification history system planned but not implemented
 
@@ -466,7 +498,8 @@ make clean && make -j
 - Updated CLAUDE.md agent mapping table
 
 **Next Developer Should:**
-1. Integrate notification system into main.cpp (30 min task)
-2. Test notifications visually
-3. Consider implementing Phase 1 of notification history plan
-4. Start converting high-priority spdlog calls (Moonraker, WiFi, file I/O)
+1. ✅ ~~Fix linker errors~~ (DONE)
+2. Register notification XML components in main.cpp (15 min task)
+3. Test notifications visually
+4. Consider implementing Phase 1 of notification history plan
+5. Start converting high-priority spdlog calls (Moonraker, WiFi, file I/O)
