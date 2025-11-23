@@ -70,6 +70,8 @@ static void bed_mesh_draw_cb(lv_event_t* e) {
     int width = lv_obj_get_width(obj);
     int height = lv_obj_get_height(obj);
 
+    spdlog::trace("[bed_mesh] draw_cb: rendering at {}x{}", width, height);
+
     if (width <= 0 || height <= 0) {
         spdlog::debug("[bed_mesh] draw_cb: invalid dimensions {}x{}", width, height);
         return;
@@ -223,6 +225,24 @@ static void bed_mesh_release_cb(lv_event_t* e) {
 }
 
 /**
+ * Size changed event handler - update widget on resize
+ */
+static void bed_mesh_size_changed_cb(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+
+    // Get new widget dimensions
+    lv_area_t coords;
+    lv_obj_get_coords(obj, &coords);
+    int width = lv_area_get_width(&coords);
+    int height = lv_area_get_height(&coords);
+
+    spdlog::info("[bed_mesh] SIZE_CHANGED: {}x{}", width, height);
+
+    // Trigger redraw with new dimensions
+    lv_obj_invalidate(obj);
+}
+
+/**
  * Delete event handler - cleanup resources
  */
 static void bed_mesh_delete_cb(lv_event_t* e) {
@@ -298,6 +318,7 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
 
     // Register event handlers
     lv_obj_add_event_cb(obj, bed_mesh_draw_cb, LV_EVENT_DRAW_POST, NULL);     // Custom drawing
+    lv_obj_add_event_cb(obj, bed_mesh_size_changed_cb, LV_EVENT_SIZE_CHANGED, NULL); // Handle resize
     lv_obj_add_event_cb(obj, bed_mesh_delete_cb, LV_EVENT_DELETE, NULL);      // Cleanup
 
     // Register touch event handlers for drag rotation

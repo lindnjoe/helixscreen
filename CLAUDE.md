@@ -44,7 +44,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|------|----------|-----------|-----|-----------|
 | 1 | **NO hardcoded colors/dimensions** | `lv_color_hex(0xE0E0E0)` | `ui_theme_parse_color(lv_xml_get_const("card_border"))` | Theme changes w/o recompile, dark/light mode | `ui_card.cpp:39-59` |
 | 2 | **Reference existing patterns** | Inventing new approach | Study `motion_panel.xml` / `ui_panel_motion.cpp` first | Consistency, avoid bugs | ARCHITECTURE.md |
-| 3 | **Use spdlog only** | `printf()`, `cout`, `LV_LOG_*` | `spdlog::info("temp: {}", t)` | Configurable verbosity (`-v`/`-vv`/`-vvv`) | CONTRIBUTING.md |
+| 3 | **Use spdlog only** | `printf()`, `cout`, `LV_LOG_*` | `spdlog::info("temp: {}", t)` | Configurable verbosity: `-v`=info, `-vv`=debug, `-vvv`=trace | CONTRIBUTING.md |
 | 4 | **NO auto-mock fallbacks** | `if(!start()) return Mock()` | Check `RuntimeConfig::should_mock_*()`, fail gracefully | Production security, no fake data | - |
 | 5 | **Read docs BEFORE coding** | Start coding immediately | Read LVGL9_XML_GUIDE.md, BUILD_SYSTEM.md for area | Avoid known gotchas | docs/ |
 | 6 | **Use `make -j` (auto-detect)** | `make -j4`, `make -j8` | `make -j` (no number) | Auto-detects cores via NPROC, works on any system | Makefile:202,215 |

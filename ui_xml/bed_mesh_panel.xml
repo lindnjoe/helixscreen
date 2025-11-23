@@ -27,7 +27,7 @@
       <!-- Content Area: Horizontal split (Left=Canvas, Right=Controls) -->
       <lv_obj name="bed_mesh_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="row" style_pad_gap="#padding_small">
         <!-- Left: Canvas (80% width) - uses touch drag for rotation -->
-        <bed_mesh name="bed_mesh_canvas" flex_grow="8" height="100%" clickable="true"/>
+        <bed_mesh name="bed_mesh_canvas" flex_grow="8" height="100%" clickable="true" style_border_width="1"/>
 
         <!-- Right: Profile Selector + Stats (20% width) -->
         <lv_obj flex_grow="2" height="100%" flex_flow="column" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#padding_small">
@@ -40,7 +40,7 @@
           <lv_obj width="100%" flex_grow="1" style_bg_color="#card_bg" style_radius="#card_radius" style_pad_all="#padding_small" style_border_width="0" flex_flow="column" style_pad_gap="#padding_tiny">
             <text_small text="Mesh Info" style_text_color="#text_secondary" style_text_align="left"/>
             <text_small name="mesh_dimensions_label" bind_text="bed_mesh_dimensions" style_text_align="left" width="100%"/>
-            <text_small name="mesh_z_range_label" bind_text="bed_mesh_z_range" style_text_align="left" style_text_color="#text_secondary" width="100%"/>
+            <lv_label name="mesh_z_range_label" bind_text="bed_mesh_z_range" style_text_align="left" style_text_color="#text_secondary" style_text_font="#font_small" width="100%" long_mode="wrap"/>
             <text_small name="mesh_variance_label" bind_text="bed_mesh_variance" style_text_align="left" style_text_color="#text_secondary" width="100%"/>
           </lv_obj>
         </lv_obj>

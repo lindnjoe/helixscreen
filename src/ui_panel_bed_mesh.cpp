@@ -57,7 +57,7 @@ static lv_subject_t bed_mesh_variance;     // String: "Range: 0.457 mm"
 // String buffers for subjects (LVGL requires persistent buffers)
 static char profile_name_buf[64] = "";
 static char dimensions_buf[64] = "No mesh data";
-static char z_range_buf[64] = "";
+static char z_range_buf[96] = ""; // Increased size to accommodate coordinate display
 static char variance_buf[64] = "";
 
 // Cleanup handler for panel deletion
@@ -141,21 +141,43 @@ static void on_bed_mesh_update(const MoonrakerClient::BedMeshProfile& mesh) {
     lv_subject_copy_string(&bed_mesh_dimensions, dimensions_buf);
     spdlog::debug("[BedMesh] Set dimensions: {}", dimensions_buf);
 
-    // Calculate Z range and variance
+    // Calculate Z range and variance, track coordinates of min/max points
     float min_z = std::numeric_limits<float>::max();
     float max_z = std::numeric_limits<float>::lowest();
-    for (const auto& row : mesh.probed_matrix) {
-        for (float z : row) {
-            min_z = std::min(min_z, z);
-            max_z = std::max(max_z, z);
+    int min_row = 0, min_col = 0;
+    int max_row = 0, max_col = 0;
+
+    for (size_t row = 0; row < mesh.probed_matrix.size(); row++) {
+        for (size_t col = 0; col < mesh.probed_matrix[row].size(); col++) {
+            float z = mesh.probed_matrix[row][col];
+            if (z < min_z) {
+                min_z = z;
+                min_row = row;
+                min_col = col;
+            }
+            if (z > max_z) {
+                max_z = z;
+                max_row = row;
+                max_col = col;
+            }
         }
     }
+
+    // Convert mesh indices to real-world coordinates (matching bed_mesh_renderer coordinate system)
+    // X: (col - (cols-1)/2.0) * 50.0
+    // Y: ((rows-1-row) - (rows-1)/2.0) * 50.0
+    float min_x = (min_col - (mesh.x_count - 1) / 2.0f) * 50.0f;
+    float min_y = ((mesh.y_count - 1 - min_row) - (mesh.y_count - 1) / 2.0f) * 50.0f;
+    float max_x = (max_col - (mesh.x_count - 1) / 2.0f) * 50.0f;
+    float max_y = ((mesh.y_count - 1 - max_row) - (mesh.y_count - 1) / 2.0f) * 50.0f;
 
     // Calculate variance (range)
     float variance = max_z - min_z;
 
-    // Format and update Z range
-    snprintf(z_range_buf, sizeof(z_range_buf), "Min: %.3f mm | Max: %.3f mm", min_z, max_z);
+    // Format and update Z range with coordinates (Mainsail format)
+    // Split into two lines for better readability
+    snprintf(z_range_buf, sizeof(z_range_buf), "Max [%.1f, %.1f] = %.3f mm\nMin [%.1f, %.1f] = %.3f mm",
+             max_x, max_y, max_z, min_x, min_y, min_z);
     lv_subject_copy_string(&bed_mesh_z_range, z_range_buf);
     spdlog::debug("[BedMesh] Set Z range: {}", z_range_buf);
 
