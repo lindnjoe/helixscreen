@@ -123,6 +123,13 @@ static double compute_fov_scale(int rows, int cols, int canvas_width, int canvas
 static void update_trig_cache(bed_mesh_view_state_t* view_state);
 static void project_and_cache_vertices(bed_mesh_renderer_t* renderer, int canvas_width,
                                        int canvas_height);
+static void project_and_cache_quads(bed_mesh_renderer_t* renderer, int canvas_width,
+                                     int canvas_height);
+static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, int* out_min_x,
+                                          int* out_max_x, int* out_min_y, int* out_max_y);
+static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
+                                      int layer_offset_x, int layer_offset_y, int canvas_width,
+                                      int canvas_height, int* out_offset_x, int* out_offset_y);
 static bed_mesh_point_3d_t project_3d_to_2d(double x, double y, double z, int canvas_width,
                                             int canvas_height, const bed_mesh_view_state_t* view);
 static lv_color_t height_to_color(double value, double min_val, double max_val);
@@ -488,17 +495,9 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
     // Project all mesh vertices with initial scale to get actual bounds
     project_and_cache_vertices(renderer, canvas_width, canvas_height);
 
-    // Compute actual projected bounds
-    int min_x = INT_MAX, max_x = INT_MIN;
-    int min_y = INT_MAX, max_y = INT_MIN;
-    for (int row = 0; row < renderer->rows; row++) {
-        for (int col = 0; col < renderer->cols; col++) {
-            min_x = std::min(min_x, renderer->projected_points[row][col].screen_x);
-            max_x = std::max(max_x, renderer->projected_points[row][col].screen_x);
-            min_y = std::min(min_y, renderer->projected_points[row][col].screen_y);
-            max_y = std::max(max_y, renderer->projected_points[row][col].screen_y);
-        }
-    }
+    // Compute actual projected bounds using helper function
+    int min_x, max_x, min_y, max_y;
+    compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
 
     // Calculate scale needed to fit projected bounds into canvas
     int projected_width = max_x - min_x;
@@ -514,34 +513,14 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
     // Center mesh once on first render (offsets start at 0 from initialization)
     // After initial centering, offset remains stable across rotations
     if (renderer->view_state.center_offset_x == 0 && renderer->view_state.center_offset_y == 0) {
-        // Compute bounds with current projection (offset is currently 0, coordinates are screen-absolute)
-        int min_x = INT_MAX, max_x = INT_MIN;
-        int min_y = INT_MAX, max_y = INT_MIN;
-        for (int row = 0; row < renderer->rows; row++) {
-            for (int col = 0; col < renderer->cols; col++) {
-                int x = renderer->projected_points[row][col].screen_x;
-                int y = renderer->projected_points[row][col].screen_y;
-                min_x = std::min(min_x, x);
-                max_x = std::max(max_x, x);
-                min_y = std::min(min_y, y);
-                max_y = std::max(max_y, y);
-            }
-        }
+        // Compute bounds with current projection
+        int min_x, max_x, min_y, max_y;
+        compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
 
-        // Calculate screen-space centers
-        int mesh_center_screen_x = (min_x + max_x) / 2;
-        int mesh_center_screen_y = (min_y + max_y) / 2;
-        int layer_center_screen_x = layer_offset_x + (canvas_width / 2);
-        int layer_center_screen_y = layer_offset_y + (canvas_height / 2);
-
-        // Calculate offset needed to move mesh center to layer center (both in screen coords)
-        renderer->view_state.center_offset_x = layer_center_screen_x - mesh_center_screen_x;
-        renderer->view_state.center_offset_y = layer_center_screen_y - mesh_center_screen_y;
-
-        spdlog::debug("[CENTERING] Mesh center: ({},{}) -> Layer center: ({},{}) = offset ({},{})",
-                      mesh_center_screen_x, mesh_center_screen_y,
-                      layer_center_screen_x, layer_center_screen_y,
-                      renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
+        // Calculate centering offset using helper function
+        compute_centering_offset(min_x, max_x, min_y, max_y, layer_offset_x, layer_offset_y,
+                                  canvas_width, canvas_height, &renderer->view_state.center_offset_x,
+                                  &renderer->view_state.center_offset_y);
 
         // Re-project with the centering offset applied
         project_and_cache_vertices(renderer, canvas_width, canvas_height);
@@ -550,62 +529,46 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
     // Generate geometry quads with colors
     generate_mesh_quads(renderer);
 
-    // Compute quad depths using cached projections
-    for (auto& quad : renderer->quads) {
-        double total_depth = 0.0;
-        for (int i = 0; i < 4; i++) {
-            bed_mesh_point_3d_t projected =
-                project_3d_to_2d(quad.vertices[i].x, quad.vertices[i].y, quad.vertices[i].z,
-                                 canvas_width, canvas_height, &renderer->view_state);
-            total_depth += projected.depth;
-        }
-        quad.avg_depth = total_depth / 4.0;
-    }
+    // Project all quad vertices once and cache screen coordinates + depths
+    // This replaces 3 separate projection passes (depth calc, bounds tracking, rendering)
+    project_and_cache_quads(renderer, canvas_width, canvas_height);
 
-    // Sort quads by depth (painter's algorithm - furthest first)
+    // Sort quads by depth using cached avg_depth (painter's algorithm - furthest first)
     sort_quads_by_depth(renderer->quads);
 
     spdlog::trace("Rendering {} quads with {} mode", renderer->quads.size(),
                   renderer->view_state.is_dragging ? "solid" : "gradient");
 
-    // DEBUG: Track overall gradient quad bounds
+    // DEBUG: Track overall gradient quad bounds using cached coordinates
     int quad_min_x = INT_MAX, quad_max_x = INT_MIN;
     int quad_min_y = INT_MAX, quad_max_y = INT_MIN;
-
-    // Render quads
-    bool use_gradient = !renderer->view_state.is_dragging;
     for (const auto& quad : renderer->quads) {
-        // Project vertices to track bounds
         for (int i = 0; i < 4; i++) {
-            bed_mesh_point_3d_t projected =
-                project_3d_to_2d(quad.vertices[i].x, quad.vertices[i].y, quad.vertices[i].z,
-                                 canvas_width, canvas_height, &renderer->view_state);
-            quad_min_x = std::min(quad_min_x, projected.screen_x);
-            quad_max_x = std::max(quad_max_x, projected.screen_x);
-            quad_min_y = std::min(quad_min_y, projected.screen_y);
-            quad_max_y = std::max(quad_max_y, projected.screen_y);
+            quad_min_x = std::min(quad_min_x, quad.screen_x[i]);
+            quad_max_x = std::max(quad_max_x, quad.screen_x[i]);
+            quad_min_y = std::min(quad_min_y, quad.screen_y[i]);
+            quad_max_y = std::max(quad_max_y, quad.screen_y[i]);
         }
-
-        render_quad(layer, quad, canvas_width, canvas_height, &renderer->view_state, use_gradient);
     }
-
-    // DEBUG: Log overall gradient quad bounds
     spdlog::info("[GRADIENT_OVERALL] All quads bounds: x=[{},{}] y=[{},{}] quads={} canvas={}x{}",
                  quad_min_x, quad_max_x, quad_min_y, quad_max_y,
                  renderer->quads.size(), canvas_width, canvas_height);
 
-    // DEBUG: Log first quad vertex positions to verify actual rendering
+    // DEBUG: Log first quad vertex positions using cached coordinates
     if (!renderer->quads.empty()) {
         const auto& first_quad = renderer->quads[0];
-        spdlog::info("[FIRST_QUAD] Vertices in world space:");
+        spdlog::info("[FIRST_QUAD] Vertices (world -> cached screen):");
         for (int i = 0; i < 4; i++) {
-            bed_mesh_point_3d_t proj = project_3d_to_2d(
-                first_quad.vertices[i].x, first_quad.vertices[i].y, first_quad.vertices[i].z,
-                canvas_width, canvas_height, &renderer->view_state);
             spdlog::info("  v{}: world=({:.2f},{:.2f},{:.2f}) -> screen=({},{})",
                          i, first_quad.vertices[i].x, first_quad.vertices[i].y, first_quad.vertices[i].z,
-                         proj.screen_x, proj.screen_y);
+                         first_quad.screen_x[i], first_quad.screen_y[i]);
         }
+    }
+
+    // Render quads using cached screen coordinates
+    bool use_gradient = !renderer->view_state.is_dragging;
+    for (const auto& quad : renderer->quads) {
+        render_quad(layer, quad, canvas_width, canvas_height, &renderer->view_state, use_gradient);
     }
 
     // Render wireframe grid on top
@@ -736,6 +699,124 @@ static void project_and_cache_vertices(bed_mesh_renderer_t* renderer, int canvas
                 world_x, world_y, world_z, canvas_width, canvas_height, &renderer->view_state);
         }
     }
+}
+
+/**
+ * @brief Project all quad vertices to screen space and cache results
+ *
+ * Computes screen coordinates and depths for all vertices of all quads in a single pass.
+ * This eliminates redundant projections - previously each quad was projected 3 times:
+ * once for depth sorting, once for bounds tracking, and once during rendering.
+ *
+ * Must be called whenever view state changes (rotation, FOV, centering offset).
+ *
+ * @param renderer Renderer with quads already generated
+ * @param canvas_width Canvas width in pixels
+ * @param canvas_height Canvas height in pixels
+ *
+ * Side effects:
+ * - Updates quad.screen_x[], quad.screen_y[], quad.depths[] for all quads
+ * - Updates quad.avg_depth for depth sorting
+ */
+static void project_and_cache_quads(bed_mesh_renderer_t* renderer, int canvas_width,
+                                     int canvas_height) {
+    if (!renderer || renderer->quads.empty()) {
+        return;
+    }
+
+    for (auto& quad : renderer->quads) {
+        double total_depth = 0.0;
+
+        for (int i = 0; i < 4; i++) {
+            bed_mesh_point_3d_t projected =
+                project_3d_to_2d(quad.vertices[i].x, quad.vertices[i].y, quad.vertices[i].z,
+                                 canvas_width, canvas_height, &renderer->view_state);
+
+            quad.screen_x[i] = projected.screen_x;
+            quad.screen_y[i] = projected.screen_y;
+            quad.depths[i] = projected.depth;
+            total_depth += projected.depth;
+        }
+
+        quad.avg_depth = total_depth / 4.0;
+    }
+
+    spdlog::trace("[CACHE] Projected {} quads to screen space", renderer->quads.size());
+}
+
+/**
+ * @brief Compute 2D bounding box of projected mesh points
+ *
+ * Scans all cached projected_points to find min/max X and Y coordinates in screen space.
+ * Used for FOV scaling and centering calculations.
+ *
+ * @param renderer Renderer with projected_points cache populated
+ * @param[out] out_min_x Minimum screen X coordinate
+ * @param[out] out_max_x Maximum screen X coordinate
+ * @param[out] out_min_y Minimum screen Y coordinate
+ * @param[out] out_max_y Maximum screen Y coordinate
+ */
+static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, int* out_min_x,
+                                          int* out_max_x, int* out_min_y, int* out_max_y) {
+    if (!renderer || !renderer->has_mesh_data) {
+        *out_min_x = *out_max_x = *out_min_y = *out_max_y = 0;
+        return;
+    }
+
+    int min_x = INT_MAX, max_x = INT_MIN;
+    int min_y = INT_MAX, max_y = INT_MIN;
+
+    for (int row = 0; row < renderer->rows; row++) {
+        for (int col = 0; col < renderer->cols; col++) {
+            const auto& p = renderer->projected_points[row][col];
+            min_x = std::min(min_x, p.screen_x);
+            max_x = std::max(max_x, p.screen_x);
+            min_y = std::min(min_y, p.screen_y);
+            max_y = std::max(max_y, p.screen_y);
+        }
+    }
+
+    *out_min_x = min_x;
+    *out_max_x = max_x;
+    *out_min_y = min_y;
+    *out_max_y = max_y;
+}
+
+/**
+ * @brief Compute centering offset to center mesh in layer
+ *
+ * Compares mesh bounding box center (in screen space) to layer center
+ * (in screen space) and returns offset needed to align them.
+ *
+ * COORDINATE SPACE: All inputs and outputs are in SCREEN SPACE (absolute pixels).
+ *
+ * @param mesh_min_x Minimum projected mesh X (screen space)
+ * @param mesh_max_x Maximum projected mesh X (screen space)
+ * @param mesh_min_y Minimum projected mesh Y (screen space)
+ * @param mesh_max_y Maximum projected mesh Y (screen space)
+ * @param layer_offset_x Layer's screen position X (from clip_area->x1)
+ * @param layer_offset_y Layer's screen position Y (from clip_area->y1)
+ * @param canvas_width Layer width in pixels
+ * @param canvas_height Layer height in pixels
+ * @param[out] out_offset_x Horizontal centering offset
+ * @param[out] out_offset_y Vertical centering offset
+ */
+static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
+                                      int layer_offset_x, int layer_offset_y, int canvas_width,
+                                      int canvas_height, int* out_offset_x, int* out_offset_y) {
+    // Calculate centers in screen space
+    int mesh_center_x = (mesh_min_x + mesh_max_x) / 2;
+    int mesh_center_y = (mesh_min_y + mesh_max_y) / 2;
+    int layer_center_x = layer_offset_x + (canvas_width / 2);
+    int layer_center_y = layer_offset_y + (canvas_height / 2);
+
+    // Offset needed to move mesh center to layer center (both in screen coords)
+    *out_offset_x = layer_center_x - mesh_center_x;
+    *out_offset_y = layer_center_y - mesh_center_y;
+
+    spdlog::debug("[CENTERING] Mesh center: ({},{}) -> Layer center: ({},{}) = offset ({},{})",
+                  mesh_center_x, mesh_center_y, layer_center_x, layer_center_y, *out_offset_x,
+                  *out_offset_y);
 }
 
 static bed_mesh_point_3d_t project_3d_to_2d(double x, double y, double z, int canvas_width,
@@ -1500,15 +1581,22 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
 // Quad Rendering
 // ============================================================================
 
+/**
+ * @brief Render a single quad using cached screen coordinates
+ *
+ * IMPORTANT: Assumes quad screen coordinates are already computed via
+ * project_and_cache_quads(). Does NOT perform projection - uses cached values.
+ *
+ * @param layer LVGL draw layer
+ * @param quad Quad with cached screen_x[], screen_y[] coordinates
+ * @param canvas_width Canvas width (passed to triangle fill functions)
+ * @param canvas_height Canvas height (passed to triangle fill functions)
+ * @param view View state (unused, kept for API compatibility)
+ * @param use_gradient true = gradient interpolation, false = solid color
+ */
 static void render_quad(lv_layer_t* layer, const bed_mesh_quad_3d_t& quad, int canvas_width,
                         int canvas_height, const bed_mesh_view_state_t* view, bool use_gradient) {
-    // Project all 4 vertices to screen space
-    bed_mesh_point_3d_t projected[4];
-    for (int i = 0; i < 4; i++) {
-        projected[i] = project_3d_to_2d(quad.vertices[i].x, quad.vertices[i].y, quad.vertices[i].z,
-                                        canvas_width, canvas_height, view);
-    }
-
+    (void)view; // Unused - coordinates are pre-cached
 
     /**
      * Render quad as 2 triangles (diagonal split from BL to TR):
@@ -1527,25 +1615,25 @@ static void render_quad(lv_layer_t* layer, const bed_mesh_quad_3d_t& quad, int c
     // use_gradient = false during drag for performance (solid color fallback)
     // use_gradient = true when static for quality (gradient interpolation)
     if (use_gradient) {
-        fill_triangle_gradient(layer, projected[0].screen_x, projected[0].screen_y,
-                               quad.vertices[0].color, projected[1].screen_x, projected[1].screen_y,
-                               quad.vertices[1].color, projected[2].screen_x, projected[2].screen_y,
-                               quad.vertices[2].color, canvas_width, canvas_height);
+        fill_triangle_gradient(layer, quad.screen_x[0], quad.screen_y[0], quad.vertices[0].color,
+                               quad.screen_x[1], quad.screen_y[1], quad.vertices[1].color,
+                               quad.screen_x[2], quad.screen_y[2], quad.vertices[2].color,
+                               canvas_width, canvas_height);
     } else {
-        fill_triangle_solid(layer, projected[0].screen_x, projected[0].screen_y,
-                            projected[1].screen_x, projected[1].screen_y, projected[2].screen_x,
-                            projected[2].screen_y, canvas_width, canvas_height, quad.center_color);
+        fill_triangle_solid(layer, quad.screen_x[0], quad.screen_y[0], quad.screen_x[1],
+                            quad.screen_y[1], quad.screen_x[2], quad.screen_y[2], canvas_width,
+                            canvas_height, quad.center_color);
     }
 
     // Triangle 2: [1]BR → [3]TR → [2]TL
     if (use_gradient) {
-        fill_triangle_gradient(layer, projected[1].screen_x, projected[1].screen_y,
-                               quad.vertices[1].color, projected[2].screen_x, projected[2].screen_y,
-                               quad.vertices[2].color, projected[3].screen_x, projected[3].screen_y,
-                               quad.vertices[3].color, canvas_width, canvas_height);
+        fill_triangle_gradient(layer, quad.screen_x[1], quad.screen_y[1], quad.vertices[1].color,
+                               quad.screen_x[2], quad.screen_y[2], quad.vertices[2].color,
+                               quad.screen_x[3], quad.screen_y[3], quad.vertices[3].color,
+                               canvas_width, canvas_height);
     } else {
-        fill_triangle_solid(layer, projected[1].screen_x, projected[1].screen_y,
-                            projected[2].screen_x, projected[2].screen_y, projected[3].screen_x,
-                            projected[3].screen_y, canvas_width, canvas_height, quad.center_color);
+        fill_triangle_solid(layer, quad.screen_x[1], quad.screen_y[1], quad.screen_x[2],
+                            quad.screen_y[2], quad.screen_x[3], quad.screen_y[3], canvas_width,
+                            canvas_height, quad.center_color);
     }
 }

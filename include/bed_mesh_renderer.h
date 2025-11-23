@@ -38,6 +38,42 @@ extern "C" {
  *
  * Implements complete 3D rendering pipeline for printer bed mesh height maps:
  * - Perspective projection with interactive rotation
+ *
+ * COORDINATE SPACES (transformation pipeline):
+ *
+ * 1. MESH SPACE (input):
+ *    - Indices: row ∈ [0, rows-1], col ∈ [0, cols-1]
+ *    - Heights: Z ∈ [mesh_min_z, mesh_max_z] (millimeters from bed)
+ *    - Origin: mesh[0][0] = front-left corner
+ *
+ * 2. WORLD SPACE (3D scene):
+ *    - Coordinates: (X, Y, Z) in world units (scaled by BED_MESH_SCALE)
+ *    - Origin: Center of mesh at (0, 0, Z_center)
+ *    - X-axis: Left (negative) to right (positive)
+ *    - Y-axis: Front (positive) to back (negative) [inverted from mesh rows]
+ *    - Z-axis: Down (negative) to up (positive)
+ *    - Transform: mesh_*_to_world_*() helpers (src/bed_mesh_renderer.cpp)
+ *
+ * 3. CAMERA SPACE (after rotation):
+ *    - After applying angle_x (tilt) and angle_z (spin) rotations
+ *    - Camera positioned at (0, 0, -CAMERA_DISTANCE) looking toward origin
+ *    - Computed internally in project_3d_to_2d()
+ *
+ * 4. SCREEN SPACE (2D pixels, FINAL OUTPUT):
+ *    - Coordinates: (screen_x, screen_y) in pixels
+ *    - Origin: Top-left corner of canvas/layer at (0, 0)
+ *    - After perspective projection + center_offset_x/y
+ *    - All rendering uses screen space coordinates
+ *
+ * IMPORTANT NAMING CONVENTION:
+ * - Functions accepting "x, y, z" parameters expect WORLD SPACE coordinates
+ * - Functions returning/storing "screen_x, screen_y" provide SCREEN SPACE coordinates
+ * - Cached coordinates in structs (e.g., quad.screen_x[]) are always SCREEN SPACE
+ *
+ * LAYER OFFSET HANDLING:
+ * - center_offset_x/y: Converts mesh-centered coords to layer-centered coords
+ * - Accounts for overlay panel position on screen (e.g., panel at x=136)
+ * - Calculated once on first render, stable across rotations
  * - Scanline triangle rasterization with gradient interpolation
  * - Painter's algorithm depth sorting
  * - Scientific heat-map color mapping (purple → blue → cyan → yellow → red)
@@ -79,9 +115,15 @@ typedef struct {
 
 // Quad surface (4 vertices) representing one mesh cell
 typedef struct {
-    bed_mesh_vertex_3d_t vertices[4]; // Four corners: [0]=BL, [1]=BR, [2]=TL, [3]=TR
-    double avg_depth;                 // Average depth for back-to-front sorting
-    lv_color_t center_color;          // Fallback solid color for fast rendering
+    bed_mesh_vertex_3d_t vertices[4]; // Four corners in WORLD space: [0]=BL, [1]=BR, [2]=TL, [3]=TR
+
+    // Cached screen-space projections (computed once per frame, reused for rendering)
+    int screen_x[4];                  // Screen X coordinates for vertices[0..3]
+    int screen_y[4];                  // Screen Y coordinates for vertices[0..3]
+    double depths[4];                 // Z-depths for vertices[0..3] (for sorting/debugging)
+
+    double avg_depth;                 // Average depth for back-to-front sorting (computed from depths[])
+    lv_color_t center_color;          // Fallback solid color for fast rendering (drag mode)
 } bed_mesh_quad_3d_t;
 
 // RGB color structure (for intermediate calculations)
