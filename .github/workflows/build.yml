@@ -74,6 +74,14 @@ jobs:
         make -C wpa_supplicant/wpa_supplicant -j$(nproc) libwpa_client.a
         echo "✓ wpa_supplicant client library built successfully"
 
+    - name: Build TinyGL
+      run: |
+        # Build TinyGL software 3D rasterizer for G-code visualization
+        cd tinygl
+        make -j$(nproc)
+        echo "✓ TinyGL built successfully"
+        cd ..
+
     - name: Build HelixScreen
       run: |
         make -j$(nproc)
@@ -125,6 +133,14 @@ jobs:
         ./configure --with-http-client
         make -j$(sysctl -n hw.ncpu) libhv
         echo "✓ libhv built successfully"
+
+    - name: Build TinyGL
+      run: |
+        # Build TinyGL software 3D rasterizer for G-code visualization
+        cd tinygl
+        make -j$(sysctl -n hw.ncpu)
+        echo "✓ TinyGL built successfully"
+        cd ..
 
     - name: Build HelixScreen
       run: |

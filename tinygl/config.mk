@@ -28,10 +28,22 @@ endif
 #####################################################################
 #extract the maximum possible performance from gcc.
 
+# Platform detection for cross-platform builds
+UNAME_S := $(shell uname -s)
+
+# Platform-specific compiler flags
+ifeq ($(UNAME_S),Darwin)
+    # macOS - add deployment target
+    PLATFORM_FLAGS = -mmacosx-version-min=14.0
+else
+    # Linux and other platforms - no special flags needed
+    PLATFORM_FLAGS =
+endif
+
 #CFLAGS= -Wall -O3 -std=c99 -DNDEBUG -march=native -Wno-unused-function
-CFLAGS= -Wall -O3 -std=c99 -DNDEBUG -march=native -Wno-unused-function -mmacosx-version-min=14.0 $(OPENMP_FLAGS)
+CFLAGS= -Wall -O3 -std=c99 -DNDEBUG -march=native -Wno-unused-function $(PLATFORM_FLAGS) $(OPENMP_FLAGS)
 #CFLAGS_LIB= -Wall -O3 -std=c99 -pedantic -DNDEBUG -march=native -Wno-unused-function
-CFLAGS_LIB= -Wall -O3 -std=c99 -pedantic -DNDEBUG -march=native -Wno-unused-function -mmacosx-version-min=14.0 $(OPENMP_FLAGS)
+CFLAGS_LIB= -Wall -O3 -std=c99 -pedantic -DNDEBUG -march=native -Wno-unused-function $(PLATFORM_FLAGS) $(OPENMP_FLAGS)
 
 
 #CFLAGS= -Wall -Ofast -std=gnu99 -DNDEBUG -mtune=native
