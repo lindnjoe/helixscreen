@@ -34,6 +34,11 @@
  * - Non-critical messages → toast notifications (auto-dismiss)
  * - Critical errors → modal dialogs (require acknowledgment)
  *
+ * **Thread Safety:**
+ * All functions are thread-safe. They automatically detect if called from a
+ * background thread and use lv_async_call() to marshal to the LVGL main thread.
+ * Safe to call from any thread (main thread, libhv callbacks, WiFi events, etc.).
+ *
  * Also integrates with the reactive subject system so any module can emit
  * notifications without direct dependencies on UI code.
  */
@@ -63,6 +68,7 @@ typedef struct {
  *
  * Sets up subject observers and prepares the notification infrastructure.
  * Must be called during app initialization after app_globals_init_subjects().
+ * Also captures the main thread ID for automatic thread-safety detection.
  */
 void ui_notification_init();
 
@@ -70,6 +76,9 @@ void ui_notification_init();
  * @brief Show an informational toast notification
  *
  * Displays a non-blocking blue toast message that auto-dismisses after 4 seconds.
+ *
+ * **Thread-safe**: Automatically detects if called from background thread and
+ * marshals to LVGL main thread. Safe to call from any thread.
  *
  * @param message Message text to display
  */
@@ -80,6 +89,9 @@ void ui_notification_info(const char* message);
  *
  * Displays a non-blocking green toast message that auto-dismisses after 4 seconds.
  *
+ * **Thread-safe**: Automatically detects if called from background thread and
+ * marshals to LVGL main thread. Safe to call from any thread.
+ *
  * @param message Message text to display
  */
 void ui_notification_success(const char* message);
@@ -88,6 +100,9 @@ void ui_notification_success(const char* message);
  * @brief Show a warning notification
  *
  * Displays a non-blocking orange toast message that auto-dismisses after 5 seconds.
+ *
+ * **Thread-safe**: Automatically detects if called from background thread and
+ * marshals to LVGL main thread. Safe to call from any thread.
  *
  * @param message Message text to display
  */
@@ -98,6 +113,9 @@ void ui_notification_warning(const char* message);
  *
  * Can display either a blocking modal dialog or a toast notification depending
  * on the modal parameter. Critical errors should use modal=true.
+ *
+ * **Thread-safe**: Automatically detects if called from background thread and
+ * marshals to LVGL main thread. Safe to call from any thread.
  *
  * @param title Error title (used for modal dialogs, can be nullptr for toasts)
  * @param message Error message text
