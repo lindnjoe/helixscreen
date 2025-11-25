@@ -334,6 +334,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
     if (!socket_found) {
         LOG_ERROR_INTERNAL("Could not find wpa_supplicant socket in /run or /var/run");
         LOG_ERROR_INTERNAL("Is wpa_supplicant daemon running?");
+        dispatch_event("INIT_FAILED", "wpa_supplicant socket not found");
         return;
     }
 
@@ -342,6 +343,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
         conn = wpa_ctrl_open(wpa_socket.c_str());
         if (conn == NULL) {
             LOG_ERROR_INTERNAL("Failed to open control connection to {}", wpa_socket);
+            dispatch_event("INIT_FAILED", "Failed to connect to wpa_supplicant");
             return;
         }
         spdlog::debug("[WifiBackend] Opened control connection");
@@ -351,12 +353,14 @@ void WifiBackendWpaSupplicant::init_wpa() {
     mon_conn = wpa_ctrl_open(wpa_socket.c_str()); // SECURITY: Use member variable to prevent leak
     if (mon_conn == NULL) {
         LOG_ERROR_INTERNAL("Failed to open monitor connection to {}", wpa_socket);
+        dispatch_event("INIT_FAILED", "Failed to connect to wpa_supplicant monitor");
         return;
     }
 
     // Attach to wpa_supplicant event stream
     if (wpa_ctrl_attach(mon_conn) != 0) {
         LOG_ERROR_INTERNAL("Failed to attach to wpa_supplicant events");
+        dispatch_event("INIT_FAILED", "Failed to attach to wpa_supplicant events");
         wpa_ctrl_close(mon_conn);
         mon_conn = NULL; // Clear member to avoid double-close
         return;
@@ -367,6 +371,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
     int monfd = wpa_ctrl_get_fd(mon_conn);
     if (monfd < 0) {
         LOG_ERROR_INTERNAL("Failed to get monitor socket file descriptor");
+        dispatch_event("INIT_FAILED", "Failed to initialize wpa_supplicant communication");
         wpa_ctrl_close(mon_conn);
         mon_conn = NULL; // Clear member to avoid double-close
         return;
@@ -377,6 +382,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
     hio_t* io = hio_get(loop()->loop(), monfd);
     if (io == NULL) {
         LOG_ERROR_INTERNAL("Failed to register monitor socket with libhv");
+        dispatch_event("INIT_FAILED", "Failed to initialize WiFi event handling");
         wpa_ctrl_close(mon_conn);
         return;
     }
@@ -450,6 +456,23 @@ void WifiBackendWpaSupplicant::_handle_wpa_events(hio_t* io, void* data, int rea
         instance->handle_wpa_events(data, readbyte);
     } else {
         LOG_ERROR_INTERNAL("Static callback invoked with NULL context");
+    }
+}
+
+void WifiBackendWpaSupplicant::dispatch_event(const std::string& event_name,
+                                               const std::string& message) {
+    // Dispatch to a specific registered callback (for synthetic events like INIT_FAILED)
+    std::lock_guard<std::mutex> lock(callbacks_mutex_);
+    auto it = callbacks.find(event_name);
+    if (it != callbacks.end()) {
+        spdlog::debug("[WifiBackend] Dispatching synthetic event '{}': {}", event_name, message);
+        try {
+            it->second(message);
+        } catch (const std::exception& e) {
+            LOG_ERROR_INTERNAL("Exception in callback '{}': {}", event_name, e.what());
+        } catch (...) {
+            LOG_ERROR_INTERNAL("Unknown exception in callback '{}'", event_name);
+        }
     }
 }
 

@@ -626,7 +626,7 @@ static void on_network_item_clicked(lv_event_t* e) {
                     char msg[128];
                     snprintf(msg, sizeof(msg), "Failed to connect: %s", error.c_str());
                     update_wifi_status(msg);
-                    LOG_ERROR_INTERNAL("Connection failed: {}", error);
+                    NOTIFY_ERROR("Failed to connect to '{}': {}", current_ssid, error);
                 }
             });
         } else {
@@ -727,7 +727,7 @@ static void on_modal_connect_clicked(lv_event_t* e) {
                 }
 
                 update_wifi_status("Connection failed");
-                LOG_ERROR_INTERNAL("Connection failed: {}", error);
+                NOTIFY_ERROR("Failed to connect to '{}': {}", current_ssid, error);
             }
         });
     } else {

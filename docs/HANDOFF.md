@@ -89,7 +89,7 @@ Modified: printer_types.h, wizard_config_paths.h, printer_database.json,
 ```
 
 **Build Status:** ✅ Compiles successfully
-**Runtime Status:** ⚠️ Not tested yet (needs manual testing with wizard flow)
+**Runtime Status:** ✅ Tested (2025-11-24)
 
 **Commits:**
 - `c978dad` - feat(tools): rewrite moonraker-inspector interactive mode with cpp-terminal
@@ -100,19 +100,20 @@ Modified: printer_types.h, wizard_config_paths.h, printer_database.json,
 
 ## 🚀 NEXT PRIORITY
 
-### Testing & Validation
+### Phase 2B: WiFi Error Migration - IN PROGRESS
+
+**Status:** `wifi_manager.cpp` already fully migrated! Only gaps remain:
+
+| File | Status |
+|------|--------|
+| `wifi_manager.cpp` | ✅ Done - uses NOTIFY_*, LOG_*_INTERNAL correctly |
+| `wifi_backend_wpa_supplicant.cpp` | 🔄 Need INIT_FAILED event callback |
+| `ui_wizard_wifi.cpp` | 🔄 2 connection errors need NOTIFY_ERROR |
+| `wifi_backend_mock.cpp` | ✅ Keep as spdlog (testing only) |
 
 **Remaining Tasks:**
-1. **Test Wizard Flow:**
-   - Run through wizard with FlashForge printer at 192.168.1.67
-   - Verify heater selection screen shows both bed and hotend dropdowns
-   - Verify auto-detection shows "FlashForge Adventurer 5M" cleanly
-   - Verify config summary screen displays saved values
-
-2. **Optional: Additional Error Migration (Phase 3):**
-   - ~389 remaining spdlog calls exist across codebase
-   - Most are internal/debug logs - not user-facing
-   - Convert additional sites as needed during feature development
+1. Add "INIT_FAILED" event to wpa_supplicant backend
+2. Convert 2 LOG_ERROR_INTERNAL → NOTIFY_ERROR in wizard WiFi screen
 
 ---
 
@@ -144,60 +145,22 @@ Modified: printer_types.h, wizard_config_paths.h, printer_database.json,
 
 ---
 
-## 🔄 DEFERRED: Phase 2B WiFi Error Migration
+## 🔄 Phase 2B WiFi Error Migration - MOSTLY COMPLETE
 
-**Goal:** Convert WiFi-related error sites to use unified notification system.
+**Status:** `wifi_manager.cpp` was already fully migrated! Only 2 gaps remain.
 
-**Scope:** ~75 error/warn sites across 4 files
-**Status:** NOT STARTED (waiting for Phase 2 verification)
+**Actual Scope (discovered during analysis):**
 
-**Target Files:**
-1. `src/wifi_manager.cpp` (~21 error/warn sites)
-2. `src/wifi_backend_wpa_supplicant.cpp` (~29 error/warn sites)
-3. `src/ui_wizard_wifi.cpp` (~20 error/warn sites)
-4. `src/wifi_backend_mock.cpp` (~5 error/warn sites - keep as spdlog for testing)
+| File | Sites | Status |
+|------|-------|--------|
+| `wifi_manager.cpp` | 21 | ✅ Already uses NOTIFY_*, LOG_*_INTERNAL correctly |
+| `wifi_backend_wpa_supplicant.cpp` | 29 | ✅ Mostly internal logs (correct) - 1 gap: init failure notification |
+| `ui_wizard_wifi.cpp` | 20 | ✅ Mostly correct - 2 gaps: connection callback errors |
+| `wifi_backend_mock.cpp` | 5 | ✅ Keep as spdlog (testing only) |
 
-**Macros Available:**
-```cpp
-// Thread-safe - work from any thread automatically
-NOTIFY_ERROR("message")           // Log + toast
-NOTIFY_WARNING("message")         // Log + toast
-NOTIFY_INFO("message")            // Log + toast
-NOTIFY_SUCCESS("message")         // Log + toast
-LOG_ERROR_INTERNAL("msg")         // Log only, no UI
-
-// Direct calls also work (auto-detect thread)
-ui_notification_error(nullptr, "message", false)  // toast
-ui_notification_error("Title", "message", true)   // modal
-```
-
-**Classification Strategy:**
-
-**User-Facing Critical (modal):**
-- WiFi backend creation failed → `NOTIFY_ERROR("WiFi Unavailable", "Could not initialize WiFi hardware...", true)`
-- wpa_supplicant not running → `NOTIFY_ERROR("WiFi Service Not Running", "wpa_supplicant is not running...", true)`
-
-**User-Facing Non-Critical (toast):**
-- Connection failures → `NOTIFY_ERROR("Failed to connect to WiFi network 'SSID'")`
-- Scan failures → `NOTIFY_WARNING("WiFi scan failed. Try again.")`
-- Disconnect failures → `NOTIFY_WARNING("Could not disconnect from WiFi")`
-
-**Internal/Technical (log only):**
-- Event handler errors → `LOG_ERROR_INTERNAL("...")`
-- Command failures (technical) → `LOG_ERROR_INTERNAL("...")`
-- Parse errors → `LOG_ERROR_INTERNAL("...")`
-
-**Special Considerations:**
-- WiFi callbacks run on background threads → auto-detection handles it
-- Mock backend errors → keep as `spdlog::error` (testing only, not production)
-- Wizard validation errors → check if already shown in UI before notifying
-
-**Expected Breakdown:**
-- User-facing error modals: ~2 sites (backend failures)
-- User-facing error toasts: ~25 sites (connection/scan failures)
-- User-facing warning toasts: ~10 sites (temporary issues)
-- Internal errors (LOG_ERROR_INTERNAL): ~35 sites (events/callbacks)
-- Mock errors (unchanged): ~5 sites
+**Remaining Gaps:**
+1. `wifi_backend_wpa_supplicant.cpp`: `init_wpa()` fails silently - add "INIT_FAILED" event
+2. `ui_wizard_wifi.cpp` lines 629, 730: Convert LOG_ERROR_INTERNAL → NOTIFY_ERROR
 
 ---
 

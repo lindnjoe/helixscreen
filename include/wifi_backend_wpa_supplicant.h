@@ -230,6 +230,16 @@ class WifiBackendWpaSupplicant : public WifiBackend, private hv::EventLoopThread
      */
     static void _handle_wpa_events(hio_t* io, void* data, int readbyte);
 
+    /**
+     * @brief Dispatch a synthetic event to a specific registered callback
+     *
+     * Used for internal events like INIT_FAILED that don't come from wpa_supplicant.
+     *
+     * @param event_name Name of the callback to dispatch to
+     * @param message Message to pass to the callback
+     */
+    void dispatch_event(const std::string& event_name, const std::string& message);
+
     // Helper methods for clean API (encapsulate wpa_supplicant ugliness)
     std::vector<WiFiNetwork> parse_scan_results(const std::string& raw);
     std::vector<std::string> split_by_tabs(const std::string& str);

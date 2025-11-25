@@ -65,6 +65,10 @@ WiFiManager::WiFiManager() : scan_timer_(nullptr) {
         "DISCONNECTED", [this](const std::string& data) { handle_disconnected(data); });
     backend_->register_event_callback(
         "AUTH_FAILED", [this](const std::string& data) { handle_auth_failed(data); });
+    backend_->register_event_callback("INIT_FAILED", [](const std::string& msg) {
+        // Backend initialization failed asynchronously - notify user
+        NOTIFY_ERROR("WiFi initialization failed: {}", msg);
+    });
 }
 
 void WiFiManager::init_self_reference(std::shared_ptr<WiFiManager> self) {
