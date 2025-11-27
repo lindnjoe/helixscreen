@@ -45,6 +45,8 @@ LV_IMG_DECLARE(home_z);
 LV_IMG_DECLARE(print);
 LV_IMG_DECLARE(list);
 LV_IMG_DECLARE(grid_view);
+LV_IMG_DECLARE(folder);
+LV_IMG_DECLARE(folder_up);
 LV_IMG_DECLARE(pause_img);
 LV_IMG_DECLARE(resume);
 LV_IMG_DECLARE(cancel);

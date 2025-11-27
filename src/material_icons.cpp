@@ -29,7 +29,7 @@
 #include <spdlog/spdlog.h>
 
 void material_icons_register() {
-    spdlog::trace("Registering Material Design icons (74 total)...");
+    spdlog::trace("Registering Material Design icons (76 total)...");
 
     // Navigation & Movement
     lv_xml_register_image(NULL, "mat_home", &home);
@@ -48,6 +48,8 @@ void material_icons_register() {
     lv_xml_register_image(NULL, "mat_print", &print);
     lv_xml_register_image(NULL, "mat_list", &list);
     lv_xml_register_image(NULL, "mat_grid_view", &grid_view);
+    lv_xml_register_image(NULL, "mat_folder", &folder);
+    lv_xml_register_image(NULL, "mat_folder_up", &folder_up);
     lv_xml_register_image(NULL, "mat_pause", &pause_img);
     lv_xml_register_image(NULL, "mat_resume", &resume);
     lv_xml_register_image(NULL, "mat_cancel", &cancel);

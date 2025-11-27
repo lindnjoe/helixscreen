@@ -299,7 +299,7 @@ void PrintSelectPanel::refresh_files() {
                 PrintFileData parent_dir;
                 parent_dir.filename = "..";
                 parent_dir.is_dir = true;
-                parent_dir.thumbnail_path = self->DEFAULT_PLACEHOLDER_THUMB;
+                parent_dir.thumbnail_path = self->FOLDER_UP_ICON;
                 parent_dir.size_str = "Go up";
                 parent_dir.print_time_str = "";
                 parent_dir.filament_str = "";
@@ -316,8 +316,8 @@ void PrintSelectPanel::refresh_files() {
                 data.modified_timestamp = static_cast<time_t>(file.modified);
 
                 if (file.is_dir) {
-                    // Directory - use placeholder for now (TODO: folder icon)
-                    data.thumbnail_path = self->DEFAULT_PLACEHOLDER_THUMB;
+                    // Directory - use folder icon
+                    data.thumbnail_path = self->FOLDER_ICON;
                     data.print_time_minutes = 0;
                     data.filament_grams = 0.0f;
                     data.size_str = "Folder";
@@ -622,8 +622,10 @@ void PrintSelectPanel::populate_card_view() {
     for (size_t i = 0; i < file_list_.size(); i++) {
         const auto& file = file_list_[i];
 
-        // Strip extension for display (cleaner UI)
-        std::string display_name = strip_gcode_extension(file.filename);
+        // For directories, append "/" to indicate navigable folder
+        // For files, strip extension for cleaner display
+        std::string display_name =
+            file.is_dir ? file.filename + "/" : strip_gcode_extension(file.filename);
 
         const char* attrs[] = {"thumbnail_src",
                                file.thumbnail_path.c_str(),
@@ -660,6 +662,28 @@ void PrintSelectPanel::populate_card_view() {
                 }
             }
 
+            // For directories: recolor icon, hide metadata, reduce overlay height
+            if (file.is_dir) {
+                // Recolor the folder icon to amber/yellow (classic folder color)
+                if (thumb_img) {
+                    lv_obj_set_style_image_recolor(thumb_img, lv_color_hex(0xFFB74D), 0);
+                    lv_obj_set_style_image_recolor_opa(thumb_img, LV_OPA_COVER, 0);
+                }
+
+                lv_obj_t* metadata_row = lv_obj_find_by_name(card, "metadata_row");
+                if (metadata_row) {
+                    lv_obj_add_flag(metadata_row, LV_OBJ_FLAG_HIDDEN);
+                }
+
+                // Reduce overlay heights for cleaner folder appearance
+                lv_obj_t* metadata_clip = lv_obj_find_by_name(card, "metadata_clip");
+                lv_obj_t* metadata_overlay = lv_obj_find_by_name(card, "metadata_overlay");
+                if (metadata_clip && metadata_overlay) {
+                    lv_obj_set_height(metadata_clip, 40);
+                    lv_obj_set_height(metadata_overlay, 48);
+                }
+            }
+
             // Attach click handler
             attach_card_click_handler(card, i);
         }
@@ -676,8 +700,10 @@ void PrintSelectPanel::populate_list_view() {
     for (size_t i = 0; i < file_list_.size(); i++) {
         const auto& file = file_list_[i];
 
-        // Strip extension for display (cleaner UI)
-        std::string display_name = strip_gcode_extension(file.filename);
+        // For directories, append "/" to indicate navigable folder
+        // For files, strip extension for cleaner display
+        std::string display_name =
+            file.is_dir ? file.filename + "/" : strip_gcode_extension(file.filename);
 
         const char* attrs[] = {"filename",
                                display_name.c_str(),

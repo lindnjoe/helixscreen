@@ -255,6 +255,8 @@ class PrintSelectPanel : public PanelBase {
     static constexpr int ROW_COUNT_3_MIN_HEIGHT = 520;
     static constexpr const char* DEFAULT_PLACEHOLDER_THUMB =
         "A:assets/images/thumbnail-placeholder.png";
+    static constexpr const char* FOLDER_ICON = "A:assets/images/folder.png";
+    static constexpr const char* FOLDER_UP_ICON = "A:assets/images/folder-up.png";
 
     //
     // === Widget References ===
