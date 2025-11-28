@@ -3,8 +3,6 @@
 
 #include "ui_panel_home.h"
 
-#include "app_globals.h"
-#include "printer_state.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_fonts.h"
@@ -12,6 +10,9 @@
 #include "ui_nav.h"
 #include "ui_subject_registry.h"
 #include "ui_theme.h"
+
+#include "app_globals.h"
+#include "printer_state.h"
 
 #include <spdlog/spdlog.h>
 
@@ -40,13 +41,13 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
 HomePanel::~HomePanel() {
     // NOTE: Do NOT log or call LVGL functions here! Destructor may be called
     // during static destruction after LVGL and spdlog have already been destroyed.
-    // The timer and dialog will be cleaned up by LVGL when it shuts down.
+    // The timer will be cleaned up by LVGL when it shuts down.
+    // The tip_modal_ member uses RAII and will auto-hide if visible.
     //
     // If we need explicit cleanup, it should be done in a separate cleanup()
     // method called before exit(), not in the destructor.
 
     tip_rotation_timer_ = nullptr;
-    tip_detail_dialog_ = nullptr;
 
     // Observers cleaned up by PanelBase::~PanelBase()
 }
@@ -67,16 +68,15 @@ void HomePanel::init_subjects() {
     init_home_panel_colors();
 
     // Initialize subjects with default values
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(status_subject_, status_buffer_,
-                                        "Welcome to HelixScreen", "status_text");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(temp_subject_, temp_buffer_,
-                                        "30 °C", "temp_text");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_icon_subject_, network_icon_buffer_,
-                                        ICON_WIFI, "network_icon");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_label_subject_, network_label_buffer_,
-                                        "Wi-Fi", "network_label");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_color_subject_, network_color_buffer_,
-                                        "0xff4444", "network_color");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(status_subject_, status_buffer_, "Welcome to HelixScreen",
+                                        "status_text");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(temp_subject_, temp_buffer_, "30 °C", "temp_text");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_icon_subject_, network_icon_buffer_, ICON_WIFI,
+                                        "network_icon");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_label_subject_, network_label_buffer_, "Wi-Fi",
+                                        "network_label");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(network_color_subject_, network_color_buffer_, "0xff4444",
+                                        "network_color");
     UI_SUBJECT_INIT_AND_REGISTER_COLOR(light_icon_color_subject_, light_icon_off_color_,
                                        "light_icon_color");
 
@@ -144,19 +144,17 @@ void HomePanel::init_home_panel_colors() {
         bool use_dark_mode = ui_theme_is_dark_mode();
 
         // Load light icon ON color
-        const char* on_str = lv_xml_get_const(
-            scope, use_dark_mode ? "light_icon_on_dark" : "light_icon_on_light");
+        const char* on_str =
+            lv_xml_get_const(scope, use_dark_mode ? "light_icon_on_dark" : "light_icon_on_light");
         light_icon_on_color_ = on_str ? ui_theme_parse_color(on_str) : lv_color_hex(0xFFD700);
 
         // Load light icon OFF color
-        const char* off_str = lv_xml_get_const(
-            scope, use_dark_mode ? "light_icon_off_dark" : "light_icon_off_light");
+        const char* off_str =
+            lv_xml_get_const(scope, use_dark_mode ? "light_icon_off_dark" : "light_icon_off_light");
         light_icon_off_color_ = off_str ? ui_theme_parse_color(off_str) : lv_color_hex(0x909090);
 
-        spdlog::debug("[{}] Light icon colors loaded: on={}, off={} ({})",
-                      get_name(),
-                      on_str ? on_str : "default",
-                      off_str ? off_str : "default",
+        spdlog::debug("[{}] Light icon colors loaded: on={}, off={} ({})", get_name(),
+                      on_str ? on_str : "default", off_str ? off_str : "default",
                       use_dark_mode ? "dark" : "light");
     } else {
         // Fallback to defaults if scope not found
@@ -194,19 +192,19 @@ void HomePanel::setup_responsive_icon_fonts() {
     int icon_px;
 
     if (screen_height <= UI_SCREEN_TINY_H) {
-        fa_icon_font = &fa_icons_24;  // Tiny: 24px icons
-        mat_icon_size = "sm";         // 24x24
-        label_font = UI_FONT_SMALL;   // Smaller text labels to save space
+        fa_icon_font = &fa_icons_24; // Tiny: 24px icons
+        mat_icon_size = "sm";        // 24x24
+        label_font = UI_FONT_SMALL;  // Smaller text labels to save space
         icon_px = 24;
     } else if (screen_height <= UI_SCREEN_SMALL_H) {
-        fa_icon_font = &fa_icons_32;  // Small: 32px icons
-        mat_icon_size = "md";         // 32x32
-        label_font = UI_FONT_BODY;    // Normal text
+        fa_icon_font = &fa_icons_32; // Small: 32px icons
+        mat_icon_size = "md";        // 32x32
+        label_font = UI_FONT_BODY;   // Normal text
         icon_px = 32;
     } else {
-        fa_icon_font = &fa_icons_64;  // Medium/Large: 64px icons
-        mat_icon_size = "xl";         // 64x64
-        label_font = UI_FONT_BODY;    // Normal text
+        fa_icon_font = &fa_icons_64; // Medium/Large: 64px icons
+        mat_icon_size = "xl";        // 64x64
+        label_font = UI_FONT_BODY;   // Normal text
         icon_px = 64;
     }
 
@@ -239,16 +237,8 @@ void HomePanel::setup_responsive_icon_fonts() {
         ui_icon_set_size(light_icon_, mat_icon_size);
     }
 
-    spdlog::debug("[{}] Set icons to {}px, labels to {} for screen height {}",
-                  get_name(), icon_px, (label_font == UI_FONT_SMALL) ? "small" : "body", screen_height);
-}
-
-void HomePanel::close_tip_dialog() {
-    if (tip_detail_dialog_) {
-        lv_obj_delete(tip_detail_dialog_);
-        tip_detail_dialog_ = nullptr;
-        spdlog::debug("[{}] Tip dialog closed", get_name());
-    }
+    spdlog::debug("[{}] Set icons to {}px, labels to {} for screen height {}", get_name(), icon_px,
+                  (label_font == UI_FONT_SMALL) ? "small" : "body", screen_height);
 }
 
 // ============================================================================
@@ -280,38 +270,10 @@ void HomePanel::handle_tip_text_clicked() {
 
     spdlog::info("[{}] Tip text clicked - showing detail dialog", get_name());
 
-    // Create dialog with current tip data
-    const char* attrs[] = {
-        "title", current_tip_.title.c_str(),
-        "content", current_tip_.content.c_str(),
-        nullptr
-    };
-
-    lv_obj_t* screen = lv_screen_active();
-    tip_detail_dialog_ = static_cast<lv_obj_t*>(
-        lv_xml_create(screen, "tip_detail_dialog", attrs));
-
-    if (!tip_detail_dialog_) {
-        spdlog::error("[{}] Failed to create tip detail dialog from XML", get_name());
-        return;
+    // Show the tip modal (RAII handles cleanup, ModalBase handles backdrop/ESC/button)
+    if (!tip_modal_.show(lv_screen_active(), current_tip_.title, current_tip_.content)) {
+        spdlog::error("[{}] Failed to show tip detail modal", get_name());
     }
-
-    // Wire up Ok button to close dialog
-    lv_obj_t* btn_ok = lv_obj_find_by_name(tip_detail_dialog_, "btn_ok");
-    if (btn_ok) {
-        lv_obj_add_event_cb(btn_ok, tip_dialog_close_cb, LV_EVENT_CLICKED, this);
-    }
-
-    // Backdrop click to close - but only if clicking the backdrop itself
-    lv_obj_add_event_cb(tip_detail_dialog_, tip_dialog_close_cb, LV_EVENT_CLICKED, this);
-
-    // Bring to foreground
-    lv_obj_move_foreground(tip_detail_dialog_);
-    spdlog::debug("[{}] Tip dialog shown: {}", get_name(), current_tip_.title);
-}
-
-void HomePanel::handle_tip_dialog_close() {
-    close_tip_dialog();
 }
 
 void HomePanel::handle_tip_rotation_timer() {
@@ -359,26 +321,6 @@ void HomePanel::tip_text_clicked_cb(lv_event_t* e) {
     (void)e;
     extern HomePanel& get_global_home_panel();
     get_global_home_panel().handle_tip_text_clicked();
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void HomePanel::tip_dialog_close_cb(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[HomePanel] tip_dialog_close_cb");
-    auto* self = static_cast<HomePanel*>(lv_event_get_user_data(e));
-    if (self) {
-        // For backdrop clicks, only close if clicking the dialog itself (not children)
-        lv_obj_t* target = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        lv_obj_t* current_target = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-
-        // Ok button always closes; backdrop only closes if target == current_target
-        if (target == current_target || lv_obj_get_name(target) != nullptr) {
-            // Check if it's the Ok button or the backdrop itself
-            const char* name = lv_obj_get_name(target);
-            if ((name && strcmp(name, "btn_ok") == 0) || target == current_target) {
-                self->handle_tip_dialog_close();
-            }
-        }
-    }
     LVGL_SAFE_EVENT_CB_END();
 }
 

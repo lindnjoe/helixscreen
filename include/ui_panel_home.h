@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ui_modal_tip_detail.h"
 #include "ui_panel_base.h"
 
 #include "tips_manager.h"
@@ -85,8 +86,12 @@ class HomePanel : public PanelBase {
      */
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
 
-    const char* get_name() const override { return "Home Panel"; }
-    const char* get_xml_component_name() const override { return "home_panel"; }
+    const char* get_name() const override {
+        return "Home Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "home_panel";
+    }
 
     //
     // === Public API ===
@@ -118,7 +123,9 @@ class HomePanel : public PanelBase {
      * @brief Get current light state
      * @return true if light is on
      */
-    bool get_light_state() const { return light_on_; }
+    bool get_light_state() const {
+        return light_on_;
+    }
 
   private:
     //
@@ -133,7 +140,7 @@ class HomePanel : public PanelBase {
     lv_subject_t light_icon_color_subject_;
 
     // Subject storage buffers
-    char status_buffer_[512];  // Large for tip title + content
+    char status_buffer_[512]; // Large for tip title + content
     char temp_buffer_[32];
     char network_icon_buffer_[8];
     char network_label_buffer_[32];
@@ -146,7 +153,7 @@ class HomePanel : public PanelBase {
     bool light_on_ = false;
     network_type_t current_network_ = NETWORK_WIFI;
     PrintingTip current_tip_;
-    lv_obj_t* tip_detail_dialog_ = nullptr;
+    TipDetailModal tip_modal_; // RAII modal - auto-hides on destruction
 
     // Timer for tip rotation
     lv_timer_t* tip_rotation_timer_ = nullptr;
@@ -166,7 +173,6 @@ class HomePanel : public PanelBase {
     void init_home_panel_colors();
     void update_tip_of_day();
     void setup_responsive_icon_fonts();
-    void close_tip_dialog();
 
     //
     // === Instance Handlers ===
@@ -175,7 +181,6 @@ class HomePanel : public PanelBase {
     void handle_light_toggle();
     void handle_print_card_clicked();
     void handle_tip_text_clicked();
-    void handle_tip_dialog_close();
     void handle_tip_rotation_timer();
 
     // Observer instance methods
@@ -188,7 +193,6 @@ class HomePanel : public PanelBase {
     static void light_toggle_cb(lv_event_t* e);
     static void print_card_clicked_cb(lv_event_t* e);
     static void tip_text_clicked_cb(lv_event_t* e);
-    static void tip_dialog_close_cb(lv_event_t* e);
     static void tip_rotation_timer_cb(lv_timer_t* timer);
     static void light_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 };
