@@ -1048,27 +1048,44 @@ void PrintSelectPanel::start_print() {
             pre_print_sequencer_->add_operation(gcode::OperationType::START_PRINT, print_params,
                                                 "Starting Print");
 
+            // Show the print status panel immediately in "Preparing" state
+            if (print_status_panel_widget_) {
+                hide_detail_view();
+                ui_nav_push_overlay(print_status_panel_widget_);
+
+                // Initialize the preparing state
+                auto& status_panel = get_global_print_status_panel();
+                status_panel.set_preparing("Starting...", 0,
+                                           static_cast<int>(pre_print_sequencer_->queue_size()));
+            }
+
             // Start the sequence
             pre_print_sequencer_->start(
-                // Progress callback
+                // Progress callback - update the Preparing UI
                 [self](const std::string& op_name, int step, int total, float progress) {
                     spdlog::info("[{}] Pre-print progress: {} ({}/{}, {:.0f}%)", self->get_name(),
                                  op_name, step, total, progress * 100.0f);
-                    // TODO: Update UI with progress (toast or overlay)
+
+                    // Update PrintStatusPanel's preparing state
+                    auto& status_panel = get_global_print_status_panel();
+                    status_panel.set_preparing(op_name, step, total);
+                    status_panel.set_preparing_progress(progress);
                 },
                 // Completion callback
                 [self](bool success, const std::string& error) {
+                    auto& status_panel = get_global_print_status_panel();
+
                     if (success) {
                         spdlog::info("[{}] Pre-print sequence complete, print started",
                                      self->get_name());
-                        if (self->print_status_panel_widget_) {
-                            self->hide_detail_view();
-                            ui_nav_push_overlay(self->print_status_panel_widget_);
-                        }
+                        // Transition from Preparing → Printing state
+                        status_panel.end_preparing(true);
                     } else {
                         NOTIFY_ERROR("Pre-print failed: {}", error);
                         LOG_ERROR_INTERNAL("[{}] Pre-print sequence failed: {}", self->get_name(),
                                            error);
+                        // Transition from Preparing → Idle state
+                        status_panel.end_preparing(false);
                     }
                     // Clean up sequencer
                     self->pre_print_sequencer_.reset();
@@ -1096,17 +1113,9 @@ void PrintSelectPanel::start_print() {
                 });
         }
     } else {
-        // Fall back to mock print
-        spdlog::warn("[{}] MoonrakerAPI not available - using mock print", get_name());
-
-        if (print_status_panel_widget_) {
-            hide_detail_view();
-            ui_nav_push_overlay(print_status_panel_widget_);
-
-            get_global_print_status_panel().start_mock_print(selected_filename_buffer_, 250, 10800);
-
-            spdlog::info("[{}] Started mock print for: {}", get_name(), selected_filename_buffer_);
-        }
+        // Cannot start print without API connection
+        spdlog::error("[{}] Cannot start print - not connected to printer", get_name());
+        NOTIFY_ERROR("Cannot start print: not connected to printer");
     }
 }
 

@@ -438,6 +438,72 @@ class MoonrakerAPI {
     void update_safety_limits_from_printer(SuccessCallback on_success, ErrorCallback on_error);
 
     // ========================================================================
+    // HTTP File Transfer Operations
+    // ========================================================================
+
+    /**
+     * @brief Download a file's content from the printer via HTTP
+     *
+     * Uses GET request to /server/files/{root}/{path} endpoint.
+     * The file content is returned as a string in the callback.
+     *
+     * @param root Root directory ("gcodes", "config", etc.)
+     * @param path File path relative to root
+     * @param on_success Callback with file content as string
+     * @param on_error Error callback
+     */
+    void download_file(const std::string& root, const std::string& path,
+                       StringCallback on_success, ErrorCallback on_error);
+
+    /**
+     * @brief Upload file content to the printer via HTTP multipart form
+     *
+     * Uses POST request to /server/files/upload endpoint with multipart form data.
+     * Suitable for G-code files, config files, and macro files.
+     *
+     * @param root Root directory ("gcodes", "config", etc.)
+     * @param path Destination path relative to root
+     * @param content File content to upload
+     * @param on_success Success callback
+     * @param on_error Error callback
+     */
+    void upload_file(const std::string& root, const std::string& path,
+                     const std::string& content, SuccessCallback on_success,
+                     ErrorCallback on_error);
+
+    /**
+     * @brief Upload file content with custom filename
+     *
+     * Like upload_file() but allows specifying a different filename for the
+     * multipart form than the path. Useful when uploading to a subdirectory.
+     *
+     * @param root Root directory ("gcodes", "config", etc.)
+     * @param path Destination path relative to root (e.g., ".helix_temp/foo.gcode")
+     * @param filename Filename for form (e.g., ".helix_temp/foo.gcode")
+     * @param content File content to upload
+     * @param on_success Success callback
+     * @param on_error Error callback
+     */
+    void upload_file_with_name(const std::string& root, const std::string& path,
+                               const std::string& filename, const std::string& content,
+                               SuccessCallback on_success, ErrorCallback on_error);
+
+    /**
+     * @brief Set the HTTP base URL for file transfers
+     *
+     * Must be called before using download_file/upload_file.
+     * Typically derived from WebSocket URL: ws://host:port -> http://host:port
+     *
+     * @param base_url HTTP base URL (e.g., "http://192.168.1.100:7125")
+     */
+    void set_http_base_url(const std::string& base_url) { http_base_url_ = base_url; }
+
+    /**
+     * @brief Get the current HTTP base URL
+     */
+    const std::string& get_http_base_url() const { return http_base_url_; }
+
+    // ========================================================================
     // Internal Access (for CommandSequencer integration)
     // ========================================================================
 
@@ -452,6 +518,7 @@ class MoonrakerAPI {
     MoonrakerClient& get_client() { return client_; }
 
   private:
+    std::string http_base_url_;  ///< HTTP base URL for file transfers
     MoonrakerClient& client_;
 
     SafetyLimits safety_limits_;

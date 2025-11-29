@@ -291,41 +291,180 @@ std::vector<std::string> MacroManager::get_macro_names() {
 // ============================================================================
 
 void MacroManager::upload_macro_file(SuccessCallback on_success, ErrorCallback on_error) {
-    // TODO: Implement HTTP file upload via Moonraker
-    // POST /server/files/upload with multipart form data
-    //   - file: helix_macros.cfg content
-    //   - root: config
-    //
-    // For now, this is a placeholder that will be implemented when
-    // MoonrakerAPI adds file upload support.
+    spdlog::info("[HelixMacroManager] Uploading {} to printer config directory",
+                 HELIX_MACROS_FILENAME);
 
-    spdlog::warn(
-        "[HelixMacroManager] File upload not yet implemented - requires HTTP multipart upload");
+    // Get the macro content to upload
+    std::string content = get_macro_content();
 
-    // Simulate success for now
-    on_success();
+    spdlog::debug("[HelixMacroManager] Macro content size: {} bytes", content.size());
+
+    // Upload to config root (not gcodes)
+    // The path is "" because we upload directly to the config directory
+    api_.upload_file_with_name(
+        "config", "", HELIX_MACROS_FILENAME, content,
+        // Upload success
+        [on_success]() {
+            spdlog::info("[HelixMacroManager] Successfully uploaded {}", HELIX_MACROS_FILENAME);
+            if (on_success) {
+                on_success();
+            }
+        },
+        // Upload error
+        [on_error](const MoonrakerError& err) {
+            spdlog::error("[HelixMacroManager] Failed to upload {}: {}", HELIX_MACROS_FILENAME,
+                          err.message);
+            if (on_error) {
+                on_error(err);
+            }
+        });
 }
 
 void MacroManager::add_include_to_config(SuccessCallback on_success, ErrorCallback on_error) {
-    // TODO: Implement printer.cfg modification
-    // 1. GET /server/files/config/printer.cfg
-    // 2. Check if [include helix_macros.cfg] already present
-    // 3. If not, prepend after any existing [include] lines
-    // 4. POST /server/files/upload with modified content
+    spdlog::info("[HelixMacroManager] Adding include line to printer.cfg");
 
-    spdlog::warn("[HelixMacroManager] printer.cfg modification not yet implemented");
+    // Download printer.cfg
+    api_.download_file(
+        "config", "printer.cfg",
+        // Download success
+        [this, on_success, on_error](const std::string& content) {
+            // Check if include line already exists
+            std::string include_line = "[include " + std::string(HELIX_MACROS_FILENAME) + "]";
+            if (content.find(include_line) != std::string::npos) {
+                spdlog::info("[HelixMacroManager] Include line already present in printer.cfg");
+                if (on_success) {
+                    on_success();
+                }
+                return;
+            }
 
-    // Simulate success for now
-    on_success();
+            // Find the best place to insert the include line
+            // Strategy: Insert after the last existing [include ...] line, or at the very top
+            std::string modified_content;
+            std::istringstream input(content);
+            std::ostringstream output;
+            std::string line;
+            bool inserted = false;
+            size_t last_include_end = 0;
+            size_t current_pos = 0;
+
+            // First pass: find the position after the last [include] line
+            while (std::getline(input, line)) {
+                current_pos += line.length() + 1;  // +1 for newline
+                // Check for [include ...] pattern (case-insensitive for robustness)
+                std::string lower_line = line;
+                std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+                if (lower_line.find("[include ") == 0 || lower_line.find("[include\t") == 0) {
+                    last_include_end = current_pos;
+                }
+            }
+
+            // Second pass: insert at the right position
+            if (last_include_end > 0) {
+                // Insert after last include line
+                modified_content =
+                    content.substr(0, last_include_end) + include_line + "\n" +
+                    content.substr(last_include_end);
+                spdlog::debug("[HelixMacroManager] Inserted after existing includes at pos {}",
+                              last_include_end);
+            } else {
+                // No existing includes - add at the very beginning
+                modified_content = include_line + "\n" + content;
+                spdlog::debug("[HelixMacroManager] Inserted at beginning of file");
+            }
+
+            // Upload modified printer.cfg
+            api_.upload_file_with_name(
+                "config", "", "printer.cfg", modified_content,
+                // Upload success
+                [on_success]() {
+                    spdlog::info("[HelixMacroManager] Successfully added include to printer.cfg");
+                    if (on_success) {
+                        on_success();
+                    }
+                },
+                // Upload error
+                [on_error](const MoonrakerError& err) {
+                    spdlog::error("[HelixMacroManager] Failed to upload modified printer.cfg: {}",
+                                  err.message);
+                    if (on_error) {
+                        on_error(err);
+                    }
+                });
+        },
+        // Download error
+        [on_error](const MoonrakerError& err) {
+            spdlog::error("[HelixMacroManager] Failed to download printer.cfg: {}", err.message);
+            if (on_error) {
+                on_error(err);
+            }
+        });
 }
 
 void MacroManager::remove_include_from_config(SuccessCallback on_success, ErrorCallback on_error) {
-    // TODO: Remove [include helix_macros.cfg] line from printer.cfg
+    spdlog::info("[HelixMacroManager] Removing include line from printer.cfg");
 
-    spdlog::warn("[HelixMacroManager] printer.cfg modification not yet implemented");
+    // Download printer.cfg
+    api_.download_file(
+        "config", "printer.cfg",
+        // Download success
+        [this, on_success, on_error](const std::string& content) {
+            std::string include_line = "[include " + std::string(HELIX_MACROS_FILENAME) + "]";
 
-    // Simulate success for now
-    on_success();
+            // Check if include line exists
+            size_t pos = content.find(include_line);
+            if (pos == std::string::npos) {
+                spdlog::info("[HelixMacroManager] Include line not found in printer.cfg");
+                if (on_success) {
+                    on_success();
+                }
+                return;
+            }
+
+            // Find the full line to remove (including newline)
+            size_t line_start = pos;
+            size_t line_end = content.find('\n', pos);
+            if (line_end == std::string::npos) {
+                line_end = content.length();
+            } else {
+                line_end++;  // Include the newline
+            }
+
+            // Build modified content without the include line
+            std::string modified_content =
+                content.substr(0, line_start) + content.substr(line_end);
+
+            spdlog::debug("[HelixMacroManager] Removed include line at pos {}-{}", line_start,
+                          line_end);
+
+            // Upload modified printer.cfg
+            api_.upload_file_with_name(
+                "config", "", "printer.cfg", modified_content,
+                // Upload success
+                [on_success]() {
+                    spdlog::info(
+                        "[HelixMacroManager] Successfully removed include from printer.cfg");
+                    if (on_success) {
+                        on_success();
+                    }
+                },
+                // Upload error
+                [on_error](const MoonrakerError& err) {
+                    spdlog::error("[HelixMacroManager] Failed to upload modified printer.cfg: {}",
+                                  err.message);
+                    if (on_error) {
+                        on_error(err);
+                    }
+                });
+        },
+        // Download error
+        [on_error](const MoonrakerError& err) {
+            spdlog::error("[HelixMacroManager] Failed to download printer.cfg: {}", err.message);
+            if (on_error) {
+                on_error(err);
+            }
+        });
 }
 
 void MacroManager::delete_macro_file(SuccessCallback on_success, ErrorCallback on_error) {

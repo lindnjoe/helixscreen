@@ -26,9 +26,12 @@
 #include "ui_error_reporting.h"
 #include "ui_notification.h"
 
+#include "hv/requests.h"  // libhv HTTP client for file transfers
+
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <thread>
 #include <cctype>
 #include <iomanip>
 #include <sstream>
@@ -1009,6 +1012,203 @@ void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
             }
         },
         on_error);
+}
+
+// ============================================================================
+// HTTP File Transfer Operations
+// ============================================================================
+
+void MoonrakerAPI::download_file(const std::string& root, const std::string& path,
+                                  StringCallback on_success, ErrorCallback on_error) {
+    // Validate inputs
+    if (!is_safe_path(path)) {
+        spdlog::error("[Moonraker API] Invalid file path for download: {}", path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid file path contains unsafe characters";
+            err.method = "download_file";
+            on_error(err);
+        }
+        return;
+    }
+
+    if (http_base_url_.empty()) {
+        spdlog::error("[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "HTTP base URL not configured";
+            err.method = "download_file";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Build URL: http://host:port/server/files/{root}/{path}
+    std::string url = http_base_url_ + "/server/files/" + root + "/" + path;
+
+    spdlog::debug("[Moonraker API] Downloading file: {}", url);
+
+    // Run HTTP request in a separate thread to avoid blocking
+    std::thread([url, path, on_success, on_error]() {
+        auto resp = requests::get(url.c_str());
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP request failed for: {}", url);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP request failed";
+                err.method = "download_file";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code == 404) {
+            spdlog::error("[Moonraker API] File not found: {}", path);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+                err.code = resp->status_code;
+                err.message = "File not found: " + path;
+                err.method = "download_file";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 200) {
+            spdlog::error("[Moonraker API] HTTP {} downloading {}: {}",
+                          static_cast<int>(resp->status_code), path, resp->status_message());
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) +
+                              ": " + resp->status_message();
+                err.method = "download_file";
+                on_error(err);
+            }
+            return;
+        }
+
+        spdlog::debug("[Moonraker API] Downloaded {} bytes from {}",
+                      resp->body.size(), path);
+
+        if (on_success) {
+            on_success(resp->body);
+        }
+    }).detach();
+}
+
+void MoonrakerAPI::upload_file(const std::string& root, const std::string& path,
+                                const std::string& content, SuccessCallback on_success,
+                                ErrorCallback on_error) {
+    upload_file_with_name(root, path, path, content, on_success, on_error);
+}
+
+void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::string& path,
+                                          const std::string& filename, const std::string& content,
+                                          SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate inputs
+    if (!is_safe_path(path)) {
+        spdlog::error("[Moonraker API] Invalid file path for upload: {}", path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid file path contains unsafe characters";
+            err.method = "upload_file";
+            on_error(err);
+        }
+        return;
+    }
+
+    if (http_base_url_.empty()) {
+        spdlog::error("[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "HTTP base URL not configured";
+            err.method = "upload_file";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Build URL: http://host:port/server/files/upload
+    std::string url = http_base_url_ + "/server/files/upload";
+
+    spdlog::debug("[Moonraker API] Uploading {} bytes to {}/{}", content.size(), root, path);
+
+    // Run HTTP request in a separate thread to avoid blocking
+    std::thread([url, root, path, filename, content, on_success, on_error]() {
+        // Create multipart form request
+        auto req = std::make_shared<HttpRequest>();
+        req->method = HTTP_POST;
+        req->url = url;
+        req->timeout = 120;  // 2 minute timeout for uploads
+        req->content_type = MULTIPART_FORM_DATA;
+
+        // Add root parameter (e.g., "gcodes" or "config")
+        req->SetFormData("root", root);
+
+        // Add path parameter if uploading to subdirectory
+        if (path.find('/') != std::string::npos) {
+            // Extract directory from path
+            size_t last_slash = path.rfind('/');
+            if (last_slash != std::string::npos) {
+                std::string directory = path.substr(0, last_slash);
+                req->SetFormData("path", directory);
+            }
+        }
+
+        // Add file content with filename
+        // Use hv::FormData for multipart file upload
+        hv::FormData file_data;
+        file_data.content = content;
+        file_data.filename = filename;
+        req->form["file"] = file_data;
+
+        // Send request
+        auto resp = requests::request(req);
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP upload request failed to: {}", url);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP upload request failed";
+                err.method = "upload_file";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 201 && resp->status_code != 200) {
+            spdlog::error("[Moonraker API] HTTP {} uploading {}: {} - {}",
+                          static_cast<int>(resp->status_code), path, resp->status_message(),
+                          resp->body);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) +
+                              ": " + resp->status_message();
+                err.method = "upload_file";
+                on_error(err);
+            }
+            return;
+        }
+
+        spdlog::info("[Moonraker API] Successfully uploaded {} ({} bytes)",
+                     path, content.size());
+
+        if (on_success) {
+            on_success();
+        }
+    }).detach();
 }
 
 // ============================================================================

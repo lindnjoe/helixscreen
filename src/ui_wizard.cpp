@@ -36,6 +36,7 @@
 
 #include "app_globals.h"
 #include "config.h"
+#include "moonraker_api.h"
 #include "lvgl/lvgl.h"
 #include "lvgl/src/xml/lv_xml.h"
 #include "moonraker_client.h"
@@ -578,6 +579,14 @@ void ui_wizard_complete() {
     // Build WebSocket URL
     std::string moonraker_url =
         "ws://" + moonraker_host + ":" + std::to_string(moonraker_port) + "/websocket";
+
+    // Build HTTP base URL for file transfers (same host:port, http:// scheme)
+    std::string http_base_url =
+        "http://" + moonraker_host + ":" + std::to_string(moonraker_port);
+    MoonrakerAPI* api = get_moonraker_api();
+    if (api) {
+        api->set_http_base_url(http_base_url);
+    }
 
     // Connect to Moonraker
     spdlog::debug("[Wizard] Connecting to Moonraker at {}", moonraker_url);

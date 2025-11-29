@@ -16,6 +16,7 @@
 #include "config.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
+#include "runtime_config.h"
 #include "wizard_config_paths.h"
 
 #include <spdlog/spdlog.h>
@@ -170,8 +171,14 @@ void PrintStatusPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(pause_button_subject_, pause_button_buf_, "Pause",
                                         "pause_button_text");
 
+    // Preparing state subjects
+    UI_SUBJECT_INIT_AND_REGISTER_INT(preparing_visible_subject_, 0, "preparing_visible");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(preparing_operation_subject_, preparing_operation_buf_,
+                                        "Preparing...", "preparing_operation");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(preparing_progress_subject_, 0, "preparing_progress");
+
     subjects_initialized_ = true;
-    spdlog::debug("[{}] Subjects initialized (10 subjects)", get_name());
+    spdlog::debug("[{}] Subjects initialized (13 subjects)", get_name());
 }
 
 void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -185,9 +192,7 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
     spdlog::info("[{}] Setting up panel...", get_name());
 
-    // Panel width is now set via XML using #overlay_panel_width_large and align="right_mid"
-    // No manual width calculation needed
-
+    // Panel width is set via XML using #overlay_panel_width_large (same as print_file_detail)
     // Use standard overlay panel setup for header/content/back button
     ui_overlay_panel_setup_standard(panel_, parent_screen_, "overlay_header", "overlay_content");
 
@@ -317,7 +322,6 @@ void PrintStatusPanel::format_time(int seconds, char* buf, size_t buf_size) {
 }
 
 void PrintStatusPanel::show_gcode_viewer(bool show) {
-    // Toggle visibility of G-code viewer vs thumbnail + gradient
     if (gcode_viewer_) {
         if (show) {
             lv_obj_remove_flag(gcode_viewer_, LV_OBJ_FLAG_HIDDEN);
@@ -380,8 +384,8 @@ void PrintStatusPanel::load_gcode_file(const char* file_path) {
                 filename = "print.gcode";
             }
 
-            // Start print via MoonrakerAPI - the mock client will handle all simulation!
-            // PrintStatusPanel's observers will receive temperature, progress, layer updates
+            // Start print via MoonrakerAPI
+            // In test mode, mock Moonraker handles simulation via observers
             if (self->api_) {
                 self->api_->start_print(
                     filename,
@@ -390,9 +394,8 @@ void PrintStatusPanel::load_gcode_file(const char* file_path) {
                         spdlog::error("[PrintStatusPanel] Failed to start print: {}", err.message);
                     });
             } else {
-                spdlog::warn("[{}] No API available - using local mock print", self->get_name());
-                // Fallback to local mock if no API (shouldn't happen in normal test mode)
-                self->start_mock_print(filename, max_layer > 0 ? max_layer : 100, 300);
+                spdlog::warn("[{}] No API available - G-code loaded but print not started",
+                             self->get_name());
             }
         },
         this);
@@ -562,17 +565,14 @@ void PrintStatusPanel::handle_cancel_button() {
             [this]() {
                 spdlog::info("[{}] Cancel command sent successfully", get_name());
                 // State will update via PrinterState observer when Moonraker confirms
-                stop_mock_print(); // Stop any mock simulation
             },
             [](const MoonrakerError& err) {
                 spdlog::error("Failed to cancel print: {}", err.message);
                 NOTIFY_ERROR("Failed to cancel print: {}", err.user_message());
             });
     } else {
-        // Fall back to local state change for mock mode
-        spdlog::warn("[{}] API not available - using local state change", get_name());
-        set_state(PrintState::Cancelled);
-        stop_mock_print();
+        spdlog::warn("[{}] API not available - cannot cancel print", get_name());
+        NOTIFY_ERROR("Cannot cancel: not connected to printer");
     }
 }
 
@@ -798,6 +798,11 @@ void PrintStatusPanel::on_print_state_changed(const char* state) {
         set_state(new_state);
         spdlog::info("[{}] Print state changed: {} -> {}", get_name(), state,
                      static_cast<int>(new_state));
+
+        // Toggle G-code viewer visibility based on print state
+        // Show viewer during printing/paused, hide during idle/complete
+        bool show_viewer = (new_state == PrintState::Printing || new_state == PrintState::Paused);
+        show_gcode_viewer(show_viewer);
     }
 }
 
@@ -899,66 +904,58 @@ void PrintStatusPanel::set_state(PrintState state) {
 }
 
 // ============================================================================
-// MOCK PRINT SIMULATION
+// PRE-PRINT PREPARATION STATE
 // ============================================================================
 
-void PrintStatusPanel::start_mock_print(const char* filename, int layers, int duration_secs) {
-    mock_active_ = true;
-    mock_total_seconds_ = duration_secs;
-    mock_elapsed_seconds_ = 0;
-    mock_total_layers_ = layers;
+void PrintStatusPanel::set_preparing(const std::string& operation_name, int current_step,
+                                      int total_steps) {
+    current_state_ = PrintState::Preparing;
 
-    set_filename(filename);
-    set_progress(0);
-    set_layer(0, layers);
-    set_times(0, duration_secs);
-    set_temperatures(215, 215, 60, 60);
-    set_speeds(100, 100);
-    set_state(PrintState::Printing);
+    // Update operation name with step info: "Homing (1/3)"
+    snprintf(preparing_operation_buf_, sizeof(preparing_operation_buf_), "%s (%d/%d)",
+             operation_name.c_str(), current_step, total_steps);
+    lv_subject_set_pointer(&preparing_operation_subject_, preparing_operation_buf_);
 
-    spdlog::info("[{}] Mock print started: {} ({} layers, {} seconds)", get_name(), filename,
-                 layers, duration_secs);
+    // Calculate overall progress based on step position
+    // Each step contributes equally to 100%
+    int progress = (current_step > 0 && total_steps > 0)
+                       ? ((current_step - 1) * 100) / total_steps
+                       : 0;
+    lv_subject_set_int(&preparing_progress_subject_, progress);
+
+    // Make preparing UI visible
+    lv_subject_set_int(&preparing_visible_subject_, 1);
+
+    spdlog::info("[{}] Preparing: {} (step {}/{})", get_name(), operation_name, current_step,
+                 total_steps);
 }
 
-void PrintStatusPanel::stop_mock_print() {
-    mock_active_ = false;
-    spdlog::info("[{}] Mock print stopped", get_name());
+void PrintStatusPanel::set_preparing_progress(float progress) {
+    // Clamp to valid range
+    if (progress < 0.0f)
+        progress = 0.0f;
+    if (progress > 1.0f)
+        progress = 1.0f;
+
+    int pct = static_cast<int>(progress * 100.0f);
+    lv_subject_set_int(&preparing_progress_subject_, pct);
+
+    spdlog::trace("[{}] Preparing progress: {}%", get_name(), pct);
 }
 
-void PrintStatusPanel::tick_mock_print() {
-    if (!mock_active_)
-        return;
-    if (current_state_ != PrintState::Printing)
-        return;
-    if (mock_elapsed_seconds_ >= mock_total_seconds_) {
-        // Print complete
-        set_state(PrintState::Complete);
-        stop_mock_print();
-        spdlog::info("[{}] Mock print complete!", get_name());
-        return;
+void PrintStatusPanel::end_preparing(bool success) {
+    // Hide preparing UI
+    lv_subject_set_int(&preparing_visible_subject_, 0);
+    lv_subject_set_int(&preparing_progress_subject_, 0);
+
+    if (success) {
+        // Transition to Printing state
+        set_state(PrintState::Printing);
+        spdlog::info("[{}] Preparation complete, starting print", get_name());
+    } else {
+        // Transition back to Idle
+        set_state(PrintState::Idle);
+        spdlog::warn("[{}] Preparation cancelled or failed", get_name());
     }
-
-    // Advance simulation by 1 second
-    mock_elapsed_seconds_++;
-
-    // Calculate progress
-    int progress = (mock_elapsed_seconds_ * 100) / mock_total_seconds_;
-    int remaining = mock_total_seconds_ - mock_elapsed_seconds_;
-    int layer = (mock_elapsed_seconds_ * mock_total_layers_) / mock_total_seconds_;
-
-    // Update displays
-    set_progress(progress);
-    set_layer(layer, mock_total_layers_);
-    set_times(mock_elapsed_seconds_, remaining);
-
-    // Simulate temperature fluctuations (±2°C)
-    int nozzle_var = (mock_elapsed_seconds_ % 4) - 2;
-    int bed_var = (mock_elapsed_seconds_ % 6) - 3;
-    set_temperatures(215 + nozzle_var, 215, 60 + bed_var, 60);
 }
 
-// Temporary wrapper for tick function (still called by main.cpp)
-void ui_panel_print_status_tick_mock_print() {
-    auto& panel = get_global_print_status_panel();
-    panel.tick_mock_print();
-}

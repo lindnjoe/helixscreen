@@ -1600,6 +1600,12 @@ int main(int argc, char** argv) {
             "ws://" + config->get<std::string>(config->df() + "moonraker_host") + ":" +
             std::to_string(config->get<int>(config->df() + "moonraker_port")) + "/websocket";
 
+        // Build HTTP base URL for file transfers (same host:port, http:// scheme)
+        std::string http_base_url =
+            "http://" + config->get<std::string>(config->df() + "moonraker_host") + ":" +
+            std::to_string(config->get<int>(config->df() + "moonraker_port"));
+        moonraker_api->set_http_base_url(http_base_url);
+
         // Connect to Moonraker
         spdlog::debug("Connecting to Moonraker at {}", moonraker_url);
         int connect_result = moonraker_client->connect(

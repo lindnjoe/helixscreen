@@ -96,27 +96,82 @@ void GCodeFileModifier::create_skip_copy(const std::string& original_path,
     // First ensure the temp directory exists
     ensure_temp_directory(
         [this, original_path, ops_to_skip, on_success, on_error]() {
-            // TODO: Phase 2b - Implement HTTP file download
-            //
-            // Moonraker requires HTTP GET to download file contents:
-            // GET http://{host}/server/files/gcodes/{filename}
-            //
-            // For now, we'll need to add this capability to MoonrakerAPI.
-            // The implementation will:
-            // 1. Download file via HTTP GET
-            // 2. Modify content in memory using generate_modified_content()
-            // 3. Upload modified content via HTTP POST multipart
-            //
-            // For testing, we can mock this entire flow.
+            // Step 1: Download the original file via HTTP GET
+            spdlog::debug("[GCodeFileModifier] Downloading original file: {}", original_path);
 
-            spdlog::error("[GCodeFileModifier] HTTP file transfer not yet implemented");
-            spdlog::info("[GCodeFileModifier] File download/upload requires HTTP endpoints:");
-            spdlog::info("  GET  /server/files/gcodes/{}", original_path);
-            spdlog::info("  POST /server/files/upload (multipart form)");
+            api_.download_file(
+                "gcodes", original_path,
+                // Download success - modify and upload
+                [this, original_path, ops_to_skip, on_success,
+                 on_error](const std::string& content) {
+                    spdlog::debug("[GCodeFileModifier] Downloaded {} bytes, modifying content",
+                                  content.size());
 
-            if (on_error) {
-                on_error("HTTP file transfer not yet implemented - coming in Phase 2b");
-            }
+                    // Step 2: Modify the content
+                    auto modification_result = generate_modified_content(content, ops_to_skip);
+                    std::string modified_content = modification_result.first;
+                    size_t lines_modified = modification_result.second;
+
+                    spdlog::info("[GCodeFileModifier] Modified {} lines in file", lines_modified);
+
+                    // Build the temp file path
+                    // Extract just the filename from original_path
+                    std::string filename = original_path;
+                    size_t last_slash = original_path.rfind('/');
+                    if (last_slash != std::string::npos) {
+                        filename = original_path.substr(last_slash + 1);
+                    }
+
+                    std::string temp_moonraker_path = config_.temp_dir + "/" + filename;
+                    std::string upload_path = "gcodes/" + temp_moonraker_path;
+
+                    spdlog::debug("[GCodeFileModifier] Uploading modified file to: {}", upload_path);
+
+                    // Step 3: Upload the modified content
+                    api_.upload_file_with_name(
+                        "gcodes", config_.temp_dir, filename, modified_content,
+                        // Upload success
+                        [this, temp_moonraker_path, filename, ops_to_skip, lines_modified,
+                         on_success]() {
+                            spdlog::info("[GCodeFileModifier] Successfully created skip copy: {}",
+                                         temp_moonraker_path);
+
+                            // Create RAII handle with cleanup callback
+                            auto temp_file = std::make_unique<TempGCodeFile>(
+                                temp_moonraker_path, filename,
+                                [this](const std::string& path) { delete_temp_file(path); });
+
+                            // Build result
+                            SkipCopyResult result;
+                            result.temp_file = std::move(temp_file);
+                            result.lines_modified = lines_modified;
+
+                            // Extract operation types from skipped operations
+                            for (const auto& op : ops_to_skip) {
+                                result.skipped_ops.push_back(op.type);
+                            }
+
+                            if (on_success) {
+                                on_success(std::move(result));
+                            }
+                        },
+                        // Upload error
+                        [on_error](const MoonrakerError& err) {
+                            spdlog::error("[GCodeFileModifier] Failed to upload modified file: {}",
+                                          err.message);
+                            if (on_error) {
+                                on_error("Failed to upload modified file: " + err.message);
+                            }
+                        });
+                },
+                // Download error
+                [on_error](const MoonrakerError& err) {
+                    spdlog::error("[GCodeFileModifier] Failed to download original file: {}",
+                                  err.message);
+                    if (on_error) {
+                        on_error("Failed to download original file: " + err.message);
+                    }
+                });
         },
         on_error);
 }

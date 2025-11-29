@@ -51,6 +51,7 @@
  */
 enum class PrintState {
     Idle,      ///< No active print
+    Preparing, ///< Running pre-print operations (homing, leveling, etc.)
     Printing,  ///< Actively printing
     Paused,    ///< Print paused
     Complete,  ///< Print finished successfully
@@ -61,6 +62,7 @@ enum class PrintState {
 // Legacy C-style enum for backwards compatibility
 typedef enum {
     PRINT_STATE_IDLE = static_cast<int>(PrintState::Idle),
+    PRINT_STATE_PREPARING = static_cast<int>(PrintState::Preparing),
     PRINT_STATE_PRINTING = static_cast<int>(PrintState::Printing),
     PRINT_STATE_PAUSED = static_cast<int>(PrintState::Paused),
     PRINT_STATE_COMPLETE = static_cast<int>(PrintState::Complete),
@@ -171,46 +173,46 @@ class PrintStatusPanel : public PanelBase {
         return current_state_;
     }
 
+    //
+    // === Pre-Print Preparation State ===
+    //
+
+    /**
+     * @brief Set the preparing state with operation details
+     *
+     * Call this when starting a pre-print sequence. The panel will show
+     * "Preparing..." with the current operation name and progress.
+     *
+     * @param operation_name Display name of current operation (e.g., "Homing", "Leveling Bed")
+     * @param current_step Current step number (1-based)
+     * @param total_steps Total number of steps
+     */
+    void set_preparing(const std::string& operation_name, int current_step, int total_steps);
+
+    /**
+     * @brief Update preparing progress
+     *
+     * Lighter-weight update for progress during a single operation.
+     *
+     * @param progress Fractional progress (0.0 to 1.0)
+     */
+    void set_preparing_progress(float progress);
+
+    /**
+     * @brief Clear preparing state and transition to Idle or Printing
+     *
+     * Call this when the pre-print sequence completes or is cancelled.
+     *
+     * @param success If true, transitions to Printing; if false, transitions to Idle
+     */
+    void end_preparing(bool success);
+
     /**
      * @brief Get current progress percentage
      * @return Progress 0-100
      */
     int get_progress() const {
         return current_progress_;
-    }
-
-    //
-    // === Mock Print Simulation ===
-    //
-
-    /**
-     * @brief Start a simulated print for testing
-     *
-     * @param filename Display name for the mock print
-     * @param layers Total layers to simulate
-     * @param duration_secs Total simulated print time
-     */
-    void start_mock_print(const char* filename, int layers, int duration_secs);
-
-    /**
-     * @brief Stop the mock print simulation
-     */
-    void stop_mock_print();
-
-    /**
-     * @brief Advance mock print by one tick (call periodically)
-     *
-     * Updates progress, layer, time, and temperature simulation.
-     * Automatically completes when elapsed >= duration.
-     */
-    void tick_mock_print();
-
-    /**
-     * @brief Check if mock print is active
-     * @return true if mock simulation is running
-     */
-    bool is_mock_active() const {
-        return mock_active_;
     }
 
   private:
@@ -229,10 +231,16 @@ class PrintStatusPanel : public PanelBase {
     lv_subject_t flow_subject_;
     lv_subject_t pause_button_subject_;
 
+    // Preparing state subjects
+    lv_subject_t preparing_visible_subject_;   // int: 1 if preparing, 0 otherwise
+    lv_subject_t preparing_operation_subject_; // string: current operation name
+    lv_subject_t preparing_progress_subject_;  // int: 0-100 progress percentage
+
     // Subject storage buffers
     char filename_buf_[128] = "No print active";
     char progress_text_buf_[32] = "0%";
     char layer_text_buf_[64] = "Layer 0 / 0";
+    char preparing_operation_buf_[64] = "Preparing...";
     char elapsed_buf_[32] = "0h 00m";
     char remaining_buf_[32] = "0h 00m";
     char nozzle_temp_buf_[32] = "0 / 0°C";
@@ -257,12 +265,6 @@ class PrintStatusPanel : public PanelBase {
     int bed_target_ = 0;
     int speed_percent_ = 100;
     int flow_percent_ = 100;
-
-    // Mock simulation state
-    bool mock_active_ = false;
-    int mock_total_seconds_ = 0;
-    int mock_elapsed_seconds_ = 0;
-    int mock_total_layers_ = 0;
 
     // Child widgets
     lv_obj_t* progress_bar_ = nullptr;
@@ -364,6 +366,3 @@ class PrintStatusPanel : public PanelBase {
 
 // Global instance accessor (needed by main.cpp)
 PrintStatusPanel& get_global_print_status_panel();
-
-// Temporary wrapper for tick function (still called by main.cpp)
-void ui_panel_print_status_tick_mock_print();
