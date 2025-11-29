@@ -378,7 +378,6 @@ C++ Application Logic (src/*.cpp)
 - **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Build system and daily workflow
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Code standards and PR process
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and patterns
-- **[HANDOFF.md](docs/HANDOFF.md)** - Current work status (for active developers)
 
 ### Technical Reference
 - **[LVGL 9 XML Guide](docs/LVGL9_XML_GUIDE.md)** - Complete XML syntax reference

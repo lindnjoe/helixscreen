@@ -558,4 +558,3 @@ void print_children(lv_obj_t* parent, int depth = 0) {
 - **Example Test File:** `tests/unit/test_wizard_wifi_ui.cpp`
 - **Catch2 Documentation:** https://github.com/catchorg/Catch2
 - **LVGL Testing Guide:** `docs/LVGL9_XML_GUIDE.md`
-- **Current Test Status:** `HANDOFF.md` (Known Issues section)

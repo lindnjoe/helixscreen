@@ -183,7 +183,6 @@ lv_xml_register_widget("widget_name", create_cb, apply_cb);
 
 ## Documentation Structure
 
-📋 **docs/HANDOFF.md** - Active work + next 3 priorities (≤150 lines, prune aggressively)
 🗺️ **docs/ROADMAP.md** - Future features and milestones
 📖 **README.md** - Project overview and quick start (root level)
 🔧 **docs/DEVELOPMENT.md** - Build system and daily workflow
@@ -230,4 +229,4 @@ helixscreen/
 
 **Daily cycle:** Edit XML (no recompile) or C++ → `make` → test → screenshot (press 'S' or use `scripts/screenshot.sh`)
 
-**For context:** HANDOFF.md (active work), ROADMAP.md (future features), `git log` (history)
+**For context:** `git status` + `git log` (current work), ROADMAP.md (future features)

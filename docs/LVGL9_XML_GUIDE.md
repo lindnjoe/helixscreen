@@ -2552,8 +2552,6 @@ Unlike web browsers, there's no inspect tool. Use temporary background colors:
 ### Related Project Documentation
 
 - **CLAUDE.md** - Claude Code context for this project
-- **STATUS.md** - Documentation guide and architectural decisions
-- **HANDOFF.md** - Current work status and priorities
 - **README.md** - Project overview and quick start
 - **ROADMAP.md** - Planned features and milestones
 
