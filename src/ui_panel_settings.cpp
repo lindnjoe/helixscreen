@@ -5,11 +5,13 @@
 
 #include "app_globals.h"
 #include "config.h"
+#include "moonraker_client.h"
 #include "printer_state.h"
 #include "settings_manager.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_panel_bed_mesh.h"
+#include "ui_panel_calibration_zoffset.h"
 
 #include <spdlog/spdlog.h>
 
@@ -23,6 +25,8 @@
 // Forward declarations for class-based API
 class BedMeshPanel;
 BedMeshPanel& get_global_bed_mesh_panel();
+ZOffsetCalibrationPanel& get_global_zoffset_cal_panel();
+MoonrakerClient* get_moonraker_client();
 
 // ============================================================================
 // CONSTRUCTOR
@@ -298,8 +302,33 @@ void SettingsPanel::handle_bed_mesh_clicked() {
 }
 
 void SettingsPanel::handle_z_offset_clicked() {
-    spdlog::debug("[{}] Z-Offset clicked (not yet implemented)", get_name());
-    // TODO: Open Z-offset calibration panel
+    spdlog::debug("[{}] Z-Offset clicked - opening calibration panel", get_name());
+
+    // Create Z-Offset calibration panel on first access (lazy initialization)
+    if (!zoffset_cal_panel_ && parent_screen_) {
+        spdlog::debug("[{}] Creating Z-Offset calibration panel...", get_name());
+
+        // Create from XML
+        zoffset_cal_panel_ = static_cast<lv_obj_t*>(
+            lv_xml_create(parent_screen_, "calibration_zoffset_panel", nullptr));
+        if (zoffset_cal_panel_) {
+            // Setup event handlers (class-based API)
+            MoonrakerClient* client = get_moonraker_client();
+            get_global_zoffset_cal_panel().setup(zoffset_cal_panel_, parent_screen_, client);
+
+            // Initially hidden
+            lv_obj_add_flag(zoffset_cal_panel_, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[{}] Z-Offset calibration panel created", get_name());
+        } else {
+            spdlog::error("[{}] Failed to create Z-Offset panel from XML", get_name());
+            return;
+        }
+    }
+
+    // Push Z-Offset panel onto navigation history and show it
+    if (zoffset_cal_panel_) {
+        ui_nav_push_overlay(zoffset_cal_panel_);
+    }
 }
 
 void SettingsPanel::handle_pid_tuning_clicked() {

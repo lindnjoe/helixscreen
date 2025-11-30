@@ -95,6 +95,7 @@ class SettingsPanel : public PanelBase {
 
     // Lazily-created overlay panels
     lv_obj_t* bed_mesh_panel_ = nullptr;
+    lv_obj_t* zoffset_cal_panel_ = nullptr;
 
     //
     // === Setup Helpers ===
