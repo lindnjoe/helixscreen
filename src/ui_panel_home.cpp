@@ -25,10 +25,6 @@
 #include <cstring>
 #include <memory>
 
-// ============================================================================
-// CONSTRUCTOR / DESTRUCTOR
-// ============================================================================
-
 HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     : PanelBase(printer_state, api) {
     // Initialize buffer contents with default values
@@ -38,12 +34,10 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     std::strcpy(network_label_buffer_, "Wi-Fi");
     std::strcpy(network_color_buffer_, "0xff4444");
 
-    // Subscribe to PrinterState extruder temperature for reactive updates
-    extruder_temp_observer_ = lv_subject_add_observer(printer_state_.get_extruder_temp_subject(),
-                                                      extruder_temp_observer_cb, this);
-
-    // Subscribe to printer connection state for image dimming
-    connection_state_observer_ = lv_subject_add_observer(
+    // Subscribe to PrinterState subjects (ObserverGuard handles cleanup)
+    extruder_temp_observer_ = ObserverGuard(printer_state_.get_extruder_temp_subject(),
+                                            extruder_temp_observer_cb, this);
+    connection_state_observer_ = ObserverGuard(
         printer_state_.get_printer_connection_state_subject(), connection_state_observer_cb, this);
 
     spdlog::debug("[{}] Subscribed to PrinterState extruder temperature and connection state",
@@ -58,8 +52,8 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
             printer_state_.set_tracked_led(configured_led_);
 
             // Subscribe to LED state changes from PrinterState
-            led_state_observer_ = lv_subject_add_observer(printer_state_.get_led_state_subject(),
-                                                          led_state_observer_cb, this);
+            led_state_observer_ = ObserverGuard(printer_state_.get_led_state_subject(),
+                                                led_state_observer_cb, this);
 
             spdlog::info("[{}] Configured LED: {} (observing state)", get_name(), configured_led_);
         } else {
@@ -69,36 +63,10 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 HomePanel::~HomePanel() {
-    // NOTE: Do NOT log or call LVGL functions here! Destructor may be called
-    // during static destruction after LVGL and spdlog have already been destroyed.
-    // The timer will be cleaned up by LVGL when it shuts down.
-    // The tip_modal_ member uses RAII and will auto-hide if visible.
-    //
-    // If we need explicit cleanup, it should be done in a separate cleanup()
-    // method called before exit(), not in the destructor.
-
+    // ObserverGuard handles observer cleanup automatically
+    // Timer owned by LVGL - will be cleaned up on shutdown
     tip_rotation_timer_ = nullptr;
-
-    // RAII cleanup: remove PrinterState observers
-    if (extruder_temp_observer_) {
-        lv_observer_remove(extruder_temp_observer_);
-        extruder_temp_observer_ = nullptr;
-    }
-    if (led_state_observer_) {
-        lv_observer_remove(led_state_observer_);
-        led_state_observer_ = nullptr;
-    }
-    if (connection_state_observer_) {
-        lv_observer_remove(connection_state_observer_);
-        connection_state_observer_ = nullptr;
-    }
-
-    // Other observers cleaned up by PanelBase::~PanelBase()
 }
-
-// ============================================================================
-// PANELBASE IMPLEMENTATION
-// ============================================================================
 
 void HomePanel::init_subjects() {
     if (subjects_initialized_) {
@@ -192,10 +160,6 @@ void HomePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     spdlog::info("[{}] Setup complete!", get_name());
 }
 
-// ============================================================================
-// PRIVATE HELPERS
-// ============================================================================
-
 void HomePanel::update_tip_of_day() {
     auto tip = TipsManager::get_instance()->get_random_unique_tip();
 
@@ -277,10 +241,6 @@ void HomePanel::setup_responsive_icon_fonts() {
     spdlog::debug("[{}] Set icons to {}px, labels to {} for screen height {}", get_name(), icon_px,
                   (label_font == UI_FONT_SMALL) ? "small" : "body", screen_height);
 }
-
-// ============================================================================
-// INSTANCE HANDLERS
-// ============================================================================
 
 void HomePanel::handle_light_toggle() {
     spdlog::info("[{}] Light button clicked", get_name());
@@ -384,10 +344,6 @@ void HomePanel::update_printer_image_opacity(int connection_state) {
     }
 }
 
-// ============================================================================
-// STATIC TRAMPOLINES
-// ============================================================================
-
 void HomePanel::light_toggle_cb(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[HomePanel] light_toggle_cb");
     (void)e;
@@ -443,10 +399,6 @@ void HomePanel::connection_state_observer_cb(lv_observer_t* observer, lv_subject
     }
 }
 
-// ============================================================================
-// PUBLIC API
-// ============================================================================
-
 void HomePanel::update(const char* status_text, int temp) {
     // Update subjects - all bound widgets update automatically
     if (status_text) {
@@ -489,10 +441,6 @@ void HomePanel::set_light(bool is_on) {
     light_on_ = is_on;
     spdlog::debug("[{}] Local light state: {}", get_name(), is_on ? "ON" : "OFF");
 }
-
-// ============================================================================
-// GLOBAL INSTANCE (needed by main.cpp)
-// ============================================================================
 
 static std::unique_ptr<HomePanel> g_home_panel;
 
