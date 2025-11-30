@@ -281,6 +281,41 @@ class PrinterState {
     } // 0=off, 1=on (derived from LED color data)
 
     /**
+     * @brief Get excluded objects version subject
+     *
+     * This subject is incremented whenever the excluded objects list changes.
+     * Observers should watch this subject and call get_excluded_objects() to
+     * get the updated list when notified.
+     *
+     * @return Subject pointer (integer, incremented on each change)
+     */
+    lv_subject_t* get_excluded_objects_version_subject() {
+        return &excluded_objects_version_;
+    }
+
+    /**
+     * @brief Get the current set of excluded objects
+     *
+     * Returns object names that have been excluded from printing via Klipper's
+     * EXCLUDE_OBJECT feature. Updated from Moonraker notify_status_update.
+     *
+     * @return Reference to the set of excluded object names
+     */
+    const std::unordered_set<std::string>& get_excluded_objects() const {
+        return excluded_objects_;
+    }
+
+    /**
+     * @brief Update excluded objects from Moonraker status update
+     *
+     * Called by status update handler when exclude_object.excluded_objects changes.
+     * Increments the version subject to notify observers.
+     *
+     * @param objects Set of object names that are currently excluded
+     */
+    void set_excluded_objects(const std::unordered_set<std::string>& objects);
+
+    /**
      * @brief Set which LED to track for state updates
      *
      * Call this after loading config to tell PrinterState which LED object
@@ -401,6 +436,10 @@ class PrinterState {
 
     // LED state subject
     lv_subject_t led_state_; // Integer: 0=off, 1=on
+
+    // Exclude object subjects
+    lv_subject_t excluded_objects_version_;            // Integer: incremented on change
+    std::unordered_set<std::string> excluded_objects_; // Set of excluded object names
 
     // Printer capability subjects (for pre-print options visibility)
     lv_subject_t printer_has_qgl_;          // Integer: 0=no, 1=yes

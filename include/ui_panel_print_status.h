@@ -300,6 +300,7 @@ class PrintStatusPanel : public PanelBase {
     static void flow_factor_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void led_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void print_layer_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void excluded_objects_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 
     //
     // === Observer Instance Methods ===
@@ -313,6 +314,7 @@ class PrintStatusPanel : public PanelBase {
     void on_flow_factor_changed(int flow);
     void on_led_state_changed(int state);
     void on_print_layer_changed(int current_layer);
+    void on_excluded_objects_changed();
 
     // PrinterState observers (ObserverGuard handles cleanup)
     ObserverGuard extruder_temp_observer_;
@@ -326,6 +328,7 @@ class PrintStatusPanel : public PanelBase {
     ObserverGuard flow_factor_observer_;
     ObserverGuard led_state_observer_;
     ObserverGuard print_layer_observer_;
+    ObserverGuard excluded_objects_observer_;
 
     bool led_on_ = false;
     std::string configured_led_;

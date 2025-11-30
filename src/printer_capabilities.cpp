@@ -30,6 +30,9 @@ void PrinterCapabilities::parse_objects(const json& objects) {
         } else if (name == "bed_mesh") {
             has_bed_mesh_ = true;
             spdlog::debug("[PrinterCapabilities] Detected bed_mesh");
+        } else if (name == "exclude_object") {
+            has_exclude_object_ = true;
+            spdlog::debug("[PrinterCapabilities] Detected exclude_object");
         }
         // Chamber heater detection (heater_generic with "chamber" in name)
         else if (name.rfind("heater_generic ", 0) == 0) {
@@ -101,6 +104,7 @@ void PrinterCapabilities::clear() {
     has_bed_mesh_ = false;
     has_chamber_heater_ = false;
     has_chamber_sensor_ = false;
+    has_exclude_object_ = false;
     macros_.clear();
     helix_macros_.clear();
     nozzle_clean_macro_.clear();
@@ -164,6 +168,8 @@ std::string PrinterCapabilities::summary() const {
         caps.push_back("chamber_heater");
     if (has_chamber_sensor_)
         caps.push_back("chamber_sensor");
+    if (has_exclude_object_)
+        caps.push_back("exclude_object");
 
     if (caps.empty()) {
         ss << "none";

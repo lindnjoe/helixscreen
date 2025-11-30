@@ -181,6 +181,9 @@ void PrinterState::init_subjects(bool register_xml) {
     // LED state subject (0=off, 1=on, derived from LED color data)
     lv_subject_init_int(&led_state_, 0);
 
+    // Excluded objects version subject (incremented when excluded_objects_ changes)
+    lv_subject_init_int(&excluded_objects_version_, 0);
+
     // Printer capability subjects (all default to 0=not available)
     lv_subject_init_int(&printer_has_qgl_, 0);
     lv_subject_init_int(&printer_has_z_tilt_, 0);
@@ -211,6 +214,7 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "printer_connection_message", &printer_connection_message_);
         lv_xml_register_subject(NULL, "network_status", &network_status_);
         lv_xml_register_subject(NULL, "led_state", &led_state_);
+        lv_xml_register_subject(NULL, "excluded_objects_version", &excluded_objects_version_);
         lv_xml_register_subject(NULL, "printer_has_qgl", &printer_has_qgl_);
         lv_xml_register_subject(NULL, "printer_has_z_tilt", &printer_has_z_tilt_);
         lv_xml_register_subject(NULL, "printer_has_bed_mesh", &printer_has_bed_mesh_);
@@ -402,6 +406,24 @@ void PrinterState::update_from_status(const json& state) {
         }
     }
 
+    // Update exclude_object state (for mid-print object exclusion)
+    if (state.contains("exclude_object")) {
+        const auto& eo = state["exclude_object"];
+
+        if (eo.contains("excluded_objects") && eo["excluded_objects"].is_array()) {
+            std::unordered_set<std::string> excluded;
+            for (const auto& obj : eo["excluded_objects"]) {
+                if (obj.is_string()) {
+                    excluded.insert(obj.get<std::string>());
+                }
+            }
+            // set_excluded_objects handles change detection and notification
+            // Note: We're inside state_mutex_ lock, but set_excluded_objects only modifies
+            // its own data and calls lv_subject_set_int which is safe
+            set_excluded_objects(excluded);
+        }
+    }
+
     // Cache full state for complex queries
     json_state_.merge_patch(state);
 }
@@ -459,6 +481,20 @@ void PrinterState::set_printer_capabilities(const PrinterCapabilities& caps) {
 
     spdlog::info("[PrinterState] Capabilities set (with overrides): {}",
                  capability_overrides_.summary());
+}
+
+void PrinterState::set_excluded_objects(const std::unordered_set<std::string>& objects) {
+    // Only update if the set actually changed
+    if (excluded_objects_ != objects) {
+        excluded_objects_ = objects;
+
+        // Increment version to notify observers
+        int version = lv_subject_get_int(&excluded_objects_version_);
+        lv_subject_set_int(&excluded_objects_version_, version + 1);
+
+        spdlog::debug("[PrinterState] Excluded objects updated: {} objects (version {})",
+                      excluded_objects_.size(), version + 1);
+    }
 }
 
 PrintJobState PrinterState::get_print_job_state() const {

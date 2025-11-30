@@ -89,6 +89,12 @@ public:
     [[nodiscard]] bool has_chamber_sensor() const { return has_chamber_sensor_; }
 
     /**
+     * @brief Check if printer has exclude_object support
+     * @return true if exclude_object object was detected (Klipper config has [exclude_object])
+     */
+    [[nodiscard]] bool has_exclude_object() const { return has_exclude_object_; }
+
+    /**
      * @brief Check if printer supports any form of bed leveling
      * @return true if has QGL, Z-tilt, or bed mesh
      */
@@ -212,6 +218,7 @@ private:
     bool has_bed_mesh_ = false;
     bool has_chamber_heater_ = false;
     bool has_chamber_sensor_ = false;
+    bool has_exclude_object_ = false;
 
     // Macro names (stored uppercase for case-insensitive matching)
     std::unordered_set<std::string> macros_;

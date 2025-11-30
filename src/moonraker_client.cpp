@@ -897,6 +897,9 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
                 // Bed mesh (for 3D visualization)
                 subscription_objects["bed_mesh"] = nullptr;
 
+                // Exclude object (for mid-print object exclusion)
+                subscription_objects["exclude_object"] = nullptr;
+
                 json subscribe_params = {{"objects", subscription_objects}};
 
                 send_jsonrpc(

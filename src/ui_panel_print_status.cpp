@@ -68,6 +68,10 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
     print_layer_observer_ = ObserverGuard(printer_state_.get_print_layer_current_subject(),
                                           print_layer_observer_cb, this);
 
+    // Subscribe to excluded objects changes (for syncing from Klipper)
+    excluded_objects_observer_ = ObserverGuard(printer_state_.get_excluded_objects_version_subject(),
+                                                excluded_objects_observer_cb, this);
+
     spdlog::debug("[{}] Subscribed to PrinterState subjects", get_name());
 
     // Load configured LED from wizard settings
@@ -675,6 +679,14 @@ void PrintStatusPanel::print_layer_observer_cb(lv_observer_t* observer, lv_subje
     }
 }
 
+void PrintStatusPanel::excluded_objects_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    (void)subject; // Version number not needed, just signals a change
+    auto* self = static_cast<PrintStatusPanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->on_excluded_objects_changed();
+    }
+}
+
 // ============================================================================
 // OBSERVER INSTANCE METHODS
 // ============================================================================
@@ -800,6 +812,32 @@ void PrintStatusPanel::on_print_layer_changed(int current_layer) {
     if (gcode_viewer_ && !lv_obj_has_flag(gcode_viewer_, LV_OBJ_FLAG_HIDDEN)) {
         ui_gcode_viewer_set_print_progress(gcode_viewer_, current_layer);
         spdlog::trace("[{}] G-code viewer ghost layer updated to {}", get_name(), current_layer);
+    }
+}
+
+void PrintStatusPanel::on_excluded_objects_changed() {
+    // Sync excluded objects from PrinterState (Klipper/Moonraker)
+    const auto& klipper_excluded = printer_state_.get_excluded_objects();
+
+    // Merge Klipper's excluded set with our local set
+    // This ensures objects excluded via Klipper (e.g., from another client) are shown
+    for (const auto& obj : klipper_excluded) {
+        if (excluded_objects_.count(obj) == 0) {
+            excluded_objects_.insert(obj);
+            spdlog::info("[{}] Synced excluded object from Klipper: '{}'", get_name(), obj);
+        }
+    }
+
+    // Update the G-code viewer visual state
+    if (gcode_viewer_) {
+        // Combine confirmed excluded with any pending exclusion for visual display
+        std::unordered_set<std::string> visual_excluded = excluded_objects_;
+        if (!pending_exclude_object_.empty()) {
+            visual_excluded.insert(pending_exclude_object_);
+        }
+        ui_gcode_viewer_set_excluded_objects(gcode_viewer_, visual_excluded);
+        spdlog::debug("[{}] Updated viewer with {} excluded objects", get_name(),
+                      visual_excluded.size());
     }
 }
 
