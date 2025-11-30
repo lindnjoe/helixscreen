@@ -36,6 +36,7 @@
 #include "ui_nav.h"
 #include "ui_notification.h"
 #include "ui_panel_bed_mesh.h"
+#include "ui_panel_calibration_zoffset.h"
 #include "ui_panel_controls.h"
 #include "ui_panel_extrusion.h"
 #include "ui_panel_fan.h"
@@ -220,9 +221,10 @@ static bool parse_command_line_args(
     int argc, char** argv, int& initial_panel, bool& show_motion, bool& show_nozzle_temp,
     bool& show_bed_temp, bool& show_extrusion, bool& show_fan, bool& show_print_status, bool& show_file_detail,
     bool& show_keypad, bool& show_keyboard, bool& show_step_test, bool& show_test_panel,
-    bool& show_gcode_test, bool& show_bed_mesh, bool& show_glyphs, bool& show_gradient_test,
-    bool& force_wizard, int& wizard_step, bool& panel_requested, int& display_num, int& x_pos,
-    int& y_pos, bool& screenshot_enabled, int& screenshot_delay_sec, int& timeout_sec,
+    bool& show_gcode_test, bool& show_bed_mesh, bool& show_zoffset, bool& show_pid,
+    bool& show_glyphs, bool& show_gradient_test, bool& force_wizard, int& wizard_step,
+    bool& panel_requested, int& display_num, int& x_pos, int& y_pos,
+    bool& screenshot_enabled, int& screenshot_delay_sec, int& timeout_sec,
     int& verbosity, bool& dark_mode, bool& theme_requested, int& dpi) {
     // Parse arguments
     for (int i = 1; i < argc; i++) {
@@ -300,6 +302,11 @@ static bool parse_command_line_args(
                 } else if (strcmp(panel_arg, "bed-mesh") == 0 ||
                            strcmp(panel_arg, "bed_mesh") == 0) {
                     show_bed_mesh = true;
+                } else if (strcmp(panel_arg, "zoffset") == 0 ||
+                           strcmp(panel_arg, "z-offset") == 0) {
+                    show_zoffset = true;
+                } else if (strcmp(panel_arg, "pid") == 0) {
+                    show_pid = true;
                 } else if (strcmp(panel_arg, "glyphs") == 0) {
                     show_glyphs = true;
                 } else if (strcmp(panel_arg, "gradient-test") == 0) {
@@ -307,7 +314,7 @@ static bool parse_command_line_args(
                 } else {
                     printf("Unknown panel: %s\n", panel_arg);
                     printf("Available panels: home, controls, motion, nozzle-temp, bed-temp, "
-                           "bed-mesh, extrusion, fan, print-status, filament, settings, advanced, "
+                           "bed-mesh, zoffset, pid, extrusion, fan, print-status, filament, settings, advanced, "
                            "print-select, step-test, test, gcode-test, glyphs, gradient-test\n");
                     return false;
                 }
@@ -610,7 +617,7 @@ static bool parse_command_line_args(
             printf("  --gcode-debug-colors Enable per-face debug coloring\n");
             printf("\nAvailable panels:\n");
             printf("  home, controls, motion, nozzle-temp, bed-temp, bed-mesh,\n");
-            printf("  extrusion, print-status, filament, settings, advanced,\n");
+            printf("  zoffset, pid, extrusion, print-status, filament, settings, advanced,\n");
             printf("  print-select, step-test, test, gcode-test, glyphs\n");
             printf("\nScreen sizes:\n");
             printf("  tiny   = %dx%d\n", UI_SCREEN_TINY_W, UI_SCREEN_TINY_H);
@@ -1160,6 +1167,8 @@ int main(int argc, char** argv) {
     bool show_test_panel = false;    // Special flag for test/development panel
     bool show_gcode_test = false;    // Special flag for G-code 3D viewer testing
     bool show_bed_mesh = false;      // Special flag for bed mesh overlay panel
+    bool show_zoffset = false;       // Special flag for Z-offset calibration panel
+    bool show_pid = false;           // Special flag for PID tuning panel
     bool show_glyphs = false;        // Special flag for LVGL glyphs reference panel
     bool show_gradient_test = false; // Special flag for gradient canvas test panel
     bool force_wizard = false;       // Force wizard to run even if config exists
@@ -1180,10 +1189,11 @@ int main(int argc, char** argv) {
     if (!parse_command_line_args(argc, argv, initial_panel, show_motion, show_nozzle_temp,
                                  show_bed_temp, show_extrusion, show_fan, show_print_status, show_file_detail,
                                  show_keypad, show_keyboard, show_step_test, show_test_panel,
-                                 show_gcode_test, show_bed_mesh, show_glyphs, show_gradient_test,
-                                 force_wizard, wizard_step, panel_requested, display_num, x_pos,
-                                 y_pos, screenshot_enabled, screenshot_delay_sec, timeout_sec,
-                                 verbosity, dark_mode, theme_requested, dpi)) {
+                                 show_gcode_test, show_bed_mesh, show_zoffset, show_pid,
+                                 show_glyphs, show_gradient_test, force_wizard, wizard_step,
+                                 panel_requested, display_num, x_pos, y_pos, screenshot_enabled,
+                                 screenshot_delay_sec, timeout_sec, verbosity, dark_mode,
+                                 theme_requested, dpi)) {
         return 0; // Help shown or parse error
     }
 
@@ -1560,6 +1570,22 @@ int main(int argc, char** argv) {
                 spdlog::error(
                     "Failed to create bed mesh overlay from XML component 'bed_mesh_panel'");
             }
+        }
+        if (show_zoffset) {
+            spdlog::debug("Opening Z-offset calibration overlay as requested by command-line flag");
+            lv_obj_t* zoffset_panel = (lv_obj_t*)lv_xml_create(screen, "calibration_zoffset_panel", nullptr);
+            if (zoffset_panel) {
+                spdlog::debug("Z-offset calibration overlay created successfully, calling setup");
+                get_global_zoffset_cal_panel().setup(zoffset_panel, screen, moonraker_client);
+                ui_nav_push_overlay(zoffset_panel);
+                spdlog::debug("Z-offset calibration overlay pushed to nav stack");
+            } else {
+                spdlog::error(
+                    "Failed to create Z-offset calibration overlay from XML component 'calibration_zoffset_panel'");
+            }
+        }
+        if (show_pid) {
+            spdlog::info("PID tuning panel not yet implemented");
         }
         if (show_keypad) {
             spdlog::debug("Opening keypad modal as requested by command-line flag");
