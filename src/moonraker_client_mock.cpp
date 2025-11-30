@@ -984,16 +984,97 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
     // UNIMPLEMENTED G-CODE STUBS - Log warnings for missing features
     // ========================================================================
 
-    // Fan control (NOT IMPLEMENTED)
+    // Fan control - M106/M107/SET_FAN_SPEED
+    // M106 P0 S128 - Set fan index 0 to 50% (S is 0-255, P is fan index)
     if (gcode.find("M106") != std::string::npos) {
-        spdlog::warn(
-            "[MoonrakerClientMock] STUB: M106 (fan speed) NOT IMPLEMENTED - fan_speed_ unchanged");
-    } else if (gcode.find("M107") != std::string::npos) {
-        spdlog::warn(
-            "[MoonrakerClientMock] STUB: M107 (fan off) NOT IMPLEMENTED - fan_speed_ unchanged");
-    } else if (gcode.find("SET_FAN_SPEED") != std::string::npos) {
-        spdlog::warn(
-            "[MoonrakerClientMock] STUB: SET_FAN_SPEED NOT IMPLEMENTED - fan_speed_ unchanged");
+        int fan_index = 0;
+        int speed_value = 0;
+
+        // Parse P parameter (fan index)
+        auto p_pos = gcode.find('P');
+        if (p_pos != std::string::npos && p_pos + 1 < gcode.length()) {
+            try {
+                fan_index = std::stoi(gcode.substr(p_pos + 1));
+            } catch (...) {
+            }
+        }
+
+        // Parse S parameter (speed 0-255)
+        auto s_pos = gcode.find('S');
+        if (s_pos != std::string::npos && s_pos + 1 < gcode.length()) {
+            try {
+                speed_value = std::stoi(gcode.substr(s_pos + 1));
+                speed_value = std::clamp(speed_value, 0, 255);
+            } catch (...) {
+            }
+        }
+
+        // Convert to normalized speed (0.0-1.0)
+        double normalized_speed = speed_value / 255.0;
+
+        // Fan index 0 = "fan", index 1+ = "fan1", "fan2", etc.
+        std::string fan_name = (fan_index == 0) ? "fan" : ("fan" + std::to_string(fan_index));
+        set_fan_speed_internal(fan_name, normalized_speed);
+
+        spdlog::info("[MoonrakerClientMock] M106 P{} S{} -> {} speed={:.2f}", fan_index,
+                     speed_value, fan_name, normalized_speed);
+    }
+    // M107 - Turn off fan
+    else if (gcode.find("M107") != std::string::npos) {
+        int fan_index = 0;
+
+        auto p_pos = gcode.find('P');
+        if (p_pos != std::string::npos && p_pos + 1 < gcode.length()) {
+            try {
+                fan_index = std::stoi(gcode.substr(p_pos + 1));
+            } catch (...) {
+            }
+        }
+
+        std::string fan_name = (fan_index == 0) ? "fan" : ("fan" + std::to_string(fan_index));
+        set_fan_speed_internal(fan_name, 0.0);
+
+        spdlog::info("[MoonrakerClientMock] M107 P{} -> {} off", fan_index, fan_name);
+    }
+    // SET_FAN_SPEED - Klipper extended fan control
+    // SET_FAN_SPEED FAN=nevermore SPEED=0.5
+    else if (gcode.find("SET_FAN_SPEED") != std::string::npos) {
+        std::string fan_name;
+        double speed = 0.0;
+
+        // Parse FAN parameter
+        auto fan_pos = gcode.find("FAN=");
+        if (fan_pos != std::string::npos) {
+            size_t start = fan_pos + 4;
+            size_t end = gcode.find_first_of(" \t\n", start);
+            fan_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+        }
+
+        // Parse SPEED parameter (0.0-1.0)
+        auto speed_pos = gcode.find("SPEED=");
+        if (speed_pos != std::string::npos) {
+            try {
+                speed = std::stod(gcode.substr(speed_pos + 6));
+                speed = std::clamp(speed, 0.0, 1.0);
+            } catch (...) {
+            }
+        }
+
+        if (!fan_name.empty()) {
+            // Try to find matching fan in discovered fans_ list
+            std::string full_fan_name = find_fan_by_suffix(fan_name);
+            if (!full_fan_name.empty()) {
+                set_fan_speed_internal(full_fan_name, speed);
+                spdlog::info("[MoonrakerClientMock] SET_FAN_SPEED FAN={} SPEED={:.2f}",
+                             full_fan_name, speed);
+            } else {
+                // Use short name if no match found
+                set_fan_speed_internal(fan_name, speed);
+                spdlog::info(
+                    "[MoonrakerClientMock] SET_FAN_SPEED FAN={} SPEED={:.2f} (unmatched fan)",
+                    fan_name, speed);
+            }
+        }
     }
 
     // Extrusion control (NOT IMPLEMENTED)
@@ -1102,9 +1183,33 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         dispatch_bed_mesh_update();
     }
 
-    // Z offset (NOT IMPLEMENTED)
+    // Z offset - SET_GCODE_OFFSET Z=0.2 or SET_GCODE_OFFSET Z_ADJUST=-0.05
     if (gcode.find("SET_GCODE_OFFSET") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: SET_GCODE_OFFSET NOT IMPLEMENTED");
+        // Parse Z parameter (absolute offset)
+        auto z_pos = gcode.find(" Z=");
+        if (z_pos != std::string::npos) {
+            try {
+                double z_offset = std::stod(gcode.substr(z_pos + 3));
+                gcode_offset_z_.store(z_offset);
+                spdlog::info("[MoonrakerClientMock] SET_GCODE_OFFSET Z={:.3f}", z_offset);
+                dispatch_gcode_move_update();
+            } catch (...) {
+            }
+        }
+
+        // Parse Z_ADJUST parameter (relative adjustment)
+        auto z_adj_pos = gcode.find("Z_ADJUST=");
+        if (z_adj_pos != std::string::npos) {
+            try {
+                double adjustment = std::stod(gcode.substr(z_adj_pos + 9));
+                double new_offset = gcode_offset_z_.load() + adjustment;
+                gcode_offset_z_.store(new_offset);
+                spdlog::info("[MoonrakerClientMock] SET_GCODE_OFFSET Z_ADJUST={:.3f} -> Z={:.3f}",
+                             adjustment, new_offset);
+                dispatch_gcode_move_update();
+            } catch (...) {
+            }
+        }
     }
 
     // Input shaping (NOT IMPLEMENTED)
@@ -1186,12 +1291,14 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         }
     }
 
-    // Firmware restart (NOT IMPLEMENTED)
+    // Firmware/Klipper restart - simulates klippy_state transition
+    // FIRMWARE_RESTART: Full firmware reset (~3s delay)
+    // RESTART: Klipper service restart (~2s delay)
     if (gcode.find("FIRMWARE_RESTART") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: FIRMWARE_RESTART NOT IMPLEMENTED");
+        trigger_restart(/*is_firmware=*/true);
     } else if (gcode.find("RESTART") != std::string::npos &&
                gcode.find("FIRMWARE") == std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: RESTART NOT IMPLEMENTED");
+        trigger_restart(/*is_firmware=*/false);
     }
 
     // QGL / Z-tilt (NOT IMPLEMENTED)
@@ -1483,12 +1590,34 @@ void MoonrakerClientMock::dispatch_initial_state() {
         }
     }
 
+    // Get Z offset and klippy state
+    double z_offset = gcode_offset_z_.load();
+    KlippyState klippy = klippy_state_.load();
+    std::string klippy_str = "ready";
+    switch (klippy) {
+    case KlippyState::STARTUP:
+        klippy_str = "startup";
+        break;
+    case KlippyState::SHUTDOWN:
+        klippy_str = "shutdown";
+        break;
+    case KlippyState::ERROR:
+        klippy_str = "error";
+        break;
+    default:
+        break;
+    }
+
     json initial_status = {
         {"extruder", {{"temperature", ext_temp}, {"target", ext_target}}},
         {"heater_bed", {{"temperature", bed_temp_val}, {"target", bed_target_val}}},
         {"toolhead", {{"position", {x, y, z, 0.0}}, {"homed_axes", homed}}},
-        {"gcode_move", {{"speed_factor", speed / 100.0}, {"extrude_factor", flow / 100.0}}},
+        {"gcode_move",
+         {{"speed_factor", speed / 100.0},
+          {"extrude_factor", flow / 100.0},
+          {"homing_origin", {0.0, 0.0, z_offset, 0.0}}}},
         {"fan", {{"speed", fan / 255.0}}},
+        {"webhooks", {{"state", klippy_str}, {"state_message", "Printer is ready"}}},
         {"print_stats", {{"state", print_state_str}, {"filename", filename}}},
         {"virtual_sdcard", {{"progress", progress}}},
         {"bed_mesh",
@@ -1502,6 +1631,18 @@ void MoonrakerClientMock::dispatch_initial_state() {
     // Merge LED states into initial_status (each LED is a top-level key)
     for (auto& [key, value] : led_json.items()) {
         initial_status[key] = value;
+    }
+
+    // Override fan speeds with explicitly-set values from fan_speeds_ map
+    {
+        std::lock_guard<std::mutex> lock(fan_mutex_);
+        for (const auto& [name, spd] : fan_speeds_) {
+            if (name == "fan") {
+                initial_status["fan"] = {{"speed", spd}};
+            } else {
+                initial_status[name] = {{"speed", spd}};
+            }
+        }
     }
 
     spdlog::info("[MoonrakerClientMock] Dispatching initial state: extruder={}/{}°C, bed={}/{}°C, "
@@ -1708,12 +1849,18 @@ void MoonrakerClientMock::temperature_simulation_loop() {
         double progress = print_progress_.load();
         double elapsed = progress * total_time;
 
+        // Get Z offset for gcode_move
+        double z_offset = gcode_offset_z_.load();
+
         // Build notification JSON (enhanced Moonraker format with layer info)
         json status_obj = {
             {"extruder", {{"temperature", ext_temp}, {"target", ext_target}}},
             {"heater_bed", {{"temperature", bed_temp_val}, {"target", bed_target_val}}},
             {"toolhead", {{"position", {x, y, z, 0.0}}, {"homed_axes", homed}}},
-            {"gcode_move", {{"speed_factor", speed / 100.0}, {"extrude_factor", flow / 100.0}}},
+            {"gcode_move",
+             {{"speed_factor", speed / 100.0},
+              {"extrude_factor", flow / 100.0},
+              {"homing_origin", {0.0, 0.0, z_offset, 0.0}}}},
             {"fan", {{"speed", fan / 255.0}}},
             {"print_stats",
              {{"state", print_state_str},
@@ -1728,6 +1875,39 @@ void MoonrakerClientMock::temperature_simulation_loop() {
               {"progress", progress},
               {"is_active",
                phase == MockPrintPhase::PRINTING || phase == MockPrintPhase::PREHEAT}}}};
+
+        // Add klippy state if not ready (only send when abnormal)
+        KlippyState klippy = klippy_state_.load();
+        if (klippy != KlippyState::READY) {
+            std::string state_str;
+            switch (klippy) {
+            case KlippyState::STARTUP:
+                state_str = "startup";
+                break;
+            case KlippyState::SHUTDOWN:
+                state_str = "shutdown";
+                break;
+            case KlippyState::ERROR:
+                state_str = "error";
+                break;
+            default:
+                state_str = "ready";
+                break;
+            }
+            status_obj["webhooks"] = {{"state", state_str}};
+        }
+
+        // Override fan speeds with explicitly-set values from fan_speeds_ map
+        {
+            std::lock_guard<std::mutex> lock(fan_mutex_);
+            for (const auto& [name, spd] : fan_speeds_) {
+                if (name == "fan") {
+                    status_obj["fan"] = {{"speed", spd}};
+                } else {
+                    status_obj[name] = {{"speed", spd}};
+                }
+            }
+        }
 
         json notification = {{"method", "notify_status_update"},
                              {"params", json::array({status_obj, tick * base_dt})}};
@@ -1751,4 +1931,118 @@ void MoonrakerClientMock::temperature_simulation_loop() {
         // Sleep wall-clock interval (unchanged by speedup factor)
         std::this_thread::sleep_for(std::chrono::milliseconds(SIMULATION_INTERVAL_MS));
     }
+}
+
+// ============================================================================
+// Fan Control Helper Methods
+// ============================================================================
+
+void MoonrakerClientMock::set_fan_speed_internal(const std::string& fan_name, double speed) {
+    {
+        std::lock_guard<std::mutex> lock(fan_mutex_);
+        fan_speeds_[fan_name] = speed;
+    }
+
+    // Also update the legacy fan_speed_ atomic for backward compatibility
+    // (only for part cooling fan "fan")
+    if (fan_name == "fan") {
+        fan_speed_.store(static_cast<int>(speed * 255.0));
+    }
+
+    // Dispatch fan status update
+    json fan_status;
+    if (fan_name == "fan") {
+        // Part cooling fan uses simple format
+        fan_status["fan"] = {{"speed", speed}};
+    } else {
+        // Generic/heater fans use full name as key
+        fan_status[fan_name] = {{"speed", speed}};
+    }
+    dispatch_status_update(fan_status);
+}
+
+std::string MoonrakerClientMock::find_fan_by_suffix(const std::string& suffix) const {
+    for (const auto& fan : fans_) {
+        // Match if fan name ends with the suffix (e.g., "nevermore" matches "fan_generic
+        // nevermore")
+        if (fan.length() >= suffix.length()) {
+            size_t suffix_start = fan.length() - suffix.length();
+            if (fan.substr(suffix_start) == suffix) {
+                return fan;
+            }
+        }
+    }
+    return "";
+}
+
+// ============================================================================
+// G-code Offset Helper Methods
+// ============================================================================
+
+void MoonrakerClientMock::dispatch_gcode_move_update() {
+    double z_offset = gcode_offset_z_.load();
+    int speed = speed_factor_.load();
+    int flow = flow_factor_.load();
+
+    json gcode_move = {{"gcode_move",
+                        {{"speed_factor", speed / 100.0},
+                         {"extrude_factor", flow / 100.0},
+                         {"homing_origin", {0.0, 0.0, z_offset, 0.0}}}}};
+    dispatch_status_update(gcode_move);
+}
+
+// ============================================================================
+// Restart Simulation Helper Methods
+// ============================================================================
+
+void MoonrakerClientMock::trigger_restart(bool is_firmware) {
+    // Set klippy_state to "startup"
+    klippy_state_.store(KlippyState::STARTUP);
+
+    // Clear any active print state
+    if (print_phase_.load() != MockPrintPhase::IDLE) {
+        print_phase_.store(MockPrintPhase::IDLE);
+        print_state_.store(0); // standby
+        {
+            std::lock_guard<std::mutex> lock(print_mutex_);
+            print_filename_.clear();
+        }
+        print_progress_.store(0.0);
+    }
+
+    // Set temperature targets to 0 (heaters off) - temps will naturally cool
+    extruder_target_.store(0.0);
+    bed_target_.store(0.0);
+
+    // Dispatch klippy state change notification
+    json status = {{"webhooks",
+                    {{"state", "startup"},
+                     {"state_message", is_firmware ? "Firmware restart in progress"
+                                                   : "Klipper restart in progress"}}}};
+    dispatch_status_update(status);
+
+    spdlog::info("[MoonrakerClientMock] {} triggered - klippy_state='startup'",
+                 is_firmware ? "FIRMWARE_RESTART" : "RESTART");
+
+    // Schedule return to ready state (non-blocking using detached thread)
+    double delay_sec = is_firmware ? 3.0 : 2.0;
+
+    // Apply speedup factor to delay
+    double effective_delay = delay_sec / speedup_factor_.load();
+
+    std::thread([this, effective_delay, is_firmware]() {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(static_cast<int>(effective_delay * 1000)));
+
+        // Return to ready state
+        klippy_state_.store(KlippyState::READY);
+
+        // Dispatch ready notification
+        json ready_status = {
+            {"webhooks", {{"state", "ready"}, {"state_message", "Printer is ready"}}}};
+        dispatch_status_update(ready_status);
+
+        spdlog::info("[MoonrakerClientMock] {} complete - klippy_state='ready'",
+                     is_firmware ? "FIRMWARE_RESTART" : "RESTART");
+    }).detach();
 }

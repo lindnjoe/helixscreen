@@ -72,6 +72,19 @@ class MoonrakerClientMock : public MoonrakerClient {
     };
 
     /**
+     * @brief Klipper service state (matches Moonraker webhooks.state)
+     *
+     * Tracks the state of the Klipper firmware service, used during
+     * RESTART/FIRMWARE_RESTART simulation.
+     */
+    enum class KlippyState {
+        READY,    ///< Normal operation, printer ready
+        STARTUP,  ///< Restarting (during RESTART/FIRMWARE_RESTART)
+        SHUTDOWN, ///< Emergency shutdown (M112)
+        ERROR     ///< Klipper error state
+    };
+
+    /**
      * @brief Metadata extracted from G-code for print simulation
      *
      * Stores print parameters extracted from G-code file metadata
@@ -134,6 +147,14 @@ class MoonrakerClientMock : public MoonrakerClient {
      */
     MockPrintPhase get_print_phase() const {
         return print_phase_.load();
+    }
+
+    /**
+     * @brief Get current Klipper service state
+     * @return Current klippy_state (READY, STARTUP, SHUTDOWN, ERROR)
+     */
+    KlippyState get_klippy_state() const {
+        return klippy_state_.load();
     }
 
     /**
@@ -413,6 +434,36 @@ class MoonrakerClientMock : public MoonrakerClient {
     void dispatch_print_state_notification(const std::string& state);
 
     /**
+     * @brief Trigger Klipper restart simulation
+     *
+     * Sets klippy_state to STARTUP, clears active print, sets heater targets to 0,
+     * then spawns a thread to restore READY state after delay. Temps continue
+     * cooling naturally during the restart period.
+     *
+     * @param is_firmware true for FIRMWARE_RESTART (3s), false for RESTART (2s)
+     */
+    void trigger_restart(bool is_firmware);
+
+    /**
+     * @brief Set fan speed internally and dispatch status update
+     * @param fan_name Full fan name (e.g., "fan", "fan_generic nevermore")
+     * @param speed Normalized speed 0.0-1.0
+     */
+    void set_fan_speed_internal(const std::string& fan_name, double speed);
+
+    /**
+     * @brief Find fan by suffix match in discovered fans
+     * @param suffix Fan name suffix (e.g., "nevermore" matches "fan_generic nevermore")
+     * @return Full fan name, or empty string if not found
+     */
+    std::string find_fan_by_suffix(const std::string& suffix) const;
+
+    /**
+     * @brief Dispatch gcode_move status update (for Z offset changes)
+     */
+    void dispatch_gcode_move_update();
+
+    /**
      * @brief Generate next mock request ID
      * @return Valid request ID (always > 0)
      */
@@ -470,6 +521,16 @@ class MoonrakerClientMock : public MoonrakerClient {
     };
     std::map<std::string, LedColor> led_states_; // LED name -> color
     mutable std::mutex led_mutex_;               // Protects led_states_
+
+    // Klippy service state (for RESTART/FIRMWARE_RESTART simulation)
+    std::atomic<KlippyState> klippy_state_{KlippyState::READY};
+
+    // Fan speed tracking (multiple fans by name)
+    std::map<std::string, double> fan_speeds_; // Fan name -> speed (0.0-1.0)
+    mutable std::mutex fan_mutex_;             // Protects fan_speeds_
+
+    // G-code offset tracking
+    std::atomic<double> gcode_offset_z_{0.0}; // Z offset from SET_GCODE_OFFSET
 
     // Simulation tick counter
     std::atomic<uint32_t> tick_count_{0};
