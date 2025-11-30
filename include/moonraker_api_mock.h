@@ -1,4 +1,4 @@
-// Copyright 2025 HelixScreen
+// Copyright 2025 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef MOONRAKER_API_MOCK_H
@@ -7,12 +7,18 @@
 #include "moonraker_api.h"
 
 #include <string>
+#include <vector>
 
 /**
  * @brief Mock MoonrakerAPI for testing without real printer connection
  *
  * Overrides HTTP file transfer methods to use local test files instead
  * of making actual HTTP requests to a Moonraker server.
+ *
+ * Path Resolution:
+ * The mock tries multiple paths to find test files, supporting both:
+ * - Running from project root: assets/test_gcodes/
+ * - Running from build/bin/: ../../assets/test_gcodes/
  *
  * Usage:
  *   MoonrakerClientMock mock_client;
@@ -39,13 +45,13 @@ class MoonrakerAPIMock : public MoonrakerAPI {
     /**
      * @brief Download file from local test directory
      *
-     * Instead of making HTTP request, reads from assets/test_gcodes/{path}.
-     * For files not in test directory, returns mock content.
+     * Instead of making HTTP request, reads from assets/test_gcodes/{filename}.
+     * Uses fallback path search to work regardless of current working directory.
      *
      * @param root Root directory (ignored in mock - always uses test_gcodes)
-     * @param path File path
+     * @param path File path (directory components stripped, only filename used)
      * @param on_success Callback with file content
-     * @param on_error Error callback
+     * @param on_error Error callback (FILE_NOT_FOUND if file doesn't exist)
      */
     void download_file(const std::string& root, const std::string& path,
                        StringCallback on_success, ErrorCallback on_error) override;
@@ -60,7 +66,7 @@ class MoonrakerAPIMock : public MoonrakerAPI {
      * @param path Destination path
      * @param content File content
      * @param on_success Success callback
-     * @param on_error Error callback
+     * @param on_error Error callback (never called - mock always succeeds)
      */
     void upload_file(const std::string& root, const std::string& path,
                      const std::string& content, SuccessCallback on_success,
@@ -77,7 +83,24 @@ class MoonrakerAPIMock : public MoonrakerAPI {
                                SuccessCallback on_success, ErrorCallback on_error) override;
 
   private:
+    /**
+     * @brief Find test file using fallback path search
+     *
+     * Tries multiple paths to locate test files:
+     * - assets/test_gcodes/ (from project root)
+     * - ../assets/test_gcodes/ (from build/)
+     * - ../../assets/test_gcodes/ (from build/bin/)
+     *
+     * @param filename Filename to find
+     * @return Full path to file if found, empty string otherwise
+     */
+    std::string find_test_file(const std::string& filename) const;
+
+    /// Base directory name for test G-code files
     static constexpr const char* TEST_GCODE_DIR = "assets/test_gcodes";
+
+    /// Fallback path prefixes to search (from various CWDs)
+    static const std::vector<std::string> PATH_PREFIXES;
 };
 
 #endif // MOONRAKER_API_MOCK_H

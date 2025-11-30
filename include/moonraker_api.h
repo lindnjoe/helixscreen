@@ -465,6 +465,8 @@ class MoonrakerAPI {
      * Uses GET request to /server/files/{root}/{path} endpoint.
      * The file content is returned as a string in the callback.
      *
+     * Virtual to allow mocking in tests (MoonrakerAPIMock reads local files).
+     *
      * @param root Root directory ("gcodes", "config", etc.)
      * @param path File path relative to root
      * @param on_success Callback with file content as string
@@ -478,6 +480,8 @@ class MoonrakerAPI {
      *
      * Uses POST request to /server/files/upload endpoint with multipart form data.
      * Suitable for G-code files, config files, and macro files.
+     *
+     * Virtual to allow mocking in tests (MoonrakerAPIMock logs but doesn't write).
      *
      * @param root Root directory ("gcodes", "config", etc.)
      * @param path Destination path relative to root
@@ -494,6 +498,8 @@ class MoonrakerAPI {
      *
      * Like upload_file() but allows specifying a different filename for the
      * multipart form than the path. Useful when uploading to a subdirectory.
+     *
+     * Virtual to allow mocking in tests (MoonrakerAPIMock logs but doesn't write).
      *
      * @param root Root directory ("gcodes", "config", etc.)
      * @param path Destination path relative to root (e.g., ".helix_temp/foo.gcode")
