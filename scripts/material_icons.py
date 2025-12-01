@@ -97,7 +97,7 @@ def check_dependencies() -> bool:
         import lz4.block
     except ImportError as e:
         log_error(f"Missing Python dependency: {e}")
-        log_error("Install with: pip3 install pypng lz4")
+        log_error("Run `make venv-setup` to install dependencies.")
         return False
 
     return True

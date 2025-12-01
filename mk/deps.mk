@@ -232,6 +232,18 @@ check-deps:
 		echo "         $(YELLOW)sudo apt install libfmt-dev$(RESET) (Debian/Ubuntu)"; \
 		echo "         $(YELLOW)sudo dnf install fmt-devel$(RESET) (Fedora/RHEL)"; \
 	fi; \
+	if [ "$(UNAME_S)" != "Darwin" ]; then \
+		if pkg-config --exists openssl 2>/dev/null || pkg-config --exists libssl 2>/dev/null; then \
+			echo "$(GREEN)✓ OpenSSL:$(RESET) Using system version $$(pkg-config --modversion openssl 2>/dev/null || pkg-config --modversion libssl 2>/dev/null || echo 'unknown')"; \
+		elif [ -f "/usr/include/openssl/ssl.h" ] || [ -f "/usr/local/include/openssl/ssl.h" ]; then \
+			echo "$(GREEN)✓ OpenSSL:$(RESET) Found system headers"; \
+		else \
+			echo "$(RED)✗ OpenSSL development libraries not found$(RESET)"; ERROR=1; \
+			MISSING_DEPS="$$MISSING_DEPS openssl"; \
+			echo "  Install: $(YELLOW)sudo apt install libssl-dev$(RESET) (Debian/Ubuntu)"; \
+			echo "         $(YELLOW)sudo dnf install openssl-devel$(RESET) (Fedora/RHEL)"; \
+		fi; \
+	fi; \
 	if [ ! -d "$(LVGL_DIR)/src" ]; then \
 		echo "$(RED)✗ LVGL not found$(RESET) (submodule)"; ERROR=1; \
 		echo "  Run: $(YELLOW)git submodule update --init --recursive$(RESET)"; \
@@ -332,6 +344,9 @@ install-deps:
 			librsvg:brew) echo "librsvg";; \
 			librsvg:apt) echo "librsvg2-dev";; \
 			librsvg:dnf) echo "librsvg2-devel";; \
+			openssl:brew) echo "openssl";; \
+			openssl:apt) echo "libssl-dev";; \
+			openssl:dnf) echo "openssl-devel";; \
 			*) echo "$$1";; \
 		esac; \
 	}; \
@@ -376,6 +391,13 @@ install-deps:
 		fi; \
 		if ! pkg-config --exists librsvg-2.0 2>/dev/null; then \
 			INSTALL_NEEDED=1; TO_INSTALL="$$TO_INSTALL $$(add_pkg librsvg)"; \
+		fi; \
+		if [ "$(UNAME_S)" != "Darwin" ]; then \
+			if ! pkg-config --exists openssl 2>/dev/null && ! pkg-config --exists libssl 2>/dev/null; then \
+				if [ ! -f "/usr/include/openssl/ssl.h" ] && [ ! -f "/usr/local/include/openssl/ssl.h" ]; then \
+					INSTALL_NEEDED=1; TO_INSTALL="$$TO_INSTALL $$(add_pkg openssl)"; \
+				fi; \
+			fi; \
 		fi; \
 	fi; \
 	if [ $$INSTALL_NEEDED -eq 0 ]; then \

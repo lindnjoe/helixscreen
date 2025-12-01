@@ -15,12 +15,12 @@ from pathlib import Path
 try:
     import png
 except ImportError:
-    raise ImportError("Need pypng package, do `pip3 install pypng`")
+    raise ImportError("Need pypng package. Run `make venv-setup` to install dependencies.")
 
 try:
     import lz4.block
 except ImportError:
-    raise ImportError("Need lz4 package, do `pip3 install lz4`")
+    raise ImportError("Need lz4 package. Run `make venv-setup` to install dependencies.")
 
 
 def uint8_t(val) -> bytes:

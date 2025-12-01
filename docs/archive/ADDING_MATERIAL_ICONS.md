@@ -11,15 +11,14 @@ This guide documents the complete process for adding new Material Design icons t
 
 ### First-Time Setup
 
-Create a Python virtual environment and install required packages:
+The build system manages Python dependencies in a virtual environment:
 
 ```bash
 # From project root directory
-python3 -m venv .venv
-.venv/bin/pip install pypng lz4
+make venv-setup
 ```
 
-**Note:** The LVGLImage.py script requires both `pypng` and `lz4` packages. The venv only needs to be created once.
+**Note:** The LVGLImage.py script requires both `pypng` and `lz4` packages. Run `make venv-setup` to install them.
 
 ## Step-by-Step Process
 
