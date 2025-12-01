@@ -49,8 +49,8 @@ typedef struct {
     lv_point_t last_drag_pos; // Last touch position for delta calculation
 
     // Deferred redraw state (for panels created while hidden)
-    bool had_valid_size;      // Has widget ever had non-zero dimensions
-    bool mesh_data_pending;   // Mesh data was set before widget had valid size
+    bool had_valid_size;    // Has widget ever had non-zero dimensions
+    bool mesh_data_pending; // Mesh data was set before widget had valid size
 } bed_mesh_widget_data_t;
 
 /**

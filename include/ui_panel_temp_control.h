@@ -37,13 +37,23 @@ class TempControlPanel {
 
     void set_nozzle(int current, int target);
     void set_bed(int current, int target);
-    int get_nozzle_target() const { return nozzle_target_; }
-    int get_bed_target() const { return bed_target_; }
-    int get_nozzle_current() const { return nozzle_current_; }
-    int get_bed_current() const { return bed_current_; }
+    int get_nozzle_target() const {
+        return nozzle_target_;
+    }
+    int get_bed_target() const {
+        return bed_target_;
+    }
+    int get_nozzle_current() const {
+        return nozzle_current_;
+    }
+    int get_bed_current() const {
+        return bed_current_;
+    }
     void set_nozzle_limits(int min_temp, int max_temp);
     void set_bed_limits(int min_temp, int max_temp);
-    void set_api(MoonrakerAPI* api) { api_ = api; }
+    void set_api(MoonrakerAPI* api) {
+        api_ = api;
+    }
 
   private:
     //

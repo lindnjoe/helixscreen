@@ -631,7 +631,7 @@ int MoonrakerClientMock::send_jsonrpc(const std::string& method,
 }
 
 RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params,
-                                      std::function<void(json)> cb) {
+                                            std::function<void(json)> cb) {
     spdlog::debug("[MoonrakerClientMock] Mock send_jsonrpc: {} (with callback)", method);
 
     // Handle file listing API
@@ -668,9 +668,9 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
 }
 
 RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params,
-                                      std::function<void(json)> success_cb,
-                                      std::function<void(const MoonrakerError&)> error_cb,
-                                      [[maybe_unused]] uint32_t timeout_ms) {
+                                            std::function<void(json)> success_cb,
+                                            std::function<void(const MoonrakerError&)> error_cb,
+                                            [[maybe_unused]] uint32_t timeout_ms) {
     spdlog::debug("[MoonrakerClientMock] Mock send_jsonrpc: {} (with success/error callbacks)",
                   method);
 
@@ -1498,7 +1498,7 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
                 // Unquoted name (ends at space or end of string)
                 size_t end = gcode.find_first_of(" \t\n", start);
                 object_name = (end != std::string::npos) ? gcode.substr(start, end - start)
-                                                          : gcode.substr(start);
+                                                         : gcode.substr(start);
             }
 
             if (!object_name.empty()) {

@@ -153,8 +153,8 @@ void GCodeTinyGLRenderer::init_tinygl() {
 
     // Use the ACTUAL ZBuffer dimensions (TinyGL may round for alignment)
     // This is CRITICAL - using wrong dimensions causes massive rendering distortion!
-    spdlog::info("TinyGL ZBuffer created: requested={}x{}, actual={}x{}",
-                 viewport_width_, viewport_height_, zb->xsize, zb->ysize);
+    spdlog::info("TinyGL ZBuffer created: requested={}x{}, actual={}x{}", viewport_width_,
+                 viewport_height_, zb->xsize, zb->ysize);
     viewport_width_ = zb->xsize;
     viewport_height_ = zb->ysize;
 
@@ -519,7 +519,8 @@ void GCodeTinyGLRenderer::render_geometry(const GCodeCamera& camera) {
         // Pass 1: Render solid layers (0 to current_progress_layer_)
         render_layer_range(0, current_progress_layer_, 1.0f);
 
-        // Pass 2: Render ghost layers (current_progress_layer_+1 to max) with mode-specific rendering
+        // Pass 2: Render ghost layers (current_progress_layer_+1 to max) with mode-specific
+        // rendering
         if (current_progress_layer_ < max_layer) {
             float dim_factor = ghost_opacity_ / 255.0f;
 
@@ -567,8 +568,7 @@ void GCodeTinyGLRenderer::render_layer_range(int start_layer, int end_layer, flo
                 uint8_t g = (color_rgb >> 8) & 0xFF;
                 uint8_t b = color_rgb & 0xFF;
 
-                glColor3f((r / 255.0f) * dim_factor,
-                          (g / 255.0f) * dim_factor,
+                glColor3f((r / 255.0f) * dim_factor, (g / 255.0f) * dim_factor,
                           (b / 255.0f) * dim_factor);
 
                 // Dequantize position
@@ -605,8 +605,7 @@ void GCodeTinyGLRenderer::render_layer_range(int start_layer, int end_layer, flo
             uint8_t g = (color_rgb >> 8) & 0xFF;
             uint8_t b = color_rgb & 0xFF;
 
-            glColor3f((r / 255.0f) * dim_factor,
-                      (g / 255.0f) * dim_factor,
+            glColor3f((r / 255.0f) * dim_factor, (g / 255.0f) * dim_factor,
                       (b / 255.0f) * dim_factor);
 
             // Dequantize position
@@ -660,8 +659,8 @@ void GCodeTinyGLRenderer::draw_to_lvgl(lv_layer_t* layer, const lv_area_t* widge
     lv_area_t area = *widget_coords;
 
     spdlog::debug("TinyGL draw_to_lvgl: draw_buf={}x{}, widget_coords=({},{}) to ({},{})",
-                  (int)draw_buf_->header.w, (int)draw_buf_->header.h,
-                  area.x1, area.y1, area.x2, area.y2);
+                  (int)draw_buf_->header.w, (int)draw_buf_->header.h, area.x1, area.y1, area.x2,
+                  area.y2);
 
     lv_draw_image(layer, &img_dsc, &area);
 }
@@ -800,8 +799,8 @@ void GCodeTinyGLRenderer::set_print_progress_layer(int current_layer) {
 
 void GCodeTinyGLRenderer::set_ghost_opacity(lv_opa_t opacity) {
     ghost_opacity_ = opacity;
-    spdlog::debug("[GCode::Renderer] Ghost opacity set to {} ({:.0f}%)",
-                  opacity, (opacity / 255.0f) * 100.0f);
+    spdlog::debug("[GCode::Renderer] Ghost opacity set to {} ({:.0f}%)", opacity,
+                  (opacity / 255.0f) * 100.0f);
 }
 
 void GCodeTinyGLRenderer::set_ghost_render_mode(GhostRenderMode mode) {

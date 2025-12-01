@@ -253,11 +253,8 @@ void MacroManager::update(SuccessCallback on_success, ErrorCallback on_error) {
     spdlog::info("[HelixMacroManager] Starting macro update...");
 
     // Just upload the new file and restart
-    upload_macro_file(
-        [this, on_success, on_error]() {
-            restart_klipper(on_success, on_error);
-        },
-        on_error);
+    upload_macro_file([this, on_success, on_error]() { restart_klipper(on_success, on_error); },
+                      on_error);
 }
 
 void MacroManager::uninstall(SuccessCallback on_success, ErrorCallback on_error) {
@@ -348,7 +345,7 @@ void MacroManager::add_include_to_config(SuccessCallback on_success, ErrorCallba
 
             // First pass: find the position after the last [include] line
             while (std::getline(input, line)) {
-                current_pos += line.length() + 1;  // +1 for newline
+                current_pos += line.length() + 1; // +1 for newline
                 // Check for [include ...] pattern (case-insensitive for robustness)
                 std::string lower_line = line;
                 std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(),
@@ -361,9 +358,8 @@ void MacroManager::add_include_to_config(SuccessCallback on_success, ErrorCallba
             // Second pass: insert at the right position
             if (last_include_end > 0) {
                 // Insert after last include line
-                modified_content =
-                    content.substr(0, last_include_end) + include_line + "\n" +
-                    content.substr(last_include_end);
+                modified_content = content.substr(0, last_include_end) + include_line + "\n" +
+                                   content.substr(last_include_end);
                 spdlog::debug("[HelixMacroManager] Inserted after existing includes at pos {}",
                               last_include_end);
             } else {
@@ -426,12 +422,11 @@ void MacroManager::remove_include_from_config(SuccessCallback on_success, ErrorC
             if (line_end == std::string::npos) {
                 line_end = content.length();
             } else {
-                line_end++;  // Include the newline
+                line_end++; // Include the newline
             }
 
             // Build modified content without the include line
-            std::string modified_content =
-                content.substr(0, line_start) + content.substr(line_end);
+            std::string modified_content = content.substr(0, line_start) + content.substr(line_end);
 
             spdlog::debug("[HelixMacroManager] Removed include line at pos {}-{}", line_start,
                           line_end);
@@ -472,7 +467,7 @@ void MacroManager::delete_macro_file(SuccessCallback on_success, ErrorCallback o
                          // File might not exist - that's OK for uninstall
                          if (err.type == MoonrakerErrorType::FILE_NOT_FOUND) {
                              spdlog::debug("[HelixMacroManager] Macro file already deleted");
-                             on_success();  // Continue with success path
+                             on_success(); // Continue with success path
                          } else {
                              on_error(err);
                          }

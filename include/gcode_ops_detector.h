@@ -16,24 +16,24 @@ namespace gcode {
  * @brief Type of pre-print operation detected in G-code
  */
 enum class OperationType {
-    BED_LEVELING,   ///< BED_MESH_CALIBRATE, G29, etc.
-    QGL,            ///< QUAD_GANTRY_LEVEL
-    Z_TILT,         ///< Z_TILT_ADJUST
-    NOZZLE_CLEAN,   ///< CLEAN_NOZZLE, NOZZLE_WIPE, etc.
-    HOMING,         ///< G28
-    CHAMBER_SOAK,   ///< HEAT_SOAK, chamber heating commands
-    PURGE_LINE,     ///< Priming/purge line sequences
-    START_PRINT,    ///< SDCARD_PRINT_FILE or api call to start print
+    BED_LEVELING, ///< BED_MESH_CALIBRATE, G29, etc.
+    QGL,          ///< QUAD_GANTRY_LEVEL
+    Z_TILT,       ///< Z_TILT_ADJUST
+    NOZZLE_CLEAN, ///< CLEAN_NOZZLE, NOZZLE_WIPE, etc.
+    HOMING,       ///< G28
+    CHAMBER_SOAK, ///< HEAT_SOAK, chamber heating commands
+    PURGE_LINE,   ///< Priming/purge line sequences
+    START_PRINT,  ///< SDCARD_PRINT_FILE or api call to start print
 };
 
 /**
  * @brief How the operation is embedded in the G-code file
  */
 enum class OperationEmbedding {
-    DIRECT_COMMAND,   ///< Raw command inline (e.g., BED_MESH_CALIBRATE, G29)
-    MACRO_CALL,       ///< Calls a user macro (e.g., CLEAN_NOZZLE)
-    MACRO_PARAMETER,  ///< Parameter to START_PRINT (e.g., FORCE_LEVELING=true)
-    NOT_FOUND,        ///< Operation not detected in file
+    DIRECT_COMMAND,  ///< Raw command inline (e.g., BED_MESH_CALIBRATE, G29)
+    MACRO_CALL,      ///< Calls a user macro (e.g., CLEAN_NOZZLE)
+    MACRO_PARAMETER, ///< Parameter to START_PRINT (e.g., FORCE_LEVELING=true)
+    NOT_FOUND,       ///< Operation not detected in file
 };
 
 /**
@@ -42,12 +42,12 @@ enum class OperationEmbedding {
 struct DetectedOperation {
     OperationType type;
     OperationEmbedding embedding;
-    std::string raw_line;       ///< Full line text from file
-    std::string macro_name;     ///< "BED_MESH_CALIBRATE" or "START_PRINT"
-    std::string param_name;     ///< "FORCE_LEVELING" if macro parameter
-    std::string param_value;    ///< "true" if macro parameter
-    size_t line_number = 0;     ///< 1-indexed line number
-    size_t byte_offset = 0;     ///< Byte offset in file (for efficient modification)
+    std::string raw_line;    ///< Full line text from file
+    std::string macro_name;  ///< "BED_MESH_CALIBRATE" or "START_PRINT"
+    std::string param_name;  ///< "FORCE_LEVELING" if macro parameter
+    std::string param_value; ///< "true" if macro parameter
+    size_t line_number = 0;  ///< 1-indexed line number
+    size_t byte_offset = 0;  ///< Byte offset in file (for efficient modification)
 
     /**
      * @brief Get human-readable display name for this operation
@@ -59,8 +59,8 @@ struct DetectedOperation {
  * @brief Configuration for the G-code operation detector
  */
 struct DetectionConfig {
-    size_t max_scan_bytes = 50 * 1024;  ///< Stop scanning after this many bytes (50KB)
-    int max_scan_lines = 500;           ///< Stop scanning after this many lines
+    size_t max_scan_bytes = 50 * 1024;   ///< Stop scanning after this many bytes (50KB)
+    int max_scan_lines = 500;            ///< Stop scanning after this many lines
     bool stop_at_first_extrusion = true; ///< Stop when G1 with positive E detected
     bool stop_at_layer_marker = true;    ///< Stop when ;LAYER_CHANGE detected
 };
@@ -72,7 +72,7 @@ struct ScanResult {
     std::vector<DetectedOperation> operations;
     size_t lines_scanned = 0;
     size_t bytes_scanned = 0;
-    bool reached_limit = false;  ///< True if scan stopped due to limits
+    bool reached_limit = false; ///< True if scan stopped due to limits
 
     /**
      * @brief Check if a specific operation type was detected
@@ -95,8 +95,8 @@ struct ScanResult {
  */
 struct OperationPattern {
     OperationType type;
-    std::string pattern;           ///< Substring or regex to match
-    OperationEmbedding embedding;  ///< How this pattern indicates embedding
+    std::string pattern;          ///< Substring or regex to match
+    OperationEmbedding embedding; ///< How this pattern indicates embedding
     bool case_sensitive = false;
 };
 
@@ -119,7 +119,7 @@ struct OperationPattern {
  * @endcode
  */
 class GCodeOpsDetector {
-public:
+  public:
     /**
      * @brief Construct detector with optional configuration
      */
@@ -158,19 +158,23 @@ public:
     /**
      * @brief Get the current configuration
      */
-    [[nodiscard]] const DetectionConfig& config() const { return config_; }
+    [[nodiscard]] const DetectionConfig& config() const {
+        return config_;
+    }
 
     /**
      * @brief Get all registered patterns
      */
-    [[nodiscard]] const std::vector<OperationPattern>& patterns() const { return patterns_; }
+    [[nodiscard]] const std::vector<OperationPattern>& patterns() const {
+        return patterns_;
+    }
 
     /**
      * @brief Get human-readable name for an operation type
      */
     [[nodiscard]] static std::string operation_type_name(OperationType type);
 
-private:
+  private:
     /**
      * @brief Initialize default detection patterns
      */
@@ -184,8 +188,8 @@ private:
     /**
      * @brief Check a line against all patterns
      */
-    void check_line(const std::string& line, size_t line_number,
-                    size_t byte_offset, ScanResult& result) const;
+    void check_line(const std::string& line, size_t line_number, size_t byte_offset,
+                    ScanResult& result) const;
 
     /**
      * @brief Check if line indicates first extrusion
@@ -200,8 +204,8 @@ private:
     /**
      * @brief Parse START_PRINT parameters from a line
      */
-    void parse_start_print_params(const std::string& line, size_t line_number,
-                                   size_t byte_offset, ScanResult& result) const;
+    void parse_start_print_params(const std::string& line, size_t line_number, size_t byte_offset,
+                                  ScanResult& result) const;
 
     DetectionConfig config_;
     std::vector<OperationPattern> patterns_;

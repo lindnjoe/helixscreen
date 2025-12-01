@@ -50,7 +50,7 @@ void PrinterCapabilities::parse_objects(const json& objects) {
             has_led_ = true;
             spdlog::debug("[PrinterCapabilities] Detected LED: {}", name);
         } else if (name.rfind("output_pin ", 0) == 0) {
-            std::string pin_name = name.substr(11);  // Remove "output_pin " prefix
+            std::string pin_name = name.substr(11); // Remove "output_pin " prefix
             std::string upper_pin = to_upper(pin_name);
             if (upper_pin.find("LIGHT") != std::string::npos ||
                 upper_pin.find("LED") != std::string::npos ||
@@ -61,7 +61,7 @@ void PrinterCapabilities::parse_objects(const json& objects) {
         }
         // Chamber heater detection (heater_generic with "chamber" in name)
         else if (name.rfind("heater_generic ", 0) == 0) {
-            std::string heater_name = name.substr(15);  // Remove "heater_generic " prefix
+            std::string heater_name = name.substr(15); // Remove "heater_generic " prefix
             if (to_upper(heater_name).find("CHAMBER") != std::string::npos) {
                 has_chamber_heater_ = true;
                 spdlog::debug("[PrinterCapabilities] Detected chamber heater: {}", name);
@@ -69,7 +69,7 @@ void PrinterCapabilities::parse_objects(const json& objects) {
         }
         // Chamber sensor detection
         else if (name.rfind("temperature_sensor ", 0) == 0) {
-            std::string sensor_name = name.substr(19);  // Remove "temperature_sensor " prefix
+            std::string sensor_name = name.substr(19); // Remove "temperature_sensor " prefix
             if (to_upper(sensor_name).find("CHAMBER") != std::string::npos) {
                 has_chamber_sensor_ = true;
                 spdlog::debug("[PrinterCapabilities] Detected chamber sensor: {}", name);
@@ -77,7 +77,7 @@ void PrinterCapabilities::parse_objects(const json& objects) {
         }
         // Macro detection
         else if (name.rfind("gcode_macro ", 0) == 0) {
-            std::string macro_name = name.substr(12);  // Remove "gcode_macro " prefix
+            std::string macro_name = name.substr(12); // Remove "gcode_macro " prefix
             std::string upper_macro = to_upper(macro_name);
 
             macros_.insert(upper_macro);
@@ -100,8 +100,8 @@ void PrinterCapabilities::parse_objects(const json& objects) {
             }
 
             if (purge_line_macro_.empty()) {
-                static const std::vector<std::string> purge_patterns = {
-                    "PURGE_LINE", "PRIME_LINE", "INTRO_LINE", "LINE_PURGE"};
+                static const std::vector<std::string> purge_patterns = {"PURGE_LINE", "PRIME_LINE",
+                                                                        "INTRO_LINE", "LINE_PURGE"};
                 if (matches_any(upper_macro, purge_patterns)) {
                     purge_line_macro_ = macro_name;
                     spdlog::debug("[PrinterCapabilities] Detected purge line macro: {}",
@@ -111,7 +111,7 @@ void PrinterCapabilities::parse_objects(const json& objects) {
 
             if (heat_soak_macro_.empty()) {
                 static const std::vector<std::string> soak_patterns = {"HEAT_SOAK", "CHAMBER_SOAK",
-                                                                        "SOAK", "BED_SOAK"};
+                                                                       "SOAK", "BED_SOAK"};
                 if (matches_any(upper_macro, soak_patterns)) {
                     heat_soak_macro_ = macro_name;
                     spdlog::debug("[PrinterCapabilities] Detected heat soak macro: {}", macro_name);
@@ -235,7 +235,7 @@ std::string PrinterCapabilities::to_upper(const std::string& str) {
 }
 
 bool PrinterCapabilities::matches_any(const std::string& name,
-                                       const std::vector<std::string>& patterns) {
+                                      const std::vector<std::string>& patterns) {
     for (const auto& pattern : patterns) {
         if (name == pattern) {
             return true;

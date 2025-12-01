@@ -327,8 +327,8 @@ lv_draw_line_dsc_t GCodeRenderer::get_line_style(const ToolpathSegment& segment,
     // Determine line width and base opacity
     bool is_highlighted =
         !options_.highlighted_object.empty() && segment.object_name == options_.highlighted_object;
-    bool is_excluded = !segment.object_name.empty() &&
-                       options_.excluded_objects.count(segment.object_name) > 0;
+    bool is_excluded =
+        !segment.object_name.empty() && options_.excluded_objects.count(segment.object_name) > 0;
 
     lv_opa_t base_opa;
     int line_width;
@@ -393,7 +393,7 @@ lv_draw_line_dsc_t GCodeRenderer::get_line_style(const ToolpathSegment& segment,
 
     // Use gradient color (excluded/highlighted objects override with their special color)
     if (is_excluded) {
-        dsc.color = color_excluded_;  // Red/orange strikethrough color
+        dsc.color = color_excluded_; // Red/orange strikethrough color
     } else if (is_highlighted) {
         dsc.color = color_highlighted_;
     } else {

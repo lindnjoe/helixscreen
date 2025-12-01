@@ -74,7 +74,7 @@ constexpr const char* CHAMBER = "chamber";
  * @see PrinterCapabilities for auto-detection logic
  */
 class CapabilityOverrides {
-public:
+  public:
     CapabilityOverrides() = default;
 
     // Copyable and movable
@@ -138,12 +138,16 @@ public:
     /**
      * @brief Check QGL availability (with overrides)
      */
-    [[nodiscard]] bool has_qgl() const { return is_available(capability::QGL); }
+    [[nodiscard]] bool has_qgl() const {
+        return is_available(capability::QGL);
+    }
 
     /**
      * @brief Check Z-tilt availability (with overrides)
      */
-    [[nodiscard]] bool has_z_tilt() const { return is_available(capability::Z_TILT); }
+    [[nodiscard]] bool has_z_tilt() const {
+        return is_available(capability::Z_TILT);
+    }
 
     /**
      * @brief Check nozzle clean availability (with overrides)
@@ -162,7 +166,9 @@ public:
     /**
      * @brief Check chamber availability (with overrides)
      */
-    [[nodiscard]] bool has_chamber() const { return is_available(capability::CHAMBER); }
+    [[nodiscard]] bool has_chamber() const {
+        return is_available(capability::CHAMBER);
+    }
 
     /**
      * @brief Save current overrides to helixconfig.json
@@ -191,7 +197,7 @@ public:
      */
     static std::string state_to_string(OverrideState state);
 
-private:
+  private:
     /**
      * @brief Get auto-detected capability value
      */

@@ -958,8 +958,9 @@ static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, i
  * @param[out] out_offset_y Vertical centering offset
  */
 static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
-                                     int /*layer_offset_x*/, int /*layer_offset_y*/, int canvas_width,
-                                     int canvas_height, int* out_offset_x, int* out_offset_y) {
+                                     int /*layer_offset_x*/, int /*layer_offset_y*/,
+                                     int canvas_width, int canvas_height, int* out_offset_x,
+                                     int* out_offset_y) {
     // Calculate centers in CANVAS space (not screen space)
     // The mesh bounds are relative to canvas origin, so we center within the canvas
     // Layer offset is handled separately in projection to support animations
@@ -1352,8 +1353,8 @@ static void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* rend
     // DEBUG: Log grid line bounds summary
     if (grid_lines_drawn > 0) {
         spdlog::trace("[GRID_LINES] Total bounds: x=[{},{}] y=[{},{}] lines_drawn={} canvas={}x{}",
-                      grid_min_x, grid_max_x, grid_min_y, grid_max_y, grid_lines_drawn, canvas_width,
-                      canvas_height);
+                      grid_min_x, grid_max_x, grid_min_y, grid_max_y, grid_lines_drawn,
+                      canvas_width, canvas_height);
     }
 }
 

@@ -522,12 +522,16 @@ class MoonrakerAPI {
      *
      * @param base_url HTTP base URL (e.g., "http://192.168.1.100:7125")
      */
-    void set_http_base_url(const std::string& base_url) { http_base_url_ = base_url; }
+    void set_http_base_url(const std::string& base_url) {
+        http_base_url_ = base_url;
+    }
 
     /**
      * @brief Get the current HTTP base URL
      */
-    const std::string& get_http_base_url() const { return http_base_url_; }
+    const std::string& get_http_base_url() const {
+        return http_base_url_;
+    }
 
     // ========================================================================
     // Domain Service Operations (Hardware Discovery, Bed Mesh, Object Exclusion)
@@ -656,10 +660,12 @@ class MoonrakerAPI {
      *
      * @return Reference to MoonrakerClient
      */
-    MoonrakerClient& get_client() { return client_; }
+    MoonrakerClient& get_client() {
+        return client_;
+    }
 
   private:
-    std::string http_base_url_;  ///< HTTP base URL for file transfers
+    std::string http_base_url_; ///< HTTP base URL for file transfers
     MoonrakerClient& client_;
 
     SafetyLimits safety_limits_;

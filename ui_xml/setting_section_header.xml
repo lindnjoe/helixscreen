@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-
 <!-- Reusable Settings Section Header Component -->
 <!-- Creates a section divider with optional icon and title for settings panel groups -->
 <!-- Usage: <setting_section_header title="APPEARANCE" icon="mat_light_img"/> -->

@@ -45,8 +45,9 @@ void ExtrusionPanel::init_subjects() {
                                         "extrusion_temp_status");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(warning_temps_subject_, warning_temps_buf_,
                                         warning_temps_buf_, "extrusion_warning_temps");
-    UI_SUBJECT_INIT_AND_REGISTER_INT(safety_warning_visible_subject_, 1,
-                                     "extrusion_safety_warning_visible"); // 1=visible (cold at start)
+    UI_SUBJECT_INIT_AND_REGISTER_INT(
+        safety_warning_visible_subject_, 1,
+        "extrusion_safety_warning_visible"); // 1=visible (cold at start)
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: temp_status, warning_temps, safety_warning_visible",
@@ -243,10 +244,7 @@ void ExtrusionPanel::handle_extrude() {
         // M83 = relative extrusion mode, G1 E{amount} F300 = extrude at 300mm/min
         std::string gcode = fmt::format("M83\nG1 E{} F300", selected_amount_);
         api_->execute_gcode(
-            gcode,
-            [amount = selected_amount_]() {
-                NOTIFY_SUCCESS("Extruded {}mm", amount);
-            },
+            gcode, [amount = selected_amount_]() { NOTIFY_SUCCESS("Extruded {}mm", amount); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Extrusion failed: {}", error.user_message());
             });
@@ -268,10 +266,7 @@ void ExtrusionPanel::handle_retract() {
         // M83 = relative extrusion mode, G1 E-{amount} F300 = retract at 300mm/min
         std::string gcode = fmt::format("M83\nG1 E-{} F300", selected_amount_);
         api_->execute_gcode(
-            gcode,
-            [amount = selected_amount_]() {
-                NOTIFY_SUCCESS("Retracted {}mm", amount);
-            },
+            gcode, [amount = selected_amount_]() { NOTIFY_SUCCESS("Retracted {}mm", amount); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Retraction failed: {}", error.user_message());
             });

@@ -33,8 +33,12 @@ class BedMeshPanel : public PanelBase {
 
     void init_subjects() override;
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-    const char* get_name() const override { return "Bed Mesh Panel"; }
-    const char* get_xml_component_name() const override { return "bed_mesh_panel"; }
+    const char* get_name() const override {
+        return "Bed Mesh Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "bed_mesh_panel";
+    }
 
     /**
      * @brief Load mesh data and render

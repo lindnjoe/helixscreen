@@ -55,13 +55,13 @@ enum class LODLevel {
  * @brief Rendering options and filters
  */
 struct RenderOptions {
-    bool show_extrusions{true};     ///< Render extrusion moves
-    bool show_travels{false};       ///< Render travel moves (hidden by default)
-    bool show_object_bounds{false}; ///< Render object boundary polygons
-    std::string highlighted_object; ///< Object to highlight (empty = none)
-    LODLevel lod{LODLevel::FULL};   ///< Level of detail
-    int layer_start{0};             ///< First layer to render (inclusive)
-    int layer_end{-1};              ///< Last layer to render (-1 = all)
+    bool show_extrusions{true};                       ///< Render extrusion moves
+    bool show_travels{false};                         ///< Render travel moves (hidden by default)
+    bool show_object_bounds{false};                   ///< Render object boundary polygons
+    std::string highlighted_object;                   ///< Object to highlight (empty = none)
+    LODLevel lod{LODLevel::FULL};                     ///< Level of detail
+    int layer_start{0};                               ///< First layer to render (inclusive)
+    int layer_end{-1};                                ///< Last layer to render (-1 = all)
     std::unordered_set<std::string> excluded_objects; ///< Objects excluded from print
 };
 
@@ -338,7 +338,7 @@ class GCodeRenderer {
     lv_color_t color_travel_;
     lv_color_t color_object_boundary_;
     lv_color_t color_highlighted_;
-    lv_color_t color_excluded_;  ///< Red/orange for excluded objects
+    lv_color_t color_excluded_; ///< Red/orange for excluded objects
 
     // Theme default colors (for reset)
     lv_color_t theme_color_extrusion_;

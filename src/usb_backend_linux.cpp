@@ -25,13 +25,14 @@
 
 #include "usb_backend_linux.h"
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
 #include <fstream>
 #include <poll.h>
-#include <spdlog/spdlog.h>
 #include <sstream>
 #include <sys/inotify.h>
 #include <sys/stat.h>
@@ -57,7 +58,8 @@ UsbError UsbBackendLinux::start() {
     inotify_fd_ = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
     if (inotify_fd_ < 0) {
         spdlog::error("[UsbBackendLinux] Failed to init inotify: {}", strerror(errno));
-        return UsbError(UsbResult::BACKEND_ERROR, "inotify_init failed: " + std::string(strerror(errno)),
+        return UsbError(UsbResult::BACKEND_ERROR,
+                        "inotify_init failed: " + std::string(strerror(errno)),
                         "Failed to initialize USB monitoring");
     }
 
@@ -193,8 +195,8 @@ std::vector<UsbDrive> UsbBackendLinux::parse_mounts() {
             drive.label = get_volume_label(device, mount_point);
             get_capacity(mount_point, drive.total_bytes, drive.available_bytes);
 
-            spdlog::debug("[UsbBackendLinux] Found USB drive: {} at {} ({})",
-                          drive.label, drive.mount_path, drive.device);
+            spdlog::debug("[UsbBackendLinux] Found USB drive: {} at {} ({})", drive.label,
+                          drive.mount_path, drive.device);
             drives.push_back(drive);
         }
     }
@@ -217,9 +219,9 @@ bool UsbBackendLinux::is_usb_mount(const std::string& device, const std::string&
     }
 
     // Common USB filesystems
-    bool is_usb_fs = (fs_type == "vfat" || fs_type == "exfat" || fs_type == "ntfs" ||
-                      fs_type == "ntfs3" || fs_type == "ext4" || fs_type == "ext3" ||
-                      fs_type == "fuseblk");
+    bool is_usb_fs =
+        (fs_type == "vfat" || fs_type == "exfat" || fs_type == "ntfs" || fs_type == "ntfs3" ||
+         fs_type == "ext4" || fs_type == "ext3" || fs_type == "fuseblk");
     if (!is_usb_fs) {
         return false;
     }

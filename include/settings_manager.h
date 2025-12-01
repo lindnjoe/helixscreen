@@ -5,6 +5,7 @@
 #define __HELIX_SETTINGS_MANAGER_H__
 
 #include "lvgl/lvgl.h"
+
 #include <functional>
 #include <string>
 
@@ -178,22 +179,34 @@ class SettingsManager {
     // =========================================================================
 
     /** @brief Dark mode subject (integer: 0=light, 1=dark) */
-    lv_subject_t* subject_dark_mode() { return &dark_mode_subject_; }
+    lv_subject_t* subject_dark_mode() {
+        return &dark_mode_subject_;
+    }
 
     /** @brief Display sleep subject (integer: seconds, 0=disabled) */
-    lv_subject_t* subject_display_sleep() { return &display_sleep_subject_; }
+    lv_subject_t* subject_display_sleep() {
+        return &display_sleep_subject_;
+    }
 
     /** @brief Brightness subject (integer: 10-100 percent) */
-    lv_subject_t* subject_brightness() { return &brightness_subject_; }
+    lv_subject_t* subject_brightness() {
+        return &brightness_subject_;
+    }
 
     /** @brief LED enabled subject (integer: 0=off, 1=on) */
-    lv_subject_t* subject_led_enabled() { return &led_enabled_subject_; }
+    lv_subject_t* subject_led_enabled() {
+        return &led_enabled_subject_;
+    }
 
     /** @brief Sounds enabled subject (integer: 0=off, 1=on) */
-    lv_subject_t* subject_sounds_enabled() { return &sounds_enabled_subject_; }
+    lv_subject_t* subject_sounds_enabled() {
+        return &sounds_enabled_subject_;
+    }
 
     /** @brief Completion alert subject (integer: 0=off, 1=on) */
-    lv_subject_t* subject_completion_alert() { return &completion_alert_subject_; }
+    lv_subject_t* subject_completion_alert() {
+        return &completion_alert_subject_;
+    }
 
     // =========================================================================
     // DISPLAY SLEEP OPTIONS (for dropdown population)

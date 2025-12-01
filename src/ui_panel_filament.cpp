@@ -243,9 +243,7 @@ void FilamentPanel::handle_preset_button(int material_id) {
     if (api_) {
         api_->set_temperature(
             "extruder", static_cast<double>(nozzle_target_),
-            [target = nozzle_target_]() {
-                NOTIFY_SUCCESS("Nozzle target set to {}°C", target);
-            },
+            [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Failed to set nozzle temp: {}", error.user_message());
             });
@@ -287,9 +285,7 @@ void FilamentPanel::handle_custom_temp_confirmed(float value) {
     if (api_) {
         api_->set_temperature(
             "extruder", static_cast<double>(nozzle_target_),
-            [target = nozzle_target_]() {
-                NOTIFY_SUCCESS("Nozzle target set to {}°C", target);
-            },
+            [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Failed to set nozzle temp: {}", error.user_message());
             });
@@ -309,8 +305,7 @@ void FilamentPanel::handle_load_button() {
 
     if (api_) {
         api_->execute_gcode(
-            "LOAD_FILAMENT",
-            []() { NOTIFY_SUCCESS("Filament load started"); },
+            "LOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament load started"); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Filament load failed: {}", error.user_message());
             });
@@ -330,8 +325,7 @@ void FilamentPanel::handle_unload_button() {
 
     if (api_) {
         api_->execute_gcode(
-            "UNLOAD_FILAMENT",
-            []() { NOTIFY_SUCCESS("Filament unload started"); },
+            "UNLOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament unload started"); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Filament unload failed: {}", error.user_message());
             });
@@ -352,8 +346,7 @@ void FilamentPanel::handle_purge_button() {
     if (api_) {
         // M83 = relative extrusion mode, G1 E10 F300 = extrude 10mm at 300mm/min
         api_->execute_gcode(
-            "M83\nG1 E10 F300",
-            []() { NOTIFY_SUCCESS("Purging 10mm"); },
+            "M83\nG1 E10 F300", []() { NOTIFY_SUCCESS("Purging 10mm"); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Purge failed: {}", error.user_message());
             });

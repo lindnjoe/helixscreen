@@ -542,7 +542,8 @@ typedef void (*gcode_viewer_object_tap_callback_t)(lv_obj_t* viewer, const char*
  * The callback is invoked when user taps on an object in the 3D view.
  * Use this to implement exclude object confirmation UI.
  */
-void ui_gcode_viewer_set_object_tap_callback(lv_obj_t* obj, gcode_viewer_object_tap_callback_t callback,
+void ui_gcode_viewer_set_object_tap_callback(lv_obj_t* obj,
+                                             gcode_viewer_object_tap_callback_t callback,
                                              void* user_data);
 
 /**
@@ -566,8 +567,7 @@ typedef void (*gcode_viewer_object_long_press_callback_t)(lv_obj_t* viewer, cons
  * Use this to implement the exclude object confirmation flow - long-press to exclude
  * is more intentional than tap, preventing accidental exclusions.
  */
-void ui_gcode_viewer_set_object_long_press_callback(lv_obj_t* obj,
-                                                     gcode_viewer_object_long_press_callback_t callback,
-                                                     void* user_data);
+void ui_gcode_viewer_set_object_long_press_callback(
+    lv_obj_t* obj, gcode_viewer_object_long_press_callback_t callback, void* user_data);
 
 #endif

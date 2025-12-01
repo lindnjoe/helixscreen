@@ -33,8 +33,12 @@ class HomePanel : public PanelBase {
 
     void init_subjects() override;
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-    const char* get_name() const override { return "Home Panel"; }
-    const char* get_xml_component_name() const override { return "home_panel"; }
+    const char* get_name() const override {
+        return "Home Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "home_panel";
+    }
 
     /**
      * @brief Update status text and temperature display
@@ -49,7 +53,9 @@ class HomePanel : public PanelBase {
     /** @brief Set light state (on=gold, off=grey) */
     void set_light(bool is_on);
 
-    bool get_light_state() const { return light_on_; }
+    bool get_light_state() const {
+        return light_on_;
+    }
 
   private:
     lv_subject_t status_subject_;

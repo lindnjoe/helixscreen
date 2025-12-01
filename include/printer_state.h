@@ -62,10 +62,10 @@ enum class PrinterStatus {
  * the printer cannot accept G-code commands even if Moonraker is connected.
  */
 enum class KlippyState {
-    READY = 0,   ///< Normal operation, printer ready for commands
-    STARTUP = 1, ///< Klipper is starting up (during RESTART/FIRMWARE_RESTART)
+    READY = 0,    ///< Normal operation, printer ready for commands
+    STARTUP = 1,  ///< Klipper is starting up (during RESTART/FIRMWARE_RESTART)
     SHUTDOWN = 2, ///< Emergency shutdown (M112)
-    ERROR = 3    ///< Klipper error state (check klippy.log)
+    ERROR = 3     ///< Klipper error state (check klippy.log)
 };
 
 /**

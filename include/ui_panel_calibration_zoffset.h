@@ -4,6 +4,7 @@
 #pragma once
 
 #include "lvgl/lvgl.h"
+
 #include <string>
 
 class MoonrakerClient;
@@ -60,7 +61,9 @@ class ZOffsetCalibrationPanel {
      * @brief Get current calibration state
      * @return Current State
      */
-    State get_state() const { return state_; }
+    State get_state() const {
+        return state_;
+    }
 
     /**
      * @brief Update Z position display (called from external state updates)

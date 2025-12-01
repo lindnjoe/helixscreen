@@ -211,7 +211,7 @@ void Config::reset_to_defaults() {
             {"printers",
              {{"default_printer",
                {{"moonraker_api_key", false},
-                {"moonraker_host", ""},      // Cleared - requires reconfiguration
+                {"moonraker_host", ""}, // Cleared - requires reconfiguration
                 {"moonraker_port", 7125},
                 {"log_level", "debug"},
                 {"monitored_sensors", json::array()},

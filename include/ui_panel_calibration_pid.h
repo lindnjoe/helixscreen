@@ -4,7 +4,6 @@
 #pragma once
 
 #include <lvgl.h>
-
 #include <memory>
 #include <string>
 
@@ -46,10 +45,7 @@ class PIDCalibrationPanel {
     /**
      * @brief Which heater is being calibrated
      */
-    enum class Heater {
-        EXTRUDER,
-        BED
-    };
+    enum class Heater { EXTRUDER, BED };
 
     PIDCalibrationPanel() = default;
     ~PIDCalibrationPanel() = default;
@@ -66,7 +62,9 @@ class PIDCalibrationPanel {
     /**
      * @brief Get current state
      */
-    State get_state() const { return state_; }
+    State get_state() const {
+        return state_;
+    }
 
     /**
      * @brief Update current temperature display during calibration

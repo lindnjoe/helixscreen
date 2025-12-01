@@ -29,7 +29,7 @@ using json = nlohmann::json;
  * @endcode
  */
 class PrinterCapabilities {
-public:
+  public:
     PrinterCapabilities() = default;
 
     // Non-copyable, movable (contains unordered_set)
@@ -62,55 +62,73 @@ public:
      * @brief Check if printer has quad gantry leveling
      * @return true if quad_gantry_level object was detected
      */
-    [[nodiscard]] bool has_qgl() const { return has_qgl_; }
+    [[nodiscard]] bool has_qgl() const {
+        return has_qgl_;
+    }
 
     /**
      * @brief Check if printer has Z-tilt adjustment
      * @return true if z_tilt object was detected
      */
-    [[nodiscard]] bool has_z_tilt() const { return has_z_tilt_; }
+    [[nodiscard]] bool has_z_tilt() const {
+        return has_z_tilt_;
+    }
 
     /**
      * @brief Check if printer has bed mesh capability
      * @return true if bed_mesh object was detected
      */
-    [[nodiscard]] bool has_bed_mesh() const { return has_bed_mesh_; }
+    [[nodiscard]] bool has_bed_mesh() const {
+        return has_bed_mesh_;
+    }
 
     /**
      * @brief Check if printer has a chamber heater
      * @return true if heater_generic with "chamber" in name was detected
      */
-    [[nodiscard]] bool has_chamber_heater() const { return has_chamber_heater_; }
+    [[nodiscard]] bool has_chamber_heater() const {
+        return has_chamber_heater_;
+    }
 
     /**
      * @brief Check if printer has a chamber temperature sensor
      * @return true if temperature_sensor with "chamber" in name was detected
      */
-    [[nodiscard]] bool has_chamber_sensor() const { return has_chamber_sensor_; }
+    [[nodiscard]] bool has_chamber_sensor() const {
+        return has_chamber_sensor_;
+    }
 
     /**
      * @brief Check if printer has exclude_object support
      * @return true if exclude_object object was detected (Klipper config has [exclude_object])
      */
-    [[nodiscard]] bool has_exclude_object() const { return has_exclude_object_; }
+    [[nodiscard]] bool has_exclude_object() const {
+        return has_exclude_object_;
+    }
 
     /**
      * @brief Check if printer has a probe (for Z-offset calibration)
      * @return true if probe or bltouch object was detected
      */
-    [[nodiscard]] bool has_probe() const { return has_probe_; }
+    [[nodiscard]] bool has_probe() const {
+        return has_probe_;
+    }
 
     /**
      * @brief Check if printer has a heated bed
      * @return true if heater_bed object was detected
      */
-    [[nodiscard]] bool has_heater_bed() const { return has_heater_bed_; }
+    [[nodiscard]] bool has_heater_bed() const {
+        return has_heater_bed_;
+    }
 
     /**
      * @brief Check if printer has LED/light control
      * @return true if neopixel, led, or output_pin with light/led in name was detected
      */
-    [[nodiscard]] bool has_led() const { return has_led_; }
+    [[nodiscard]] bool has_led() const {
+        return has_led_;
+    }
 
     /**
      * @brief Check if printer supports any form of bed leveling
@@ -136,7 +154,9 @@ public:
      * @brief Get all detected G-code macros
      * @return Set of macro names (without "gcode_macro " prefix)
      */
-    [[nodiscard]] const std::unordered_set<std::string>& macros() const { return macros_; }
+    [[nodiscard]] const std::unordered_set<std::string>& macros() const {
+        return macros_;
+    }
 
     /**
      * @brief Get detected HelixScreen helper macros
@@ -157,7 +177,9 @@ public:
      * @brief Check if HelixScreen helper macros are installed
      * @return true if any HELIX_* macros were detected
      */
-    [[nodiscard]] bool has_helix_macros() const { return !helix_macros_.empty(); }
+    [[nodiscard]] bool has_helix_macros() const {
+        return !helix_macros_.empty();
+    }
 
     /**
      * @brief Check if a specific HelixScreen helper macro exists
@@ -222,14 +244,16 @@ public:
     /**
      * @brief Get total number of detected macros
      */
-    [[nodiscard]] size_t macro_count() const { return macros_.size(); }
+    [[nodiscard]] size_t macro_count() const {
+        return macros_.size();
+    }
 
     /**
      * @brief Get summary string for logging
      */
     [[nodiscard]] std::string summary() const;
 
-private:
+  private:
     // Hardware capabilities
     bool has_qgl_ = false;
     bool has_z_tilt_ = false;

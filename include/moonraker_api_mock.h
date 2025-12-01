@@ -58,8 +58,8 @@ class MoonrakerAPIMock : public MoonrakerAPI {
      * @param on_success Callback with file content
      * @param on_error Error callback (FILE_NOT_FOUND if file doesn't exist)
      */
-    void download_file(const std::string& root, const std::string& path,
-                       StringCallback on_success, ErrorCallback on_error) override;
+    void download_file(const std::string& root, const std::string& path, StringCallback on_success,
+                       ErrorCallback on_error) override;
 
     /**
      * @brief Mock file upload (logs but doesn't write)
@@ -73,9 +73,8 @@ class MoonrakerAPIMock : public MoonrakerAPI {
      * @param on_success Success callback
      * @param on_error Error callback (never called - mock always succeeds)
      */
-    void upload_file(const std::string& root, const std::string& path,
-                     const std::string& content, SuccessCallback on_success,
-                     ErrorCallback on_error) override;
+    void upload_file(const std::string& root, const std::string& path, const std::string& content,
+                     SuccessCallback on_success, ErrorCallback on_error) override;
 
     /**
      * @brief Mock file upload with custom filename (logs but doesn't write)
@@ -107,7 +106,9 @@ class MoonrakerAPIMock : public MoonrakerAPI {
      *
      * @return Shared state pointer, or nullptr if not set
      */
-    std::shared_ptr<MockPrinterState> get_mock_state() const { return mock_state_; }
+    std::shared_ptr<MockPrinterState> get_mock_state() const {
+        return mock_state_;
+    }
 
     /**
      * @brief Get excluded objects from shared state

@@ -371,8 +371,7 @@ void BedMeshPanel::on_profile_dropdown_changed(lv_event_t* e) {
 BedMeshPanel& get_global_bed_mesh_panel() {
     if (!g_bed_mesh_panel) {
         // Create with PrinterState and MoonrakerAPI from app globals
-        g_bed_mesh_panel =
-            std::make_unique<BedMeshPanel>(get_printer_state(), get_moonraker_api());
+        g_bed_mesh_panel = std::make_unique<BedMeshPanel>(get_printer_state(), get_moonraker_api());
     }
     return *g_bed_mesh_panel;
 }

@@ -25,8 +25,7 @@
 
 #include <spdlog/spdlog.h>
 
-UsbManager::UsbManager(bool force_mock)
-    : force_mock_(force_mock) {
+UsbManager::UsbManager(bool force_mock) : force_mock_(force_mock) {
     spdlog::debug("[UsbManager] Created (force_mock={})", force_mock);
 }
 

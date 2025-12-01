@@ -88,9 +88,9 @@ void ui_toast_show(ToastSeverity severity, const char* message, uint32_t duratio
  * @param user_data User data passed to the callback
  * @param duration_ms Duration in milliseconds before auto-dismiss (default: 5000ms)
  */
-void ui_toast_show_with_action(ToastSeverity severity, const char* message,
-                                const char* action_text, toast_action_callback_t action_callback,
-                                void* user_data, uint32_t duration_ms = 5000);
+void ui_toast_show_with_action(ToastSeverity severity, const char* message, const char* action_text,
+                               toast_action_callback_t action_callback, void* user_data,
+                               uint32_t duration_ms = 5000);
 
 /**
  * @brief Hide the currently visible toast

@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-
 <component>
   <!-- Fan Control Sub-Screen -->
   <!-- Part cooling fan slider + presets, hotend fan status display -->

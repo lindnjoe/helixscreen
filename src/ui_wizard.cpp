@@ -36,9 +36,9 @@
 
 #include "app_globals.h"
 #include "config.h"
-#include "moonraker_api.h"
 #include "lvgl/lvgl.h"
 #include "lvgl/src/xml/lv_xml.h"
+#include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "wizard_config_paths.h"
 
@@ -167,8 +167,8 @@ void ui_wizard_init_subjects() {
                                         "wizard_progress");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_next_button_text, wizard_next_button_text_buffer,
                                         "Next", "wizard_next_button_text");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_subtitle, wizard_subtitle_buffer,
-                                        "", "wizard_subtitle");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_subtitle, wizard_subtitle_buffer, "",
+                                        "wizard_subtitle");
 
     // Initialize connection_test_passed to 1 (enabled by default for all steps)
     // Step 2 (connection) will set it to 0 until test passes
@@ -581,8 +581,7 @@ void ui_wizard_complete() {
         "ws://" + moonraker_host + ":" + std::to_string(moonraker_port) + "/websocket";
 
     // Build HTTP base URL for file transfers (same host:port, http:// scheme)
-    std::string http_base_url =
-        "http://" + moonraker_host + ":" + std::to_string(moonraker_port);
+    std::string http_base_url = "http://" + moonraker_host + ":" + std::to_string(moonraker_port);
     MoonrakerAPI* api = get_moonraker_api();
     if (api) {
         api->set_http_base_url(http_base_url);

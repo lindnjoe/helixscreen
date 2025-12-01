@@ -28,11 +28,11 @@ constexpr size_t MAX_BUFFERED_FILE_SIZE = 5 * 1024 * 1024;
  * @brief Type of modification to apply to G-code
  */
 enum class ModificationType {
-    COMMENT_OUT,    ///< Comment out the line(s) by prefixing with "; "
-    DELETE,         ///< Remove the line(s) entirely
-    INJECT_BEFORE,  ///< Inject G-code before a specific line
-    INJECT_AFTER,   ///< Inject G-code after a specific line
-    REPLACE,        ///< Replace the line with different G-code
+    COMMENT_OUT,   ///< Comment out the line(s) by prefixing with "; "
+    DELETE,        ///< Remove the line(s) entirely
+    INJECT_BEFORE, ///< Inject G-code before a specific line
+    INJECT_AFTER,  ///< Inject G-code after a specific line
+    REPLACE,       ///< Replace the line with different G-code
 };
 
 /**
@@ -62,25 +62,26 @@ struct Modification {
     }
 
     /// Create a COMMENT_OUT modification for a range of lines
-    static Modification comment_out_range(size_t start, size_t end, const std::string& reason = "") {
+    static Modification comment_out_range(size_t start, size_t end,
+                                          const std::string& reason = "") {
         return {ModificationType::COMMENT_OUT, start, end, "", reason};
     }
 
     /// Create an INJECT_BEFORE modification
     static Modification inject_before(size_t line, const std::string& gcode,
-                                       const std::string& reason = "") {
+                                      const std::string& reason = "") {
         return {ModificationType::INJECT_BEFORE, line, 0, gcode, reason};
     }
 
     /// Create an INJECT_AFTER modification
     static Modification inject_after(size_t line, const std::string& gcode,
-                                      const std::string& reason = "") {
+                                     const std::string& reason = "") {
         return {ModificationType::INJECT_AFTER, line, 0, gcode, reason};
     }
 
     /// Create a REPLACE modification
     static Modification replace(size_t line, const std::string& gcode,
-                                 const std::string& reason = "") {
+                                const std::string& reason = "") {
         return {ModificationType::REPLACE, line, 0, gcode, reason};
     }
 };
@@ -146,7 +147,7 @@ struct ModificationResult {
  * @note Thread-safe for concurrent modifications of different files.
  */
 class GCodeFileModifier {
-public:
+  public:
     GCodeFileModifier() = default;
 
     // Non-copyable, movable
@@ -173,7 +174,9 @@ public:
     /**
      * @brief Get pending modifications
      */
-    [[nodiscard]] const std::vector<Modification>& modifications() const { return modifications_; }
+    [[nodiscard]] const std::vector<Modification>& modifications() const {
+        return modifications_;
+    }
 
     /**
      * @brief Apply all pending modifications to a file
@@ -275,7 +278,7 @@ public:
      */
     static size_t cleanup_temp_files(int max_age_seconds = 3600);
 
-private:
+  private:
     /**
      * @brief Sort modifications by line number (descending)
      *
@@ -287,7 +290,7 @@ private:
      * @brief Apply a single modification to content lines
      */
     void apply_single_modification(std::vector<std::string>& lines, const Modification& mod,
-                                    ModificationResult& result);
+                                   ModificationResult& result);
 
     /**
      * @brief Comment out a single line

@@ -189,14 +189,14 @@ void MotionPanel::register_position_observers() {
     // Subscribe to PrinterState position updates so UI reflects real printer position
     // Using ObserverGuard for RAII - observers automatically removed on destruction
 
-    position_x_observer_ = ObserverGuard(printer_state_.get_position_x_subject(),
-                                         on_position_x_changed, this);
+    position_x_observer_ =
+        ObserverGuard(printer_state_.get_position_x_subject(), on_position_x_changed, this);
 
-    position_y_observer_ = ObserverGuard(printer_state_.get_position_y_subject(),
-                                         on_position_y_changed, this);
+    position_y_observer_ =
+        ObserverGuard(printer_state_.get_position_y_subject(), on_position_y_changed, this);
 
-    position_z_observer_ = ObserverGuard(printer_state_.get_position_z_subject(),
-                                         on_position_z_changed, this);
+    position_z_observer_ =
+        ObserverGuard(printer_state_.get_position_z_subject(), on_position_z_changed, this);
 
     spdlog::debug("[{}] Position observers registered (X/Y/Z via RAII ObserverGuard)", get_name());
 }
@@ -297,7 +297,9 @@ void MotionPanel::handle_z_button(const char* name) {
 
         api_->move_axis(
             'Z', distance, Z_FEEDRATE, []() { spdlog::debug("[MotionPanel] Z jog complete"); },
-            [](const MoonrakerError& err) { NOTIFY_ERROR("Z jog failed: {}", err.user_message()); });
+            [](const MoonrakerError& err) {
+                NOTIFY_ERROR("Z jog failed: {}", err.user_message());
+            });
     } else {
         // Fallback for mock/disconnected mode
         NOTIFY_WARNING("Not connected - Z jog not sent");

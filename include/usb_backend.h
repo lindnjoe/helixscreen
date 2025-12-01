@@ -33,14 +33,14 @@
  * @brief USB operation result codes
  */
 enum class UsbResult {
-    SUCCESS = 0,            ///< Operation succeeded
-    PERMISSION_DENIED,      ///< Insufficient permissions to monitor devices
-    NOT_SUPPORTED,          ///< Platform doesn't support USB monitoring
-    BACKEND_ERROR,          ///< Internal backend error
-    NOT_INITIALIZED,        ///< Backend not started/initialized
-    DRIVE_NOT_FOUND,        ///< Specified drive not mounted
-    SCAN_FAILED,            ///< Failed to scan directory
-    UNKNOWN_ERROR           ///< Unexpected error condition
+    SUCCESS = 0,       ///< Operation succeeded
+    PERMISSION_DENIED, ///< Insufficient permissions to monitor devices
+    NOT_SUPPORTED,     ///< Platform doesn't support USB monitoring
+    BACKEND_ERROR,     ///< Internal backend error
+    NOT_INITIALIZED,   ///< Backend not started/initialized
+    DRIVE_NOT_FOUND,   ///< Specified drive not mounted
+    SCAN_FAILED,       ///< Failed to scan directory
+    UNKNOWN_ERROR      ///< Unexpected error condition
 };
 
 /**
@@ -67,14 +67,13 @@ struct UsbError {
  * @brief USB drive information
  */
 struct UsbDrive {
-    std::string mount_path;    ///< Mount point path ("/media/usb0" or "/Volumes/USBDRIVE")
-    std::string device;        ///< Device path ("/dev/sda1")
-    std::string label;         ///< Volume label ("USBDRIVE")
-    uint64_t total_bytes;      ///< Total capacity in bytes
-    uint64_t available_bytes;  ///< Available space in bytes
+    std::string mount_path;   ///< Mount point path ("/media/usb0" or "/Volumes/USBDRIVE")
+    std::string device;       ///< Device path ("/dev/sda1")
+    std::string label;        ///< Volume label ("USBDRIVE")
+    uint64_t total_bytes;     ///< Total capacity in bytes
+    uint64_t available_bytes; ///< Available space in bytes
 
-    UsbDrive()
-        : total_bytes(0), available_bytes(0) {}
+    UsbDrive() : total_bytes(0), available_bytes(0) {}
 
     UsbDrive(const std::string& mount, const std::string& dev, const std::string& lbl,
              uint64_t total = 0, uint64_t available = 0)
@@ -86,13 +85,12 @@ struct UsbDrive {
  * @brief G-code file information found on USB drive
  */
 struct UsbGcodeFile {
-    std::string path;          ///< Full path to file on USB drive
-    std::string filename;      ///< Just the filename (basename)
-    uint64_t size_bytes;       ///< File size in bytes
-    int64_t modified_time;     ///< Last modified timestamp (Unix epoch)
+    std::string path;      ///< Full path to file on USB drive
+    std::string filename;  ///< Just the filename (basename)
+    uint64_t size_bytes;   ///< File size in bytes
+    int64_t modified_time; ///< Last modified timestamp (Unix epoch)
 
-    UsbGcodeFile()
-        : size_bytes(0), modified_time(0) {}
+    UsbGcodeFile() : size_bytes(0), modified_time(0) {}
 
     UsbGcodeFile(const std::string& p, const std::string& name, uint64_t size, int64_t mtime)
         : path(p), filename(name), size_bytes(size), modified_time(mtime) {}
@@ -102,8 +100,8 @@ struct UsbGcodeFile {
  * @brief USB event types for callbacks
  */
 enum class UsbEvent {
-    DRIVE_INSERTED,   ///< USB drive was mounted
-    DRIVE_REMOVED     ///< USB drive was unmounted
+    DRIVE_INSERTED, ///< USB drive was mounted
+    DRIVE_REMOVED   ///< USB drive was unmounted
 };
 
 /**
@@ -196,8 +194,8 @@ class UsbBackend {
      * @param max_depth Maximum directory depth to scan (0 = root only, -1 = unlimited)
      * @return UsbError with detailed status information
      */
-    virtual UsbError scan_for_gcode(const std::string& mount_path,
-                                    std::vector<UsbGcodeFile>& files, int max_depth = 3) = 0;
+    virtual UsbError scan_for_gcode(const std::string& mount_path, std::vector<UsbGcodeFile>& files,
+                                    int max_depth = 3) = 0;
 
     // ========================================================================
     // Factory Method

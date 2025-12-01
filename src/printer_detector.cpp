@@ -339,39 +339,40 @@ PrinterDetectionResult PrinterDetector::detect(const PrinterHardwareData& hardwa
                       hardware.printer_objects.size(), hardware.steppers.size(),
                       hardware.kinematics);
 
-    // Load database if not already loaded
-    if (!g_database.load()) {
-        LOG_ERROR_INTERNAL("[PrinterDetector] Cannot perform detection without database");
-        return {"", 0, "Failed to load printer database"};
-    }
-
-    // Iterate through all printers in database and find best match
-    PrinterDetectionResult best_match{"", 0, "No distinctive hardware detected"};
-
-    if (!g_database.data.contains("printers") || !g_database.data["printers"].is_array()) {
-        NOTIFY_ERROR("Printer database is corrupt");
-        LOG_ERROR_INTERNAL("[PrinterDetector] Invalid database format: missing 'printers' array");
-        return {"", 0, "Invalid printer database format"};
-    }
-
-    for (const auto& printer : g_database.data["printers"]) {
-        PrinterDetectionResult result = execute_printer_heuristics(printer, hardware);
-
-        if (result.confidence > best_match.confidence) {
-            best_match = result;
-            spdlog::info("[PrinterDetector] New best match: {} (confidence: {})", result.type_name,
-                         result.confidence);
+        // Load database if not already loaded
+        if (!g_database.load()) {
+            LOG_ERROR_INTERNAL("[PrinterDetector] Cannot perform detection without database");
+            return {"", 0, "Failed to load printer database"};
         }
-    }
 
-    if (best_match.confidence > 0) {
-        spdlog::info("[PrinterDetector] Detection complete: {} (confidence: {}, reason: {})",
-                     best_match.type_name, best_match.confidence, best_match.reason);
-    } else {
-        spdlog::debug("[PrinterDetector] No distinctive fingerprints detected");
-    }
+        // Iterate through all printers in database and find best match
+        PrinterDetectionResult best_match{"", 0, "No distinctive hardware detected"};
 
-    return best_match;
+        if (!g_database.data.contains("printers") || !g_database.data["printers"].is_array()) {
+            NOTIFY_ERROR("Printer database is corrupt");
+            LOG_ERROR_INTERNAL(
+                "[PrinterDetector] Invalid database format: missing 'printers' array");
+            return {"", 0, "Invalid printer database format"};
+        }
+
+        for (const auto& printer : g_database.data["printers"]) {
+            PrinterDetectionResult result = execute_printer_heuristics(printer, hardware);
+
+            if (result.confidence > best_match.confidence) {
+                best_match = result;
+                spdlog::info("[PrinterDetector] New best match: {} (confidence: {})",
+                             result.type_name, result.confidence);
+            }
+        }
+
+        if (best_match.confidence > 0) {
+            spdlog::info("[PrinterDetector] Detection complete: {} (confidence: {}, reason: {})",
+                         best_match.type_name, best_match.confidence, best_match.reason);
+        } else {
+            spdlog::debug("[PrinterDetector] No distinctive fingerprints detected");
+        }
+
+        return best_match;
     } catch (const std::exception& e) {
         spdlog::error("[PrinterDetector] Exception during detection: {}", e.what());
         return {"", 0, std::string("Detection error: ") + e.what()};

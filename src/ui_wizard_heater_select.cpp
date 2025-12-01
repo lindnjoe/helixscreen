@@ -135,7 +135,7 @@ lv_obj_t* WizardHeaterSelectStep::create(lv_obj_t* parent) {
     // Populate bed heater dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
         screen_root_, "bed_heater_dropdown", &bed_heater_selected_, bed_heater_items_,
-        [](MoonrakerClient* c) -> const auto& { return c->get_heaters(); },
+        [](MoonrakerClient * c) -> const auto& { return c->get_heaters(); },
         "bed", // Filter for bed-related heaters
         true,  // Allow "None" option
         WizardConfigPaths::BED_HEATER, [](MoonrakerAPI* api) { return api->guess_bed_heater(); },
@@ -151,7 +151,7 @@ lv_obj_t* WizardHeaterSelectStep::create(lv_obj_t* parent) {
     // Populate hotend heater dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
         screen_root_, "hotend_heater_dropdown", &hotend_heater_selected_, hotend_heater_items_,
-        [](MoonrakerClient* c) -> const auto& { return c->get_heaters(); },
+        [](MoonrakerClient * c) -> const auto& { return c->get_heaters(); },
         "extruder", // Filter for extruder-related heaters
         true,       // Allow "None" option
         WizardConfigPaths::HOTEND_HEATER,

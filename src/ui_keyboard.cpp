@@ -835,7 +835,8 @@ void ui_keyboard_init(lv_obj_t* parent) {
     // Get theme-aware colors (reuse existing where possible)
     lv_color_t keyboard_bg = ui_theme_parse_color(lv_xml_get_const(NULL, "app_bg_color"));
     lv_color_t key_bg = ui_theme_parse_color(lv_xml_get_const(NULL, "keyboard_key"));
-    lv_color_t key_special_bg = ui_theme_parse_color(lv_xml_get_const(NULL, "keyboard_key_special"));
+    lv_color_t key_special_bg =
+        ui_theme_parse_color(lv_xml_get_const(NULL, "keyboard_key_special"));
     lv_color_t key_text = ui_theme_parse_color(lv_xml_get_const(NULL, "header_text"));
 
     // Apply keyboard background (container)

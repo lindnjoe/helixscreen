@@ -13,9 +13,9 @@
 
 // Static initialization of path prefixes for fallback search
 const std::vector<std::string> MoonrakerAPIMock::PATH_PREFIXES = {
-    "",       // From project root: assets/test_gcodes/
-    "../",    // From build/: ../assets/test_gcodes/
-    "../../"  // From build/bin/: ../../assets/test_gcodes/
+    "",      // From project root: assets/test_gcodes/
+    "../",   // From build/: ../assets/test_gcodes/
+    "../../" // From build/bin/: ../../assets/test_gcodes/
 };
 
 MoonrakerAPIMock::MoonrakerAPIMock(MoonrakerClient& client, PrinterState& state)
@@ -111,8 +111,8 @@ void MoonrakerAPIMock::upload_file(const std::string& root, const std::string& p
 
 void MoonrakerAPIMock::upload_file_with_name(const std::string& root, const std::string& path,
                                              const std::string& filename,
-                                             const std::string& content,
-                                             SuccessCallback on_success, ErrorCallback on_error) {
+                                             const std::string& content, SuccessCallback on_success,
+                                             ErrorCallback on_error) {
     (void)on_error; // Unused - mock always succeeds
 
     spdlog::info(

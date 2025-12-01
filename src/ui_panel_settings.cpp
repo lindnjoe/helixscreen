@@ -3,16 +3,17 @@
 
 #include "ui_panel_settings.h"
 
-#include "app_globals.h"
-#include "config.h"
-#include "moonraker_client.h"
-#include "printer_state.h"
-#include "settings_manager.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_panel_bed_mesh.h"
 #include "ui_panel_calibration_pid.h"
 #include "ui_panel_calibration_zoffset.h"
+
+#include "app_globals.h"
+#include "config.h"
+#include "moonraker_client.h"
+#include "printer_state.h"
+#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -229,7 +230,8 @@ void SettingsPanel::populate_info_rows() {
         moonraker_value_ = lv_obj_find_by_name(moonraker_row, "value");
         if (moonraker_value_) {
             // Bind to reactive subject - updates automatically after discovery
-            lv_label_bind_text(moonraker_value_, printer_state_.get_moonraker_version_subject(), "%s");
+            lv_label_bind_text(moonraker_value_, printer_state_.get_moonraker_version_subject(),
+                               "%s");
             spdlog::debug("[{}]   ✓ Moonraker version bound to subject", get_name());
         }
     }
@@ -282,9 +284,7 @@ void SettingsPanel::handle_display_settings_clicked() {
                 lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
                 if (back_btn) {
                     lv_obj_add_event_cb(
-                        back_btn,
-                        [](lv_event_t*) { ui_nav_go_back(); },
-                        LV_EVENT_CLICKED, nullptr);
+                        back_btn, [](lv_event_t*) { ui_nav_go_back(); }, LV_EVENT_CLICKED, nullptr);
                 }
             }
 
@@ -324,18 +324,16 @@ void SettingsPanel::handle_display_settings_clicked() {
                 const char* name;
                 int seconds;
             } timeouts[] = {
-                {"timeout_never", 0},
-                {"timeout_1min", 60},
-                {"timeout_5min", 300},
-                {"timeout_10min", 600},
-                {"timeout_30min", 1800},
+                {"timeout_never", 0},   {"timeout_1min", 60},    {"timeout_5min", 300},
+                {"timeout_10min", 600}, {"timeout_30min", 1800},
             };
 
             for (const auto& t : timeouts) {
                 lv_obj_t* btn = lv_obj_find_by_name(display_settings_overlay_, t.name);
                 if (btn) {
                     // Store timeout value as user data (cast int to pointer)
-                    lv_obj_set_user_data(btn, reinterpret_cast<void*>(static_cast<intptr_t>(t.seconds)));
+                    lv_obj_set_user_data(btn,
+                                         reinterpret_cast<void*>(static_cast<intptr_t>(t.seconds)));
                     lv_obj_add_event_cb(
                         btn,
                         [](lv_event_t* e) {
@@ -431,8 +429,8 @@ void SettingsPanel::handle_pid_tuning_clicked() {
         spdlog::debug("[{}] Creating PID calibration panel...", get_name());
 
         // Create from XML
-        pid_cal_panel_ = static_cast<lv_obj_t*>(
-            lv_xml_create(parent_screen_, "calibration_pid_panel", nullptr));
+        pid_cal_panel_ =
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "calibration_pid_panel", nullptr));
         if (pid_cal_panel_) {
             // Setup event handlers (class-based API)
             MoonrakerClient* client = get_moonraker_client();
@@ -471,9 +469,7 @@ void SettingsPanel::handle_network_clicked() {
                 lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
                 if (back_btn) {
                     lv_obj_add_event_cb(
-                        back_btn,
-                        [](lv_event_t*) { ui_nav_go_back(); },
-                        LV_EVENT_CLICKED, nullptr);
+                        back_btn, [](lv_event_t*) { ui_nav_go_back(); }, LV_EVENT_CLICKED, nullptr);
                 }
             }
 
@@ -531,8 +527,8 @@ void SettingsPanel::handle_factory_reset_clicked() {
         spdlog::debug("[{}] Creating factory reset dialog...", get_name());
 
         // Create from XML - component name matches filename
-        factory_reset_dialog_ = static_cast<lv_obj_t*>(
-            lv_xml_create(parent_screen_, "factory_reset_dialog", nullptr));
+        factory_reset_dialog_ =
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "factory_reset_dialog", nullptr));
         if (factory_reset_dialog_) {
             // Wire up Cancel button - just hide the dialog
             lv_obj_t* cancel_btn = lv_obj_find_by_name(factory_reset_dialog_, "cancel_btn");

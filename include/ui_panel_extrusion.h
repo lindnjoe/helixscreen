@@ -18,11 +18,17 @@ class ExtrusionPanel : public PanelBase {
 
     void init_subjects() override;
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-    const char* get_name() const override { return "Extrusion Panel"; }
-    const char* get_xml_component_name() const override { return "extrusion_panel"; }
+    const char* get_name() const override {
+        return "Extrusion Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "extrusion_panel";
+    }
 
     void set_temp(int current, int target);
-    int get_amount() const { return selected_amount_; }
+    int get_amount() const {
+        return selected_amount_;
+    }
     bool is_extrusion_allowed() const;
     void set_limits(int min_temp, int max_temp);
 

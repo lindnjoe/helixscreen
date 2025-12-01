@@ -5,19 +5,22 @@
 #define UI_OBSERVER_GUARD_H
 
 #include "lvgl/lvgl.h"
+
 #include <utility>
 
 /**
  * @brief RAII wrapper for LVGL observers - auto-removes on destruction
  */
 class ObserverGuard {
-public:
+  public:
     ObserverGuard() = default;
 
     ObserverGuard(lv_subject_t* subject, lv_observer_cb_t cb, void* user_data)
         : observer_(lv_subject_add_observer(subject, cb, user_data)) {}
 
-    ~ObserverGuard() { reset(); }
+    ~ObserverGuard() {
+        reset();
+    }
 
     ObserverGuard(ObserverGuard&& other) noexcept
         : observer_(std::exchange(other.observer_, nullptr)) {}
@@ -40,10 +43,14 @@ public:
         }
     }
 
-    explicit operator bool() const { return observer_ != nullptr; }
-    lv_observer_t* get() const { return observer_; }
+    explicit operator bool() const {
+        return observer_ != nullptr;
+    }
+    lv_observer_t* get() const {
+        return observer_;
+    }
 
-private:
+  private:
     lv_observer_t* observer_ = nullptr;
 };
 

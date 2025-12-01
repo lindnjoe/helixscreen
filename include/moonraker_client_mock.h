@@ -203,7 +203,9 @@ class MoonrakerClientMock : public MoonrakerClient {
      *
      * @return Shared state pointer, or nullptr if not set
      */
-    std::shared_ptr<MockPrinterState> get_mock_state() const { return mock_state_; }
+    std::shared_ptr<MockPrinterState> get_mock_state() const {
+        return mock_state_;
+    }
 
     /**
      * @brief Simulate WebSocket connection (no real network I/O)
@@ -268,7 +270,7 @@ class MoonrakerClientMock : public MoonrakerClient {
      * @return Always returns 0 (success)
      */
     RequestId send_jsonrpc(const std::string& method, const json& params,
-                     std::function<void(json)> cb) override;
+                           std::function<void(json)> cb) override;
 
     /**
      * @brief Simulate JSON-RPC request with success/error callbacks
@@ -283,9 +285,9 @@ class MoonrakerClientMock : public MoonrakerClient {
      * @return Always returns 0 (success)
      */
     RequestId send_jsonrpc(const std::string& method, const json& params,
-                     std::function<void(json)> success_cb,
-                     std::function<void(const MoonrakerError&)> error_cb,
-                     uint32_t timeout_ms = 0) override;
+                           std::function<void(json)> success_cb,
+                           std::function<void(const MoonrakerError&)> error_cb,
+                           uint32_t timeout_ms = 0) override;
 
     /**
      * @brief Simulate G-code script command
@@ -503,7 +505,9 @@ class MoonrakerClientMock : public MoonrakerClient {
      * @brief Generate next mock request ID
      * @return Valid request ID (always > 0)
      */
-    RequestId next_mock_request_id() { return mock_request_id_counter_.fetch_add(1) + 1; }
+    RequestId next_mock_request_id() {
+        return mock_request_id_counter_.fetch_add(1) + 1;
+    }
 
   private:
     PrinterType printer_type_;
@@ -569,7 +573,7 @@ class MoonrakerClientMock : public MoonrakerClient {
     std::atomic<double> gcode_offset_z_{0.0}; // Z offset from SET_GCODE_OFFSET
 
     // Excluded objects tracking (for EXCLUDE_OBJECT command)
-    std::set<std::string> excluded_objects_;    // Object names excluded during print (local fallback)
+    std::set<std::string> excluded_objects_; // Object names excluded during print (local fallback)
     mutable std::mutex excluded_objects_mutex_; // Protects excluded_objects_
 
     // Shared mock state for coordination with MoonrakerAPIMock

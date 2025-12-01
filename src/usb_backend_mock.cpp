@@ -23,11 +23,11 @@
 
 #include "usb_backend_mock.h"
 
-#include <algorithm>
 #include <spdlog/spdlog.h>
 
-UsbBackendMock::UsbBackendMock()
-    : running_(false) {
+#include <algorithm>
+
+UsbBackendMock::UsbBackendMock() : running_(false) {
     spdlog::debug("[UsbBackendMock] Created");
 }
 
@@ -89,9 +89,9 @@ UsbError UsbBackendMock::scan_for_gcode(const std::string& mount_path,
     }
 
     // Check if drive exists
-    auto drive_it =
-        std::find_if(drives_.begin(), drives_.end(),
-                     [&mount_path](const UsbDrive& d) { return d.mount_path == mount_path; });
+    auto drive_it = std::find_if(drives_.begin(), drives_.end(), [&mount_path](const UsbDrive& d) {
+        return d.mount_path == mount_path;
+    });
 
     if (drive_it == drives_.end()) {
         return UsbError(UsbResult::DRIVE_NOT_FOUND, "Drive not found: " + mount_path,
@@ -117,10 +117,9 @@ void UsbBackendMock::simulate_drive_insert(const UsbDrive& drive) {
         std::lock_guard<std::mutex> lock(mutex_);
 
         // Check if drive already exists
-        auto it =
-            std::find_if(drives_.begin(), drives_.end(), [&drive](const UsbDrive& d) {
-                return d.mount_path == drive.mount_path;
-            });
+        auto it = std::find_if(drives_.begin(), drives_.end(), [&drive](const UsbDrive& d) {
+            return d.mount_path == drive.mount_path;
+        });
 
         if (it != drives_.end()) {
             spdlog::warn("[UsbBackendMock] Drive already inserted: {}", drive.mount_path);
@@ -145,8 +144,9 @@ void UsbBackendMock::simulate_drive_remove(const std::string& mount_path) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        auto it = std::find_if(drives_.begin(), drives_.end(),
-                               [&mount_path](const UsbDrive& d) { return d.mount_path == mount_path; });
+        auto it = std::find_if(drives_.begin(), drives_.end(), [&mount_path](const UsbDrive& d) {
+            return d.mount_path == mount_path;
+        });
 
         if (it == drives_.end()) {
             spdlog::warn("[UsbBackendMock] Drive not found for removal: {}", mount_path);
@@ -182,8 +182,9 @@ void UsbBackendMock::clear_all() {
 
 void UsbBackendMock::add_demo_drives() {
     // Add a demo USB drive with realistic G-code files
-    UsbDrive demo_drive("/media/usb0", "/dev/sda1", "PRINT_FILES", 16ULL * 1024 * 1024 * 1024,  // 16 GB total
-                        8ULL * 1024 * 1024 * 1024);  // 8 GB available
+    UsbDrive demo_drive("/media/usb0", "/dev/sda1", "PRINT_FILES",
+                        16ULL * 1024 * 1024 * 1024, // 16 GB total
+                        8ULL * 1024 * 1024 * 1024); // 8 GB available
 
     simulate_drive_insert(demo_drive);
 

@@ -339,8 +339,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::guess_bed_heater() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::guess_bed_heater() instead")]]
-    std::string guess_bed_heater() const;
+    [[deprecated("Use MoonrakerAPI::guess_bed_heater() instead")]] std::string
+    guess_bed_heater() const;
 
     /**
      * @brief Guess the most likely hotend heater from discovered hardware
@@ -352,8 +352,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::guess_hotend_heater() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::guess_hotend_heater() instead")]]
-    std::string guess_hotend_heater() const;
+    [[deprecated("Use MoonrakerAPI::guess_hotend_heater() instead")]] std::string
+    guess_hotend_heater() const;
 
     /**
      * @brief Guess the most likely bed temperature sensor from discovered hardware
@@ -365,8 +365,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::guess_bed_sensor() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::guess_bed_sensor() instead")]]
-    std::string guess_bed_sensor() const;
+    [[deprecated("Use MoonrakerAPI::guess_bed_sensor() instead")]] std::string
+    guess_bed_sensor() const;
 
     /**
      * @brief Guess the most likely hotend temperature sensor from discovered hardware
@@ -379,8 +379,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::guess_hotend_sensor() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::guess_hotend_sensor() instead")]]
-    std::string guess_hotend_sensor() const;
+    [[deprecated("Use MoonrakerAPI::guess_hotend_sensor() instead")]] std::string
+    guess_hotend_sensor() const;
 
     /**
      * @brief Get currently active bed mesh profile
@@ -392,8 +392,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::get_active_bed_mesh() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::get_active_bed_mesh() instead")]]
-    const BedMeshProfile& get_active_bed_mesh() const {
+    [[deprecated("Use MoonrakerAPI::get_active_bed_mesh() instead")]] const BedMeshProfile&
+    get_active_bed_mesh() const {
         return active_bed_mesh_;
     }
 
@@ -407,8 +407,9 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::get_bed_mesh_profiles() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::get_bed_mesh_profiles() instead")]]
-    const std::vector<std::string>& get_bed_mesh_profiles() const {
+    [[deprecated(
+        "Use MoonrakerAPI::get_bed_mesh_profiles() instead")]] const std::vector<std::string>&
+    get_bed_mesh_profiles() const {
         return bed_mesh_profiles_;
     }
 
@@ -422,8 +423,7 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @deprecated Use MoonrakerAPI::has_bed_mesh() instead. Domain logic is migrating
      *             from transport layer (MoonrakerClient) to API layer (MoonrakerAPI).
      */
-    [[deprecated("Use MoonrakerAPI::has_bed_mesh() instead")]]
-    bool has_bed_mesh() const {
+    [[deprecated("Use MoonrakerAPI::has_bed_mesh() instead")]] bool has_bed_mesh() const {
         return !active_bed_mesh_.probed_matrix.empty();
     }
 
@@ -644,11 +644,11 @@ class MoonrakerClient : public hv::WebSocketClient {
     uint32_t reconnect_max_delay_ms_;
 
     // Stored connection info for force_reconnect()
-    std::string last_url_;                                // URL used in last connect()
-    std::function<void()> last_on_connected_;             // Callback from last connect()
-    std::function<void()> last_on_disconnected_;          // Callback from last connect()
-    std::function<void()> last_discovery_complete_;       // Callback from last discover_printer()
-    mutable std::mutex reconnect_mutex_;                  // Protect stored connection info
+    std::string last_url_;                          // URL used in last connect()
+    std::function<void()> last_on_connected_;       // Callback from last connect()
+    std::function<void()> last_on_disconnected_;    // Callback from last connect()
+    std::function<void()> last_discovery_complete_; // Callback from last discover_printer()
+    mutable std::mutex reconnect_mutex_;            // Protect stored connection info
 
     // Event handler for transport events (decouples from UI layer)
     MoonrakerEventCallback event_handler_;

@@ -23,8 +23,7 @@
 
 constexpr int FanPanel::PRESET_VALUES[4];
 
-FanPanel::FanPanel(PrinterState& printer_state, MoonrakerAPI* api)
-    : PanelBase(printer_state, api) {
+FanPanel::FanPanel(PrinterState& printer_state, MoonrakerAPI* api) : PanelBase(printer_state, api) {
     // Initialize buffer contents
     std::snprintf(part_speed_buf_, sizeof(part_speed_buf_), "0%%");
     std::snprintf(hotend_speed_buf_, sizeof(hotend_speed_buf_), "0%%");
@@ -83,7 +82,8 @@ void FanPanel::setup_slider() {
     // Find the slider
     fan_speed_slider_ = lv_obj_find_by_name(overlay_content, "fan_speed_slider");
     if (fan_speed_slider_) {
-        lv_obj_add_event_cb(fan_speed_slider_, on_slider_value_changed, LV_EVENT_VALUE_CHANGED, this);
+        lv_obj_add_event_cb(fan_speed_slider_, on_slider_value_changed, LV_EVENT_VALUE_CHANGED,
+                            this);
         spdlog::debug("[{}] Slider wired (0-100%)", get_name());
     } else {
         spdlog::warn("[{}] fan_speed_slider not found", get_name());
@@ -108,8 +108,10 @@ void FanPanel::setup_preset_buttons() {
         preset_buttons_[i] = lv_obj_find_by_name(overlay_content, preset_names[i]);
         if (preset_buttons_[i]) {
             // Pass 'this' as user_data for trampoline, store index in obj
-            lv_obj_set_user_data(preset_buttons_[i], reinterpret_cast<void*>(static_cast<intptr_t>(i)));
-            lv_obj_add_event_cb(preset_buttons_[i], on_preset_button_clicked, LV_EVENT_CLICKED, this);
+            lv_obj_set_user_data(preset_buttons_[i],
+                                 reinterpret_cast<void*>(static_cast<intptr_t>(i)));
+            lv_obj_add_event_cb(preset_buttons_[i], on_preset_button_clicked, LV_EVENT_CLICKED,
+                                this);
         }
     }
 
@@ -125,7 +127,8 @@ void FanPanel::register_fan_observer() {
         fan_speed_observer_ = ObserverGuard(fan_speed, on_fan_speed_changed, this);
         spdlog::debug("[{}] Subscribed to fan_speed subject", get_name());
     } else {
-        spdlog::warn("[{}] fan_speed subject not found - real-time updates unavailable", get_name());
+        spdlog::warn("[{}] fan_speed subject not found - real-time updates unavailable",
+                     get_name());
     }
 }
 

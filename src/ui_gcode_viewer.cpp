@@ -68,9 +68,9 @@ struct gcode_viewer_state_t {
     void* object_long_press_user_data{nullptr};
 
     // Long-press detection state
-    lv_timer_t* long_press_timer{nullptr};       ///< Timer for 500ms long-press detection
-    bool long_press_fired{false};                 ///< True if long-press callback was invoked
-    std::string long_press_object_name;           ///< Object under finger when long-press started
+    lv_timer_t* long_press_timer{nullptr}; ///< Timer for 500ms long-press detection
+    bool long_press_fired{false};          ///< True if long-press callback was invoked
+    std::string long_press_object_name;    ///< Object under finger when long-press started
 
     // Rendering settings
     bool use_filament_color{true}; // Auto-apply filament color from metadata
@@ -963,9 +963,8 @@ void ui_gcode_viewer_set_object_tap_callback(lv_obj_t* obj,
     st->object_tap_user_data = user_data;
 }
 
-void ui_gcode_viewer_set_object_long_press_callback(lv_obj_t* obj,
-                                                     gcode_viewer_object_long_press_callback_t callback,
-                                                     void* user_data) {
+void ui_gcode_viewer_set_object_long_press_callback(
+    lv_obj_t* obj, gcode_viewer_object_long_press_callback_t callback, void* user_data) {
     gcode_viewer_state_t* st = get_state(obj);
     if (!st)
         return;
@@ -973,8 +972,7 @@ void ui_gcode_viewer_set_object_long_press_callback(lv_obj_t* obj,
     st->object_long_press_callback = callback;
     st->object_long_press_user_data = user_data;
 
-    spdlog::debug("GCodeViewer: Long-press callback {}",
-                  callback ? "registered" : "cleared");
+    spdlog::debug("GCodeViewer: Long-press callback {}", callback ? "registered" : "cleared");
 }
 
 // ==============================================
@@ -1091,9 +1089,8 @@ void ui_gcode_viewer_set_ghost_mode(lv_obj_t* obj, int mode) {
         return;
 
     // Map int to enum (0=Dimmed, 1=Stipple)
-    gcode::GhostRenderMode render_mode = (mode == 1)
-        ? gcode::GhostRenderMode::Stipple
-        : gcode::GhostRenderMode::Dimmed;
+    gcode::GhostRenderMode render_mode =
+        (mode == 1) ? gcode::GhostRenderMode::Stipple : gcode::GhostRenderMode::Dimmed;
 
     st->renderer->set_ghost_render_mode(render_mode);
     lv_obj_invalidate(obj);

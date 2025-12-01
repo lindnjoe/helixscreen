@@ -3,10 +3,11 @@
 
 #include "settings_manager.h"
 
+#include "ui_theme.h"
+
 #include "config.h"
 #include "moonraker_client.h"
 #include "spdlog/spdlog.h"
-#include "ui_theme.h"
 
 #include <algorithm>
 
@@ -188,11 +189,12 @@ void SettingsManager::send_led_command(bool enabled) {
     // gcode_script returns request_id (>0) on success, -1 on failure
     int result = moonraker_client_->gcode_script(gcode);
     if (result > 0) {
-        spdlog::debug("[SettingsManager] LED {} command sent (request_id={})", enabled ? "on" : "off",
-                      result);
+        spdlog::debug("[SettingsManager] LED {} command sent (request_id={})",
+                      enabled ? "on" : "off", result);
     } else {
-        spdlog::warn("[SettingsManager] Failed to send LED command - printer may not have caselight "
-                     "pin or not connected");
+        spdlog::warn(
+            "[SettingsManager] Failed to send LED command - printer may not have caselight "
+            "pin or not connected");
     }
 }
 

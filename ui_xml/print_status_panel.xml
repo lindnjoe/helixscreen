@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-
 <component>
   <!-- Print Status Panel - Active print monitoring with G-code 3D viewer -->
   <!-- Uses same sizing as print_file_detail: overlay_panel_width_large, 5:4 flex ratio -->

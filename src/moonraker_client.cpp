@@ -24,9 +24,10 @@
 
 #include "moonraker_client.h"
 
+#include "ui_error_reporting.h"
+
 #include "app_globals.h"
 #include "printer_state.h"
-#include "ui_error_reporting.h"
 
 using namespace hv;
 
@@ -64,8 +65,9 @@ MoonrakerClient::~MoonrakerClient() {
     // This must happen BEFORE is_destroying_ is set so callbacks can still fire
     cleanup_pending_requests();
 
-    // Set destroying flag AFTER cleanup - this signals set_connection_state() to skip callback invocation
-    // even if it has already copied the callback. The check after copying will see this flag.
+    // Set destroying flag AFTER cleanup - this signals set_connection_state() to skip callback
+    // invocation even if it has already copied the callback. The check after copying will see this
+    // flag.
     is_destroying_.store(true);
 
     // Clear callback under lock (redundant safety - the flag is the primary guard)
@@ -183,8 +185,9 @@ void MoonrakerClient::force_reconnect() {
 
     // Verify we have stored connection info
     if (url.empty()) {
-        spdlog::warn("[Moonraker Client] force_reconnect() called but no previous connection info - "
-                     "call connect() first");
+        spdlog::warn(
+            "[Moonraker Client] force_reconnect() called but no previous connection info - "
+            "call connect() first");
         return;
     }
 
@@ -335,10 +338,10 @@ int MoonrakerClient::connect(const char* url, std::function<void()> on_connected
                                   error.message);
 
                     // Emit RPC error event
-                    emit_event(MoonrakerEventType::RPC_ERROR,
-                               fmt::format("Printer command '{}' failed: {}", method_name,
-                                           error.message),
-                               true, method_name);
+                    emit_event(
+                        MoonrakerEventType::RPC_ERROR,
+                        fmt::format("Printer command '{}' failed: {}", method_name, error.message),
+                        true, method_name);
 
                     if (error_cb) {
                         error_cb(error);
@@ -675,7 +678,7 @@ void MoonrakerClient::register_method_callback(const std::string& method,
 }
 
 bool MoonrakerClient::unregister_method_callback(const std::string& method,
-                                                  const std::string& handler_name) {
+                                                 const std::string& handler_name) {
     std::lock_guard<std::mutex> lock(callbacks_mutex_);
     auto method_it = method_callbacks_.find(method);
     if (method_it == method_callbacks_.end()) {
@@ -685,8 +688,9 @@ bool MoonrakerClient::unregister_method_callback(const std::string& method,
 
     auto handler_it = method_it->second.find(handler_name);
     if (handler_it == method_it->second.end()) {
-        spdlog::debug("[Moonraker Client] Unregister failed: handler '{}' not found for method '{}'",
-                      handler_name, method);
+        spdlog::debug(
+            "[Moonraker Client] Unregister failed: handler '{}' not found for method '{}'",
+            handler_name, method);
         return false;
     }
 
@@ -825,7 +829,8 @@ bool MoonrakerClient::cancel_request(RequestId id) {
         return true;
     }
 
-    spdlog::debug("[Moonraker Client] Cancel failed: request {} not found (already completed?)", id);
+    spdlog::debug("[Moonraker Client] Cancel failed: request {} not found (already completed?)",
+                  id);
     return false;
 }
 
@@ -1265,10 +1270,10 @@ void MoonrakerClient::check_request_timeouts() {
                 // Emit timeout event
                 std::string method_name = request.method;
                 uint32_t timeout = request.timeout_ms;
-                emit_event(MoonrakerEventType::REQUEST_TIMEOUT,
-                           fmt::format("Printer command '{}' timed out after {}ms", method_name,
-                                       timeout),
-                           false, method_name);
+                emit_event(
+                    MoonrakerEventType::REQUEST_TIMEOUT,
+                    fmt::format("Printer command '{}' timed out after {}ms", method_name, timeout),
+                    false, method_name);
 
                 // Capture callback in lambda if present
                 if (request.error_callback) {

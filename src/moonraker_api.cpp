@@ -26,8 +26,7 @@
 #include "ui_error_reporting.h"
 #include "ui_notification.h"
 
-#include "hv/requests.h"  // libhv HTTP client for file transfers
-
+#include "hv/requests.h" // libhv HTTP client for file transfers
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1047,7 +1046,7 @@ void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
 // ============================================================================
 
 void MoonrakerAPI::download_file(const std::string& root, const std::string& path,
-                                  StringCallback on_success, ErrorCallback on_error) {
+                                 StringCallback on_success, ErrorCallback on_error) {
     // Validate inputs
     if (!is_safe_path(path)) {
         spdlog::error("[Moonraker API] Invalid file path for download: {}", path);
@@ -1062,7 +1061,8 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
     }
 
     if (http_base_url_.empty()) {
-        spdlog::error("[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        spdlog::error(
+            "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
         if (on_error) {
             MoonrakerError err;
             err.type = MoonrakerErrorType::CONNECTION_LOST;
@@ -1114,16 +1114,15 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
                 MoonrakerError err;
                 err.type = MoonrakerErrorType::UNKNOWN;
                 err.code = static_cast<int>(resp->status_code);
-                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) +
-                              ": " + resp->status_message();
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
+                              resp->status_message();
                 err.method = "download_file";
                 on_error(err);
             }
             return;
         }
 
-        spdlog::debug("[Moonraker API] Downloaded {} bytes from {}",
-                      resp->body.size(), path);
+        spdlog::debug("[Moonraker API] Downloaded {} bytes from {}", resp->body.size(), path);
 
         if (on_success) {
             on_success(resp->body);
@@ -1132,14 +1131,14 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
 }
 
 void MoonrakerAPI::upload_file(const std::string& root, const std::string& path,
-                                const std::string& content, SuccessCallback on_success,
-                                ErrorCallback on_error) {
+                               const std::string& content, SuccessCallback on_success,
+                               ErrorCallback on_error) {
     upload_file_with_name(root, path, path, content, on_success, on_error);
 }
 
 void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::string& path,
-                                          const std::string& filename, const std::string& content,
-                                          SuccessCallback on_success, ErrorCallback on_error) {
+                                         const std::string& filename, const std::string& content,
+                                         SuccessCallback on_success, ErrorCallback on_error) {
     // Validate inputs
     if (!is_safe_path(path)) {
         spdlog::error("[Moonraker API] Invalid file path for upload: {}", path);
@@ -1154,7 +1153,8 @@ void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::str
     }
 
     if (http_base_url_.empty()) {
-        spdlog::error("[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        spdlog::error(
+            "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
         if (on_error) {
             MoonrakerError err;
             err.type = MoonrakerErrorType::CONNECTION_LOST;
@@ -1176,7 +1176,7 @@ void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::str
         auto req = std::make_shared<HttpRequest>();
         req->method = HTTP_POST;
         req->url = url;
-        req->timeout = 120;  // 2 minute timeout for uploads
+        req->timeout = 120; // 2 minute timeout for uploads
         req->content_type = MULTIPART_FORM_DATA;
 
         // Add root parameter (e.g., "gcodes" or "config")
@@ -1222,16 +1222,15 @@ void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::str
                 MoonrakerError err;
                 err.type = MoonrakerErrorType::UNKNOWN;
                 err.code = static_cast<int>(resp->status_code);
-                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) +
-                              ": " + resp->status_message();
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
+                              resp->status_message();
                 err.method = "upload_file";
                 on_error(err);
             }
             return;
         }
 
-        spdlog::info("[Moonraker API] Successfully uploaded {} ({} bytes)",
-                     path, content.size());
+        spdlog::info("[Moonraker API] Successfully uploaded {} ({} bytes)", path, content.size());
 
         if (on_success) {
             on_success();
@@ -1581,8 +1580,8 @@ bool MoonrakerAPI::has_bed_mesh() const {
 #pragma GCC diagnostic pop
 }
 
-void MoonrakerAPI::get_excluded_objects(std::function<void(const std::set<std::string>&)> on_success,
-                                        ErrorCallback on_error) {
+void MoonrakerAPI::get_excluded_objects(
+    std::function<void(const std::set<std::string>&)> on_success, ErrorCallback on_error) {
     // Query exclude_object state from Klipper
     json params = {{"objects", json::object({{"exclude_object", nullptr}})}};
 
@@ -1640,7 +1639,8 @@ void MoonrakerAPI::get_available_objects(
                     // objects is an array of {name, center, polygon} objects
                     if (exclude_obj.contains("objects") && exclude_obj["objects"].is_array()) {
                         for (const auto& obj : exclude_obj["objects"]) {
-                            if (obj.is_object() && obj.contains("name") && obj["name"].is_string()) {
+                            if (obj.is_object() && obj.contains("name") &&
+                                obj["name"].is_string()) {
                                 objects.push_back(obj["name"].get<std::string>());
                             }
                         }

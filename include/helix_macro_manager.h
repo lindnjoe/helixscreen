@@ -73,10 +73,10 @@ constexpr const char* HELIX_MACROS_FILENAME = "helix_macros.cfg";
  * @brief Status of HelixScreen macro installation
  */
 enum class MacroInstallStatus {
-    NOT_INSTALLED,   ///< No Helix macros detected
-    INSTALLED,       ///< Current version installed
-    OUTDATED,        ///< Older version installed, update available
-    UNKNOWN          ///< Cannot determine (no connection)
+    NOT_INSTALLED, ///< No Helix macros detected
+    INSTALLED,     ///< Current version installed
+    OUTDATED,      ///< Older version installed, update available
+    UNKNOWN        ///< Cannot determine (no connection)
 };
 
 /**
@@ -85,7 +85,7 @@ enum class MacroInstallStatus {
 struct InstallResult {
     bool success = false;
     std::string message;
-    bool restart_required = false;  ///< True if Klipper restart is needed
+    bool restart_required = false; ///< True if Klipper restart is needed
 };
 
 /**
@@ -98,7 +98,7 @@ struct InstallResult {
  * - Trigger Klipper restart after installation
  */
 class MacroManager {
-public:
+  public:
     using SuccessCallback = std::function<void()>;
     using ErrorCallback = std::function<void(const MoonrakerError&)>;
     using StatusCallback = std::function<void(MacroInstallStatus)>;
@@ -217,7 +217,7 @@ public:
      */
     [[nodiscard]] static std::vector<std::string> get_macro_names();
 
-private:
+  private:
     MoonrakerAPI& api_;
     const PrinterCapabilities& capabilities_;
 

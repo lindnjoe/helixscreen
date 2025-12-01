@@ -200,8 +200,7 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
 
         // Restore saved selection (no guessing method for fans)
         WizardHelpers::restore_dropdown_selection(part_dropdown, &part_fan_selected_,
-                                                  part_fan_items_, WizardConfigPaths::PART_FAN,
-                                                  api,
+                                                  part_fan_items_, WizardConfigPaths::PART_FAN, api,
                                                   nullptr, // No guessing method for part fans
                                                   "[Wizard Fan]");
     }

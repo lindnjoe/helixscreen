@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include "printer_state.h"
 #include "ui_observer_guard.h"
 #include "ui_panel_base.h"
+
+#include "printer_state.h"
 
 #include <string>
 #include <unordered_set>

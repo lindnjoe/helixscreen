@@ -52,7 +52,8 @@ PrintJobState parse_print_job_state(const char* state_str) {
     }
 
     // Unknown state defaults to STANDBY
-    spdlog::warn("[PrinterState] Unknown print state string: '{}', defaulting to STANDBY", state_str);
+    spdlog::warn("[PrinterState] Unknown print state string: '{}', defaulting to STANDBY",
+                 state_str);
     return PrintJobState::STANDBY;
 }
 
@@ -539,7 +540,8 @@ void PrinterState::set_printer_capabilities(const PrinterCapabilities& caps) {
     lv_subject_set_int(&printer_has_qgl_, capability_overrides_.has_qgl() ? 1 : 0);
     lv_subject_set_int(&printer_has_z_tilt_, capability_overrides_.has_z_tilt() ? 1 : 0);
     lv_subject_set_int(&printer_has_bed_mesh_, capability_overrides_.has_bed_leveling() ? 1 : 0);
-    lv_subject_set_int(&printer_has_nozzle_clean_, capability_overrides_.has_nozzle_clean() ? 1 : 0);
+    lv_subject_set_int(&printer_has_nozzle_clean_,
+                       capability_overrides_.has_nozzle_clean() ? 1 : 0);
 
     // Hardware capabilities (no user override support yet - set directly from detection)
     lv_subject_set_int(&printer_has_probe_, caps.has_probe() ? 1 : 0);
@@ -578,8 +580,8 @@ void PrinterState::set_excluded_objects(const std::unordered_set<std::string>& o
 
 PrintJobState PrinterState::get_print_job_state() const {
     // Note: lv_subject_get_int is thread-safe (atomic read)
-    return static_cast<PrintJobState>(lv_subject_get_int(
-        const_cast<lv_subject_t*>(&print_state_enum_)));
+    return static_cast<PrintJobState>(
+        lv_subject_get_int(const_cast<lv_subject_t*>(&print_state_enum_)));
 }
 
 bool PrinterState::can_start_new_print() const {

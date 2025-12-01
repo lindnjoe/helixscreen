@@ -5,8 +5,9 @@
 
 #include "config.h"
 
-#include <algorithm>
 #include <spdlog/spdlog.h>
+
+#include <algorithm>
 
 void CapabilityOverrides::load_from_config() {
     Config* cfg = Config::get_instance();

@@ -143,7 +143,8 @@ void ui_severity_card_finalize(lv_obj_t* obj) {
     lv_obj_t* icon = lv_obj_find_by_name(obj, icon_name);
     if (icon) {
         lv_obj_remove_flag(icon, LV_OBJ_FLAG_HIDDEN);
-        spdlog::debug("[SeverityCard] Finalized: showing '{}' for severity='{}'", icon_name, severity);
+        spdlog::debug("[SeverityCard] Finalized: showing '{}' for severity='{}'", icon_name,
+                      severity);
     } else {
         // Fallback: try legacy severity_icon pattern for backward compatibility
         lv_obj_t* legacy_icon = lv_obj_find_by_name(obj, "severity_icon");
@@ -151,7 +152,8 @@ void ui_severity_card_finalize(lv_obj_t* obj) {
             const char* icon_text = severity_to_icon(severity);
             lv_label_set_text(legacy_icon, icon_text);
             lv_obj_set_style_text_color(legacy_icon, ui_severity_get_color(severity), LV_PART_MAIN);
-            spdlog::debug("[SeverityCard] Finalized via legacy pattern for severity='{}'", severity);
+            spdlog::debug("[SeverityCard] Finalized via legacy pattern for severity='{}'",
+                          severity);
         } else {
             spdlog::warn("[SeverityCard] Could not find icon for severity='{}'", severity);
         }

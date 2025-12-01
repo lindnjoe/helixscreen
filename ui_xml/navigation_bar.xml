@@ -1,11 +1,9 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-
 <component>
   <!-- Vertical Navigation Bar with Reactive Icon Highlighting + Status Icons at Bottom -->
   <view extends="lv_obj" width="#nav_width" height="100%" style_pad_all="0" style_border_width="1" style_radius="0" flex_flow="column" scrollable="false" scrollbar_mode="off">
-
     <lv_obj width="100%" flex_grow="1" flex_flow="column" style_flex_track_place="center" style_flex_cross_place="center" style_pad_all="0" style_pad_top="#gap_small" style_border_width="0" style_border_color="0xaaaaaa" scrollable="false" scrollbar_mode="off">
       <!-- Home Button (Panel 0) -->
       <lv_button name="nav_btn_home" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
@@ -31,21 +29,17 @@
       <lv_button name="nav_btn_advanced" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
         <icon name="nav_icon_advanced" src="mat_sysinfo" size="lg"/>
       </lv_button>
-
-    <lv_obj width="100%" height="2" style_margin_top="#gap_tiny" style_margin_bottom="#gap_tiny" style_margin_left="#gap_tiny" style_margin_right="#gap_tiny"/>
-
-    <!-- Status Icons - smaller height (50px vs 70px nav) for tighter visual density -->
-    <!-- Names must match what ui_status_bar_init() expects for reactive coloring -->
+      <lv_obj width="100%" height="2" style_margin_top="#gap_tiny" style_margin_bottom="#gap_tiny" style_margin_left="#gap_tiny" style_margin_right="#gap_tiny"/>
+      <!-- Status Icons - smaller height (50px vs 70px nav) for tighter visual density -->
+      <!-- Names must match what ui_status_bar_init() expects for reactive coloring -->
       <!-- Printer Status Button (wrapped in lv_obj for consistent layout) -->
-        <lv_button name="status_btn_printer" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
-          <icon name="status_printer_icon" src="mat_printer_3d" size="sm"/>
-        </lv_button>
-
+      <lv_button name="status_btn_printer" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
+        <icon name="status_printer_icon" src="mat_printer_3d" size="sm"/>
+      </lv_button>
       <!-- Network Status Button (wrapped in lv_obj for consistent layout) -->
-        <lv_button name="status_btn_network" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
-          <icon name="status_network_icon" src="mat_lan" size="sm"/>
-        </lv_button>
-
+      <lv_button name="status_btn_network" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
+        <icon name="status_network_icon" src="mat_lan" size="sm"/>
+      </lv_button>
       <!-- Notification Button with Badge -->
       <!-- Fixed height prevents layout recalculation from causing scrollbar -->
       <lv_obj name="status_notification_history_container" width="100%" height="48" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false">

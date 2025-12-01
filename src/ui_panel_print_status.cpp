@@ -3,7 +3,6 @@
 
 #include "ui_panel_print_status.h"
 
-#include "runtime_config.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_gcode_viewer.h"
@@ -39,38 +38,37 @@ PrintStatusPanel& get_global_print_status_panel() {
 
 PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* api)
     : PanelBase(printer_state, api) {
-
     // Subscribe to PrinterState temperature subjects (ObserverGuard handles cleanup)
-    extruder_temp_observer_ = ObserverGuard(printer_state_.get_extruder_temp_subject(),
-                                            extruder_temp_observer_cb, this);
+    extruder_temp_observer_ =
+        ObserverGuard(printer_state_.get_extruder_temp_subject(), extruder_temp_observer_cb, this);
     extruder_target_observer_ = ObserverGuard(printer_state_.get_extruder_target_subject(),
                                               extruder_target_observer_cb, this);
-    bed_temp_observer_ = ObserverGuard(printer_state_.get_bed_temp_subject(),
-                                       bed_temp_observer_cb, this);
-    bed_target_observer_ = ObserverGuard(printer_state_.get_bed_target_subject(),
-                                         bed_target_observer_cb, this);
+    bed_temp_observer_ =
+        ObserverGuard(printer_state_.get_bed_temp_subject(), bed_temp_observer_cb, this);
+    bed_target_observer_ =
+        ObserverGuard(printer_state_.get_bed_target_subject(), bed_target_observer_cb, this);
 
     // Subscribe to print progress and state
     print_progress_observer_ = ObserverGuard(printer_state_.get_print_progress_subject(),
                                              print_progress_observer_cb, this);
-    print_state_observer_ = ObserverGuard(printer_state_.get_print_state_enum_subject(),
-                                          print_state_observer_cb, this);
+    print_state_observer_ =
+        ObserverGuard(printer_state_.get_print_state_enum_subject(), print_state_observer_cb, this);
     print_filename_observer_ = ObserverGuard(printer_state_.get_print_filename_subject(),
                                              print_filename_observer_cb, this);
 
     // Subscribe to speed/flow factors
-    speed_factor_observer_ = ObserverGuard(printer_state_.get_speed_factor_subject(),
-                                           speed_factor_observer_cb, this);
-    flow_factor_observer_ = ObserverGuard(printer_state_.get_flow_factor_subject(),
-                                          flow_factor_observer_cb, this);
+    speed_factor_observer_ =
+        ObserverGuard(printer_state_.get_speed_factor_subject(), speed_factor_observer_cb, this);
+    flow_factor_observer_ =
+        ObserverGuard(printer_state_.get_flow_factor_subject(), flow_factor_observer_cb, this);
 
     // Subscribe to layer tracking for G-code viewer ghost layer updates
     print_layer_observer_ = ObserverGuard(printer_state_.get_print_layer_current_subject(),
                                           print_layer_observer_cb, this);
 
     // Subscribe to excluded objects changes (for syncing from Klipper)
-    excluded_objects_observer_ = ObserverGuard(printer_state_.get_excluded_objects_version_subject(),
-                                                excluded_objects_observer_cb, this);
+    excluded_objects_observer_ = ObserverGuard(
+        printer_state_.get_excluded_objects_version_subject(), excluded_objects_observer_cb, this);
 
     spdlog::debug("[{}] Subscribed to PrinterState subjects", get_name());
 
@@ -79,8 +77,8 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
     if (config) {
         configured_led_ = config->get<std::string>(WizardConfigPaths::LED_STRIP, "");
         if (!configured_led_.empty()) {
-            led_state_observer_ = ObserverGuard(printer_state_.get_led_state_subject(),
-                                                led_state_observer_cb, this);
+            led_state_observer_ =
+                ObserverGuard(printer_state_.get_led_state_subject(), led_state_observer_cb, this);
             spdlog::debug("[{}] Configured LED: {} (observing state)", get_name(), configured_led_);
         }
     }
@@ -694,7 +692,8 @@ void PrintStatusPanel::print_layer_observer_cb(lv_observer_t* observer, lv_subje
     }
 }
 
-void PrintStatusPanel::excluded_objects_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+void PrintStatusPanel::excluded_objects_observer_cb(lv_observer_t* observer,
+                                                    lv_subject_t* subject) {
     (void)subject; // Version number not needed, just signals a change
     auto* self = static_cast<PrintStatusPanel*>(lv_observer_get_user_data(observer));
     if (self) {
@@ -911,7 +910,7 @@ void PrintStatusPanel::set_state(PrintState state) {
 // ============================================================================
 
 void PrintStatusPanel::set_preparing(const std::string& operation_name, int current_step,
-                                      int total_steps) {
+                                     int total_steps) {
     current_state_ = PrintState::Preparing;
 
     // Update operation name with step info: "Homing (1/3)"
@@ -921,9 +920,8 @@ void PrintStatusPanel::set_preparing(const std::string& operation_name, int curr
 
     // Calculate overall progress based on step position
     // Each step contributes equally to 100%
-    int progress = (current_step > 0 && total_steps > 0)
-                       ? ((current_step - 1) * 100) / total_steps
-                       : 0;
+    int progress =
+        (current_step > 0 && total_steps > 0) ? ((current_step - 1) * 100) / total_steps : 0;
     lv_subject_set_int(&preparing_progress_subject_, progress);
 
     // Make preparing UI visible
@@ -969,7 +967,7 @@ void PrintStatusPanel::end_preparing(bool success) {
 constexpr uint32_t EXCLUDE_UNDO_WINDOW_MS = 5000; // 5 second undo window
 
 void PrintStatusPanel::on_object_long_pressed(lv_obj_t* viewer, const char* object_name,
-                                               void* user_data) {
+                                              void* user_data) {
     (void)viewer;
     auto* self = static_cast<PrintStatusPanel*>(user_data);
     if (self && object_name && object_name[0] != '\0') {
@@ -1006,11 +1004,7 @@ void PrintStatusPanel::handle_object_long_press(const char* object_name) {
     std::string message = "Stop printing \"" + std::string(object_name) +
                           "\"?\n\nThis cannot be undone after 5 seconds.";
 
-    const char* attrs[] = {
-        "title", title.c_str(),
-        "message", message.c_str(),
-        nullptr
-    };
+    const char* attrs[] = {"title", title.c_str(), "message", message.c_str(), nullptr};
 
     lv_obj_t* screen = lv_screen_active();
     lv_xml_create(screen, "confirmation_dialog", attrs);
@@ -1092,18 +1086,14 @@ void PrintStatusPanel::handle_exclude_confirmed() {
     // Show toast with "Undo" action button
     std::string toast_msg = "Excluding \"" + pending_exclude_object_ + "\"...";
     ui_toast_show_with_action(
-        ToastSeverity::WARNING,
-        toast_msg.c_str(),
-        "Undo",
+        ToastSeverity::WARNING, toast_msg.c_str(), "Undo",
         [](void* user_data) {
             auto* self = static_cast<PrintStatusPanel*>(user_data);
             if (self) {
                 self->handle_exclude_undo();
             }
         },
-        this,
-        EXCLUDE_UNDO_WINDOW_MS
-    );
+        this, EXCLUDE_UNDO_WINDOW_MS);
 
     spdlog::info("[{}] Started {}ms undo window for '{}'", get_name(), EXCLUDE_UNDO_WINDOW_MS,
                  pending_exclude_object_);
@@ -1179,7 +1169,8 @@ void PrintStatusPanel::exclude_undo_timer_cb(lv_timer_t* timer) {
         self->api_->exclude_object(
             object_name,
             [self, object_name]() {
-                spdlog::info("[PrintStatusPanel] EXCLUDE_OBJECT '{}' sent successfully", object_name);
+                spdlog::info("[PrintStatusPanel] EXCLUDE_OBJECT '{}' sent successfully",
+                             object_name);
                 // Move to confirmed excluded set
                 self->excluded_objects_.insert(object_name);
             },
@@ -1190,8 +1181,10 @@ void PrintStatusPanel::exclude_undo_timer_cb(lv_timer_t* timer) {
 
                 // Revert visual state - refresh viewer with only confirmed exclusions
                 if (self->gcode_viewer_) {
-                    ui_gcode_viewer_set_excluded_objects(self->gcode_viewer_, self->excluded_objects_);
-                    spdlog::debug("[PrintStatusPanel] Reverted visual exclusion for '{}'", object_name);
+                    ui_gcode_viewer_set_excluded_objects(self->gcode_viewer_,
+                                                         self->excluded_objects_);
+                    spdlog::debug("[PrintStatusPanel] Reverted visual exclusion for '{}'",
+                                  object_name);
                 }
             });
     } else {
@@ -1199,4 +1192,3 @@ void PrintStatusPanel::exclude_undo_timer_cb(lv_timer_t* timer) {
         self->excluded_objects_.insert(object_name);
     }
 }
-

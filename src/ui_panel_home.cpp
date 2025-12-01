@@ -35,8 +35,8 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     std::strcpy(network_color_buffer_, "0xff4444");
 
     // Subscribe to PrinterState subjects (ObserverGuard handles cleanup)
-    extruder_temp_observer_ = ObserverGuard(printer_state_.get_extruder_temp_subject(),
-                                            extruder_temp_observer_cb, this);
+    extruder_temp_observer_ =
+        ObserverGuard(printer_state_.get_extruder_temp_subject(), extruder_temp_observer_cb, this);
     connection_state_observer_ = ObserverGuard(
         printer_state_.get_printer_connection_state_subject(), connection_state_observer_cb, this);
 
@@ -52,8 +52,8 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
             printer_state_.set_tracked_led(configured_led_);
 
             // Subscribe to LED state changes from PrinterState
-            led_state_observer_ = ObserverGuard(printer_state_.get_led_state_subject(),
-                                                led_state_observer_cb, this);
+            led_state_observer_ =
+                ObserverGuard(printer_state_.get_led_state_subject(), led_state_observer_cb, this);
 
             spdlog::info("[{}] Configured LED: {} (observing state)", get_name(), configured_led_);
         } else {

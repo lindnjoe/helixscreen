@@ -29,7 +29,6 @@ TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* ap
       nozzle_max_temp_(AppConstants::Temperature::DEFAULT_NOZZLE_MAX),
       bed_min_temp_(AppConstants::Temperature::DEFAULT_MIN_TEMP),
       bed_max_temp_(AppConstants::Temperature::DEFAULT_BED_MAX) {
-
     nozzle_config_ = {.type = HEATER_NOZZLE,
                       .name = "Nozzle",
                       .title = "Nozzle Temperature",
@@ -56,14 +55,14 @@ TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* ap
     bed_display_buf_.fill('\0');
 
     // Subscribe to PrinterState temperature subjects (ObserverGuard handles cleanup)
-    nozzle_temp_observer_ = ObserverGuard(printer_state_.get_extruder_temp_subject(),
-                                          nozzle_temp_observer_cb, this);
+    nozzle_temp_observer_ =
+        ObserverGuard(printer_state_.get_extruder_temp_subject(), nozzle_temp_observer_cb, this);
     nozzle_target_observer_ = ObserverGuard(printer_state_.get_extruder_target_subject(),
                                             nozzle_target_observer_cb, this);
-    bed_temp_observer_ = ObserverGuard(printer_state_.get_bed_temp_subject(),
-                                       bed_temp_observer_cb, this);
-    bed_target_observer_ = ObserverGuard(printer_state_.get_bed_target_subject(),
-                                         bed_target_observer_cb, this);
+    bed_temp_observer_ =
+        ObserverGuard(printer_state_.get_bed_temp_subject(), bed_temp_observer_cb, this);
+    bed_target_observer_ =
+        ObserverGuard(printer_state_.get_bed_target_subject(), bed_target_observer_cb, this);
 
     spdlog::debug("[TempPanel] Constructed - subscribed to PrinterState temperature subjects");
 }
@@ -120,7 +119,8 @@ void TempControlPanel::on_nozzle_temp_changed(int temp) {
     if (nozzle_graph_ && nozzle_series_id_ >= 0) {
         ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_, static_cast<float>(temp));
         update_x_axis_labels(nozzle_x_labels_, nozzle_start_time_ms_, nozzle_point_count_);
-        spdlog::trace("[TempPanel] Nozzle graph updated: {}°C (point #{})", temp, nozzle_point_count_);
+        spdlog::trace("[TempPanel] Nozzle graph updated: {}°C (point #{})", temp,
+                      nozzle_point_count_);
     }
 }
 
@@ -330,8 +330,8 @@ void TempControlPanel::create_y_axis_labels(lv_obj_t* container, const heater_co
     }
 }
 
-void TempControlPanel::create_x_axis_labels(
-    lv_obj_t* container, std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels) {
+void TempControlPanel::create_x_axis_labels(lv_obj_t* container,
+                                            std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels) {
     if (!container)
         return;
 
@@ -348,14 +348,14 @@ void TempControlPanel::create_x_axis_labels(
     }
 }
 
-void TempControlPanel::update_x_axis_labels(
-    std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels, int64_t start_time_ms, int point_count) {
-
+void TempControlPanel::update_x_axis_labels(std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels,
+                                            int64_t start_time_ms, int point_count) {
     // Graph shows 300 points at 1-second intervals = 5 minutes
     constexpr int MAX_POINTS = 300;
     constexpr int64_t UPDATE_INTERVAL_MS = 1000;
 
-    // Minimum points needed before updating labels (visibility controlled reactively via XML binding)
+    // Minimum points needed before updating labels (visibility controlled reactively via XML
+    // binding)
     constexpr int MIN_POINTS_FOR_LABELS = 60;
 
     // Don't update text until we have enough data (visibility is handled by XML binding)
@@ -400,7 +400,7 @@ void TempControlPanel::nozzle_confirm_cb(lv_event_t* e) {
     int target = (self->nozzle_pending_ >= 0) ? self->nozzle_pending_ : self->nozzle_target_;
 
     spdlog::debug("[TempPanel] Nozzle temperature confirmed: {}°C (pending={})", target,
-                 self->nozzle_pending_);
+                  self->nozzle_pending_);
 
     // Clear pending BEFORE navigation (since we're about to send the command)
     self->nozzle_pending_ = -1;
@@ -436,7 +436,7 @@ void TempControlPanel::bed_confirm_cb(lv_event_t* e) {
     int target = (self->bed_pending_ >= 0) ? self->bed_pending_ : self->bed_target_;
 
     spdlog::debug("[TempPanel] Bed temperature confirmed: {}°C (pending={}, api_={})", target,
-                 self->bed_pending_, self->api_ ? "valid" : "NULL");
+                  self->bed_pending_, self->api_ ? "valid" : "NULL");
 
     // Clear pending BEFORE navigation (since we're about to send the command)
     self->bed_pending_ = -1;
@@ -589,7 +589,7 @@ void TempControlPanel::setup_nozzle_panel(lv_obj_t* panel, lv_obj_t* parent_scre
     nozzle_current_ = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
     nozzle_target_ = lv_subject_get_int(printer_state_.get_extruder_target_subject());
     spdlog::debug("[TempPanel] Nozzle initial state from PrinterState: current={}°C, target={}°C",
-                 nozzle_current_, nozzle_target_);
+                  nozzle_current_, nozzle_target_);
 
     // Update display with initial values
     update_nozzle_display();
@@ -657,7 +657,7 @@ void TempControlPanel::setup_bed_panel(lv_obj_t* panel, lv_obj_t* parent_screen)
     bed_current_ = lv_subject_get_int(printer_state_.get_bed_temp_subject());
     bed_target_ = lv_subject_get_int(printer_state_.get_bed_target_subject());
     spdlog::debug("[TempPanel] Bed initial state from PrinterState: current={}°C, target={}°C",
-                 bed_current_, bed_target_);
+                  bed_current_, bed_target_);
 
     // Update display with initial values
     update_bed_display();

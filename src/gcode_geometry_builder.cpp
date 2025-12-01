@@ -409,7 +409,8 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     // Layer tracking for ghost layer rendering
     // Temporary map to accumulate strips per layer, then convert to ranges
     std::unordered_map<uint16_t, std::vector<size_t>> layer_to_strip_indices;
-    geometry.max_layer_index = gcode.layers.empty() ? 0 : static_cast<uint16_t>(gcode.layers.size() - 1);
+    geometry.max_layer_index =
+        gcode.layers.empty() ? 0 : static_cast<uint16_t>(gcode.layers.size() - 1);
 
     spdlog::info("[GCode::Builder] Setting max_layer_index = {} (from {} layers)",
                  geometry.max_layer_index, gcode.layers.size());

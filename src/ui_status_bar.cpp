@@ -30,8 +30,9 @@
 #include "app_globals.h"
 #include "printer_state.h"
 
-#include <cstring>
 #include <spdlog/spdlog.h>
+
+#include <cstring>
 
 // Forward declaration for class-based API
 NotificationHistoryPanel& get_global_notification_history_panel();
@@ -51,7 +52,8 @@ static int32_t cached_klippy_state = 0; // 0=READY, 1=STARTUP, 2=SHUTDOWN, 3=ERR
 static void update_printer_icon_combined();
 
 // Observer callback for network state changes
-static void network_status_observer([[maybe_unused]] lv_observer_t* observer, lv_subject_t* subject) {
+static void network_status_observer([[maybe_unused]] lv_observer_t* observer,
+                                    lv_subject_t* subject) {
     int32_t network_state = lv_subject_get_int(subject);
     spdlog::debug("[StatusBar] Network observer fired! State: {}", network_state);
 

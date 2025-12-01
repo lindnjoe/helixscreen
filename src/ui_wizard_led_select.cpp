@@ -125,7 +125,7 @@ lv_obj_t* WizardLedSelectStep::create(lv_obj_t* parent) {
     // Populate LED dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
         screen_root_, "led_main_dropdown", &led_strip_selected_, led_strip_items_,
-        [](MoonrakerClient* c) -> const auto& { return c->get_leds(); },
+        [](MoonrakerClient * c) -> const auto& { return c->get_leds(); },
         nullptr, // No filter - include all LEDs
         true,    // Allow "None" option
         WizardConfigPaths::LED_STRIP,

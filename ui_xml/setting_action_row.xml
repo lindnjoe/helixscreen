@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-
 <!-- Reusable Settings Action Row Component -->
 <!-- Creates a clickable row that opens a sub-panel or performs an action -->
 <!-- Usage: <setting_action_row label="Network Settings" icon="mat_lan" description="WiFi and Ethernet"/> -->

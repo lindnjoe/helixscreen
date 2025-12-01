@@ -3,13 +3,13 @@
 
 #include "gcode_ops_detector.h"
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <regex>
 #include <sstream>
-
-#include <spdlog/spdlog.h>
 
 namespace gcode {
 
@@ -19,22 +19,22 @@ namespace gcode {
 
 std::string DetectedOperation::display_name() const {
     switch (type) {
-        case OperationType::BED_LEVELING:
-            return "Bed Leveling";
-        case OperationType::QGL:
-            return "Quad Gantry Level";
-        case OperationType::Z_TILT:
-            return "Z Tilt Adjust";
-        case OperationType::NOZZLE_CLEAN:
-            return "Nozzle Cleaning";
-        case OperationType::HOMING:
-            return "Homing";
-        case OperationType::CHAMBER_SOAK:
-            return "Chamber Soak";
-        case OperationType::PURGE_LINE:
-            return "Purge Line";
-        case OperationType::START_PRINT:
-            return "Start Print";
+    case OperationType::BED_LEVELING:
+        return "Bed Leveling";
+    case OperationType::QGL:
+        return "Quad Gantry Level";
+    case OperationType::Z_TILT:
+        return "Z Tilt Adjust";
+    case OperationType::NOZZLE_CLEAN:
+        return "Nozzle Cleaning";
+    case OperationType::HOMING:
+        return "Homing";
+    case OperationType::CHAMBER_SOAK:
+        return "Chamber Soak";
+    case OperationType::PURGE_LINE:
+        return "Purge Line";
+    case OperationType::START_PRINT:
+        return "Start Print";
     }
     return "Unknown";
 }
@@ -74,22 +74,22 @@ GCodeOpsDetector::GCodeOpsDetector(const DetectionConfig& config) : config_(conf
 
 std::string GCodeOpsDetector::operation_type_name(OperationType type) {
     switch (type) {
-        case OperationType::BED_LEVELING:
-            return "bed_leveling";
-        case OperationType::QGL:
-            return "qgl";
-        case OperationType::Z_TILT:
-            return "z_tilt";
-        case OperationType::NOZZLE_CLEAN:
-            return "nozzle_clean";
-        case OperationType::HOMING:
-            return "homing";
-        case OperationType::CHAMBER_SOAK:
-            return "chamber_soak";
-        case OperationType::PURGE_LINE:
-            return "purge_line";
-        case OperationType::START_PRINT:
-            return "start_print";
+    case OperationType::BED_LEVELING:
+        return "bed_leveling";
+    case OperationType::QGL:
+        return "qgl";
+    case OperationType::Z_TILT:
+        return "z_tilt";
+    case OperationType::NOZZLE_CLEAN:
+        return "nozzle_clean";
+    case OperationType::HOMING:
+        return "homing";
+    case OperationType::CHAMBER_SOAK:
+        return "chamber_soak";
+    case OperationType::PURGE_LINE:
+        return "purge_line";
+    case OperationType::START_PRINT:
+        return "start_print";
     }
     return "unknown";
 }
@@ -103,7 +103,7 @@ void GCodeOpsDetector::init_default_patterns() {
     patterns_.push_back({OperationType::BED_LEVELING, "BED_MESH_CALIBRATE",
                          OperationEmbedding::DIRECT_COMMAND, false});
     patterns_.push_back({OperationType::BED_LEVELING, "G29", OperationEmbedding::DIRECT_COMMAND,
-                         true});  // Case sensitive for G-codes
+                         true}); // Case sensitive for G-codes
     patterns_.push_back({OperationType::BED_LEVELING, "BED_MESH_PROFILE LOAD",
                          OperationEmbedding::DIRECT_COMMAND, false});
 
@@ -146,8 +146,7 @@ void GCodeOpsDetector::init_default_patterns() {
     // Homing patterns
     // ========================================================================
 
-    patterns_.push_back(
-        {OperationType::HOMING, "G28", OperationEmbedding::DIRECT_COMMAND, true});
+    patterns_.push_back({OperationType::HOMING, "G28", OperationEmbedding::DIRECT_COMMAND, true});
     patterns_.push_back(
         {OperationType::HOMING, "SAFE_HOME", OperationEmbedding::MACRO_CALL, false});
 
@@ -243,7 +242,7 @@ ScanResult GCodeOpsDetector::scan_stream(std::istream& stream) const {
             check_line(line, line_number, byte_offset, result);
         }
 
-        byte_offset += line.size() + 1;  // +1 for newline
+        byte_offset += line.size() + 1; // +1 for newline
     }
 
     result.lines_scanned = line_number;
@@ -256,7 +255,7 @@ ScanResult GCodeOpsDetector::scan_stream(std::istream& stream) const {
 }
 
 void GCodeOpsDetector::check_line(const std::string& line, size_t line_number, size_t byte_offset,
-                                   ScanResult& result) const {
+                                  ScanResult& result) const {
     // Trim leading whitespace for matching
     size_t start = line.find_first_not_of(" \t");
     if (start == std::string::npos) {
@@ -344,7 +343,7 @@ bool GCodeOpsDetector::is_first_extrusion(const std::string& line) const {
             return false;
         }
         float e_val = std::stof(e_str);
-        return e_val > 0.001f;  // Positive extrusion
+        return e_val > 0.001f; // Positive extrusion
     } catch (...) {
         return false;
     }
@@ -366,7 +365,7 @@ bool GCodeOpsDetector::is_layer_marker(const std::string& line) const {
 }
 
 void GCodeOpsDetector::parse_start_print_params(const std::string& line, size_t line_number,
-                                                 size_t byte_offset, ScanResult& result) const {
+                                                size_t byte_offset, ScanResult& result) const {
     // Parse parameters like: START_PRINT EXTRUDER_TEMP=220 BED_TEMP=60 FORCE_LEVELING=true
     // We're looking for parameters that indicate operations:
     // - FORCE_LEVELING, BED_LEVEL, DO_BED_MESH, MESH -> bed leveling
@@ -455,9 +454,9 @@ void GCodeOpsDetector::parse_start_print_params(const std::string& line, size_t 
 
         if (enabled) {
             // Check if we already have this operation type
-            bool already_detected = std::any_of(
-                result.operations.begin(), result.operations.end(),
-                [op_type](const DetectedOperation& op) { return op.type == op_type; });
+            bool already_detected =
+                std::any_of(result.operations.begin(), result.operations.end(),
+                            [op_type](const DetectedOperation& op) { return op.type == op_type; });
 
             if (!already_detected) {
                 DetectedOperation op;
@@ -472,8 +471,9 @@ void GCodeOpsDetector::parse_start_print_params(const std::string& line, size_t 
 
                 result.operations.push_back(std::move(op));
 
-                spdlog::trace("[GCodeOpsDetector] Detected {} via START_PRINT param {}={} at line {}",
-                              operation_type_name(op_type), param_name, value, line_number);
+                spdlog::trace(
+                    "[GCodeOpsDetector] Detected {} via START_PRINT param {}={} at line {}",
+                    operation_type_name(op_type), param_name, value, line_number);
             }
         }
     }

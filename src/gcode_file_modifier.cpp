@@ -3,6 +3,8 @@
 
 #include "gcode_file_modifier.h"
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -11,8 +13,6 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
-
-#include <spdlog/spdlog.h>
 
 namespace gcode {
 
@@ -31,14 +31,13 @@ void GCodeFileModifier::clear_modifications() {
 void GCodeFileModifier::sort_modifications() {
     // Sort by line number descending (process from end to start)
     // This preserves line numbers for earlier modifications
-    std::sort(modifications_.begin(), modifications_.end(),
-              [](const Modification& a, const Modification& b) {
-                  return a.line_number > b.line_number;
-              });
+    std::sort(
+        modifications_.begin(), modifications_.end(),
+        [](const Modification& a, const Modification& b) { return a.line_number > b.line_number; });
 }
 
 std::string GCodeFileModifier::comment_out_line(const std::string& line,
-                                                  const std::string& reason) {
+                                                const std::string& reason) {
     std::string result = "; ";
     result += line;
     if (!reason.empty()) {
@@ -50,8 +49,8 @@ std::string GCodeFileModifier::comment_out_line(const std::string& line,
 }
 
 void GCodeFileModifier::apply_single_modification(std::vector<std::string>& lines,
-                                                    const Modification& mod,
-                                                    ModificationResult& result) {
+                                                  const Modification& mod,
+                                                  ModificationResult& result) {
     // Line numbers are 1-indexed, vector is 0-indexed
     size_t idx = mod.line_number - 1;
 
@@ -67,95 +66,93 @@ void GCodeFileModifier::apply_single_modification(std::vector<std::string>& line
     }
 
     switch (mod.type) {
-        case ModificationType::COMMENT_OUT: {
-            // Comment out from idx to end_idx (inclusive)
-            for (size_t i = idx; i <= end_idx; ++i) {
-                // Skip if already a comment
-                if (!lines[i].empty() && lines[i][0] == ';') {
-                    continue;
-                }
-                lines[i] = comment_out_line(lines[i], mod.comment);
-                result.lines_modified++;
+    case ModificationType::COMMENT_OUT: {
+        // Comment out from idx to end_idx (inclusive)
+        for (size_t i = idx; i <= end_idx; ++i) {
+            // Skip if already a comment
+            if (!lines[i].empty() && lines[i][0] == ';') {
+                continue;
             }
-            spdlog::debug("[GCodeFileModifier] Commented out lines {}-{}", mod.line_number,
-                          end_idx + 1);
-            break;
-        }
-
-        case ModificationType::DELETE: {
-            // Delete from idx to end_idx (inclusive)
-            size_t count = end_idx - idx + 1;
-            lines.erase(lines.begin() + static_cast<long>(idx),
-                        lines.begin() + static_cast<long>(end_idx + 1));
-            result.lines_removed += count;
-            spdlog::debug("[GCodeFileModifier] Deleted {} lines starting at {}", count,
-                          mod.line_number);
-            break;
-        }
-
-        case ModificationType::INJECT_BEFORE: {
-            // Split the gcode to inject into lines
-            std::vector<std::string> new_lines;
-            std::istringstream ss(mod.gcode);
-            std::string line;
-            while (std::getline(ss, line)) {
-                new_lines.push_back(line);
-            }
-
-            // Insert before idx
-            lines.insert(lines.begin() + static_cast<long>(idx), new_lines.begin(),
-                         new_lines.end());
-            result.lines_added += new_lines.size();
-            spdlog::debug("[GCodeFileModifier] Injected {} lines before line {}", new_lines.size(),
-                          mod.line_number);
-            break;
-        }
-
-        case ModificationType::INJECT_AFTER: {
-            // Split the gcode to inject into lines
-            std::vector<std::string> new_lines;
-            std::istringstream ss(mod.gcode);
-            std::string line;
-            while (std::getline(ss, line)) {
-                new_lines.push_back(line);
-            }
-
-            // Insert after idx (at idx+1)
-            lines.insert(lines.begin() + static_cast<long>(idx + 1), new_lines.begin(),
-                         new_lines.end());
-            result.lines_added += new_lines.size();
-            spdlog::debug("[GCodeFileModifier] Injected {} lines after line {}", new_lines.size(),
-                          mod.line_number);
-            break;
-        }
-
-        case ModificationType::REPLACE: {
-            // Replace lines from idx to end_idx with new gcode
-            size_t count = end_idx - idx + 1;
-
-            // Split the replacement gcode into lines
-            std::vector<std::string> new_lines;
-            std::istringstream ss(mod.gcode);
-            std::string line;
-            while (std::getline(ss, line)) {
-                new_lines.push_back(line);
-            }
-
-            // Erase old lines
-            lines.erase(lines.begin() + static_cast<long>(idx),
-                        lines.begin() + static_cast<long>(end_idx + 1));
-
-            // Insert new lines
-            lines.insert(lines.begin() + static_cast<long>(idx), new_lines.begin(),
-                         new_lines.end());
-
-            result.lines_removed += count;
-            result.lines_added += new_lines.size();
+            lines[i] = comment_out_line(lines[i], mod.comment);
             result.lines_modified++;
-            spdlog::debug("[GCodeFileModifier] Replaced {} lines at {} with {} lines", count,
-                          mod.line_number, new_lines.size());
-            break;
         }
+        spdlog::debug("[GCodeFileModifier] Commented out lines {}-{}", mod.line_number,
+                      end_idx + 1);
+        break;
+    }
+
+    case ModificationType::DELETE: {
+        // Delete from idx to end_idx (inclusive)
+        size_t count = end_idx - idx + 1;
+        lines.erase(lines.begin() + static_cast<long>(idx),
+                    lines.begin() + static_cast<long>(end_idx + 1));
+        result.lines_removed += count;
+        spdlog::debug("[GCodeFileModifier] Deleted {} lines starting at {}", count,
+                      mod.line_number);
+        break;
+    }
+
+    case ModificationType::INJECT_BEFORE: {
+        // Split the gcode to inject into lines
+        std::vector<std::string> new_lines;
+        std::istringstream ss(mod.gcode);
+        std::string line;
+        while (std::getline(ss, line)) {
+            new_lines.push_back(line);
+        }
+
+        // Insert before idx
+        lines.insert(lines.begin() + static_cast<long>(idx), new_lines.begin(), new_lines.end());
+        result.lines_added += new_lines.size();
+        spdlog::debug("[GCodeFileModifier] Injected {} lines before line {}", new_lines.size(),
+                      mod.line_number);
+        break;
+    }
+
+    case ModificationType::INJECT_AFTER: {
+        // Split the gcode to inject into lines
+        std::vector<std::string> new_lines;
+        std::istringstream ss(mod.gcode);
+        std::string line;
+        while (std::getline(ss, line)) {
+            new_lines.push_back(line);
+        }
+
+        // Insert after idx (at idx+1)
+        lines.insert(lines.begin() + static_cast<long>(idx + 1), new_lines.begin(),
+                     new_lines.end());
+        result.lines_added += new_lines.size();
+        spdlog::debug("[GCodeFileModifier] Injected {} lines after line {}", new_lines.size(),
+                      mod.line_number);
+        break;
+    }
+
+    case ModificationType::REPLACE: {
+        // Replace lines from idx to end_idx with new gcode
+        size_t count = end_idx - idx + 1;
+
+        // Split the replacement gcode into lines
+        std::vector<std::string> new_lines;
+        std::istringstream ss(mod.gcode);
+        std::string line;
+        while (std::getline(ss, line)) {
+            new_lines.push_back(line);
+        }
+
+        // Erase old lines
+        lines.erase(lines.begin() + static_cast<long>(idx),
+                    lines.begin() + static_cast<long>(end_idx + 1));
+
+        // Insert new lines
+        lines.insert(lines.begin() + static_cast<long>(idx), new_lines.begin(), new_lines.end());
+
+        result.lines_removed += count;
+        result.lines_added += new_lines.size();
+        result.lines_modified++;
+        spdlog::debug("[GCodeFileModifier] Replaced {} lines at {} with {} lines", count,
+                      mod.line_number, new_lines.size());
+        break;
+    }
     }
 }
 
@@ -207,8 +204,9 @@ ModificationResult GCodeFileModifier::apply(const std::filesystem::path& filepat
 
     // Use streaming for large files
     if (file_size > MAX_BUFFERED_FILE_SIZE) {
-        spdlog::info("[GCodeFileModifier] File {} ({} MB) exceeds buffer threshold, using streaming",
-                     filepath.filename().string(), file_size / (1024 * 1024));
+        spdlog::info(
+            "[GCodeFileModifier] File {} ({} MB) exceeds buffer threshold, using streaming",
+            filepath.filename().string(), file_size / (1024 * 1024));
         return apply_streaming(filepath);
     }
 
@@ -232,7 +230,7 @@ ModificationResult GCodeFileModifier::apply_buffered(const std::filesystem::path
     std::string line;
     while (std::getline(infile, line)) {
         lines.push_back(line);
-        result.original_size += line.size() + 1;  // +1 for newline
+        result.original_size += line.size() + 1; // +1 for newline
     }
     infile.close();
 
@@ -295,9 +293,9 @@ ModificationResult GCodeFileModifier::apply_buffered(const std::filesystem::path
     outfile.close();
 
     result.success = true;
-    spdlog::info(
-        "[GCodeFileModifier] Created modified file: {} ({} bytes, +{} -{} lines changed)",
-        result.modified_path, result.modified_size, result.lines_added, result.lines_removed);
+    spdlog::info("[GCodeFileModifier] Created modified file: {} ({} bytes, +{} -{} lines changed)",
+                 result.modified_path, result.modified_size, result.lines_added,
+                 result.lines_removed);
 
     return result;
 }
@@ -312,10 +310,9 @@ std::unordered_map<size_t, Modification> GCodeFileModifier::build_streaming_look
 
         if (mod.end_line_number > 0 && mod.type != ModificationType::COMMENT_OUT &&
             mod.type != ModificationType::DELETE) {
-            spdlog::warn(
-                "[GCodeFileModifier] Streaming mode: multi-line {} not fully supported, "
-                "processing line {} only",
-                static_cast<int>(mod.type), mod.line_number);
+            spdlog::warn("[GCodeFileModifier] Streaming mode: multi-line {} not fully supported, "
+                         "processing line {} only",
+                         static_cast<int>(mod.type), mod.line_number);
             end_line = mod.line_number;
         }
 
@@ -323,7 +320,7 @@ std::unordered_map<size_t, Modification> GCodeFileModifier::build_streaming_look
             // Create a modified copy for each line in the range
             Modification line_mod = mod;
             line_mod.line_number = line;
-            line_mod.end_line_number = 0;  // Reset to single-line for streaming
+            line_mod.end_line_number = 0; // Reset to single-line for streaming
             lookup[line] = line_mod;
         }
     }
@@ -376,86 +373,94 @@ ModificationResult GCodeFileModifier::apply_streaming(const std::filesystem::pat
             const auto& mod = it->second;
 
             switch (mod.type) {
-                case ModificationType::COMMENT_OUT: {
-                    // Skip if already a comment
-                    if (!line.empty() && line[0] == ';') {
-                        if (!first_line) outfile << '\n';
-                        outfile << line;
-                    } else {
-                        std::string commented = comment_out_line(line, mod.comment);
-                        if (!first_line) outfile << '\n';
-                        outfile << commented;
-                        result.lines_modified++;
-                    }
-                    result.modified_size += line.size() + (first_line ? 0 : 1);
-                    first_line = false;
-                    break;
-                }
-
-                case ModificationType::DELETE: {
-                    // Simply skip the line (don't write it)
-                    result.lines_removed++;
-                    // Note: we don't add to modified_size for deleted lines
-                    break;
-                }
-
-                case ModificationType::INJECT_BEFORE: {
-                    // Write injected content first
-                    std::istringstream ss(mod.gcode);
-                    std::string inject_line;
-                    while (std::getline(ss, inject_line)) {
-                        if (!first_line) outfile << '\n';
-                        outfile << inject_line;
-                        result.modified_size += inject_line.size() + (first_line ? 0 : 1);
-                        result.lines_added++;
-                        first_line = false;
-                    }
-                    // Then write the original line
-                    if (!first_line) outfile << '\n';
-                    outfile << line;
-                    result.modified_size += line.size() + 1;
-                    first_line = false;
-                    break;
-                }
-
-                case ModificationType::INJECT_AFTER: {
-                    // Write original line first
-                    if (!first_line) outfile << '\n';
-                    outfile << line;
-                    result.modified_size += line.size() + (first_line ? 0 : 1);
-                    first_line = false;
-                    // Then write injected content
-                    std::istringstream ss(mod.gcode);
-                    std::string inject_line;
-                    while (std::getline(ss, inject_line)) {
+            case ModificationType::COMMENT_OUT: {
+                // Skip if already a comment
+                if (!line.empty() && line[0] == ';') {
+                    if (!first_line)
                         outfile << '\n';
-                        outfile << inject_line;
-                        result.modified_size += inject_line.size() + 1;
-                        result.lines_added++;
-                    }
-                    break;
-                }
-
-                case ModificationType::REPLACE: {
-                    // Write replacement content instead of original
-                    std::istringstream ss(mod.gcode);
-                    std::string replace_line;
-                    bool first_replace = true;
-                    while (std::getline(ss, replace_line)) {
-                        if (!first_line && !first_replace) outfile << '\n';
-                        if (!first_line && first_replace) outfile << '\n';
-                        outfile << replace_line;
-                        result.modified_size += replace_line.size() + (first_line ? 0 : 1);
-                        first_replace = false;
-                        first_line = false;
-                    }
+                    outfile << line;
+                } else {
+                    std::string commented = comment_out_line(line, mod.comment);
+                    if (!first_line)
+                        outfile << '\n';
+                    outfile << commented;
                     result.lines_modified++;
-                    break;
                 }
+                result.modified_size += line.size() + (first_line ? 0 : 1);
+                first_line = false;
+                break;
+            }
+
+            case ModificationType::DELETE: {
+                // Simply skip the line (don't write it)
+                result.lines_removed++;
+                // Note: we don't add to modified_size for deleted lines
+                break;
+            }
+
+            case ModificationType::INJECT_BEFORE: {
+                // Write injected content first
+                std::istringstream ss(mod.gcode);
+                std::string inject_line;
+                while (std::getline(ss, inject_line)) {
+                    if (!first_line)
+                        outfile << '\n';
+                    outfile << inject_line;
+                    result.modified_size += inject_line.size() + (first_line ? 0 : 1);
+                    result.lines_added++;
+                    first_line = false;
+                }
+                // Then write the original line
+                if (!first_line)
+                    outfile << '\n';
+                outfile << line;
+                result.modified_size += line.size() + 1;
+                first_line = false;
+                break;
+            }
+
+            case ModificationType::INJECT_AFTER: {
+                // Write original line first
+                if (!first_line)
+                    outfile << '\n';
+                outfile << line;
+                result.modified_size += line.size() + (first_line ? 0 : 1);
+                first_line = false;
+                // Then write injected content
+                std::istringstream ss(mod.gcode);
+                std::string inject_line;
+                while (std::getline(ss, inject_line)) {
+                    outfile << '\n';
+                    outfile << inject_line;
+                    result.modified_size += inject_line.size() + 1;
+                    result.lines_added++;
+                }
+                break;
+            }
+
+            case ModificationType::REPLACE: {
+                // Write replacement content instead of original
+                std::istringstream ss(mod.gcode);
+                std::string replace_line;
+                bool first_replace = true;
+                while (std::getline(ss, replace_line)) {
+                    if (!first_line && !first_replace)
+                        outfile << '\n';
+                    if (!first_line && first_replace)
+                        outfile << '\n';
+                    outfile << replace_line;
+                    result.modified_size += replace_line.size() + (first_line ? 0 : 1);
+                    first_replace = false;
+                    first_line = false;
+                }
+                result.lines_modified++;
+                break;
+            }
             }
         } else {
             // No modification - write line as-is
-            if (!first_line) outfile << '\n';
+            if (!first_line)
+                outfile << '\n';
             outfile << line;
             result.modified_size += line.size() + (first_line ? 0 : 1);
             first_line = false;
@@ -466,31 +471,31 @@ ModificationResult GCodeFileModifier::apply_streaming(const std::filesystem::pat
     outfile.close();
 
     result.success = true;
-    spdlog::info(
-        "[GCodeFileModifier] Streaming complete: {} ({} bytes, +{} -{} lines)",
-        result.modified_path, result.modified_size, result.lines_added, result.lines_removed);
+    spdlog::info("[GCodeFileModifier] Streaming complete: {} ({} bytes, +{} -{} lines)",
+                 result.modified_path, result.modified_size, result.lines_added,
+                 result.lines_removed);
 
     return result;
 }
 
 bool GCodeFileModifier::disable_operation(const DetectedOperation& op) {
     switch (op.embedding) {
-        case OperationEmbedding::DIRECT_COMMAND:
-        case OperationEmbedding::MACRO_CALL:
-            // Comment out the line containing the operation
-            add_modification(Modification::comment_out(
-                op.line_number, "Disabled " + op.display_name()));
-            spdlog::debug("[GCodeFileModifier] Will disable {} at line {}", op.display_name(),
-                          op.line_number);
-            return true;
+    case OperationEmbedding::DIRECT_COMMAND:
+    case OperationEmbedding::MACRO_CALL:
+        // Comment out the line containing the operation
+        add_modification(
+            Modification::comment_out(op.line_number, "Disabled " + op.display_name()));
+        spdlog::debug("[GCodeFileModifier] Will disable {} at line {}", op.display_name(),
+                      op.line_number);
+        return true;
 
-        case OperationEmbedding::MACRO_PARAMETER:
-            // Need to modify the parameter, not comment out the whole line
-            return disable_macro_parameter(op);
+    case OperationEmbedding::MACRO_PARAMETER:
+        // Need to modify the parameter, not comment out the whole line
+        return disable_macro_parameter(op);
 
-        case OperationEmbedding::NOT_FOUND:
-            // Nothing to disable
-            return false;
+    case OperationEmbedding::NOT_FOUND:
+        // Nothing to disable
+        return false;
     }
 
     return false;
@@ -526,8 +531,8 @@ bool GCodeFileModifier::disable_macro_parameter(const DetectedOperation& op) {
     std::string modified_line = std::regex_replace(op.raw_line, re, replacement);
 
     // Add a replacement modification
-    add_modification(Modification::replace(op.line_number, modified_line,
-                                            "Disabled " + op.param_name));
+    add_modification(
+        Modification::replace(op.line_number, modified_line, "Disabled " + op.param_name));
 
     spdlog::debug("[GCodeFileModifier] Will replace {} param at line {} with value 0/FALSE",
                   op.param_name, op.line_number);
@@ -536,7 +541,7 @@ bool GCodeFileModifier::disable_macro_parameter(const DetectedOperation& op) {
 }
 
 void GCodeFileModifier::disable_operations(const ScanResult& scan_result,
-                                            const std::vector<OperationType>& types_to_disable) {
+                                           const std::vector<OperationType>& types_to_disable) {
     for (OperationType type : types_to_disable) {
         auto ops = scan_result.get_operations(type);
         for (const auto& op : ops) {
@@ -576,18 +581,16 @@ size_t GCodeFileModifier::cleanup_temp_files(int max_age_seconds) {
 
             std::string name = entry.path().filename().string();
             if (name.rfind("helixscreen_mod_", 0) != 0) {
-                continue;  // Not our file
+                continue; // Not our file
             }
 
             // Check file age
             auto ftime = std::filesystem::last_write_time(entry.path());
-            auto sctp =
-                std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-                    ftime - std::filesystem::file_time_type::clock::now() +
-                    std::chrono::system_clock::now());
+            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                ftime - std::filesystem::file_time_type::clock::now() +
+                std::chrono::system_clock::now());
 
-            auto age =
-                std::chrono::duration_cast<std::chrono::seconds>(now - sctp).count();
+            auto age = std::chrono::duration_cast<std::chrono::seconds>(now - sctp).count();
 
             if (age > max_age_seconds) {
                 std::filesystem::remove(entry.path());

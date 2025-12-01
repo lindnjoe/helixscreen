@@ -25,8 +25,8 @@ namespace gcode {
  * Controls how "unprinted" layers above the current progress layer are rendered.
  */
 enum class GhostRenderMode : uint8_t {
-    Dimmed = 0,  ///< Darker color but fully opaque
-    Stipple = 1  ///< Polygon stipple pattern (screen-door transparency) - DEFAULT
+    Dimmed = 0, ///< Darker color but fully opaque
+    Stipple = 1 ///< Polygon stipple pattern (screen-door transparency) - DEFAULT
 };
 
 /// Default ghost render mode (configurable via this constant)
@@ -391,7 +391,7 @@ class GCodeTinyGLRenderer {
     int layer_start_{0};
     int layer_end_{-1}; // -1 = all layers
     std::unordered_set<std::string> highlighted_objects_;
-    std::unordered_set<std::string> excluded_objects_;  ///< Objects excluded from print
+    std::unordered_set<std::string> excluded_objects_; ///< Objects excluded from print
     lv_opa_t global_opacity_{LV_OPA_100};
     float brightness_factor_{1.0f};
 
@@ -400,11 +400,11 @@ class GCodeTinyGLRenderer {
     float specular_shininess_{20.0f}; // Default: soft, broad highlights (OrcaSlicer: 20.0)
 
     // Ghost layer (print progress) visualization
-    int current_progress_layer_{-1};  ///< Layer up to which solid rendering applies (-1 = all solid)
-    lv_opa_t ghost_opacity_{77};      ///< ~30% opacity for ghost layers
-    bool ghost_mode_enabled_{false};  ///< True when showing print progress visualization
-    GhostRenderMode ghost_render_mode_{kDefaultGhostRenderMode};  ///< How ghost layers are rendered
-    uint8_t ghost_stipple_pattern_[128];  ///< 32x32 bit stipple pattern for screen-door effect
+    int current_progress_layer_{-1}; ///< Layer up to which solid rendering applies (-1 = all solid)
+    lv_opa_t ghost_opacity_{77};     ///< ~30% opacity for ghost layers
+    bool ghost_mode_enabled_{false}; ///< True when showing print progress visualization
+    GhostRenderMode ghost_render_mode_{kDefaultGhostRenderMode}; ///< How ghost layers are rendered
+    uint8_t ghost_stipple_pattern_[128]; ///< 32x32 bit stipple pattern for screen-door effect
 
     // TinyGL context (opaque pointer to avoid header dependency)
     void* zbuffer_{nullptr};

@@ -38,12 +38,20 @@ class MotionPanel : public PanelBase {
 
     void init_subjects() override;
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-    const char* get_name() const override { return "Motion Panel"; }
-    const char* get_xml_component_name() const override { return "motion_panel"; }
+    const char* get_name() const override {
+        return "Motion Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "motion_panel";
+    }
 
-    lv_obj_t* get_panel() const { return panel_; }
+    lv_obj_t* get_panel() const {
+        return panel_;
+    }
     void set_position(float x, float y, float z);
-    jog_distance_t get_distance() const { return current_distance_; }
+    jog_distance_t get_distance() const {
+        return current_distance_;
+    }
     void set_distance(jog_distance_t dist);
     void jog(jog_direction_t direction, float distance_mm);
     void home(char axis);

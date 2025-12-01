@@ -104,7 +104,7 @@ static NotificationStatus severity_to_notification_status(ToastSeverity severity
 
 // Internal helper to create and configure a toast
 static void create_toast_internal(ToastSeverity severity, const char* message, uint32_t duration_ms,
-                                   bool with_action) {
+                                  bool with_action) {
     if (!message) {
         spdlog::warn("Attempted to show toast with null message");
         return;
@@ -162,9 +162,9 @@ void ui_toast_show(ToastSeverity severity, const char* message, uint32_t duratio
     create_toast_internal(severity, message, duration_ms, false);
 }
 
-void ui_toast_show_with_action(ToastSeverity severity, const char* message,
-                                const char* action_text, toast_action_callback_t callback,
-                                void* user_data, uint32_t duration_ms) {
+void ui_toast_show_with_action(ToastSeverity severity, const char* message, const char* action_text,
+                               toast_action_callback_t callback, void* user_data,
+                               uint32_t duration_ms) {
     if (!action_text || !callback) {
         spdlog::warn("Toast action requires action_text and callback");
         ui_toast_show(severity, message, duration_ms);

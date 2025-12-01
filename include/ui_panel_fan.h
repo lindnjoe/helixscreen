@@ -20,8 +20,12 @@ class FanPanel : public PanelBase {
 
     void init_subjects() override;
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-    const char* get_name() const override { return "Fan Control Panel"; }
-    const char* get_xml_component_name() const override { return "fan_panel"; }
+    const char* get_name() const override {
+        return "Fan Control Panel";
+    }
+    const char* get_xml_component_name() const override {
+        return "fan_panel";
+    }
 
     /**
      * @brief Set fan speeds (called from observer or externally)
@@ -34,7 +38,9 @@ class FanPanel : public PanelBase {
      * @brief Get current slider value
      * @return Current slider value (0-100)
      */
-    int get_slider_value() const { return slider_value_; }
+    int get_slider_value() const {
+        return slider_value_;
+    }
 
   private:
     // Subjects for reactive text binding
