@@ -100,10 +100,36 @@ extern const lv_font_t lv_font_montserrat_28;
 void ui_theme_init(lv_display_t* display, bool use_dark_mode);
 
 /**
- * @brief Register responsive padding styles
+ * @brief Get breakpoint suffix for a given resolution
+ *
+ * Returns the suffix string used to select responsive variants from globals.xml.
+ * Useful for testing and debugging responsive behavior.
+ *
+ * @param max_resolution Maximum of horizontal and vertical resolution
+ * @return "_small" (≤480), "_medium" (481-800), or "_large" (>800)
+ */
+const char* ui_theme_get_breakpoint_suffix(int32_t max_resolution);
+
+/**
+ * @brief Register responsive spacing tokens (space_* system)
+ *
+ * Registers the unified spacing scale (space_xxs through space_xl) based on
+ * current display resolution. This is the preferred system - use space_*
+ * tokens instead of the deprecated padding_* and gap_* tokens.
+ *
+ * Called automatically by ui_theme_init().
+ *
+ * @param display LVGL display instance
+ */
+void ui_theme_register_responsive_spacing(lv_display_t* display);
+
+/**
+ * @brief Register responsive padding styles (DEPRECATED)
+ *
+ * @deprecated Use ui_theme_register_responsive_spacing() and space_* tokens instead.
  *
  * Creates padding styles that adapt based on screen size breakpoints.
- * Should be called after ui_theme_init().
+ * Maintained for backward compatibility during migration to space_* system.
  *
  * @param display LVGL display instance
  */

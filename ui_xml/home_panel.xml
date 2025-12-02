@@ -17,7 +17,7 @@
   <!-- Now references global constants from globals.xml -->
   <view extends="lv_obj" width="100%" height="100%" style_pad_all="0" style_border_width="0" flex_flow="column">
     <!-- Top section: Printer visualization + Tip (60% of height via flex_grow="3") -->
-    <lv_obj width="100%" flex_grow="3" style_bg_opa="0%" style_border_width="0" style_pad_all="#padding_normal" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" scrollable="false">
+    <lv_obj width="100%" flex_grow="3" style_bg_opa="0%" style_border_width="0" style_pad_all="#space_lg" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" scrollable="false">
       <!-- Printer Image Container: fixed percentage width, image scales to fit via inner_align="contain" -->
       <lv_obj name="printer_container" width="#printer_container_width" height="100%" style_bg_opa="0%" style_border_width="0" style_pad_all="0" scrollable="false">
         <lv_image name="printer_image" src="A:assets/images/printer_400.png" width="100%" height="100%" inner_align="contain"/>
@@ -31,7 +31,7 @@
         <!-- Vertical accent bar (height fills container) -->
         <lv_obj name="status_accent_bar" width="#accent_bar_width" height="100%" style_bg_color="#primary_color" style_bg_opa="255" style_radius="2" style_border_width="0" style_pad_all="0"/>
         <!-- Status text container with padding for breathing room -->
-        <lv_obj flex_grow="1" style_bg_opa="0%" style_border_width="0" style_pad_ver="8" style_pad_hor="0" flex_flow="row" style_pad_gap="8" clickable="true">
+        <lv_obj flex_grow="1" style_bg_opa="0%" style_border_width="0" style_pad_ver="8" style_pad_hor="0" flex_flow="row" style_pad_gap="#space_sm" clickable="true">
           <event_cb trigger="clicked" callback="tip_text_clicked_cb"/>
           <!-- "Tip: " prefix -->
           <lv_label text="Tip:" style_text_font="#font_heading"/>
@@ -43,16 +43,16 @@
       </lv_obj>
     </lv_obj>
     <!-- Bottom section: Info cards (40% of height via flex_grow="2", balances with top section's flex_grow="3") -->
-    <lv_obj width="100%" flex_grow="2" style_bg_opa="0%" style_border_width="0" style_pad_all="#padding_normal" flex_flow="row" style_pad_gap="#gap_normal" style_flex_cross_place="stretch" scrollable="false">
+    <lv_obj width="100%" flex_grow="2" style_bg_opa="0%" style_border_width="0" style_pad_all="#space_lg" flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="stretch" scrollable="false">
       <!-- Print Files Card - Benchy thumbnail + text in horizontal layout -->
-      <lv_button name="print_card" flex_grow="1" height="100%" style_radius="#border_radius" style_border_width="0" style_pad_all="#padding_normal" style_shadow_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#gap_small">
+      <lv_button name="print_card" flex_grow="1" height="100%" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_lg" style_shadow_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm">
         <!-- Benchy thumbnail - white silhouette for dark theme -->
         <lv_image src="A:assets/images/benchy_thumbnail_white.png" width="64" height="64" inner_align="contain"/>
         <lv_label text="Print Files" style_text_font="#font_body"/>
         <event_cb trigger="clicked" callback="print_card_clicked_cb"/>
       </lv_button>
       <!-- Status Card (Temperature, Network, Light) - uses flex to distribute space evenly -->
-      <ui_card name="status_card" flex_grow="2" height="100%" style_radius="#border_radius" style_pad_all="#padding_small" flex_flow="row" style_flex_cross_place="center">
+      <ui_card name="status_card" flex_grow="2" height="100%" style_radius="#border_radius" style_pad_all="#space_md" flex_flow="row" style_flex_cross_place="center">
         <!-- Temperature display - icon on top, text below -->
         <lv_obj flex_grow="1" height="100%" style_bg_opa="0%" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
           <icon name="temp_icon" src="mat_extruder_img" variant="secondary"/>

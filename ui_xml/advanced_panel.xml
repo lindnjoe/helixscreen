@@ -17,8 +17,8 @@
 
     <!-- Emergency Stop Button (prominent red) -->
     <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0"
-            style_pad_left="#padding_normal" style_pad_right="#padding_normal"
-            style_pad_top="#gap_small" style_pad_bottom="#gap_normal" scrollable="false">
+            style_pad_left="#space_lg" style_pad_right="#space_lg"
+            style_pad_top="#space_sm" style_pad_bottom="#space_md" scrollable="false">
       <lv_button name="advanced_estop_btn"
                  width="100%" height="#button_height_normal"
                  style_radius="#border_radius_large"
@@ -27,7 +27,7 @@
                  flex_flow="row"
                  style_flex_main_place="center"
                  style_flex_cross_place="center"
-                 style_pad_gap="#gap_normal">
+                 style_pad_gap="#space_md">
         <icon src="mat_emergency_img" size="md" color="#text_primary"/>
         <text_body text="Emergency Stop (M112)" style_text_color="#text_primary"/>
         <event_cb trigger="clicked" callback="advanced_estop_clicked"/>
@@ -36,8 +36,8 @@
 
     <!-- Restart Buttons Row -->
     <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0"
-            style_pad_left="#padding_normal" style_pad_right="#padding_normal"
-            style_pad_bottom="#gap_normal" flex_flow="row" style_pad_gap="#gap_normal" scrollable="false">
+            style_pad_left="#space_lg" style_pad_right="#space_lg"
+            style_pad_bottom="#space_md" flex_flow="row" style_pad_gap="#space_md" scrollable="false">
 
       <!-- Restart Klipper Button -->
       <lv_button name="advanced_restart_klipper_btn"
@@ -49,7 +49,7 @@
                  flex_flow="row"
                  style_flex_main_place="center"
                  style_flex_cross_place="center"
-                 style_pad_gap="#gap_small">
+                 style_pad_gap="#space_sm">
         <icon src="mat_refresh_img" size="sm" color="#text_primary"/>
         <text_body text="Restart Klipper" style_text_color="#text_primary"/>
         <event_cb trigger="clicked" callback="advanced_restart_klipper_clicked"/>
@@ -65,7 +65,7 @@
                  flex_flow="row"
                  style_flex_main_place="center"
                  style_flex_cross_place="center"
-                 style_pad_gap="#gap_small">
+                 style_pad_gap="#space_sm">
         <icon src="mat_update_img" size="sm" color="#text_secondary"/>
         <text_body text="Firmware Restart" style_text_color="#text_secondary"/>
         <event_cb trigger="clicked" callback="advanced_firmware_restart_clicked"/>
@@ -162,7 +162,7 @@
                         description="Send commands directly to printer"/>
 
     <!-- Bottom padding for scroll -->
-    <lv_obj width="100%" height="#padding_large" style_bg_opa="0" style_border_width="0" scrollable="false"/>
+    <lv_obj width="100%" height="#space_xl" style_bg_opa="0" style_border_width="0" scrollable="false"/>
 
   </view>
 </component>

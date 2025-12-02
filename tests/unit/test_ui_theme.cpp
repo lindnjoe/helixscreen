@@ -14,6 +14,8 @@
 #include "ui_theme.h"
 #include "../ui_test_utils.h"
 
+#include <cstring>
+
 // Helper to extract RGB from lv_color_t (masks out alpha channel)
 // lv_color_to_u32() returns 0xAARRGGBB, we only care about 0x00RRGGBB
 #define COLOR_RGB(color) (lv_color_to_u32(color) & 0x00FFFFFF)
@@ -256,5 +258,95 @@ TEST_CASE("UI Theme: Parse colors from globals.xml", "[ui_theme][color][integrat
         REQUIRE(COLOR_RGB(success) == 0x4CAF50);
         REQUIRE(COLOR_RGB(warning) == 0xFF9800);
         REQUIRE(COLOR_RGB(error) == 0xF44336);
+    }
+}
+
+// ============================================================================
+// Responsive Breakpoint Tests
+// ============================================================================
+
+TEST_CASE("UI Theme: Breakpoint suffix detection", "[ui_theme][responsive]") {
+    SECTION("Small breakpoint (≤480px)") {
+        // Resolutions at or below 480 should select _small variants
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(320), "_small") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(480), "_small") == 0);
+    }
+
+    SECTION("Medium breakpoint (481-800px)") {
+        // Resolutions between 481 and 800 should select _medium variants
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(481), "_medium") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(600), "_medium") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(800), "_medium") == 0);
+    }
+
+    SECTION("Large breakpoint (>800px)") {
+        // Resolutions above 800 should select _large variants
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(801), "_large") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(1024), "_large") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(1280), "_large") == 0);
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(1920), "_large") == 0);
+    }
+}
+
+TEST_CASE("UI Theme: Breakpoint boundary conditions", "[ui_theme][responsive]") {
+    SECTION("Exact boundary: 480 → small") {
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(480), "_small") == 0);
+    }
+
+    SECTION("Exact boundary: 481 → medium") {
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(481), "_medium") == 0);
+    }
+
+    SECTION("Exact boundary: 800 → medium") {
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(800), "_medium") == 0);
+    }
+
+    SECTION("Exact boundary: 801 → large") {
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(801), "_large") == 0);
+    }
+}
+
+TEST_CASE("UI Theme: Target hardware resolutions", "[ui_theme][responsive]") {
+    // Test against the specific target hardware resolutions from ui_theme.h
+    SECTION("480x320 (tiny screen) → SMALL") {
+        // max(480, 320) = 480
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(480), "_small") == 0);
+    }
+
+    SECTION("800x480 (small screen) → MEDIUM") {
+        // max(800, 480) = 800
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(800), "_medium") == 0);
+    }
+
+    SECTION("1024x600 (medium screen) → LARGE") {
+        // max(1024, 600) = 1024
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(1024), "_large") == 0);
+    }
+
+    SECTION("1280x720 (large screen) → LARGE") {
+        // max(1280, 720) = 1280
+        REQUIRE(strcmp(ui_theme_get_breakpoint_suffix(1280), "_large") == 0);
+    }
+}
+
+TEST_CASE("UI Theme: Font height helper", "[ui_theme][responsive]") {
+    // Test that font height helper returns valid values for built-in fonts
+    SECTION("Valid fonts return positive height") {
+        REQUIRE(ui_theme_get_font_height(&lv_font_montserrat_12) > 0);
+        REQUIRE(ui_theme_get_font_height(&lv_font_montserrat_16) > 0);
+        REQUIRE(ui_theme_get_font_height(&lv_font_montserrat_20) > 0);
+    }
+
+    SECTION("NULL font returns 0") {
+        REQUIRE(ui_theme_get_font_height(nullptr) == 0);
+    }
+
+    SECTION("Larger fonts have larger heights") {
+        int32_t h12 = ui_theme_get_font_height(&lv_font_montserrat_12);
+        int32_t h16 = ui_theme_get_font_height(&lv_font_montserrat_16);
+        int32_t h20 = ui_theme_get_font_height(&lv_font_montserrat_20);
+
+        REQUIRE(h12 < h16);
+        REQUIRE(h16 < h20);
     }
 }

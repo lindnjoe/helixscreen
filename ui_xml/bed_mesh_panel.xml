@@ -8,18 +8,18 @@
     <!-- Header Bar (uses improved header_bar component) -->
     <header_bar name="overlay_header" title="Bed Mesh"/>
     <!-- Content Area: Horizontal split (Left=Canvas, Right=Controls) -->
-    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="row" style_pad_gap="#padding_small">
+    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="row" style_pad_gap="#space_md">
       <!-- Left: Canvas (80% width) - uses touch drag for rotation -->
       <bed_mesh name="bed_mesh_canvas" flex_grow="8" height="100%" clickable="true" style_border_width="1"/>
       <!-- Right: Profile Selector + Stats (20% width) -->
-      <lv_obj flex_grow="2" height="100%" flex_flow="column" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#padding_small">
+      <lv_obj flex_grow="2" height="100%" flex_flow="column" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#space_md">
         <!-- Profile selector -->
-        <lv_obj width="100%" height="64" flex_flow="column" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#padding_tiny">
+        <lv_obj width="100%" height="64" flex_flow="column" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#space_xs">
           <text_small text="Profile" style_text_color="#text_secondary" style_text_align="left"/>
           <lv_dropdown name="profile_dropdown" options="(no profiles)" width="100%" height="44" style_border_width="1" style_radius="#border_radius" style_pad_all="10" style_text_font="#font_small"/>
         </lv_obj>
         <!-- Statistics card -->
-        <lv_obj width="100%" flex_grow="1" style_bg_color="#card_bg" style_radius="#card_radius" style_pad_all="#padding_small" style_border_width="0" flex_flow="column" style_pad_gap="#padding_tiny">
+        <lv_obj width="100%" flex_grow="1" style_bg_color="#card_bg" style_radius="#card_radius" style_pad_all="#space_md" style_border_width="0" flex_flow="column" style_pad_gap="#space_xs">
           <text_small text="Mesh Info" style_text_color="#text_secondary" style_text_align="left"/>
           <text_small name="mesh_dimensions_label" bind_text="bed_mesh_dimensions" style_text_align="left" width="100%"/>
           <lv_label name="mesh_z_range_label" bind_text="bed_mesh_z_range" style_text_align="left" style_text_color="#text_secondary" style_text_font="#font_small" width="100%" long_mode="wrap"/>

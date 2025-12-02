@@ -8,19 +8,19 @@
     <!-- Header Bar -->
     <header_bar name="overlay_header" title="Z-Offset Calibration"/>
     <!-- Content Area -->
-    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#padding_normal" scrollable="false">
+    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg" style_pad_bottom="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_lg" scrollable="false">
       <!-- ================================================================== -->
       <!-- STATE: IDLE - Instructions and Start Button -->
       <!-- ================================================================== -->
-      <lv_obj name="state_idle" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" scrollable="false">
+      <lv_obj name="state_idle" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" scrollable="false">
         <!-- Instructions -->
-        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#gap_small">
+        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm">
           <text_heading text="Paper Test Calibration" style_text_align="center" width="100%"/>
           <text_small text="This calibration uses the paper friction method to set your Z-offset." width="100%" style_text_align="center"/>
           <text_small text="Have a piece of paper ready before starting." width="100%" style_text_align="center" style_text_color="#text_secondary"/>
         </lv_obj>
         <!-- Steps Preview -->
-        <lv_obj width="90%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#gap_tiny">
+        <lv_obj width="90%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_xs">
           <lv_label text="1. Printer will home and probe the bed" style_text_font="#font_small" width="100%"/>
           <lv_label text="2. Nozzle moves to probe position" style_text_font="#font_small" width="100%"/>
           <lv_label text="3. Use paper to find correct height" style_text_font="#font_small" width="100%"/>
@@ -34,7 +34,7 @@
       <!-- ================================================================== -->
       <!-- STATE: PROBING - Waiting for probe to complete -->
       <!-- ================================================================== -->
-      <lv_obj name="state_probing" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_probing" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_spinner width="64" height="64" style_arc_width="6" style_arc_color="#primary_color"/>
         <text_heading text="Probing Bed..." style_text_align="center"/>
         <text_small text="Please wait while the printer homes and probes." width="80%" style_text_align="center"/>
@@ -46,18 +46,18 @@
       <!-- ================================================================== -->
       <!-- STATE: ADJUSTING - Interactive Z adjustment -->
       <!-- ================================================================== -->
-      <lv_obj name="state_adjusting" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_adjusting" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <!-- Current Z Position Display -->
-        <lv_obj width="100%" height="80" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_small" style_border_width="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
+        <lv_obj width="100%" height="80" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_md" style_border_width="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
           <text_small text="Current Z Position" style_text_color="#text_secondary"/>
           <lv_label name="z_position_display" text="Z: 0.000" style_text_font="montserrat_28"/>
         </lv_obj>
         <!-- Instructions -->
         <text_small text="Slide paper under nozzle. Adjust until you feel slight friction." width="100%" style_text_align="center"/>
         <!-- Adjustment Buttons Grid -->
-        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#gap_small" scrollable="false">
+        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm" scrollable="false">
           <!-- Row 1: Large adjustments -->
-          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#gap_normal" scrollable="false">
+          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
             <lv_button name="btn_z_down_1" width="100" height="56" style_radius="#border_radius">
               <lv_label text="-1mm" align="center" style_text_font="#font_body"/>
             </lv_button>
@@ -72,7 +72,7 @@
             </lv_button>
           </lv_obj>
           <!-- Row 2: Fine adjustments -->
-          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#gap_normal" scrollable="false">
+          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
             <lv_button name="btn_z_down_001" width="100" height="56" style_radius="#border_radius">
               <lv_label text="-0.01mm" align="center" style_text_font="#font_small"/>
             </lv_button>
@@ -90,7 +90,7 @@
         <!-- Spacer -->
         <lv_obj flex_grow="1" style_bg_opa="0" style_border_width="0"/>
         <!-- Accept / Abort Buttons -->
-        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#gap_normal" scrollable="false">
+        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
           <lv_button name="btn_abort" width="140" height="56" style_radius="#border_radius" style_bg_color="#error_color">
             <lv_label text="Abort" align="center" style_text_font="#font_body"/>
           </lv_button>
@@ -102,7 +102,7 @@
       <!-- ================================================================== -->
       <!-- STATE: SAVING - Saving configuration -->
       <!-- ================================================================== -->
-      <lv_obj name="state_saving" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_saving" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_spinner width="64" height="64" style_arc_width="6" style_arc_color="#primary_color"/>
         <text_heading text="Saving Configuration..." style_text_align="center"/>
         <text_small text="Klipper will restart to apply changes." width="80%" style_text_align="center" style_text_color="#text_secondary"/>
@@ -110,7 +110,7 @@
       <!-- ================================================================== -->
       <!-- STATE: COMPLETE - Calibration finished -->
       <!-- ================================================================== -->
-      <lv_obj name="state_complete" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_complete" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_label text="#icon_check_circle" style_text_font="fa_icons_48" style_text_color="#success_color"/>
         <text_heading text="Calibration Complete!" style_text_align="center"/>
         <lv_label name="final_offset_label" text="New Z-Offset: 0.000" style_text_font="#font_body" style_text_color="#text_secondary"/>
@@ -121,11 +121,11 @@
       <!-- ================================================================== -->
       <!-- STATE: ERROR - Something went wrong -->
       <!-- ================================================================== -->
-      <lv_obj name="state_error" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_error" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_label text="#icon_xmark_circle" style_text_font="fa_icons_48" style_text_color="#error_color"/>
         <text_heading text="Calibration Failed" style_text_align="center"/>
         <lv_label name="error_message" text="An error occurred during calibration." style_text_font="#font_body" style_text_color="#text_secondary" width="80%" style_text_align="center" long_mode="wrap"/>
-        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#gap_normal" scrollable="false">
+        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
           <lv_button name="btn_close_error" width="140" height="56" style_radius="#border_radius">
             <lv_label text="Close" align="center" style_text_font="#font_body"/>
           </lv_button>

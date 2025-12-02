@@ -8,7 +8,7 @@
     <!-- Header Bar (uses improved header_bar component) -->
     <header_bar title="Print Status" name="overlay_header"/>
     <!-- Content Area (two columns: viewer left, controls right) -->
-    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" flex_flow="row" style_pad_gap="#gap_normal" name="overlay_content" scrollable="false">
+    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="row" style_pad_gap="#space_md" name="overlay_content" scrollable="false">
       <!-- ================================================================== -->
       <!-- LEFT SECTION: G-code Viewer / Thumbnail (5/9 width via flex_grow) -->
       <!-- ================================================================== -->
@@ -29,7 +29,7 @@
             <lv_obj-bind_flag_if_eq subject="gcode_viewer_mode" flag="hidden" ref_value="1"/>
           </lv_image>
           <!-- PREPARING OVERLAY: Shown during pre-print operations (homing, etc) -->
-          <lv_obj name="preparing_overlay" width="100%" height="100%" align="center" style_bg_color="#card_bg_dark" style_bg_opa="220" style_border_width="0" style_radius="0" style_pad_all="#padding_normal" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_normal" scrollable="false">
+          <lv_obj name="preparing_overlay" width="100%" height="100%" align="center" style_bg_color="#card_bg_dark" style_bg_opa="220" style_border_width="0" style_radius="0" style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md" scrollable="false">
             <lv_obj-bind_flag_if_eq subject="preparing_visible" flag="hidden" ref_value="0"/>
             <lv_spinner name="preparing_spinner" width="64" height="64" style_arc_width="6" style_arc_color="#primary_color"/>
             <lv_label name="preparing_operation_label" bind_text="preparing_operation" text="Preparing..." width="100%" style_text_font="#font_heading" style_text_color="#text_primary_dark" style_text_align="center"/>
@@ -39,7 +39,7 @@
         <!-- Metadata container - fixed height at bottom of flex column -->
         <lv_obj width="100%" height="120" style_bg_opa="0" style_border_width="0" style_radius="0" style_pad_all="0" scrollable="false" name="metadata_clip">
           <!-- Inner overlay with rounded corners - taller to hide top radius -->
-          <lv_obj name="metadata_overlay" width="100%" height="128" align="bottom_mid" style_bg_opa="180" style_border_width="0" style_radius="#border_radius" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="28" style_pad_bottom="#padding_normal" style_pad_gap="#gap_small" flex_flow="column" scrollable="false">
+          <lv_obj name="metadata_overlay" width="100%" height="128" align="bottom_mid" style_bg_opa="180" style_border_width="0" style_radius="#border_radius" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="28" style_pad_bottom="#space_lg" style_pad_gap="#space_sm" flex_flow="column" scrollable="false">
             <!-- Print Progress Bar -->
             <lv_bar name="print_progress" width="100%" height="8" style_bg_opa="255" style_bg_color="#card_bg_dark" style_border_width="0" style_radius="4" min_value="0" max_value="100" bind_value="print_progress"/>
             <!-- Layer Progress (Layer X / Y) -->
@@ -62,23 +62,23 @@
       <!-- ================================================================== -->
       <!-- RIGHT SECTION: Controls (4/9 width via flex_grow, matches print_file_detail) -->
       <!-- ================================================================== -->
-      <lv_obj name="controls_section" flex_grow="4" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#padding_normal">
+      <lv_obj name="controls_section" flex_grow="4" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_lg">
         <!-- Nozzle Temperature Card -->
-        <ui_card name="nozzle_temp_card" width="100%" height="80" style_radius="#border_radius" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_card">
+        <ui_card name="nozzle_temp_card" width="100%" height="80" style_radius="#border_radius" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
           <text_small text="Nozzle" align="center"/>
           <lv_label name="nozzle_temp_display" bind_text="nozzle_temp_text" style_text_font="montserrat_28" align="center"/>
         </ui_card>
         <!-- Bed Temperature Card -->
-        <ui_card name="bed_temp_card" width="100%" height="80" style_radius="#border_radius" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_card">
+        <ui_card name="bed_temp_card" width="100%" height="80" style_radius="#border_radius" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
           <text_small text="Bed" align="center"/>
           <lv_label name="bed_temp_display" bind_text="bed_temp_text" style_text_font="montserrat_28" align="center"/>
         </ui_card>
         <!-- Spacer (pushes buttons to bottom) -->
         <lv_obj flex_grow="1" style_bg_opa="0" style_border_width="0"/>
         <!-- Control Buttons (2x2 Grid) -->
-        <lv_obj name="button_grid" width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_top="0" style_pad_bottom="0" style_pad_left="#gap_small" style_pad_right="#gap_small" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#gap_small">
+        <lv_obj name="button_grid" width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_top="0" style_pad_bottom="0" style_pad_left="#space_sm" style_pad_right="#space_sm" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
           <!-- Row 1: Light, Pause -->
-          <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_small">
+          <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
             <lv_button name="btn_light" flex_grow="1" height="48" style_border_width="0">
               <lv_label text="#icon_lightbulb" style_text_font="fa_icons_32" align="center"/>
             </lv_button>
@@ -87,7 +87,7 @@
             </lv_button>
           </lv_obj>
           <!-- Row 2: Tune, Cancel -->
-          <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_small">
+          <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
             <lv_button name="btn_tune" flex_grow="1" height="48" style_border_width="0">
               <lv_label text="#icon_settings" style_text_font="fa_icons_32" align="center"/>
             </lv_button>

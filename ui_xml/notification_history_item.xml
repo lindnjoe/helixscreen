@@ -14,7 +14,7 @@
     <prop type="string" name="timestamp"/>
   </api>
   <!-- Compact notification card with left color border (severity_card handles colors) -->
-  <view extends="severity_card" name="notification_item" severity="$severity" width="100%" height="64" style_pad_left="#padding_small" style_pad_right="#padding_small" style_pad_top="#padding_tiny" style_pad_bottom="#padding_small" style_bg_color="#card_bg" style_bg_opa="255" style_border_width="4" style_border_side="left" style_radius="#border_radius" scrollable="false">
+  <view extends="severity_card" name="notification_item" severity="$severity" width="100%" height="64" style_pad_left="#space_md" style_pad_right="#space_md" style_pad_top="#space_xs" style_pad_bottom="#space_md" style_bg_color="#card_bg" style_bg_opa="255" style_border_width="4" style_border_side="left" style_radius="#border_radius" scrollable="false">
     <!-- Severity icons - all hidden by default, finalize() shows the correct one -->
     <!-- INFO icon (circle-info) -->
     <lv_label name="icon_info" text="#icon_info_circle" align="top_left" hidden="true" style_text_font="fa_icons_24" style_text_color="#info_color"/>

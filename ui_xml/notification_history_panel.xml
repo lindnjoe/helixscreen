@@ -9,7 +9,7 @@
     <!-- NOTE: Filter buttons removed from UI for cleaner look.
          C++ filter logic retained in ui_panel_notification_history.cpp if needed later. -->
     <!-- Content Area (scrollable, hidden when no entries) -->
-    <lv_obj name="overlay_content" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#padding_normal" style_pad_gap="#gap_small" flex_flow="column" scrollbar_mode="active">
+    <lv_obj name="overlay_content" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg" style_pad_gap="#space_sm" flex_flow="column" scrollbar_mode="active">
       <lv_obj-bind_flag_if_eq subject="notification_has_entries" flag="hidden" ref_value="0"/>
       <!-- Notification list items added dynamically via C++ -->
     </lv_obj>
@@ -18,7 +18,7 @@
       <lv_obj-bind_flag_if_eq subject="notification_has_entries" flag="hidden" ref_value="1"/>
       <!-- Bell icon uses #font_heading which includes LVGL's built-in symbols -->
       <lv_label text="&#xF0F3;" width="100%" style_text_font="#font_heading" style_text_color="#text_secondary" style_text_align="center"/>
-      <text_body text="No notifications" width="100%" style_text_color="#text_secondary" style_pad_top="#gap_normal" style_text_align="center"/>
+      <text_body text="No notifications" width="100%" style_text_color="#text_secondary" style_pad_top="#space_md" style_text_align="center"/>
     </lv_obj>
   </view>
 </component>

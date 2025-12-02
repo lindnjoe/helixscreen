@@ -50,6 +50,8 @@ static void apply_semantic_style(lv_obj_t* label, const char* font_const_name,
         const lv_font_t* font = lv_xml_get_font(NULL, font_name);
         if (font) {
             lv_obj_set_style_text_font(label, font, 0);
+            spdlog::debug("[ui_text] Applied semantic style: const '{}' → font '{}' (line_height={}px)",
+                          font_const_name, font_name, font->line_height);
         } else {
             spdlog::warn("[ui_text] Failed to load font '{}' from constant '{}'", font_name,
                          font_const_name);

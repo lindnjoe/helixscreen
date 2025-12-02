@@ -13,7 +13,7 @@
     <prop type="string" name="message"/>
   </api>
   <!-- Toast container - floating appearance with shadow, positioned top-right -->
-  <view extends="lv_obj" name="toast_root" align="top_right" x="-16" y="16" width="content" style_min_width="50%" style_max_width="450" height="content" style_radius="#border_radius_large" style_pad_all="#padding_normal" style_pad_gap="#gap_small" style_border_width="0" style_bg_color="#app_bg_color" style_shadow_width="24" style_shadow_spread="4" style_shadow_opa="120" style_shadow_ofs_y="4" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center">
+  <view extends="lv_obj" name="toast_root" align="top_right" x="-16" y="16" width="content" style_min_width="50%" style_max_width="450" height="content" style_radius="#border_radius_large" style_pad_all="#space_lg" style_pad_gap="#space_sm" style_border_width="0" style_bg_color="#app_bg_color" style_shadow_width="24" style_shadow_spread="4" style_shadow_opa="120" style_shadow_ofs_y="4" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center">
     <!-- INFO icon (circle-info) - shown when toast_severity=0 -->
     <lv_label name="icon_info" text="#icon_info_circle" style_text_font="fa_icons_24" style_text_color="#info_color">
       <lv_obj-bind_flag_if_not_eq subject="toast_severity" flag="hidden" ref_value="0"/>
@@ -31,9 +31,9 @@
       <lv_obj-bind_flag_if_not_eq subject="toast_severity" flag="hidden" ref_value="3"/>
     </lv_label>
     <!-- Message text (wraps to fit content) -->
-    <lv_label name="toast_message" text="$message" style_text_font="#font_body" flex_grow="1" long_mode="wrap" style_pad_left="#gap_small" style_pad_right="#gap_small"/>
+    <lv_label name="toast_message" text="$message" style_text_font="#font_body" flex_grow="1" long_mode="wrap" style_pad_left="#space_sm" style_pad_right="#space_sm"/>
     <!-- Action button (hidden by default, shown via toast_action_visible subject) -->
-    <lv_button name="toast_action_btn" width="content" height="36" style_min_width="72" style_radius="#border_radius" style_border_width="0" style_bg_color="#accent_color" style_pad_left="#padding_normal" style_pad_right="#padding_normal" hidden="true" clickable="true">
+    <lv_button name="toast_action_btn" width="content" height="36" style_min_width="72" style_radius="#border_radius" style_border_width="0" style_bg_color="#accent_color" style_pad_left="#space_lg" style_pad_right="#space_lg" hidden="true" clickable="true">
       <lv_obj-bind_flag_if_eq subject="toast_action_visible" flag="hidden" ref_value="0"/>
       <lv_label name="toast_action_label" align="center" style_text_font="#font_body" style_text_color="#text_on_accent" bind_text="toast_action_text"/>
     </lv_button>

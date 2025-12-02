@@ -41,7 +41,7 @@
               style_bg_opa="0" style_border_width="0"
               flex_flow="column"
               style_flex_cross_place="center"
-              style_pad_gap="12">
+              style_pad_gap="#space_md">
 
         <icon src="mat_emergency_img" size="xl" color="#error_color"/>
 
@@ -57,7 +57,7 @@
       <lv_obj width="100%" height="56"
               style_bg_opa="0" style_border_width="0"
               flex_flow="row"
-              style_pad_gap="16">
+              style_pad_gap="#space_lg">
 
         <lv_button name="estop_cancel_btn"
                    flex_grow="1" height="100%"

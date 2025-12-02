@@ -8,7 +8,7 @@
     <!-- HEADER BAR (full width at top) -->
     <header_bar title="Print File" name="detail_header"/>
     <!-- CONTENT AREA (two columns) -->
-    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" flex_flow="row" style_pad_gap="#gap_normal" scrollable="false" name="content_container">
+    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="row" style_pad_gap="#space_md" scrollable="false" name="content_container">
       <!-- ================================================================== -->
       <!-- LEFT SECTION: File card with reactive bindings (5/9 width)        -->
       <!-- NOTE: Can't reuse print_file_card here because it uses props ($) -->
@@ -23,18 +23,18 @@
         <!-- Metadata clip container - clips top rounded corners of inner overlay -->
         <lv_obj width="100%" height="90" style_bg_opa="0" style_border_width="0" style_radius="0" style_pad_all="0" align="bottom_mid" scrollable="false" name="detail_metadata_clip">
           <!-- Inner overlay with rounded corners - taller to hide top radius -->
-          <lv_obj width="100%" height="98" style_bg_opa="204" style_border_width="0" style_radius="#border_radius" style_pad_left="#gap_small" style_pad_right="#gap_small" style_pad_top="#gap_large" style_pad_bottom="#gap_small" align="bottom_mid" flex_flow="column" scrollable="false" name="detail_metadata_overlay">
+          <lv_obj width="100%" height="98" style_bg_opa="204" style_border_width="0" style_radius="#border_radius" style_pad_left="#space_sm" style_pad_right="#space_sm" style_pad_top="#space_lg" style_pad_bottom="#space_sm" align="bottom_mid" flex_flow="column" scrollable="false" name="detail_metadata_overlay">
             <!-- Filename with reactive binding, specified height so that text will purposely get truncated and not wrap -->
             <lv_label bind_text="selected_filename" width="100%" height="24" long_mode="dots" style_text_font="montserrat_18" name="detail_filename_label"/>
             <!-- Metadata row -->
-            <lv_obj width="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_top="#gap_tiny" flex_flow="row" style_pad_gap="#gap_tiny" flex_grow="1" name="detail_metadata_row">
+            <lv_obj width="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_top="#space_xs" flex_flow="row" style_pad_gap="#space_xs" flex_grow="1" name="detail_metadata_row">
               <!-- Print time -->
-              <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#gap_card" style_flex_cross_place="center">
+              <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xxs" style_flex_cross_place="center">
                 <icon src="mat_clock_img" size="xs" variant="accent"/>
                 <lv_label bind_text="selected_print_time" flex_grow="1" style_min_width="35" style_text_color="#text_secondary" style_text_font="montserrat_14" name="detail_time_label"/>
               </lv_obj>
               <!-- Filament weight -->
-              <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#gap_card" style_flex_cross_place="center">
+              <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xxs" style_flex_cross_place="center">
                 <icon src="mat_layers_img" size="xs" variant="accent"/>
                 <lv_label bind_text="selected_filament_weight" flex_grow="1" style_min_width="35" style_text_color="#text_secondary" style_text_font="montserrat_14" name="detail_filament_label"/>
               </lv_obj>
@@ -45,7 +45,7 @@
       <!-- ================================================================== -->
       <!-- RIGHT SECTION: Options and buttons (4/9 width)                    -->
       <!-- ================================================================== -->
-      <lv_obj name="options_section" flex_grow="4" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="#gap_small" style_pad_gap="#gap_large" flex_flow="column" scrollable="false">
+      <lv_obj name="options_section" flex_grow="4" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="#space_sm" style_pad_gap="#space_lg" flex_flow="column" scrollable="false">
         <!-- Options card - flex_grow ensures it expands to fit all checkboxes -->
         <ui_card name="options_card" width="100%" flex_grow="1" style_radius="#border_radius" flex_flow="column">
           <!-- Filament type dropdown -->

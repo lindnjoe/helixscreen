@@ -8,20 +8,20 @@
     <!-- Header Bar -->
     <header_bar name="overlay_header" title="PID Tuning"/>
     <!-- Content Area -->
-    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#padding_normal" scrollable="false">
+    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg" style_pad_bottom="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_lg" scrollable="false">
       <!-- ================================================================== -->
       <!-- STATE: IDLE - Heater selection and target temperature -->
       <!-- ================================================================== -->
-      <lv_obj name="state_idle" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#padding_normal" scrollable="false">
+      <lv_obj name="state_idle" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_lg" scrollable="false">
         <!-- Instructions -->
-        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#gap_small">
+        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm">
           <text_heading text="Automatic PID Calibration" style_text_align="center" width="100%"/>
           <text_small text="PID tuning optimizes temperature control for stable heating." width="100%" style_text_align="center"/>
         </lv_obj>
         <!-- Heater Selection -->
-        <lv_obj width="100%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#gap_small">
+        <lv_obj width="100%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_sm">
           <lv_label text="Select Heater" style_text_font="#font_body"/>
-          <lv_obj width="100%" height="48" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#gap_normal" scrollable="false">
+          <lv_obj width="100%" height="48" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#space_md" scrollable="false">
             <lv_button name="btn_heater_extruder" flex_grow="1" height="48" style_radius="#border_radius" style_bg_color="#primary_color">
               <lv_label text="Extruder" align="center" style_text_font="#font_body"/>
             </lv_button>
@@ -31,9 +31,9 @@
           </lv_obj>
         </lv_obj>
         <!-- Target Temperature -->
-        <lv_obj width="100%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#gap_small">
+        <lv_obj width="100%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_sm">
           <lv_label text="Target Temperature" style_text_font="#font_body"/>
-          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#gap_normal" scrollable="false">
+          <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md" scrollable="false">
             <lv_button name="btn_temp_down" width="56" height="56" style_radius="#border_radius">
               <lv_label text="-" align="center" style_text_font="montserrat_28"/>
             </lv_button>
@@ -47,7 +47,7 @@
           <lv_label name="temp_hint" text="Recommended: 200&#xB0;C for extruder" style_text_font="#font_small" style_text_color="#text_secondary" width="100%" style_text_align="center"/>
         </lv_obj>
         <!-- Warning -->
-        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#gap_small" scrollable="false">
+        <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
           <lv_label text="#icon_warning" style_text_font="fa_icons_20" style_text_color="#warning_color"/>
           <text_small text="This process takes 3-5 minutes. Do not interrupt." style_text_color="#text_secondary" flex_grow="1"/>
         </lv_obj>
@@ -59,12 +59,12 @@
       <!-- ================================================================== -->
       <!-- STATE: CALIBRATING - Progress display -->
       <!-- ================================================================== -->
-      <lv_obj name="state_calibrating" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_calibrating" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_spinner width="64" height="64" style_arc_width="6" style_arc_color="#primary_color"/>
         <text_heading text="Calibrating..." style_text_align="center"/>
         <lv_label name="calibrating_heater" text="Extruder PID Tuning" style_text_font="#font_body" style_text_color="#text_secondary"/>
         <!-- Temperature Display -->
-        <lv_obj width="80%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_normal" style_border_width="0" flex_flow="column" style_flex_cross_place="center" style_pad_gap="#gap_tiny">
+        <lv_obj width="80%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_lg" style_border_width="0" flex_flow="column" style_flex_cross_place="center" style_pad_gap="#space_xs">
           <lv_label text="Current Temperature" style_text_font="#font_small" style_text_color="#text_secondary"/>
           <lv_label name="current_temp_display" text="25&#xB0;C / 200&#xB0;C" style_text_font="montserrat_28"/>
         </lv_obj>
@@ -77,7 +77,7 @@
       <!-- ================================================================== -->
       <!-- STATE: SAVING - Saving configuration -->
       <!-- ================================================================== -->
-      <lv_obj name="state_saving" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_saving" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_spinner width="64" height="64" style_arc_width="6" style_arc_color="#primary_color"/>
         <text_heading text="Saving Configuration..." style_text_align="center"/>
         <text_small text="Klipper will restart to apply new PID values." width="80%" style_text_align="center" style_text_color="#text_secondary"/>
@@ -85,11 +85,11 @@
       <!-- ================================================================== -->
       <!-- STATE: COMPLETE - Results display -->
       <!-- ================================================================== -->
-      <lv_obj name="state_complete" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_complete" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_label text="#icon_check_circle" style_text_font="fa_icons_48" style_text_color="#success_color"/>
         <text_heading text="Calibration Complete!" style_text_align="center"/>
         <!-- PID Values Display -->
-        <lv_obj width="80%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#padding_normal" style_border_width="0" flex_flow="column" style_pad_gap="#gap_tiny">
+        <lv_obj width="80%" height="content" style_bg_color="#card_bg_dark" style_radius="#border_radius" style_pad_all="#space_lg" style_border_width="0" flex_flow="column" style_pad_gap="#space_xs">
           <lv_label text="New PID Values" style_text_font="#font_body" width="100%" style_text_align="center"/>
           <lv_obj width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between" scrollable="false">
             <lv_label text="Kp:" style_text_font="#font_body"/>
@@ -112,11 +112,11 @@
       <!-- ================================================================== -->
       <!-- STATE: ERROR - Something went wrong -->
       <!-- ================================================================== -->
-      <lv_obj name="state_error" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#padding_normal" hidden="true" scrollable="false">
+      <lv_obj name="state_error" width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_lg" hidden="true" scrollable="false">
         <lv_label text="#icon_xmark_circle" style_text_font="fa_icons_48" style_text_color="#error_color"/>
         <text_heading text="Calibration Failed" style_text_align="center"/>
         <lv_label name="error_message" text="An error occurred during calibration." style_text_font="#font_body" style_text_color="#text_secondary" width="80%" style_text_align="center" long_mode="wrap"/>
-        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#gap_normal" scrollable="false">
+        <lv_obj width="100%" height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
           <lv_button name="btn_close_error" width="140" height="56" style_radius="#border_radius">
             <lv_label text="Close" align="center" style_text_font="#font_body"/>
           </lv_button>

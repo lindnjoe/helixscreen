@@ -150,6 +150,78 @@ static void ui_theme_register_color_pairs(lv_xml_component_scope_t* scope, bool 
                   registered, dark_mode);
 }
 
+/**
+ * Get the breakpoint suffix for a given resolution
+ *
+ * @param max_resolution The maximum of horizontal and vertical resolution
+ * @return Suffix string: "_small" (≤480), "_medium" (481-800), or "_large" (>800)
+ */
+const char* ui_theme_get_breakpoint_suffix(int32_t max_resolution) {
+    if (max_resolution <= UI_BREAKPOINT_SMALL_MAX) {
+        return "_small";
+    } else if (max_resolution <= UI_BREAKPOINT_MEDIUM_MAX) {
+        return "_medium";
+    } else {
+        return "_large";
+    }
+}
+
+/**
+ * Register responsive spacing tokens (space_xxs through space_xl)
+ *
+ * This function reads the _small/_medium/_large variants from globals.xml
+ * and registers the base tokens (space_xxs, space_xs, etc.) based on the
+ * current display resolution breakpoint.
+ *
+ * CRITICAL: This works because base constants are NOT defined in globals.xml.
+ * LVGL's lv_xml_register_const() silently ignores updates to existing constants,
+ * so we must create new entries rather than override existing ones.
+ *
+ * @param display The LVGL display to get resolution from
+ */
+void ui_theme_register_responsive_spacing(lv_display_t* display) {
+    int32_t hor_res = lv_display_get_horizontal_resolution(display);
+    int32_t ver_res = lv_display_get_vertical_resolution(display);
+    int32_t greater_res = LV_MAX(hor_res, ver_res);
+
+    const char* size_suffix = ui_theme_get_breakpoint_suffix(greater_res);
+    const char* size_label = (greater_res <= UI_BREAKPOINT_SMALL_MAX)    ? "SMALL"
+                             : (greater_res <= UI_BREAKPOINT_MEDIUM_MAX) ? "MEDIUM"
+                                                                         : "LARGE";
+
+    lv_xml_component_scope_t* scope = lv_xml_component_get_scope("globals");
+    if (!scope) {
+        spdlog::warn("[Theme] Failed to get globals scope for spacing constants");
+        return;
+    }
+
+    // Register all space_* tokens
+    static const char* tokens[] = {"space_xxs", "space_xs", "space_sm",
+                                   "space_md",  "space_lg", "space_xl"};
+    char variant_name[64];
+    int registered = 0;
+
+    for (const char* token : tokens) {
+        snprintf(variant_name, sizeof(variant_name), "%s%s", token, size_suffix);
+        const char* value = lv_xml_get_const(NULL, variant_name);
+        if (value) {
+            lv_xml_register_const(scope, token, value);
+            registered++;
+        } else {
+            spdlog::warn("[Theme] Missing spacing variant: {}", variant_name);
+        }
+    }
+
+    spdlog::debug("[Theme] Responsive spacing: {} ({}px) - registered {} space_* tokens",
+                  size_label, greater_res, registered);
+}
+
+/**
+ * Register responsive padding tokens (DEPRECATED - use space_* instead)
+ *
+ * This function maintains backward compatibility during migration from
+ * padding_* and gap_* tokens to the unified space_* system.
+ */
 void ui_theme_register_responsive_padding(lv_display_t* display) {
     // Use custom breakpoints optimized for our hardware: max(hor_res, ver_res)
     int32_t hor_res = lv_display_get_horizontal_resolution(display);
@@ -157,19 +229,10 @@ void ui_theme_register_responsive_padding(lv_display_t* display) {
     int32_t greater_res = LV_MAX(hor_res, ver_res);
 
     // Determine size suffix for variant lookup (using centralized breakpoints)
-    const char* size_suffix;
-    const char* size_label;
-
-    if (greater_res <= UI_BREAKPOINT_SMALL_MAX) { // ≤480: 480x320
-        size_suffix = "_small";
-        size_label = "SMALL";
-    } else if (greater_res <= UI_BREAKPOINT_MEDIUM_MAX) { // 481-800: 800x480, up to 800x600
-        size_suffix = "_medium";
-        size_label = "MEDIUM";
-    } else { // >800: 1024x600, 1280x720+
-        size_suffix = "_large";
-        size_label = "LARGE";
-    }
+    const char* size_suffix = ui_theme_get_breakpoint_suffix(greater_res);
+    const char* size_label = (greater_res <= UI_BREAKPOINT_SMALL_MAX)    ? "SMALL"
+                             : (greater_res <= UI_BREAKPOINT_MEDIUM_MAX) ? "MEDIUM"
+                                                                         : "LARGE";
 
     // Read size-specific variants from XML
     char variant_name[64];
@@ -205,7 +268,7 @@ void ui_theme_register_responsive_padding(lv_display_t* display) {
         lv_xml_register_const(scope, "gap_normal", gap_normal);
 
         spdlog::debug(
-            "[Theme] Responsive padding: {} ({}px) - normal={}, small={}, tiny={}, gap={}",
+            "[Theme] Responsive padding (deprecated): {} ({}px) - normal={}, small={}, tiny={}, gap={}",
             size_label, greater_res, padding_normal, padding_small, padding_tiny, gap_normal);
     } else {
         spdlog::warn("[Theme] Failed to get globals scope for padding constants");
@@ -308,11 +371,20 @@ void ui_theme_init(lv_display_t* display, bool use_dark_mode_param) {
     lv_color_t primary_color = ui_theme_parse_color(primary_str);
     lv_color_t secondary_color = ui_theme_parse_color(secondary_str);
 
-    // Read base font from globals.xml
-    const char* font_body_name = lv_xml_get_const(NULL, "font_body");
-    const lv_font_t* base_font = lv_xml_get_font(NULL, font_body_name);
+    // Read responsive font based on current breakpoint
+    // NOTE: We read the variant directly because base constants are removed to enable
+    // responsive overrides (LVGL ignores lv_xml_register_const for existing constants)
+    int32_t hor_res = lv_display_get_horizontal_resolution(display);
+    int32_t ver_res = lv_display_get_vertical_resolution(display);
+    int32_t greater_res = LV_MAX(hor_res, ver_res);
+    const char* size_suffix = ui_theme_get_breakpoint_suffix(greater_res);
+
+    char font_variant_name[64];
+    snprintf(font_variant_name, sizeof(font_variant_name), "font_body%s", size_suffix);
+    const char* font_body_name = lv_xml_get_const(NULL, font_variant_name);
+    const lv_font_t* base_font = font_body_name ? lv_xml_get_font(NULL, font_body_name) : nullptr;
     if (!base_font) {
-        spdlog::warn("[Theme] Failed to get font '{}', using montserrat_16", font_body_name);
+        spdlog::warn("[Theme] Failed to get font '{}', using montserrat_16", font_variant_name);
         base_font = &lv_font_montserrat_16;
     }
 
@@ -353,7 +425,8 @@ void ui_theme_init(lv_display_t* display, bool use_dark_mode_param) {
                       primary_str, secondary_str, screen_bg_str, card_bg_str, theme_grey_str);
 
         // Register responsive constants AFTER theme init
-        ui_theme_register_responsive_padding(display);
+        ui_theme_register_responsive_spacing(display);
+        ui_theme_register_responsive_padding(display); // Deprecated, for backward compatibility
         ui_theme_register_responsive_fonts(display);
     } else {
         spdlog::error("[Theme] Failed to initialize HelixScreen theme");

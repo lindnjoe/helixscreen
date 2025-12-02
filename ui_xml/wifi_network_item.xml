@@ -18,7 +18,7 @@
     <!-- Signal strength icon (left) - colored with primary theme color -->
     <icon name="signal_icon" src="mat_wifi_strength_4_img" size="sm" variant="accent" clickable="false"/>
     <!-- SSID and security type column (center) -->
-    <lv_obj flex_grow="1" height="#list_item_height" style_bg_opa="0" style_pad_all="0" radius="0" style_border_width="0" style_pad_gap="4" scrollable="false" clickable="false" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+    <lv_obj flex_grow="1" height="#list_item_height" style_bg_opa="0" style_pad_all="0" radius="0" style_border_width="0" style_pad_gap="#space_xs" scrollable="false" clickable="false" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
       <!-- Network SSID -->
       <text_body name="ssid_label" style_text_font="#list_item_font" clickable="false"/>
       <!-- Security type (right-justified) -->

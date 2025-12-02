@@ -23,31 +23,62 @@
     <px name="nav_padding" value="16"/>
     <px name="nav_button_size" value="70"/>
     <px name="border_radius" value="8"/>
-    <!-- Responsive padding size variants (~80% of LVGL defaults)
-	     Runtime selects appropriate variant via ui_theme_register_responsive_padding()
-	     based on max(width, height): SMALL (≤480px), MEDIUM (481-800px), LARGE (>800px)
-	     Target hardware: 480x320 (SMALL), 800x480 (MEDIUM), 1024x600+ (LARGE) -->
-    <!-- padding_normal variants (container padding) -->
+    <!-- ===================================================================== -->
+    <!-- Unified Responsive Spacing System (space_*)                         -->
+    <!-- ===================================================================== -->
+    <!-- Runtime selects appropriate variant via ui_theme_register_responsive_spacing()
+         based on max(width, height): SMALL (≤480px), MEDIUM (481-800px), LARGE (>800px)
+         Target hardware: 480x320 (SMALL), 800x480 (MEDIUM), 1024x600+ (LARGE)
+
+         CRITICAL: Base constants (space_xxs, space_xs, etc.) are registered at
+         runtime by ui_theme.cpp - do NOT define them here or responsive overrides
+         will be silently ignored due to LVGL's lv_xml_register_const() behavior. -->
+    <!-- space_xxs: Tiny spacing (keypad rows, compact icon gaps) -->
+    <px name="space_xxs_small" value="2"/>
+    <px name="space_xxs_medium" value="3"/>
+    <px name="space_xxs_large" value="4"/>
+    <!-- space_xs: Extra small (button icon+text, dense info) -->
+    <px name="space_xs_small" value="4"/>
+    <px name="space_xs_medium" value="5"/>
+    <px name="space_xs_large" value="6"/>
+    <!-- space_sm: Small (tight layouts, minor separations) -->
+    <px name="space_sm_small" value="6"/>
+    <px name="space_sm_medium" value="7"/>
+    <px name="space_sm_large" value="8"/>
+    <!-- space_md: Medium (standard flex gaps, compact padding) -->
+    <px name="space_md_small" value="8"/>
+    <px name="space_md_medium" value="10"/>
+    <px name="space_md_large" value="12"/>
+    <!-- space_lg: Large (container padding, major sections) -->
+    <px name="space_lg_small" value="12"/>
+    <px name="space_lg_medium" value="16"/>
+    <px name="space_lg_large" value="20"/>
+    <!-- space_xl: Extra large (emphasis cards, major separations) -->
+    <px name="space_xl_small" value="16"/>
+    <px name="space_xl_medium" value="20"/>
+    <px name="space_xl_large" value="24"/>
+    <!-- ===================================================================== -->
+    <!-- DEPRECATED: Old padding/gap tokens - migrate to space_* system       -->
+    <!-- These will be removed after XML migration is complete                -->
+    <!-- Migration: padding_normal → space_lg, padding_small → space_md,      -->
+    <!--            padding_tiny → space_xs, gap_normal → space_md,           -->
+    <!--            gap_small → space_sm, gap_tiny → space_xs                 -->
+    <!-- ===================================================================== -->
+    <!-- padding_normal variants (container padding) - USE space_lg INSTEAD -->
     <px name="padding_normal_small" value="12"/>
     <px name="padding_normal_medium" value="16"/>
     <px name="padding_normal_large" value="20"/>
-    <px name="padding_normal" value="20"/>
-    <!-- Default, overridden at runtime -->
-    <!-- padding_small variants (compact padding) -->
+    <!-- NO BASE padding_normal - registered at runtime -->
+    <!-- padding_small variants (compact padding) - USE space_md INSTEAD -->
     <px name="padding_small_small" value="8"/>
     <px name="padding_small_medium" value="10"/>
     <px name="padding_small_large" value="12"/>
-    <px name="padding_small" value="10"/>
-    <!-- Default, overridden at runtime -->
-    <!-- padding_tiny variants (minimal padding) -->
+    <!-- NO BASE padding_small - registered at runtime -->
+    <!-- padding_tiny variants (minimal padding) - USE space_xs INSTEAD -->
     <px name="padding_tiny_small" value="2"/>
     <px name="padding_tiny_medium" value="4"/>
     <px name="padding_tiny_large" value="6"/>
-    <px name="padding_tiny" value="6"/>
-    <!-- Default, overridden at runtime -->
-    <!-- Non-responsive padding (static across all screen sizes) -->
-    <px name="padding_medium" value="12"/>
-    <!-- Medium padding for buttons/flex items -->
+    <!-- NO BASE padding_tiny - registered at runtime -->
     <!-- printer_img_size moved to home_panel.xml -->
     <!-- accent_bar_width moved to home_panel.xml -->
     <px name="accent_bar_height" value="28"/>
@@ -129,38 +160,33 @@
     <!-- Icon bottom padding (was 16px) -->
     <px name="launcher_card_title_padding" value="6"/>
     <!-- Title bottom padding (was 8px) -->
-    <!-- Spacing and gaps -->
-    <!-- gap_normal variants (flex gap) -->
+    <!-- Spacing and gaps - DEPRECATED, USE space_* INSTEAD -->
+    <!-- gap_normal variants (flex gap) - USE space_md INSTEAD -->
     <px name="gap_normal_small" value="8"/>
     <px name="gap_normal_medium" value="10"/>
     <px name="gap_normal_large" value="12"/>
-    <px name="gap_normal" value="12"/>
-    <!-- Default, overridden at runtime -->
-    <!-- Non-responsive gaps (static across all screen sizes) -->
-    <px name="gap_large" value="16"/>
-    <!-- Larger gap for major sections -->
-    <px name="gap_small" value="8"/>
-    <!-- Compact gap for tight layouts -->
-    <px name="gap_tiny" value="6"/>
-    <!-- Very tight gap for dense info -->
-    <px name="gap_card" value="4"/>
-    <!-- Compact gap for card content (label + value pairs) -->
-    <!-- Typography - 3 semantic font sizes for design system consistency -->
+    <!-- NO BASE gap_normal - registered at runtime -->
+    <!-- ===================================================================== -->
+    <!-- Typography - Responsive Semantic Fonts                              -->
+    <!-- ===================================================================== -->
+    <!-- Base constants (font_heading, font_body, font_small) are registered at
+         runtime by ui_theme_register_responsive_fonts() - do NOT define them
+         here or responsive overrides will be silently ignored. -->
     <!-- font_heading variants (section headings, large text) -->
     <string name="font_heading_small" value="montserrat_20"/>
     <string name="font_heading_medium" value="montserrat_26"/>
     <string name="font_heading_large" value="montserrat_28"/>
-    <string name="font_heading" value="montserrat_24"/>
+    <!-- NO BASE font_heading - registered at runtime -->
     <!-- font_body variants (standard body text) -->
     <string name="font_body_small" value="montserrat_14"/>
     <string name="font_body_medium" value="montserrat_18"/>
     <string name="font_body_large" value="montserrat_20"/>
-    <string name="font_body" value="montserrat_16"/>
+    <!-- NO BASE font_body - registered at runtime -->
     <!-- font_small variants (hints, helpers, chart labels) -->
-    <string name="font_small_small" value="montserrat_10"/>
-    <string name="font_small_medium" value="montserrat_14"/>
-    <string name="font_small_large" value="montserrat_14"/>
-    <string name="font_small" value="montserrat_12"/>
+    <string name="font_small_small" value="montserrat_12"/>
+    <string name="font_small_medium" value="montserrat_16"/>
+    <string name="font_small_large" value="montserrat_18"/>
+    <!-- NO BASE font_small - registered at runtime -->
     <!-- Theme colors -->
     <color name="primary_color" value="#AD2724"/>
     <color name="secondary_color" value="#37AEB3"/>

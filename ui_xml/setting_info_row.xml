@@ -15,7 +15,7 @@
     <prop type="string" name="icon" default=""/>
     <prop type="string" name="value" default=""/>
   </api>
-  <view extends="lv_obj" name="info_row" width="100%" height="content" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center" style_bg_opa="0" style_border_width="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_small" style_pad_bottom="#padding_small" style_pad_gap="#gap_small" scrollable="false">
+  <view extends="lv_obj" name="info_row" width="100%" height="content" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_md" style_pad_bottom="#space_md" style_pad_gap="#space_sm" scrollable="false">
     <!-- Left side: Optional icon -->
     <icon name="row_icon" src="$icon" size="sm" variant="secondary"/>
     <!-- Middle: Label -->
