@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "ui_modal_tip_detail.h"
 #include "ui_observer_guard.h"
 #include "ui_panel_base.h"
 
@@ -67,7 +66,6 @@ class HomePanel : public PanelBase {
     bool light_on_ = false;
     network_type_t current_network_ = NETWORK_WIFI;
     PrintingTip current_tip_;
-    TipDetailModal tip_modal_;
     std::string configured_led_;
     lv_timer_t* tip_rotation_timer_ = nullptr;
     lv_obj_t* light_button_ = nullptr;

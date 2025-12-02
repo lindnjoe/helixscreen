@@ -610,88 +610,76 @@ void SettingsPanel::handle_network_clicked() {
 void SettingsPanel::handle_factory_reset_clicked() {
     spdlog::debug("[{}] Factory Reset clicked - showing confirmation dialog", get_name());
 
-    // Create factory reset dialog on first access (lazy initialization)
-    if (!factory_reset_dialog_ && parent_screen_) {
-        spdlog::debug("[{}] Creating factory reset dialog...", get_name());
+    // Create modal config
+    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                                .backdrop_opa = 180,
+                                .keyboard = nullptr,
+                                .persistent = false,
+                                .on_close = nullptr};
 
-        // Create from XML - component name matches filename
-        factory_reset_dialog_ = static_cast<lv_obj_t*>(
-            lv_xml_create(parent_screen_, "factory_reset_dialog", nullptr));
-        if (factory_reset_dialog_) {
-            // Wire up Cancel button - just hide the dialog
-            lv_obj_t* cancel_btn = lv_obj_find_by_name(factory_reset_dialog_, "cancel_btn");
-            if (cancel_btn) {
-                // Store dialog pointer for callback
-                lv_obj_set_user_data(cancel_btn, factory_reset_dialog_);
-                lv_obj_add_event_cb(
-                    cancel_btn,
-                    [](lv_event_t* e) {
-                        auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-                        auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
-                        if (dialog) {
-                            lv_obj_add_flag(dialog, LV_OBJ_FLAG_HIDDEN);
-                        }
-                        spdlog::debug("[SettingsPanel] Factory reset cancelled");
-                    },
-                    LV_EVENT_CLICKED, nullptr);
-            }
+    // Factory reset is a destructive action - use ERROR severity with confirm/cancel
+    const char* attrs[] = {
+        "title", "Factory Reset",
+        "message", "This will reset all device and Klipper configurations to defaults. This action cannot be undone.",
+        nullptr};
 
-            // Wire up Reset button - perform factory reset
-            lv_obj_t* reset_btn = lv_obj_find_by_name(factory_reset_dialog_, "reset_btn");
-            if (reset_btn) {
-                lv_obj_add_event_cb(
-                    reset_btn,
-                    [](lv_event_t*) {
-                        spdlog::warn("[SettingsPanel] Factory reset confirmed - resetting config!");
+    ui_modal_configure(UI_MODAL_SEVERITY_ERROR, true, "Reset", "Cancel");
+    factory_reset_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
-                        // Get config instance and reset
-                        Config* config = Config::get_instance();
-                        if (config) {
-                            // Reset to defaults by clearing the config
-                            config->reset_to_defaults();
-                            config->save();
-                            spdlog::info("[SettingsPanel] Config reset to defaults");
-                        }
-
-                        // TODO: In production, this would restart the application
-                        // or transition to the setup wizard. For now, just log.
-                        spdlog::info("[SettingsPanel] Device should restart or show wizard now");
-
-                        // For development: show a toast or message
-                        // In production: call system restart or show wizard
-                    },
-                    LV_EVENT_CLICKED, nullptr);
-            }
-
-            // Also allow clicking backdrop to cancel
-            lv_obj_add_event_cb(
-                factory_reset_dialog_,
-                [](lv_event_t* e) {
-                    // Only cancel if clicked directly on backdrop, not on children
-                    auto* target = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-                    auto* original = static_cast<lv_obj_t*>(lv_event_get_target(e));
-                    if (target == original) {
-                        lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
-                        spdlog::debug("[SettingsPanel] Factory reset cancelled (backdrop click)");
-                    }
-                },
-                LV_EVENT_CLICKED, nullptr);
-
-            // Start hidden
-            lv_obj_add_flag(factory_reset_dialog_, LV_OBJ_FLAG_HIDDEN);
-            spdlog::info("[{}] Factory reset dialog created", get_name());
-        } else {
-            spdlog::error("[{}] Failed to create factory reset dialog from XML", get_name());
-            return;
-        }
+    if (!factory_reset_dialog_) {
+        spdlog::error("[{}] Failed to create factory reset dialog", get_name());
+        return;
     }
 
-    // Show the dialog
-    if (factory_reset_dialog_) {
-        lv_obj_remove_flag(factory_reset_dialog_, LV_OBJ_FLAG_HIDDEN);
-        // Ensure dialog is on top
-        lv_obj_move_foreground(factory_reset_dialog_);
+    // Wire up Cancel button (btn_secondary)
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(factory_reset_dialog_, "btn_secondary");
+    if (cancel_btn) {
+        lv_obj_set_user_data(cancel_btn, factory_reset_dialog_);
+        lv_obj_add_event_cb(
+            cancel_btn,
+            [](lv_event_t* e) {
+                auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+                auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
+                if (dialog) {
+                    ui_modal_hide(dialog);
+                }
+                spdlog::debug("[SettingsPanel] Factory reset cancelled");
+            },
+            LV_EVENT_CLICKED, nullptr);
     }
+
+    // Wire up Reset button (btn_primary) - perform factory reset
+    lv_obj_t* reset_btn = lv_obj_find_by_name(factory_reset_dialog_, "btn_primary");
+    if (reset_btn) {
+        lv_obj_set_user_data(reset_btn, factory_reset_dialog_);
+        lv_obj_add_event_cb(
+            reset_btn,
+            [](lv_event_t* e) {
+                spdlog::warn("[SettingsPanel] Factory reset confirmed - resetting config!");
+
+                // Get config instance and reset
+                Config* config = Config::get_instance();
+                if (config) {
+                    config->reset_to_defaults();
+                    config->save();
+                    spdlog::info("[SettingsPanel] Config reset to defaults");
+                }
+
+                // Hide the dialog
+                auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+                auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
+                if (dialog) {
+                    ui_modal_hide(dialog);
+                }
+
+                // TODO: In production, this would restart the application
+                // or transition to the setup wizard. For now, just log.
+                spdlog::info("[SettingsPanel] Device should restart or show wizard now");
+            },
+            LV_EVENT_CLICKED, nullptr);
+    }
+
+    spdlog::info("[{}] Factory reset dialog shown", get_name());
 }
 
 // ============================================================================

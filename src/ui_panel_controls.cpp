@@ -307,8 +307,11 @@ void ControlsPanel::handle_motors_clicked() {
                            "message", "Release all stepper motors. Position will be lost.",
                            nullptr};
 
-    // Show modal
-    motors_confirmation_dialog_ = ui_modal_show("confirmation_dialog", &config, attrs);
+    // Configure modal_dialog: WARNING severity, confirm/cancel buttons
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Disable", "Cancel");
+
+    // Show modal using unified modal_dialog component
+    motors_confirmation_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!motors_confirmation_dialog_) {
         LOG_ERROR_INTERNAL("Failed to create motors confirmation dialog");
@@ -316,14 +319,14 @@ void ControlsPanel::handle_motors_clicked() {
         return;
     }
 
-    // Wire up cancel button
-    lv_obj_t* cancel_btn = lv_obj_find_by_name(motors_confirmation_dialog_, "dialog_cancel_btn");
+    // Wire up cancel button (btn_secondary in modal_dialog)
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(motors_confirmation_dialog_, "btn_secondary");
     if (cancel_btn) {
         lv_obj_add_event_cb(cancel_btn, on_motors_cancel, LV_EVENT_CLICKED, this);
     }
 
-    // Wire up confirm button
-    lv_obj_t* confirm_btn = lv_obj_find_by_name(motors_confirmation_dialog_, "dialog_confirm_btn");
+    // Wire up confirm button (btn_primary in modal_dialog)
+    lv_obj_t* confirm_btn = lv_obj_find_by_name(motors_confirmation_dialog_, "btn_primary");
     if (confirm_btn) {
         lv_obj_add_event_cb(confirm_btn, on_motors_confirm, LV_EVENT_CLICKED, this);
     }

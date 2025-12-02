@@ -591,7 +591,8 @@ void PrintSelectPanel::show_delete_confirmation() {
 
     const char* attrs[] = {"title", "Delete File?", "message", msg_buf, NULL};
 
-    confirmation_dialog_widget_ = ui_modal_show("confirmation_dialog", &config, attrs);
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Delete", "Cancel");
+    confirmation_dialog_widget_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!confirmation_dialog_widget_) {
         spdlog::error("[{}] Failed to create confirmation dialog", get_name());
@@ -599,13 +600,13 @@ void PrintSelectPanel::show_delete_confirmation() {
     }
 
     // Wire up cancel button
-    lv_obj_t* cancel_btn = lv_obj_find_by_name(confirmation_dialog_widget_, "dialog_cancel_btn");
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(confirmation_dialog_widget_, "btn_secondary");
     if (cancel_btn) {
         lv_obj_add_event_cb(cancel_btn, on_cancel_delete_static, LV_EVENT_CLICKED, this);
     }
 
     // Wire up confirm button
-    lv_obj_t* confirm_btn = lv_obj_find_by_name(confirmation_dialog_widget_, "dialog_confirm_btn");
+    lv_obj_t* confirm_btn = lv_obj_find_by_name(confirmation_dialog_widget_, "btn_primary");
     if (confirm_btn) {
         lv_obj_add_event_cb(confirm_btn, on_confirm_delete_static, LV_EVENT_CLICKED, this);
     }

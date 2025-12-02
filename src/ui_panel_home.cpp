@@ -7,6 +7,7 @@
 #include "ui_event_safety.h"
 #include "ui_fonts.h"
 #include "ui_icon.h"
+#include "ui_modal.h"
 #include "ui_nav.h"
 #include "ui_subject_registry.h"
 #include "ui_theme.h"
@@ -299,9 +300,39 @@ void HomePanel::handle_tip_text_clicked() {
 
     spdlog::info("[{}] Tip text clicked - showing detail dialog", get_name());
 
-    // Show the tip modal (RAII handles cleanup, ModalBase handles backdrop/ESC/button)
-    if (!tip_modal_.show(lv_screen_active(), current_tip_.title, current_tip_.content)) {
+    // Show tip using unified modal_dialog (INFO severity, single Ok button)
+    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                                .backdrop_opa = 180,
+                                .keyboard = nullptr,
+                                .persistent = false,
+                                .on_close = nullptr};
+
+    const char* attrs[] = {"title",   current_tip_.title.c_str(),
+                           "message", current_tip_.content.c_str(),
+                           nullptr};
+
+    ui_modal_configure(UI_MODAL_SEVERITY_INFO, false, "Ok", nullptr);
+    lv_obj_t* tip_dialog = ui_modal_show("modal_dialog", &config, attrs);
+
+    if (!tip_dialog) {
         spdlog::error("[{}] Failed to show tip detail modal", get_name());
+        return;
+    }
+
+    // Wire up Ok button to close
+    lv_obj_t* ok_btn = lv_obj_find_by_name(tip_dialog, "btn_primary");
+    if (ok_btn) {
+        lv_obj_set_user_data(ok_btn, tip_dialog);
+        lv_obj_add_event_cb(
+            ok_btn,
+            [](lv_event_t* e) {
+                auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+                auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
+                if (dialog) {
+                    ui_modal_hide(dialog);
+                }
+            },
+            LV_EVENT_CLICKED, nullptr);
     }
 }
 

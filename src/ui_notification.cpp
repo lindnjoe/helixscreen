@@ -105,10 +105,12 @@ static void async_error_callback(void* user_data) {
 
             const char* attrs[] = {"title", data->title, "message", data->message, nullptr};
 
-            lv_obj_t* modal = ui_modal_show("error_dialog", &config, attrs);
+            // Configure modal_dialog: ERROR severity, single OK button
+            ui_modal_configure(UI_MODAL_SEVERITY_ERROR, false, "OK", nullptr);
+            lv_obj_t* modal = ui_modal_show("modal_dialog", &config, attrs);
 
             if (modal) {
-                lv_obj_t* ok_btn = lv_obj_find_by_name(modal, "dialog_ok_btn");
+                lv_obj_t* ok_btn = lv_obj_find_by_name(modal, "btn_primary");
                 if (ok_btn) {
                     lv_obj_add_event_cb(ok_btn, modal_ok_btn_clicked, LV_EVENT_CLICKED, modal);
                 }
@@ -309,10 +311,12 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
 
             const char* attrs[] = {"title", title, "message", message, nullptr};
 
-            lv_obj_t* modal_obj = ui_modal_show("error_dialog", &config, attrs);
+            // Configure modal_dialog: ERROR severity, single OK button
+            ui_modal_configure(UI_MODAL_SEVERITY_ERROR, false, "OK", nullptr);
+            lv_obj_t* modal_obj = ui_modal_show("modal_dialog", &config, attrs);
 
             if (modal_obj) {
-                lv_obj_t* ok_btn = lv_obj_find_by_name(modal_obj, "dialog_ok_btn");
+                lv_obj_t* ok_btn = lv_obj_find_by_name(modal_obj, "btn_primary");
                 if (ok_btn) {
                     lv_obj_add_event_cb(ok_btn, modal_ok_btn_clicked, LV_EVENT_CLICKED, modal_obj);
                 }

@@ -776,8 +776,7 @@ static void register_xml_components() {
         "A:ui_xml/overlay_panel.xml"); // Depends on header_bar + base
     lv_xml_register_component_from_file("A:ui_xml/status_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/toast_notification.xml");
-    lv_xml_register_component_from_file("A:ui_xml/error_dialog.xml");
-    lv_xml_register_component_from_file("A:ui_xml/warning_dialog.xml");
+    // Note: error_dialog.xml and warning_dialog.xml removed - use modal_dialog instead
     spdlog::debug("[XML] Registering notification_history_panel.xml...");
     auto nh_panel_ret =
         lv_xml_register_component_from_file("A:ui_xml/notification_history_panel.xml");
@@ -788,9 +787,8 @@ static void register_xml_components() {
         lv_xml_register_component_from_file("A:ui_xml/notification_history_item.xml");
     spdlog::debug("[XML] notification_history_item.xml registration returned: {}",
                   (int)nh_item_ret);
-    lv_xml_register_component_from_file("A:ui_xml/confirmation_dialog.xml");
+    // Note: confirmation_dialog.xml, tip_detail_dialog.xml removed - use modal_dialog instead
     lv_xml_register_component_from_file("A:ui_xml/modal_dialog.xml");
-    lv_xml_register_component_from_file("A:ui_xml/tip_detail_dialog.xml");
     lv_xml_register_component_from_file("A:ui_xml/numeric_keypad_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/print_file_card.xml");
     lv_xml_register_component_from_file("A:ui_xml/print_file_list_row.xml");
@@ -821,7 +819,7 @@ static void register_xml_components() {
     // Settings overlay panels (launched from settings rows)
     lv_xml_register_component_from_file("A:ui_xml/display_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/network_settings_overlay.xml");
-    lv_xml_register_component_from_file("A:ui_xml/factory_reset_dialog.xml");
+    // Note: factory_reset_dialog.xml removed - use modal_dialog instead
     lv_xml_register_component_from_file("A:ui_xml/advanced_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/test_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/print_select_panel.xml");

@@ -59,8 +59,9 @@
       </lv_obj>
 
       <!-- Message content area (scrollable for long content) -->
+      <!-- Max height ensures long content scrolls instead of making dialog huge -->
       <lv_obj name="content_container" width="100%" height="content"
-              style_min_height="60"
+              style_min_height="60" style_max_height="300"
               style_bg_opa="0" style_border_width="0"
               style_pad_left="#padding_normal" style_pad_right="#padding_normal"
               style_pad_top="0" style_pad_bottom="#padding_normal"
