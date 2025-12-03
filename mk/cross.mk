@@ -27,7 +27,8 @@ ifeq ($(PLATFORM_TARGET),pi)
     # Include paths for cross-compilation:
     # - /usr/aarch64-linux-gnu/include: arm64 sysroot headers
     # - /usr/include/libdrm: drm.h (needed by xf86drmMode.h)
-    TARGET_CFLAGS := -march=armv8-a -I/usr/aarch64-linux-gnu/include -I/usr/include/libdrm
+    # -Wno-error=conversion: LVGL headers have int32_t->float conversions that GCC 12 flags
+    TARGET_CFLAGS := -march=armv8-a -I/usr/aarch64-linux-gnu/include -I/usr/include/libdrm -Wno-error=conversion -Wno-error=sign-conversion
     DISPLAY_BACKEND := drm
     ENABLE_SDL := no
     ENABLE_TINYGL_3D := yes
@@ -44,7 +45,8 @@ else ifeq ($(PLATFORM_TARGET),ad5m)
     CROSS_COMPILE ?= arm-linux-gnueabihf-
     TARGET_ARCH := armv7-a
     TARGET_TRIPLE := arm-linux-gnueabihf
-    TARGET_CFLAGS := -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7
+    # -Wno-error=conversion: LVGL headers have int32_t->float conversions that GCC flags
+    TARGET_CFLAGS := -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7 -Wno-error=conversion -Wno-error=sign-conversion
     # GCC 8 requires -lstdc++fs for std::filesystem support (GCC 9+ includes it by default)
     TARGET_LDFLAGS := -lstdc++fs
     DISPLAY_BACKEND := fbdev
@@ -151,7 +153,7 @@ endif
 # Cross-Compilation Build Targets
 # =============================================================================
 
-.PHONY: pi ad5m pi-docker ad5m-docker docker-toolchains cross-info
+.PHONY: pi ad5m pi-docker ad5m-docker docker-toolchains cross-info ensure-docker ensure-buildx maybe-stop-colima
 
 # Direct cross-compilation (requires toolchain installed)
 pi:
@@ -164,7 +166,68 @@ ad5m:
 
 # Docker-based cross-compilation (recommended)
 # SKIP_OPTIONAL_DEPS=1 skips npm, clang-format, python venv, and other development tools
-pi-docker:
+
+# Helper target to ensure Docker daemon is running
+# On macOS with Colima, automatically starts it with resources based on host hardware
+# Allocates ~50% of system RAM (min 6GB, max 16GB) and ~50% of CPUs (min 2, max 8)
+.PHONY: ensure-docker
+ensure-docker:
+	@if docker info >/dev/null 2>&1; then \
+		exit 0; \
+	fi; \
+	if [ "$(UNAME_S)" = "Darwin" ]; then \
+		if command -v colima >/dev/null 2>&1; then \
+			TOTAL_RAM_GB=$$(( $$(sysctl -n hw.memsize) / 1073741824 )); \
+			TOTAL_CPUS=$$(sysctl -n hw.ncpu); \
+			COLIMA_RAM=$$(( TOTAL_RAM_GB / 2 )); \
+			COLIMA_CPUS=$$(( TOTAL_CPUS / 2 )); \
+			[ $$COLIMA_RAM -lt 6 ] && COLIMA_RAM=6; \
+			[ $$COLIMA_RAM -gt 16 ] && COLIMA_RAM=16; \
+			[ $$COLIMA_CPUS -lt 2 ] && COLIMA_CPUS=2; \
+			[ $$COLIMA_CPUS -gt 8 ] && COLIMA_CPUS=8; \
+			echo "$(YELLOW)Docker not running. Starting Colima ($${COLIMA_RAM}GB RAM, $${COLIMA_CPUS} CPUs)...$(RESET)"; \
+			echo "$(CYAN)  (Based on host: $${TOTAL_RAM_GB}GB RAM, $${TOTAL_CPUS} CPUs)$(RESET)"; \
+			if colima list 2>/dev/null | grep -q "default"; then \
+				CURRENT_RAM=$$(colima list 2>/dev/null | awk '/default/ {gsub(/GiB/,""); print $$5}'); \
+				if [ "$$CURRENT_RAM" != "" ] && [ "$$CURRENT_RAM" -lt "$$COLIMA_RAM" ]; then \
+					echo "$(YELLOW)⚠ Existing Colima VM has $${CURRENT_RAM}GB RAM (need $${COLIMA_RAM}GB)$(RESET)"; \
+					echo "$(YELLOW)  Run 'colima delete' then retry to resize$(RESET)"; \
+				fi; \
+			fi; \
+			colima start --memory $$COLIMA_RAM --cpu $$COLIMA_CPUS && echo "$(GREEN)✓ Colima started$(RESET)"; \
+		elif [ -e "/Applications/Docker.app" ]; then \
+			echo "$(RED)Docker Desktop is installed but not running.$(RESET)"; \
+			echo "$(YELLOW)Please start Docker Desktop from your Applications folder.$(RESET)"; \
+			exit 1; \
+		else \
+			echo "$(RED)Docker is not installed.$(RESET)"; \
+			echo "$(YELLOW)Install with: brew install colima docker docker-buildx && colima start$(RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)Docker daemon is not running.$(RESET)"; \
+		echo "$(YELLOW)Start it with: sudo systemctl start docker$(RESET)"; \
+		exit 1; \
+	fi
+
+# Helper target to ensure Docker BuildKit/buildx is available
+# BuildKit is Docker's modern image builder with better caching and parallel builds
+# The legacy builder is deprecated and will be removed in a future Docker release
+.PHONY: ensure-buildx
+ensure-buildx: ensure-docker
+	@if docker buildx version >/dev/null 2>&1; then \
+		exit 0; \
+	fi; \
+	echo "$(YELLOW)Docker BuildKit (buildx) not found.$(RESET)"; \
+	echo "The legacy Docker builder is deprecated and will be removed."; \
+	if [ "$(UNAME_S)" = "Darwin" ]; then \
+		echo "$(YELLOW)Install with: brew install docker-buildx$(RESET)"; \
+	else \
+		echo "$(YELLOW)See: https://docs.docker.com/go/buildx/$(RESET)"; \
+	fi; \
+	exit 1
+
+pi-docker: ensure-docker
 	@echo "$(CYAN)$(BOLD)Cross-compiling for Raspberry Pi via Docker...$(RESET)"
 	@if ! docker image inspect helixscreen/toolchain-pi >/dev/null 2>&1; then \
 		echo "$(YELLOW)Docker image not found. Building toolchain first...$(RESET)"; \
@@ -172,8 +235,9 @@ pi-docker:
 	fi
 	$(Q)docker run --rm -v "$(PWD)":/src -w /src helixscreen/toolchain-pi \
 		make PLATFORM_TARGET=pi SKIP_OPTIONAL_DEPS=1 -j$$(nproc)
+	@$(MAKE) --no-print-directory maybe-stop-colima
 
-ad5m-docker:
+ad5m-docker: ensure-docker
 	@echo "$(CYAN)$(BOLD)Cross-compiling for Adventurer 5M via Docker...$(RESET)"
 	@if ! docker image inspect helixscreen/toolchain-ad5m >/dev/null 2>&1; then \
 		echo "$(YELLOW)Docker image not found. Building toolchain first...$(RESET)"; \
@@ -181,18 +245,30 @@ ad5m-docker:
 	fi
 	$(Q)docker run --rm -v "$(PWD)":/src -w /src helixscreen/toolchain-ad5m \
 		make PLATFORM_TARGET=ad5m SKIP_OPTIONAL_DEPS=1 -j$$(nproc)
+	@$(MAKE) --no-print-directory maybe-stop-colima
+
+# Stop Colima after build to free up RAM (macOS only)
+# Only stops if Colima is running and we're on macOS
+.PHONY: maybe-stop-colima
+maybe-stop-colima:
+	@if [ "$(UNAME_S)" = "Darwin" ] && command -v colima >/dev/null 2>&1; then \
+		if colima status >/dev/null 2>&1; then \
+			echo "$(CYAN)Stopping Colima to free up RAM...$(RESET)"; \
+			colima stop && echo "$(GREEN)✓ Colima stopped$(RESET)"; \
+		fi; \
+	fi
 
 # Build Docker toolchain images
 docker-toolchains: docker-toolchain-pi docker-toolchain-ad5m
 	@echo "$(GREEN)$(BOLD)All Docker toolchains built successfully$(RESET)"
 
-docker-toolchain-pi:
+docker-toolchain-pi: ensure-buildx
 	@echo "$(CYAN)Building Raspberry Pi toolchain Docker image...$(RESET)"
-	$(Q)docker build -t helixscreen/toolchain-pi -f docker/Dockerfile.pi docker/
+	$(Q)docker buildx build -t helixscreen/toolchain-pi -f docker/Dockerfile.pi docker/
 
-docker-toolchain-ad5m:
+docker-toolchain-ad5m: ensure-buildx
 	@echo "$(CYAN)Building Adventurer 5M toolchain Docker image...$(RESET)"
-	$(Q)docker build -t helixscreen/toolchain-ad5m -f docker/Dockerfile.ad5m docker/
+	$(Q)docker buildx build -t helixscreen/toolchain-ad5m -f docker/Dockerfile.ad5m docker/
 
 # Display cross-compilation info (alias for help-cross)
 cross-info: help-cross

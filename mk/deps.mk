@@ -92,6 +92,9 @@ install-deps:
 			openssl:brew) echo "openssl";; \
 			openssl:apt) echo "libssl-dev";; \
 			openssl:dnf) echo "openssl-devel";; \
+			docker-buildx:brew) echo "docker-buildx";; \
+			docker-buildx:apt) echo "";; \
+			docker-buildx:dnf) echo "";; \
 			*) echo "$$1";; \
 		esac; \
 	}; \
@@ -144,6 +147,17 @@ install-deps:
 				if [ ! -f "/usr/include/openssl/ssl.h" ] && [ ! -f "/usr/local/include/openssl/ssl.h" ]; then \
 					INSTALL_NEEDED=1; TO_INSTALL="$$TO_INSTALL $$(add_pkg openssl)"; \
 				fi; \
+			fi; \
+		fi; \
+	fi; \
+	if command -v docker >/dev/null 2>&1; then \
+		if ! docker buildx version >/dev/null 2>&1; then \
+			BUILDX_PKG=$$(add_pkg docker-buildx); \
+			if [ -n "$$BUILDX_PKG" ]; then \
+				INSTALL_NEEDED=1; TO_INSTALL="$$TO_INSTALL $$BUILDX_PKG"; \
+			else \
+				echo "$(YELLOW)⚠ docker buildx not found (cross-compilation feature)$(RESET)"; \
+				echo "  See: https://docs.docker.com/go/buildx/"; \
 			fi; \
 		fi; \
 	fi; \

@@ -317,6 +317,39 @@ check_desktop_tools() {
     fi
 }
 
+check_docker_tools() {
+    echo ""
+    echo -e "${BOLD}Docker Cross-Compilation Tools (optional)${RESET}"
+
+    # Docker itself
+    if command -v docker >/dev/null 2>&1; then
+        ok "docker found: $(docker --version | head -n1)"
+
+        # Check for BuildKit support (needed for modern docker build)
+        # BuildKit can be enabled via:
+        #   1. docker buildx (preferred, comes with Docker Desktop and newer Docker CLI)
+        #   2. DOCKER_BUILDKIT=1 environment variable (legacy method)
+        if docker buildx version >/dev/null 2>&1; then
+            ok "docker buildx found: $(docker buildx version | head -n1)"
+        else
+            warn "docker buildx not found (needed for cross-compilation builds)"
+            echo "  The legacy Docker builder is deprecated and will be removed."
+            if [ "$(uname -s)" = "Darwin" ]; then
+                echo "  Install: ${YELLOW}brew install docker-buildx${RESET}"
+            else
+                echo "  Install: ${YELLOW}https://docs.docker.com/go/buildx/${RESET}"
+            fi
+        fi
+    else
+        info "docker not found (only needed for cross-compilation)"
+        if [ "$(uname -s)" = "Darwin" ]; then
+            echo "  Install: ${YELLOW}brew install colima docker docker-buildx && colima start${RESET}"
+        else
+            echo "  Install: ${YELLOW}https://docs.docker.com/engine/install/${RESET}"
+        fi
+    fi
+}
+
 check_canvas_libs() {
     echo ""
     echo -e "${BOLD}Canvas/Image Libraries (optional)${RESET}"
@@ -439,6 +472,7 @@ check_libraries
 if [ $MINIMAL -eq 0 ]; then
     check_desktop_tools
     check_canvas_libs
+    check_docker_tools
 fi
 
 # Print summary and exit with appropriate code

@@ -113,8 +113,16 @@ endif
 # Note: -MF path is computed in the pattern rules to get the correct output path
 DEPFLAGS = -MMD -MP
 
+# Project source flags - warnings enabled, strict mode optional
+# Use WERROR=1 to treat warnings as errors (for CI or `make strict`)
 CFLAGS := -std=c11 -Wall -Wextra -O2 -g -D_GNU_SOURCE
 CXXFLAGS := -std=c++17 -Wall -Wextra -O2 -g
+
+# Strict mode: -Werror plus additional useful warnings
+ifeq ($(WERROR),1)
+    CFLAGS += -Werror -Wconversion -Wshadow -Wno-error=deprecated-declarations
+    CXXFLAGS += -Werror -Wconversion -Wshadow -Wno-error=deprecated-declarations
+endif
 
 # Submodule flags - suppress warnings from third-party code we don't control
 # Uses -w to completely silence warnings (cleaner build output)
@@ -396,7 +404,7 @@ MOCK_OBJS := $(patsubst $(TEST_MOCK_DIR)/%.cpp,$(OBJ_DIR)/tests/mocks/%.o,$(MOCK
 # Default target
 .DEFAULT_GOAL := all
 
-.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector
+.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector strict
 
 # Help target - shows common commands, references topic-specific help
 help:
@@ -412,6 +420,7 @@ help:
 	echo "  $${G}make run$${X}          - Build and run the UI"; \
 	echo "  $${G}make test$${X}         - Run unit tests"; \
 	echo "  $${G}make clean$${X}        - Remove build artifacts"; \
+	echo "  $${G}make strict$${X}       - Build with -Werror (warnings = errors)"; \
 	echo ""; \
 	echo "$${C}Common Tasks:$${X}"; \
 	echo "  $${G}check-deps$${X}        - Verify dependencies are installed"; \
@@ -451,6 +460,12 @@ screenshots: $(BIN)
 	$(Q)$(ECHO) "$(CYAN)Generating documentation screenshots...$(RESET)"
 	$(Q)./scripts/generate-screenshots.sh
 	$(Q)$(ECHO) "$(GREEN)✓ Documentation screenshots generated in docs/images/$(RESET)"
+
+# Strict build - treat warnings as errors (for CI)
+# This catches issues that would otherwise slip through
+strict:
+	@echo "$(CYAN)$(BOLD)Building with strict warnings (-Werror)...$(RESET)"
+	$(Q)$(MAKE) WERROR=1 all
 
 # Include modular makefiles
 include mk/deps.mk
