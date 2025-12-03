@@ -355,7 +355,7 @@ ifneq ($(JOBS),1)
 endif
 
 # Binaries
-TARGET := $(BIN_DIR)/helix-ui-proto
+TARGET := $(BIN_DIR)/helix-screen
 MOONRAKER_INSPECTOR := $(BIN_DIR)/moonraker-inspector
 
 # LVGL configuration

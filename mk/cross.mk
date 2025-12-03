@@ -242,13 +242,16 @@ endif
 
 # Deploy full application to Pi using rsync (binary + assets + config + XML)
 # Uses rsync for efficient delta transfers - only changed files are sent
-deploy-pi: build/pi/bin/helix-ui-proto
+deploy-pi:
+	@test -f build/pi/bin/helix-screen || { echo "$(RED)Error: build/pi/bin/helix-screen not found. Run 'make pi-docker' first.$(RESET)"; exit 1; }
+	@test -f build/pi/bin/helix-splash || { echo "$(RED)Error: build/pi/bin/helix-splash not found. Run 'make pi-docker' first.$(RESET)"; exit 1; }
 	@echo "$(CYAN)Deploying HelixScreen to $(PI_SSH_TARGET):$(PI_DEPLOY_DIR)...$(RESET)"
-	@echo "  Binary: build/pi/bin/helix-ui-proto"
+	@echo "  Binaries: helix-screen, helix-splash"
 	@echo "  Assets: ui_xml/, assets/, config/"
 	ssh $(PI_SSH_TARGET) "mkdir -p $(PI_DEPLOY_DIR)"
 	rsync -avz --progress \
-		build/pi/bin/helix-ui-proto \
+		build/pi/bin/helix-screen \
+		build/pi/bin/helix-splash \
 		ui_xml \
 		assets \
 		config \
@@ -257,8 +260,8 @@ deploy-pi: build/pi/bin/helix-ui-proto
 
 # Deploy and run in foreground (kills any existing instance first)
 deploy-pi-run: deploy-pi
-	@echo "$(CYAN)Starting helix-ui-proto on $(PI_HOST)...$(RESET)"
-	ssh -t $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-ui-proto 2>/dev/null || true; ./helix-ui-proto"
+	@echo "$(CYAN)Starting helix-screen on $(PI_HOST)...$(RESET)"
+	ssh -t $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-screen 2>/dev/null || true; ./helix-screen"
 
 # Convenience: SSH into the Pi
 pi-ssh:

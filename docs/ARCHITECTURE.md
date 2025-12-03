@@ -819,12 +819,12 @@ std::unique_ptr<WifiBackend> WifiBackend::create() {
 
 ```bash
 # Production mode (default)
-./helix-ui-proto                    # No mocks, requires hardware
+./helix-screen                    # No mocks, requires hardware
 
 # Test mode variations
-./helix-ui-proto --test              # All mocks
-./helix-ui-proto --test --real-moonraker  # Real printer only
-./helix-ui-proto --test --real-wifi --real-ethernet  # Real network only
+./helix-screen --test              # All mocks
+./helix-screen --test --real-moonraker  # Real printer only
+./helix-screen --test --real-wifi --real-ethernet  # Real network only
 ```
 
 ### Implementation Files

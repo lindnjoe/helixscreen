@@ -4,7 +4,7 @@
  * @brief Minimal splash screen binary for embedded targets
  *
  * This is a lightweight splash screen that starts instantly while the main
- * helix-ui-proto application initializes in parallel. It displays the
+ * helix-screen application initializes in parallel. It displays the
  * HelixScreen logo with a fade-in animation and automatically exits when
  * the main app takes over the framebuffer.
  *

@@ -22,7 +22,7 @@ This document covers code standards, workflow practices, and submission guidelin
 1. **Edit code** in `src/` or `include/`
 2. **Edit XML** in `ui_xml/` (layout/styling changes - no rebuild needed)
 3. **Build** with `make -j` (parallel incremental build)
-4. **Test** with `./build/bin/helix-ui-proto [panel_name]`
+4. **Test** with `./build/bin/helix-screen [panel_name]`
 5. **Screenshot** with `./scripts/screenshot.sh` or press **S** in UI
 6. **Commit** with working incremental changes
 
@@ -101,13 +101,13 @@ See **[CLAUDE.md](CLAUDE.md)** Critical Rule #4 for the complete production safe
 
 **Testing with Mocks:**
 ```bash
-./build/bin/helix-ui-proto --test              # Full mock mode
-./build/bin/helix-ui-proto --test --real-wifi  # Mix real and mock
+./build/bin/helix-screen --test              # Full mock mode
+./build/bin/helix-screen --test --real-wifi  # Mix real and mock
 ```
 
 **Production (No Mocks Ever):**
 ```bash
-./build/bin/helix-ui-proto  # Will fail gracefully if hardware unavailable
+./build/bin/helix-screen  # Will fail gracefully if hardware unavailable
 ```
 
 ### Copyright Headers
@@ -262,11 +262,11 @@ lv_xml_create(screen, "home_panel", NULL);  // NOW create UI
 
 ```bash
 # CORRECT: Use the automated script
-./scripts/screenshot.sh helix-ui-proto output-name [panel] [options]
+./scripts/screenshot.sh helix-screen output-name [panel] [options]
 
 # Examples:
-./scripts/screenshot.sh helix-ui-proto home-screen home
-./scripts/screenshot.sh helix-ui-proto motion-panel motion -s small
+./scripts/screenshot.sh helix-screen home-screen home
+./scripts/screenshot.sh helix-screen motion-panel motion -s small
 
 # WRONG: Manual BMP handling
 # magick /tmp/screenshot.bmp output.png  # Don't do this
@@ -332,14 +332,14 @@ make icon  # Creates .icns (macOS) and .png (all platforms)
 **Testing commands:**
 ```bash
 # Test specific panel
-./build/bin/helix-ui-proto --panel home
+./build/bin/helix-screen --panel home
 
 # Test with different screen sizes
-./build/bin/helix-ui-proto -s small --panel motion
-./build/bin/helix-ui-proto -s large --panel controls
+./build/bin/helix-screen -s small --panel motion
+./build/bin/helix-screen -s large --panel controls
 
 # Test with verbose logging
-./build/bin/helix-ui-proto -v --panel nozzle-temp
+./build/bin/helix-screen -v --panel nozzle-temp
 ```
 
 ### Build Validation
@@ -360,7 +360,7 @@ For complex changes, run memory analysis:
 
 ```bash
 # Check for leaks (basic)
-valgrind --leak-check=yes ./build/bin/helix-ui-proto
+valgrind --leak-check=yes ./build/bin/helix-screen
 
 # Performance profiling
 ./scripts/memory_profile.sh  # If available
@@ -426,7 +426,7 @@ See **[DEVELOPMENT.md](DEVELOPMENT.md)** for complete setup instructions.
 make check-deps  # Verify all dependencies
 make compile_commands  # Generate IDE support
 make -j  # Test build
-./build/bin/helix-ui-proto  # Test runtime
+./build/bin/helix-screen  # Test runtime
 ```
 
 ### IDE Configuration

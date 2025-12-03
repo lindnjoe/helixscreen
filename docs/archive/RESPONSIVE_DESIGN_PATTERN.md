@@ -57,7 +57,7 @@ Use the multi-size test pattern:
 ```bash
 # Test specific panel at all sizes
 for size in tiny small medium large; do
-  ./build/bin/helix-ui-proto -s $size -p panel-name
+  ./build/bin/helix-screen -s $size -p panel-name
 done
 ```
 

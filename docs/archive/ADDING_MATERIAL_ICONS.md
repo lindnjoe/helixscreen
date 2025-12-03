@@ -92,7 +92,7 @@ LV_LOG_USER("Registering Material Design icons (58 total)...");  // Increment co
 make clean && make
 
 # Test with a panel that uses the icon
-./build/bin/helix-ui-proto print_select
+./build/bin/helix-screen print_select
 ```
 
 ### 6. Use the Icon in XML

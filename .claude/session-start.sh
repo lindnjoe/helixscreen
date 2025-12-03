@@ -84,7 +84,7 @@ echo -e "${BLUE}💡 Quick tips:${NC}"
 echo "   • Pre-flight checklist: .claude/checklist.md"
 echo "   • Quick reference: .claude/quickref/*.md"
 echo "   • Build: make -j"
-echo "   • Test: ./build/bin/helix-ui-proto [panel_name]"
+echo "   • Test: ./build/bin/helix-screen [panel_name]"
 echo ""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

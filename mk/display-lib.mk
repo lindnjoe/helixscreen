@@ -5,7 +5,7 @@
 # - DisplayBackend base class and factory
 # - Platform-specific implementations (SDL, fbdev, DRM)
 #
-# Both helix-splash and helix-ui-proto link against this library,
+# Both helix-splash and helix-screen link against this library,
 # ensuring consistent display detection and initialization.
 
 DISPLAY_LIB := $(BUILD_DIR)/lib/libhelix-display.a

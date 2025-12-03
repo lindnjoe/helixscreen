@@ -45,10 +45,10 @@ for screenshot in "${SCREENSHOTS[@]}"; do
     # Build command
     if [ -z "$panel_name" ]; then
         # No panel name (e.g., wizard)
-        ./scripts/screenshot.sh helix-ui-proto "$output_name" $flags
+        ./scripts/screenshot.sh helix-screen "$output_name" $flags
     else
         # With panel name
-        ./scripts/screenshot.sh helix-ui-proto "$output_name" "$panel_name" $flags
+        ./scripts/screenshot.sh helix-screen "$output_name" "$panel_name" $flags
     fi
 
     # Move to docs directory

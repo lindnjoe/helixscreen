@@ -12,7 +12,7 @@ for size in tiny small medium large; do
     echo "========================================="
 
     # Run UI and auto-screenshot
-    timeout 3 ./build/bin/helix-ui-proto -s $size -k 2>&1 | grep -E "init_lvgl|Auto-opening|Screenshot" || true
+    timeout 3 ./build/bin/helix-screen -s $size -k 2>&1 | grep -E "init_lvgl|Auto-opening|Screenshot" || true
 
     # Small delay between tests
     sleep 0.5

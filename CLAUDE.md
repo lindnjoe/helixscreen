@@ -88,9 +88,9 @@
 
 ```bash
 make -j                              # Incremental build (native/SDL)
-./build/bin/helix-ui-proto           # Run (default: home panel, small screen)
-./build/bin/helix-ui-proto -p motion -s large
-./build/bin/helix-ui-proto --test    # Mock printer (REQUIRED without real printer!)
+./build/bin/helix-screen           # Run (default: home panel, small screen)
+./build/bin/helix-screen -p motion -s large
+./build/bin/helix-screen --test    # Mock printer (REQUIRED without real printer!)
 
 # Cross-compilation (Docker-based, no toolchain needed)
 make pi-docker                       # Build for Raspberry Pi (aarch64)
@@ -101,7 +101,7 @@ make ad5m-docker                     # Build for Adventurer 5M (armv7-a)
 
 **Panels:** home, controls, motion, nozzle-temp, bed-temp, extrusion, filament, settings, advanced, print-select
 
-**Screenshots:** Press 'S' in UI, or `./scripts/screenshot.sh helix-ui-proto output-name [panel]`
+**Screenshots:** Press 'S' in UI, or `./scripts/screenshot.sh helix-screen output-name [panel]`
 
 ---
 

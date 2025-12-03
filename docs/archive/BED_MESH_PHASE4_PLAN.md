@@ -439,7 +439,7 @@ void MoonrakerClientMock::generate_mock_bed_mesh() {
 
 1. **Test with mock backend**
    ```bash
-   ./build/bin/helix-ui-proto --test -p settings
+   ./build/bin/helix-screen --test -p settings
    ```
    - Click Bed Mesh card
    - Verify synthetic dome mesh renders
@@ -448,7 +448,7 @@ void MoonrakerClientMock::generate_mock_bed_mesh() {
 
 2. **Test with real printer**
    ```bash
-   ./build/bin/helix-ui-proto
+   ./build/bin/helix-screen
    ```
    - Complete wizard setup
    - Navigate to Settings → Bed Mesh

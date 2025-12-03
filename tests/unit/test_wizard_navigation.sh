@@ -4,7 +4,7 @@
 
 set -e
 
-BINARY="./build/bin/helix-ui-proto"
+BINARY="./build/bin/helix-screen"
 TEST_FLAGS="-w --test -vv"
 
 echo "Testing wizard navigation crash scenarios..."

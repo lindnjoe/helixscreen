@@ -230,7 +230,7 @@ void delete_history_job(const std::string& job_id,
 **Testing**:
 ```bash
 # Run with mock to verify API works
-./build/bin/helix-ui-proto --test -vvv
+./build/bin/helix-screen --test -vvv
 
 # Check logs for history API calls (add debug logging temporarily)
 ```
@@ -283,7 +283,7 @@ void delete_history_job(const std::string& job_id,
 **Testing**:
 ```bash
 # Test with mock data
-./build/bin/helix-ui-proto --test -p advanced
+./build/bin/helix-screen --test -p advanced
 
 # Verify:
 # 1. Click "Print History" row
@@ -338,7 +338,7 @@ void delete_history_job(const std::string& job_id,
 
 **Testing**:
 ```bash
-./build/bin/helix-ui-proto --test -p advanced
+./build/bin/helix-screen --test -p advanced
 
 # Verify:
 # 1. Navigate: Advanced → Print History → View Full History
@@ -387,7 +387,7 @@ void delete_history_job(const std::string& job_id,
 
 **Testing**:
 ```bash
-./build/bin/helix-ui-proto --test -p advanced
+./build/bin/helix-screen --test -p advanced
 
 # Verify:
 # 1. Type in search box - list filters
@@ -444,7 +444,7 @@ void delete_history_job(const std::string& job_id,
 
 **Testing**:
 ```bash
-./build/bin/helix-ui-proto --test -p advanced
+./build/bin/helix-screen --test -p advanced
 
 # Verify:
 # 1. Click any list row - detail overlay appears
@@ -494,7 +494,7 @@ void delete_history_job(const std::string& job_id,
 
 **Testing**:
 ```bash
-./build/bin/helix-ui-proto --test -p advanced
+./build/bin/helix-screen --test -p advanced
 
 # Verify:
 # 1. Open Print History dashboard
@@ -542,7 +542,7 @@ void delete_history_job(const std::string& job_id,
 
 **Testing**:
 ```bash
-./build/bin/helix-ui-proto --test -p advanced -s small
+./build/bin/helix-screen --test -p advanced -s small
 
 # Verify:
 # 1. Dashboard fits on screen without scrolling
@@ -628,7 +628,7 @@ std::string percentage(double value);
 When resuming work on this feature:
 
 1. Check current stage status in this document
-2. Run `./build/bin/helix-ui-proto --test -p advanced` to see current state
+2. Run `./build/bin/helix-screen --test -p advanced` to see current state
 3. Review any `// TODO:` comments in implementation files
 4. Check git log for recent commits on this feature
 5. Run tests: `./build/bin/helix-unit-tests`

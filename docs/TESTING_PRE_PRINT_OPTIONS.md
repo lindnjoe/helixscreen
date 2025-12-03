@@ -26,10 +26,10 @@ Options are shown/hidden based on printer capabilities detected via Moonraker.
 make -j
 
 # For mock testing (no real printer)
-./build/bin/helix-ui-proto --test -p print-select
+./build/bin/helix-screen --test -p print-select
 
 # For live testing (requires Moonraker connection)
-./build/bin/helix-ui-proto -p print-select
+./build/bin/helix-screen -p print-select
 ```
 
 ---
@@ -44,7 +44,7 @@ make -j
 | 3 | Verify layout | Thumbnail, filename, metadata, options card, and buttons visible |
 | 4 | Verify options card | All visible checkboxes fit without truncation |
 
-**CLI shortcut:** `./build/bin/helix-ui-proto --test -p print-select --select-file "3DBenchy.gcode"`
+**CLI shortcut:** `./build/bin/helix-screen --test -p print-select --select-file "3DBenchy.gcode"`
 
 #### TC1.2: Options Card Visibility by Printer Type
 | Printer Type | Expected Visible Options |
@@ -64,9 +64,9 @@ make -j
 | Large (1024×600+) | All options visible with comfortable spacing |
 
 ```bash
-./build/bin/helix-ui-proto --test -s small -p print-select --select-file "test.gcode"
-./build/bin/helix-ui-proto --test -s medium -p print-select --select-file "test.gcode"
-./build/bin/helix-ui-proto --test -s large -p print-select --select-file "test.gcode"
+./build/bin/helix-screen --test -s small -p print-select --select-file "test.gcode"
+./build/bin/helix-screen --test -s medium -p print-select --select-file "test.gcode"
+./build/bin/helix-screen --test -s large -p print-select --select-file "test.gcode"
 ```
 
 ---
@@ -110,7 +110,7 @@ make -j
 
 **Log verification:**
 ```bash
-./build/bin/helix-ui-proto --test -vv 2>&1 | grep -E "start_print|CommandSequencer"
+./build/bin/helix-screen --test -vv 2>&1 | grep -E "start_print|CommandSequencer"
 # Expected: "start_print() called" without sequencer logs
 ```
 
@@ -124,7 +124,7 @@ make -j
 
 **Log verification:**
 ```bash
-./build/bin/helix-ui-proto --test -vv 2>&1 | grep -E "Executing step|operation"
+./build/bin/helix-screen --test -vv 2>&1 | grep -E "Executing step|operation"
 # Expected:
 # Executing step 1/3: Home
 # Executing step 2/3: Bed Mesh
@@ -196,7 +196,7 @@ make -j
 
 **Log verification:**
 ```bash
-./build/bin/helix-ui-proto -vv 2>&1 | grep "PrinterCapabilities"
+./build/bin/helix-screen -vv 2>&1 | grep "PrinterCapabilities"
 # Expected: PrinterCapabilities: QGL, bed_mesh | 2 macros
 ```
 
@@ -285,10 +285,10 @@ These require the full UI but can be semi-automated:
 ```bash
 # Scenario 1: Mock printer, auto-select file, screenshot
 HELIX_AUTO_SCREENSHOT=1 HELIX_AUTO_QUIT_MS=3000 \
-  ./build/bin/helix-ui-proto --test -p print-select --select-file "test.gcode"
+  ./build/bin/helix-screen --test -p print-select --select-file "test.gcode"
 
 # Scenario 2: Verify detail view with all options visible
-HELIX_AUTO_QUIT_MS=5000 ./build/bin/helix-ui-proto --test -vv \
+HELIX_AUTO_QUIT_MS=5000 ./build/bin/helix-screen --test -vv \
   -p print-select --select-file "3DBenchy.gcode" 2>&1 | \
   grep -E "checkbox|capability|visible"
 ```

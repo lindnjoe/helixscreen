@@ -79,7 +79,7 @@ void PrintStatusPanel::handle_nozzle_temp_clicked() {
 
 #### Testing
 ```bash
-./build/bin/helix-ui-proto --test -p print-status
+./build/bin/helix-screen --test -p print-status
 # Click on temperature display areas
 # Verify overlay opens with current values
 ```
@@ -168,7 +168,7 @@ SET_GCODE_OFFSET Z_ADJUST=0.01 MOVE=1  ; Adjust Z offset by +0.01mm
 
 #### Testing
 ```bash
-./build/bin/helix-ui-proto --test -p print-status
+./build/bin/helix-screen --test -p print-status
 # Click Tune button
 # Verify sliders update values
 # Verify changes sent to mock printer
@@ -249,7 +249,7 @@ void handle_cancel_dismiss();
 
 #### Testing
 ```bash
-./build/bin/helix-ui-proto --test -p print-status
+./build/bin/helix-screen --test -p print-status
 # Click Cancel button
 # Verify dialog appears
 # Click "Keep Printing" - dialog closes, no action
@@ -770,7 +770,7 @@ This shows the LVGL 9 pattern for custom drawing in widget events.
 
 #### Testing
 ```bash
-./build/bin/helix-ui-proto --test -p home
+./build/bin/helix-screen --test -p home
 # Navigate to temperature panel
 # Verify gradient appears under temperature lines
 # Resize window - verify gradient scales correctly
@@ -1102,7 +1102,7 @@ make -j && ./build/bin/run_tests
 ### Full Regression
 ```bash
 ./build/bin/run_tests
-./build/bin/helix-ui-proto --test  # Manual UI verification
+./build/bin/helix-screen --test  # Manual UI verification
 ```
 
 ### Sanitizer Runs (After Tier 3.2)

@@ -32,7 +32,7 @@ ifndef _PARALLEL_CHECKED
 	fi
 else
 # Phase 2: Actual build (only runs when _PARALLEL_CHECKED is set)
-all: check-deps apply-patches generate-fonts $(TARGET)
+all: check-deps apply-patches generate-fonts splash $(TARGET)
 	$(ECHO) "$(GREEN)$(BOLD)✓ Build complete!$(RESET)"
 	$(ECHO) "$(CYAN)Run with: $(YELLOW)./$(TARGET)$(RESET)"
 endif

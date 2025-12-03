@@ -154,7 +154,7 @@ The current architecture is **well-optimized** for the use case. Physical memory
 make -j
 
 # Profile normal mode (all panels)
-./build/bin/helix-ui-proto -s small --panel home --test &
+./build/bin/helix-screen -s small --panel home --test &
 PID=$!
 sleep 4
 ps -o pid,rss,vsz -p $PID
@@ -163,7 +163,7 @@ vmmap --summary $PID | grep "Physical footprint"
 kill $PID
 
 # Profile wizard mode
-./build/bin/helix-ui-proto -s small --wizard --test &
+./build/bin/helix-screen -s small --wizard --test &
 PID=$!
 sleep 4
 # ... same profiling commands

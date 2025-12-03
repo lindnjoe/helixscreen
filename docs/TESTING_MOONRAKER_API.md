@@ -42,10 +42,10 @@ Since `MoonrakerAPI` methods are not virtual, traditional unit testing with mock
 make -j
 
 # Run in test mode (uses mock backends)
-./build/bin/helix-ui-proto --test
+./build/bin/helix-screen --test
 
 # Or run with real Moonraker (requires connection)
-./build/bin/helix-ui-proto
+./build/bin/helix-screen
 ```
 
 ### Test Checklist

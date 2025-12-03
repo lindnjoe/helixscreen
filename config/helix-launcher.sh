@@ -10,7 +10,7 @@
 # Usage:
 #   ./helix-launcher.sh [options]
 #
-# All options are passed through to helix-ui-proto.
+# All options are passed through to helix-screen.
 #
 # Installation:
 #   Copy to /opt/helixscreen/bin/ or similar
@@ -36,11 +36,11 @@ else
 fi
 
 SPLASH_BIN="${BIN_DIR}/helix-splash"
-MAIN_BIN="${BIN_DIR}/helix-ui-proto"
+MAIN_BIN="${BIN_DIR}/helix-screen"
 
 # Verify main binary exists
 if [ ! -x "${MAIN_BIN}" ]; then
-    echo "Error: Cannot find helix-ui-proto binary at ${MAIN_BIN}" >&2
+    echo "Error: Cannot find helix-screen binary at ${MAIN_BIN}" >&2
     exit 1
 fi
 

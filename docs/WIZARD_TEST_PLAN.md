@@ -35,11 +35,11 @@
 **Verification:**
 ```bash
 # Take before screenshot
-./scripts/screenshot.sh helix-ui-proto wifi-off --wizard-step wifi
+./scripts/screenshot.sh helix-screen wifi-off --wizard-step wifi
 
 # Manually toggle WiFi ON, wait 1 second
 # Take after screenshot
-./scripts/screenshot.sh helix-ui-proto wifi-on-immediate --wizard-step wifi
+./scripts/screenshot.sh helix-screen wifi-on-immediate --wizard-step wifi
 
 # Verify: placeholder not visible, status shows "Scanning..."
 ```
@@ -66,7 +66,7 @@
 **Verification:**
 ```bash
 # Start with WiFi enabled
-./build/bin/helix-ui-proto --wizard-step wifi
+./build/bin/helix-screen --wizard-step wifi
 # Manually toggle OFF
 # Verify placeholder reappears immediately
 ```
@@ -289,7 +289,7 @@
 make -j
 
 # Test WiFi toggle behavior
-./build/bin/helix-ui-proto --wizard-step wifi -s small
+./build/bin/helix-screen --wizard-step wifi -s small
 
 # Manual steps:
 # 1. Verify placeholder visible with WiFi OFF
@@ -299,13 +299,13 @@ make -j
 # 5. Verify network list cleared and dimmed
 
 # Test connection screen
-./build/bin/helix-ui-proto --wizard-step connection -s medium
+./build/bin/helix-screen --wizard-step connection -s medium
 
 # Test printer identification
-./build/bin/helix-ui-proto --wizard-step printer-identify -s small
+./build/bin/helix-screen --wizard-step printer-identify -s small
 
 # Full wizard flow
-./build/bin/helix-ui-proto --wizard
+./build/bin/helix-screen --wizard
 ```
 
 ### Automated Testing (Future)

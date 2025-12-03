@@ -227,7 +227,7 @@ $(WPA_CLIENT_LIB):
 	$(Q)$(MAKE) -C $(WPA_DIR)/wpa_supplicant -j$(NPROC) libwpa_client.a
 
 # Add to main build dependencies
-$(BIN_DIR)/helix-ui-proto: ... $(WPA_CLIENT_LIB) ...
+$(BIN_DIR)/helix-screen: ... $(WPA_CLIENT_LIB) ...
 endif
 
 # Clean target
@@ -1076,7 +1076,7 @@ sudo wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
 sudo usermod -aG netdev $USER
 
 # Or run HelixScreen as root (not recommended for production)
-sudo ./build/bin/helix-ui-proto
+sudo ./build/bin/helix-screen
 \`\`\`
 
 ### Interface not ready

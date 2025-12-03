@@ -24,7 +24,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Get binary name (first arg) or default
-BINARY="${1:-helix-ui-proto}"
+BINARY="${1:-helix-screen}"
 BINARY_PATH="./build/bin/${BINARY}"
 
 # Get unique name or use timestamp

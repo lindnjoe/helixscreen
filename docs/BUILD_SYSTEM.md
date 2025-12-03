@@ -18,8 +18,8 @@ make pi-docker
 make ad5m-docker
 
 # Verify the binaries
-file build/pi/bin/helix-ui-proto    # ELF 64-bit LSB, ARM aarch64
-file build/ad5m/bin/helix-ui-proto  # ELF 32-bit LSB, ARM EABI5
+file build/pi/bin/helix-screen    # ELF 64-bit LSB, ARM aarch64
+file build/ad5m/bin/helix-screen  # ELF 32-bit LSB, ARM EABI5
 ```
 
 Docker images are **automatically built** on first use - no manual setup required!
@@ -162,10 +162,10 @@ After building, copy the binary to your target device:
 
 ```bash
 # Raspberry Pi
-scp build/pi/bin/helix-ui-proto pi@mainsailos.local:~/
+scp build/pi/bin/helix-screen pi@mainsailos.local:~/
 
 # Adventurer 5M (via SSH or SD card)
-scp build/ad5m/bin/helix-ui-proto root@192.168.1.x:/usr/data/
+scp build/ad5m/bin/helix-screen root@192.168.1.x:/usr/data/
 ```
 
 ### Display Backend Selection
@@ -485,16 +485,16 @@ The prototype supports multi-monitor development workflows with automatic window
 
 ```bash
 # Display-based positioning (centered)
-./build/bin/helix-ui-proto --display 0    # Main display
-./build/bin/helix-ui-proto --display 1    # Secondary display
-./build/bin/helix-ui-proto -d 2           # Third display (short form)
+./build/bin/helix-screen --display 0    # Main display
+./build/bin/helix-screen --display 1    # Secondary display
+./build/bin/helix-screen -d 2           # Third display (short form)
 
 # Exact pixel coordinates
-./build/bin/helix-ui-proto --x-pos 100 --y-pos 200
-./build/bin/helix-ui-proto -x 1500 -y -500  # Works with negative Y (display above)
+./build/bin/helix-screen --x-pos 100 --y-pos 200
+./build/bin/helix-screen -x 1500 -y -500  # Works with negative Y (display above)
 
 # Combined with other options
-./build/bin/helix-ui-proto -d 1 -s small --panel home
+./build/bin/helix-screen -d 1 -s small --panel home
 ```
 
 ### Implementation Details
@@ -523,10 +523,10 @@ The `scripts/screenshot.sh` script automatically uses display positioning:
 
 ```bash
 # Default: opens on display 1 (keeps terminal visible on display 0)
-./scripts/screenshot.sh helix-ui-proto output-name panel
+./scripts/screenshot.sh helix-screen output-name panel
 
 # Override display
-HELIX_SCREENSHOT_DISPLAY=0 ./scripts/screenshot.sh helix-ui-proto output panel
+HELIX_SCREENSHOT_DISPLAY=0 ./scripts/screenshot.sh helix-screen output panel
 ```
 
 **How it works**:
@@ -899,7 +899,7 @@ sdl2-config --version
 
 1. **Edit code** in `src/` or `include/`
 2. **Run `make -j`** - parallel incremental build with auto-patching
-3. **Test** with `./build/bin/helix-ui-proto`
+3. **Test** with `./build/bin/helix-screen`
 4. **Screenshot** with `./scripts/screenshot.sh` (auto-opens on display 1)
 5. **Commit** with working incremental changes
 

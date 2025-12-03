@@ -1772,12 +1772,12 @@ Test panels at all screen sizes:
 ```bash
 # Test specific panel at all sizes
 for size in tiny small medium large; do
-  ./build/bin/helix-ui-proto -s $size -p panel-name
+  ./build/bin/helix-screen -s $size -p panel-name
 done
 
 # Or use screenshot script for visual comparison
 for size in tiny small medium large; do
-  ./scripts/screenshot.sh helix-ui-proto panel-$size -s $size
+  ./scripts/screenshot.sh helix-screen panel-$size -s $size
 done
 ```
 

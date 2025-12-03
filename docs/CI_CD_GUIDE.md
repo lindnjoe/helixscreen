@@ -70,8 +70,8 @@ jobs:
 8. Upload binary artifacts (7-day retention)
 
 **Artifacts:**
-- `helix-ui-proto-ubuntu-22.04` - Ubuntu binary
-- `helix-ui-proto-macos-14` - macOS binary
+- `helix-screen-ubuntu-22.04` - Ubuntu binary
+- `helix-screen-macos-14` - macOS binary
 
 ### Quality Workflow
 
@@ -293,7 +293,7 @@ npm run convert-fonts-ci
 make -j$(nproc)
 
 # Verify binary
-./build/bin/helix-ui-proto --help
+./build/bin/helix-screen --help
 ```
 
 ### Simulate macOS Build
@@ -318,7 +318,7 @@ npm run convert-all-fonts
 make -j$(sysctl -n hw.ncpu)
 
 # Verify binary
-./build/bin/helix-ui-proto --help
+./build/bin/helix-screen --help
 ```
 
 ### Run Quality Checks Locally
@@ -418,12 +418,12 @@ git submodule update --init --recursive
 - name: Upload binary
   uses: actions/upload-artifact@v4
   with:
-    name: helix-ui-proto-ubuntu-22.04
-    path: build/bin/helix-ui-proto  # Verify this path is correct
+    name: helix-screen-ubuntu-22.04
+    path: build/bin/helix-screen  # Verify this path is correct
     retention-days: 7
 ```
 
-**Verify:** Check that the binary actually exists at `build/bin/helix-ui-proto` after the build step.
+**Verify:** Check that the binary actually exists at `build/bin/helix-screen` after the build step.
 
 ## Workflow Best Practices
 

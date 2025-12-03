@@ -406,7 +406,7 @@ for (int i = 0; i < N; i++) {
 ```bash
 # Ensure N=4 (current behavior) still works
 echo '{"gcode_viewer": {"tube_sides": 4}}' > /tmp/test_config.json
-./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/4-segment-square.gcode
+./build/bin/helix-screen -p gcode-test --gcode-file assets/4-segment-square.gcode
 ```
 
 **Success criteria**:
@@ -508,7 +508,7 @@ for (int i = 0; i < N; i++) {
 **Test command**:
 ```bash
 # Test N=4 with new data structures
-./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/4-segment-square.gcode --gcode-debug-colors
+./build/bin/helix-screen -p gcode-test --gcode-file assets/4-segment-square.gcode --gcode-debug-colors
 ```
 
 **Success criteria**:
@@ -682,11 +682,11 @@ for (int i = 0; i < N; i++) {
 **Test command**:
 ```bash
 # Test N=4 after vertex refactor
-./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/straight-line-10-segments.gcode
+./build/bin/helix-screen -p gcode-test --gcode-file assets/straight-line-10-segments.gcode
 
 # Test N=8 (first test with new geometry!)
 echo '{"gcode_viewer": {"tube_sides": 8}}' > ~/.config/helixscreen/helixconfig.json
-./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/straight-line-10-segments.gcode
+./build/bin/helix-screen -p gcode-test --gcode-file assets/straight-line-10-segments.gcode
 ```
 
 **Success criteria**:
@@ -842,7 +842,7 @@ int triangle_count = side_triangles + start_cap_triangles + end_cap_triangles;
 # Test all N values with caps
 for N in 4 8 16; do
     echo '{"gcode_viewer": {"tube_sides": '$N'}}' > ~/.config/helixscreen/helixconfig.json
-    ./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/4-segment-square.gcode \
+    ./build/bin/helix-screen -p gcode-test --gcode-file assets/4-segment-square.gcode \
         --skip-splash --screenshot 2 --timeout 3
     mv /tmp/ui-screenshot-*.bmp /tmp/test-N${N}.bmp
 done
@@ -871,7 +871,7 @@ done
 **1. Regression testing (N=4)**:
 ```bash
 # Must be pixel-identical to pre-refactor version
-./build/bin/helix-ui-proto -p gcode-test --gcode-file assets/4-segment-square.gcode \
+./build/bin/helix-screen -p gcode-test --gcode-file assets/4-segment-square.gcode \
     --skip-splash --screenshot 2 --timeout 3
 # Compare with baseline screenshot from before refactor
 ```
@@ -881,13 +881,13 @@ done
 # Simple geometry
 for N in 4 8 16; do
     # Straight line
-    ./build/bin/helix-ui-proto ... --gcode-file assets/straight-line-10-segments.gcode
+    ./build/bin/helix-screen ... --gcode-file assets/straight-line-10-segments.gcode
 
     # Square with corners
-    ./build/bin/helix-ui-proto ... --gcode-file assets/4-segment-square.gcode
+    ./build/bin/helix-screen ... --gcode-file assets/4-segment-square.gcode
 
     # Complex (3-layer test)
-    ./build/bin/helix-ui-proto ... --gcode-file "assets/3 Layer Thin Test.gcode"
+    ./build/bin/helix-screen ... --gcode-file "assets/3 Layer Thin Test.gcode"
 done
 ```
 
@@ -895,7 +895,7 @@ done
 ```bash
 # Verify face colors cycle correctly for N > 4
 for N in 4 8 16; do
-    ./build/bin/helix-ui-proto -p gcode-test \
+    ./build/bin/helix-screen -p gcode-test \
         --gcode-file assets/4-segment-square.gcode \
         --gcode-debug-colors --screenshot 2
 done
@@ -926,7 +926,7 @@ spdlog::debug("Segment {}: strips={}, expected={}",
 # Measure frame times for different N values
 for N in 4 8 16; do
     # Run with frame time logging enabled
-    ./build/bin/helix-ui-proto -p gcode-test \
+    ./build/bin/helix-screen -p gcode-test \
         --gcode-file "assets/3 Layer Thin Test.gcode" \
         -vv 2>&1 | grep "frame_time"
 done
@@ -941,13 +941,13 @@ done
 **6. Edge case testing**:
 ```bash
 # Single segment
-./build/bin/helix-ui-proto --gcode-file assets/single-90-corner.gcode
+./build/bin/helix-screen --gcode-file assets/single-90-corner.gcode
 
 # Diagonal segments
-./build/bin/helix-ui-proto --gcode-file assets/diagonal-then-horizontal.gcode
+./build/bin/helix-screen --gcode-file assets/diagonal-then-horizontal.gcode
 
 # Many segments
-./build/bin/helix-ui-proto --gcode-file assets/straight-line-10-segments.gcode
+./build/bin/helix-screen --gcode-file assets/straight-line-10-segments.gcode
 ```
 
 **Files modified**:
@@ -1053,7 +1053,7 @@ assert(actual_cap_strips == expected_cap_triangles);
 ```bash
 # Before starting refactor
 for file in assets/*.gcode; do
-    ./build/bin/helix-ui-proto -p gcode-test --gcode-file "$file" \
+    ./build/bin/helix-screen -p gcode-test --gcode-file "$file" \
         --skip-splash --screenshot 2 --timeout 3
     mv /tmp/ui-screenshot-*.bmp "/tmp/baseline-$(basename "$file" .gcode).bmp"
 done
@@ -1063,7 +1063,7 @@ done
 ```bash
 # After phase X
 for file in assets/*.gcode; do
-    ./build/bin/helix-ui-proto -p gcode-test --gcode-file "$file" \
+    ./build/bin/helix-screen -p gcode-test --gcode-file "$file" \
         --skip-splash --screenshot 2 --timeout 3
 
     baseline="/tmp/baseline-$(basename "$file" .gcode).bmp"

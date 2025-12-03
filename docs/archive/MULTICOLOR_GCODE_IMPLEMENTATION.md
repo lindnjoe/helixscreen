@@ -394,13 +394,13 @@ Future enhancement: Add UI checkbox "Show Wipe Tower" (default: off).
 ```bash
 # Build and run
 make -j
-./build/bin/helix-ui-proto -p gcode-test
+./build/bin/helix-screen -p gcode-test
 
 # Load the multi-color test file in UI
 # Visually verify colors match OrcaSlicer preview
 
 # Check logs for tool changes
-./build/bin/helix-ui-proto -p gcode-test -vv 2>&1 | grep "Tool change"
+./build/bin/helix-screen -p gcode-test -vv 2>&1 | grep "Tool change"
 # Should see: "Tool change: T0", "Tool change: T2", etc.
 ```
 

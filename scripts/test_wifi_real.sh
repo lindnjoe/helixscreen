@@ -297,7 +297,7 @@ test_wifi_backend() {
     log_info "Testing WiFi backend initialization..."
 
     # Run UI briefly and capture WiFi-related logs
-    local wifi_log=$(timeout 5s ./build/bin/helix-ui-proto --timeout 3 -v 2>&1 | grep -E "(WiFi|WifiBackend|wpa)" || true)
+    local wifi_log=$(timeout 5s ./build/bin/helix-screen --timeout 3 -v 2>&1 | grep -E "(WiFi|WifiBackend|wpa)" || true)
 
     if echo "$wifi_log" | grep -q "WifiBackend.*socket"; then
         if echo "$wifi_log" | grep -q "Could not find"; then
@@ -328,7 +328,7 @@ test_robustness_scenarios() {
     sudo pkill wpa_supplicant || true
     sleep 1
 
-    local fallback_log=$(timeout 3s ./build/bin/helix-ui-proto --timeout 2 -v 2>&1 | grep -E "(WiFi|WifiBackend)" || true)
+    local fallback_log=$(timeout 3s ./build/bin/helix-screen --timeout 2 -v 2>&1 | grep -E "(WiFi|WifiBackend)" || true)
     if echo "$fallback_log" | grep -q "Could not find.*socket"; then
         log_info "✓ Graceful fallback when control interface missing"
     else
@@ -360,7 +360,7 @@ test_fallback_only() {
     fi
 
     log_info "Testing fallback behavior with no WiFi hardware..."
-    local fallback_log=$(timeout 3s ./build/bin/helix-ui-proto --timeout 2 -v 2>&1 | grep -E "(WiFi|WifiBackend)" || true)
+    local fallback_log=$(timeout 3s ./build/bin/helix-screen --timeout 2 -v 2>&1 | grep -E "(WiFi|WifiBackend)" || true)
 
     if echo "$fallback_log" | grep -q "WiFiManager.*initialized"; then
         log_info "✓ WiFiManager gracefully handles missing WiFi hardware"

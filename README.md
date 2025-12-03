@@ -184,14 +184,14 @@ npm install  # Install lv_font_conv and lv_img_conv
 make -j
 
 # Run simulator (production mode - requires real hardware/printer)
-./build/bin/helix-ui-proto
+./build/bin/helix-screen
 
 # Run in test mode (all components mocked - no hardware needed)
-./build/bin/helix-ui-proto --test
+./build/bin/helix-screen --test
 
 # Test mode with selective real components
-./build/bin/helix-ui-proto --test --real-moonraker      # Real printer, mock network
-./build/bin/helix-ui-proto --test --real-wifi --real-files  # Real WiFi/files, mock rest
+./build/bin/helix-screen --test --real-moonraker      # Real printer, mock network
+./build/bin/helix-screen --test --real-wifi --real-files  # Real WiFi/files, mock rest
 
 # Controls: Click navigation icons, press 'S' for screenshot
 ```

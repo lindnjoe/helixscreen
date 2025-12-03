@@ -20,7 +20,7 @@
  * - Specular/shininess sliders for material tuning
  * - Statistics display (filename, layer count, filament type)
  *
- * Access via: ./build/bin/helix-ui-proto -p gcode-test
+ * Access via: ./build/bin/helix-screen -p gcode-test
  *
  * ## Migration Notes:
  * This panel doesn't use reactive subjects or MoonrakerAPI - it's a

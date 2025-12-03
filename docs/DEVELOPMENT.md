@@ -89,11 +89,11 @@ make -j
 make build
 
 # Run after building
-./build/bin/helix-ui-proto
+./build/bin/helix-screen
 
 # Run with specific theme mode
-./build/bin/helix-ui-proto --dark    # Force dark mode
-./build/bin/helix-ui-proto --light   # Force light mode
+./build/bin/helix-screen --dark    # Force dark mode
+./build/bin/helix-screen --light   # Force light mode
 
 # Generate IDE support (one-time setup)
 make compile_commands
@@ -113,13 +113,13 @@ The UI supports dark and light themes:
 
 ```bash
 # Use stored preference from config file (default)
-./build/bin/helix-ui-proto
+./build/bin/helix-screen
 
 # Override with dark mode
-./build/bin/helix-ui-proto --dark
+./build/bin/helix-screen --dark
 
 # Override with light mode
-./build/bin/helix-ui-proto --light
+./build/bin/helix-screen --light
 ```
 
 Theme preference is saved to `helixconfig.json` and persists across launches unless overridden by command-line flags.
@@ -199,8 +199,8 @@ When adding new configuration options:
 Control which display the UI window appears on:
 
 ```bash
-./build/bin/helix-ui-proto --display 1     # Display 1 (secondary)
-./build/bin/helix-ui-proto -d 1 -s small   # Combined options
+./build/bin/helix-screen --display 1     # Display 1 (secondary)
+./build/bin/helix-screen -d 1 -s small   # Combined options
 ```
 
 For complete multi-display details, see **[BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md)**.
@@ -231,16 +231,16 @@ Use the `--dpi` flag to test how the UI will appear on target hardware:
 
 ```bash
 # Reference DPI (160) - no scaling
-./build/bin/helix-ui-proto --dpi 160
+./build/bin/helix-screen --dpi 160
 
 # 7" @ 1024x600 (170 DPI) - BTT Pad 7, similar displays
-./build/bin/helix-ui-proto -s medium --dpi 170
+./build/bin/helix-screen -s medium --dpi 170
 
 # 5" @ 800x480 (187 DPI) - Common 5" LCD panels
-./build/bin/helix-ui-proto -s medium --dpi 187
+./build/bin/helix-screen -s medium --dpi 187
 
 # 4.3" @ 720x480 (201 DPI) - FlashForge AD5M, compact screens
-./build/bin/helix-ui-proto -s small --dpi 201
+./build/bin/helix-screen -s small --dpi 201
 ```
 
 ### Target Hardware DPI Reference
@@ -398,7 +398,7 @@ Add permission directly via Terminal with Full Disk Access:
 # Settings → Privacy & Security → Full Disk Access → Enable Terminal
 
 # Get absolute path to binary
-BINARY_PATH="$(cd $(dirname $0) && pwd)/build/bin/helix-ui-proto"
+BINARY_PATH="$(cd $(dirname $0) && pwd)/build/bin/helix-screen"
 
 # Add location permission (macOS 15+ format)
 sudo sqlite3 ~/Library/Application\ Support/com.apple.TCC/TCC.db \
@@ -418,7 +418,7 @@ mkdir -p HelixUI.app/Contents/MacOS
 mkdir -p HelixUI.app/Contents/Resources
 
 # Copy binary
-cp build/bin/helix-ui-proto HelixUI.app/Contents/MacOS/
+cp build/bin/helix-screen HelixUI.app/Contents/MacOS/
 
 # Create Info.plist
 cat > HelixUI.app/Contents/Info.plist <<'EOF'
@@ -427,7 +427,7 @@ cat > HelixUI.app/Contents/Info.plist <<'EOF'
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>helix-ui-proto</string>
+    <string>helix-screen</string>
     <key>CFBundleIdentifier</key>
     <string>net.356c.helixui</string>
     <key>CFBundleName</key>
@@ -447,7 +447,7 @@ open HelixUI.app
 Run the app with verbose logging to see permission status:
 
 ```bash
-./build/bin/helix-ui-proto --wizard -vv 2>&1 | grep -i "location\|permission\|wifi"
+./build/bin/helix-screen --wizard -vv 2>&1 | grep -i "location\|permission\|wifi"
 ```
 
 **Expected output with permission granted:**
@@ -468,7 +468,7 @@ To test permission denial or reset state:
 
 ```bash
 # Remove permission via System Settings
-# Settings → Privacy & Security → Location Services → Remove helix-ui-proto
+# Settings → Privacy & Security → Location Services → Remove helix-screen
 
 # Or reset via tccutil (requires SIP disabled or Full Disk Access)
 tccutil reset Location
@@ -480,7 +480,7 @@ tccutil reset Location
 
 ```bash
 # Run the UI and press 'S' to take screenshot
-./build/bin/helix-ui-proto
+./build/bin/helix-screen
 # Press 'S' key -> saves timestamped PNG to /tmp/
 ```
 
@@ -488,18 +488,18 @@ tccutil reset Location
 
 ```bash
 # Basic usage (auto-opens on display 1)
-./scripts/screenshot.sh helix-ui-proto output-name [panel] [options]
+./scripts/screenshot.sh helix-screen output-name [panel] [options]
 
 # Examples
-./scripts/screenshot.sh helix-ui-proto home-screen home
-./scripts/screenshot.sh helix-ui-proto motion-panel motion -s small
-./scripts/screenshot.sh helix-ui-proto controls controls -s large
+./scripts/screenshot.sh helix-screen home-screen home
+./scripts/screenshot.sh helix-screen motion-panel motion -s small
+./scripts/screenshot.sh helix-screen controls controls -s large
 
 # Override display for screenshots
-HELIX_SCREENSHOT_DISPLAY=0 ./scripts/screenshot.sh helix-ui-proto test home
+HELIX_SCREENSHOT_DISPLAY=0 ./scripts/screenshot.sh helix-screen test home
 
 # Auto-open in Preview after capture
-HELIX_SCREENSHOT_OPEN=1 ./scripts/screenshot.sh helix-ui-proto review home
+HELIX_SCREENSHOT_OPEN=1 ./scripts/screenshot.sh helix-screen review home
 ```
 
 **Script features:**
@@ -561,7 +561,7 @@ This creates `compile_commands.json` for IDE language servers (clangd, etc.).
 1. **Edit code** in `src/` or `include/`
 2. **Edit XML** in `ui_xml/` (layout/styling changes - no rebuild needed)
 3. **Build** with `make -j` (parallel incremental build)
-4. **Test** with `./build/bin/helix-ui-proto --test [panel_name]` (test mode)
+4. **Test** with `./build/bin/helix-screen --test [panel_name]` (test mode)
 5. **Screenshot** with `./scripts/screenshot.sh` or press **S** in UI
 6. **Commit** with working incremental changes
 
@@ -572,16 +572,16 @@ The test mode system allows development without hardware or network infrastructu
 **Basic Usage:**
 ```bash
 # Full mock mode - no hardware needed
-./build/bin/helix-ui-proto --test
+./build/bin/helix-screen --test
 
 # Test with real printer but mock network
-./build/bin/helix-ui-proto --test --real-moonraker
+./build/bin/helix-screen --test --real-moonraker
 
 # Test with real WiFi but mock printer
-./build/bin/helix-ui-proto --test --real-wifi
+./build/bin/helix-screen --test --real-wifi
 
 # Mixed mode - real WiFi and printer, mock Ethernet
-./build/bin/helix-ui-proto --test --real-wifi --real-moonraker
+./build/bin/helix-screen --test --real-wifi --real-moonraker
 ```
 
 **Available Flags:**

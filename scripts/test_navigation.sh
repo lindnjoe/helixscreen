@@ -5,7 +5,7 @@
 
 set -e
 
-BIN="./build/bin/helix-ui-proto"
+BIN="./build/bin/helix-screen"
 TIMEOUT_CMD="timeout"
 
 # Colors for output

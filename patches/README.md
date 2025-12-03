@@ -54,13 +54,13 @@ Environment variables are set by `main.cpp` based on command line arguments:
 
 ```bash
 # Display-based (centered)
-./build/bin/helix-ui-proto --display 1
+./build/bin/helix-screen --display 1
 
 # Coordinate-based
-./build/bin/helix-ui-proto --x-pos 100 --y-pos 200
+./build/bin/helix-screen --x-pos 100 --y-pos 200
 
 # Both work via environment variables:
-HELIX_SDL_DISPLAY=1 ./build/bin/helix-ui-proto
+HELIX_SDL_DISPLAY=1 ./build/bin/helix-screen
 ```
 
 ### Automatic Application
