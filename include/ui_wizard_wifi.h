@@ -136,9 +136,10 @@ class WizardWifiStep {
     lv_obj_t* password_modal_ = nullptr;
     lv_obj_t* network_list_container_ = nullptr;
 
-    // Subjects (7 total)
+    // Subjects (8 total)
     lv_subject_t wifi_enabled_;
     lv_subject_t wifi_status_;
+    lv_subject_t wifi_ip_;
     lv_subject_t ethernet_status_;
     lv_subject_t wifi_scanning_;
     lv_subject_t wifi_password_modal_visible_;
@@ -147,6 +148,7 @@ class WizardWifiStep {
 
     // String buffers (must be persistent)
     char wifi_status_buffer_[64];
+    char wifi_ip_buffer_[32];
     char ethernet_status_buffer_[64];
     char wifi_password_modal_ssid_buffer_[64];
 
@@ -161,6 +163,9 @@ class WizardWifiStep {
     // State tracking
     bool subjects_initialized_ = false;
 
+    // Cached networks for async UI update
+    std::vector<WiFiNetwork> cached_networks_;
+
     // Event handler implementations
     void handle_wifi_toggle_changed(lv_event_t* e);
     void handle_network_item_clicked(lv_event_t* e);
@@ -169,6 +174,7 @@ class WizardWifiStep {
 
     // Helper functions
     void update_wifi_status(const char* status);
+    void update_wifi_ip(const char* ip);
     void update_ethernet_status();
     void populate_network_list(const std::vector<WiFiNetwork>& networks);
     void clear_network_list();

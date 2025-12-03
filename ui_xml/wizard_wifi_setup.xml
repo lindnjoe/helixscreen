@@ -34,8 +34,10 @@
               <event_cb trigger="value_changed" callback="on_wifi_toggle_changed"/>
             </ui_switch>
           </lv_obj>
-          <!-- WiFi Status label -->
+          <!-- WiFi Status label (shows connected SSID or status) -->
           <text_small name="wifi_status" bind_text="wifi_status" width="100%" style_text_align="center" style_pad_top="#space_sm"/>
+          <!-- WiFi IP address (shown when connected) -->
+          <text_small name="wifi_ip" bind_text="wifi_ip" width="100%" style_text_align="center" style_pad_top="#space_xs"/>
         </ui_card>
         <!-- Ethernet Status Card -->
         <ui_card width="100%" flex_grow="4" style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start">

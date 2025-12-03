@@ -55,6 +55,15 @@
  */
 class WizardConnectionStep {
   public:
+    /// Auto-probe state for localhost detection
+    enum class AutoProbeState {
+        IDLE,        ///< Never probed or probe complete
+        IN_PROGRESS, ///< Currently probing localhost
+        SUCCEEDED,   ///< Found printer at localhost
+        FAILED       ///< No printer at localhost (silent failure)
+    };
+
+  public:
     WizardConnectionStep();
     ~WizardConnectionStep();
 
@@ -143,6 +152,11 @@ class WizardConnectionStep {
     bool connection_validated_ = false;
     bool subjects_initialized_ = false;
 
+    // Auto-probe state for localhost detection
+    AutoProbeState auto_probe_state_ = AutoProbeState::IDLE;
+    bool auto_probe_attempted_ = false;
+    lv_timer_t* auto_probe_timer_ = nullptr;
+
     // Saved values for async callback (connection test result)
     std::string saved_ip_;
     std::string saved_port_;
@@ -156,10 +170,17 @@ class WizardConnectionStep {
     void on_connection_success();
     void on_connection_failure();
 
+    // Auto-probe methods for localhost detection
+    bool should_auto_probe() const;
+    void attempt_auto_probe();
+    void on_auto_probe_success();
+    void on_auto_probe_failure();
+
     // Static trampolines for LVGL callbacks
     static void on_test_connection_clicked_static(lv_event_t* e);
     static void on_ip_input_changed_static(lv_event_t* e);
     static void on_port_input_changed_static(lv_event_t* e);
+    static void auto_probe_timer_cb(lv_timer_t* timer);
 };
 
 // ============================================================================

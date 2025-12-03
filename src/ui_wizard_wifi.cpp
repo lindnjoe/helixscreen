@@ -77,6 +77,7 @@ struct NetworkItemData {
 
 WizardWifiStep::WizardWifiStep() {
     std::memset(wifi_status_buffer_, 0, sizeof(wifi_status_buffer_));
+    std::memset(wifi_ip_buffer_, 0, sizeof(wifi_ip_buffer_));
     std::memset(ethernet_status_buffer_, 0, sizeof(ethernet_status_buffer_));
     std::memset(wifi_password_modal_ssid_buffer_, 0, sizeof(wifi_password_modal_ssid_buffer_));
     std::memset(current_ssid_, 0, sizeof(current_ssid_));
@@ -96,6 +97,7 @@ WizardWifiStep::~WizardWifiStep() {
     if (subjects_initialized_) {
         lv_subject_deinit(&wifi_enabled_);
         lv_subject_deinit(&wifi_status_);
+        lv_subject_deinit(&wifi_ip_);
         lv_subject_deinit(&ethernet_status_);
         lv_subject_deinit(&wifi_scanning_);
         lv_subject_deinit(&wifi_password_modal_visible_);
@@ -211,6 +213,11 @@ void WizardWifiStep::update_wifi_status(const char* status) {
         return;
     spdlog::debug("[{}] Updating WiFi status: {}", get_name(), status);
     lv_subject_copy_string(&wifi_status_, status);
+}
+
+void WizardWifiStep::update_wifi_ip(const char* ip) {
+    spdlog::debug("[{}] Updating WiFi IP: {}", get_name(), ip ? ip : "(none)");
+    lv_subject_copy_string(&wifi_ip_, ip ? ip : "");
 }
 
 void WizardWifiStep::update_ethernet_status() {
@@ -439,6 +446,7 @@ void WizardWifiStep::handle_wifi_toggle_changed(lv_event_t* e) {
         }
     } else {
         update_wifi_status(get_status_text("disabled"));
+        update_wifi_ip(""); // Clear IP when WiFi disabled
         lv_subject_set_int(&wifi_scanning_, 0);
         clear_network_list();
 
@@ -486,11 +494,17 @@ void WizardWifiStep::handle_network_item_clicked(lv_event_t* e) {
                         snprintf(msg, sizeof(msg), "%s%s", get_status_text("connected"),
                                  self->current_ssid_);
                         self->update_wifi_status(msg);
+                        // Update IP address display
+                        if (self->wifi_manager_) {
+                            std::string ip = self->wifi_manager_->get_ip_address();
+                            self->update_wifi_ip(ip.c_str());
+                        }
                         spdlog::info("[{}] Connected to {}", self->get_name(), self->current_ssid_);
                     } else {
                         char msg[128];
                         snprintf(msg, sizeof(msg), "Failed to connect: %s", error.c_str());
                         self->update_wifi_status(msg);
+                        self->update_wifi_ip(""); // Clear IP on failure
                         NOTIFY_ERROR("Failed to connect to '{}': {}", self->current_ssid_, error);
                     }
                 });
@@ -510,6 +524,7 @@ void WizardWifiStep::handle_modal_cancel_clicked() {
     }
 
     update_wifi_status(get_status_text("enabled"));
+    update_wifi_ip(""); // Clear IP on disconnect
     hide_password_modal();
 }
 
@@ -569,6 +584,11 @@ void WizardWifiStep::handle_modal_connect_clicked() {
                     snprintf(msg, sizeof(msg), "%s%s", get_status_text("connected"),
                              self->current_ssid_);
                     self->update_wifi_status(msg);
+                    // Update IP address display
+                    if (self->wifi_manager_) {
+                        std::string ip = self->wifi_manager_->get_ip_address();
+                        self->update_wifi_ip(ip.c_str());
+                    }
                     spdlog::info("[{}] Connected to {}", self->get_name(), self->current_ssid_);
                 } else {
                     lv_obj_t* modal_status =
@@ -608,6 +628,7 @@ void WizardWifiStep::init_subjects() {
                                         "", "wifi_password_modal_ssid");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wifi_status_, wifi_status_buffer_,
                                         get_status_text("disabled"), "wifi_status");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(wifi_ip_, wifi_ip_buffer_, "", "wifi_ip");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(ethernet_status_, ethernet_status_buffer_, "Checking...",
                                         "ethernet_status");
 
@@ -690,6 +711,58 @@ void WizardWifiStep::init_wifi_manager() {
     ethernet_manager_ = std::make_unique<EthernetManager>();
 
     update_ethernet_status();
+
+    // Detect actual WiFi state from system wpa_supplicant
+    // Try to connect to existing wpa_supplicant and query state
+    if (wifi_manager_->has_hardware()) {
+        // Start the backend to connect to existing wpa_supplicant
+        bool started = wifi_manager_->set_enabled(true);
+        if (started && wifi_manager_->is_enabled()) {
+            spdlog::info("[{}] WiFi backend connected to system wpa_supplicant", get_name());
+
+            // Update toggle and subject to reflect actual state
+            lv_subject_set_int(&wifi_enabled_, 1);
+
+            // Update toggle visual state
+            lv_obj_t* wifi_toggle = lv_obj_find_by_name(screen_root_, "wifi_toggle");
+            if (wifi_toggle) {
+                lv_obj_add_state(wifi_toggle, LV_STATE_CHECKED);
+            }
+
+            // Check if already connected
+            if (wifi_manager_->is_connected()) {
+                std::string ssid = wifi_manager_->get_connected_ssid();
+                std::string ip = wifi_manager_->get_ip_address();
+                spdlog::info("[{}] Already connected to '{}' with IP {}", get_name(), ssid, ip);
+
+                // Update status and IP display
+                std::string status_msg = "Connected to " + ssid;
+                update_wifi_status(status_msg.c_str());
+                update_wifi_ip(ip.c_str());
+            } else {
+                update_wifi_status(get_status_text("enabled"));
+            }
+
+            // Start a scan to populate the network list
+            lv_subject_set_int(&wifi_scanning_, 1);
+            wifi_manager_->start_scan([this](const std::vector<WiFiNetwork>& networks) {
+                lv_subject_set_int(&wifi_scanning_, 0);
+                if (!networks.empty()) {
+                    // Use lv_async_call to update UI on main thread
+                    // Store networks temporarily for the async call
+                    cached_networks_ = networks;
+                    lv_async_call(
+                        [](void* ctx) {
+                            auto* self = static_cast<WizardWifiStep*>(ctx);
+                            self->populate_network_list(self->cached_networks_);
+                        },
+                        this);
+                }
+            });
+        } else {
+            spdlog::debug("[{}] WiFi not available or failed to start", get_name());
+        }
+    }
 
     spdlog::debug("[{}] WiFi and Ethernet managers initialized", get_name());
 }

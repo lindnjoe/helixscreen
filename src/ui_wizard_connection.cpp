@@ -374,8 +374,187 @@ void WizardConnectionStep::on_connection_failure() {
     }
 }
 
+// ============================================================================
+// Auto-Probe Methods
+// ============================================================================
+
+bool WizardConnectionStep::should_auto_probe() const {
+    // Don't probe if already attempted this session
+    if (auto_probe_attempted_) {
+        return false;
+    }
+
+    // Don't probe if already testing a connection
+    if (lv_subject_get_int(const_cast<lv_subject_t*>(&connection_testing_)) == 1) {
+        return false;
+    }
+
+    // Only probe if IP is empty (no saved config)
+    const char* ip = lv_subject_get_string(const_cast<lv_subject_t*>(&connection_ip_));
+    return (ip == nullptr || strlen(ip) == 0);
+}
+
+void WizardConnectionStep::auto_probe_timer_cb(lv_timer_t* timer) {
+    auto* self = static_cast<WizardConnectionStep*>(lv_timer_get_user_data(timer));
+    if (self) {
+        self->attempt_auto_probe();
+    }
+}
+
+void WizardConnectionStep::attempt_auto_probe() {
+    spdlog::debug("[{}] Starting auto-probe to 127.0.0.1:7125", get_name());
+
+    // Mark as attempted (prevents re-probe on re-entry)
+    auto_probe_attempted_ = true;
+    auto_probe_state_ = AutoProbeState::IN_PROGRESS;
+
+    // Clear timer reference (it's already fired)
+    auto_probe_timer_ = nullptr;
+
+    // Get MoonrakerClient
+    MoonrakerClient* client = get_moonraker_client();
+    if (!client) {
+        spdlog::warn("[{}] Auto-probe: MoonrakerClient not available", get_name());
+        auto_probe_state_ = AutoProbeState::FAILED;
+        return;
+    }
+
+    // Disconnect any previous connection
+    client->disconnect();
+
+    // Store probe target for callbacks
+    saved_ip_ = "127.0.0.1";
+    saved_port_ = "7125";
+
+    // Show subtle probing indicator
+    const char* probe_icon = lv_xml_get_const(nullptr, "icon_question_circle");
+    lv_subject_copy_string(&connection_status_icon_, probe_icon ? probe_icon : "");
+    lv_subject_copy_string(&connection_status_text_, "Checking for local printer...");
+
+    // Set testing state (reuses existing subject for button disable)
+    lv_subject_set_int(&connection_testing_, 1);
+
+    // Set short timeout for auto-probe (3 seconds - faster than manual test)
+    client->set_connection_timeout(3000);
+
+    // Construct WebSocket URL
+    std::string ws_url = "ws://127.0.0.1:7125/websocket";
+
+    WizardConnectionStep* self = this;
+    int result = client->connect(
+        ws_url.c_str(), [self]() { self->on_auto_probe_success(); },
+        [self]() { self->on_auto_probe_failure(); });
+
+    // Disable auto-reconnect for probe
+    client->setReconnect(nullptr);
+
+    if (result != 0) {
+        spdlog::debug("[{}] Auto-probe: Failed to initiate connection", get_name());
+        auto_probe_state_ = AutoProbeState::FAILED;
+        lv_subject_set_int(&connection_testing_, 0);
+        // Silent failure - clear status
+        lv_subject_copy_string(&connection_status_icon_, "");
+        lv_subject_copy_string(&connection_status_text_, "");
+    }
+}
+
+void WizardConnectionStep::on_auto_probe_success() {
+    // Verify we're still in auto-probe mode (not user-initiated test)
+    if (auto_probe_state_ != AutoProbeState::IN_PROGRESS) {
+        spdlog::debug("[{}] Ignoring auto-probe success (state changed)", get_name());
+        return;
+    }
+
+    spdlog::info("[{}] Auto-probe successful! Found printer at localhost", get_name());
+
+    auto_probe_state_ = AutoProbeState::SUCCEEDED;
+
+    // Auto-fill the IP field (both subject and widget)
+    lv_subject_copy_string(&connection_ip_, "127.0.0.1");
+
+    // Update textarea widget directly
+    if (screen_root_) {
+        lv_obj_t* ip_input = lv_obj_find_by_name(screen_root_, "ip_input");
+        if (ip_input) {
+            lv_textarea_set_text(ip_input, "127.0.0.1");
+        }
+    }
+
+    // Port already defaults to 7125, but ensure subject is set
+    lv_subject_copy_string(&connection_port_, "7125");
+
+    // Show success status
+    const char* check_icon = lv_xml_get_const(nullptr, "icon_check_circle");
+    lv_subject_copy_string(&connection_status_icon_, check_icon ? check_icon : "");
+    lv_subject_copy_string(&connection_status_text_, "Found local printer");
+
+    // Clear testing state
+    lv_subject_set_int(&connection_testing_, 0);
+
+    // Enable Next button
+    connection_validated_ = true;
+    lv_subject_set_int(&connection_test_passed, 1);
+
+    // Save configuration (same as manual test success)
+    Config* config = Config::get_instance();
+    try {
+        std::string default_printer =
+            config->get<std::string>("/default_printer", "default_printer");
+        std::string printer_path = "/printers/" + default_printer;
+
+        config->set(printer_path + "/moonraker_host", saved_ip_);
+        config->set(printer_path + "/moonraker_port", std::stoi(saved_port_));
+        if (config->save()) {
+            spdlog::debug("[{}] Auto-probe: Saved configuration", get_name());
+        }
+    } catch (const std::exception& e) {
+        spdlog::error("[{}] Auto-probe: Failed to save config: {}", get_name(), e.what());
+    }
+
+    // Trigger hardware discovery
+    MoonrakerClient* client = get_moonraker_client();
+    if (client) {
+        client->discover_printer(
+            []() { spdlog::debug("[Wizard Connection] Auto-probe: Hardware discovery complete"); });
+    }
+}
+
+void WizardConnectionStep::on_auto_probe_failure() {
+    // Verify we're still in auto-probe mode
+    if (auto_probe_state_ != AutoProbeState::IN_PROGRESS) {
+        spdlog::debug("[{}] Ignoring auto-probe failure (state changed)", get_name());
+        return;
+    }
+
+    spdlog::debug("[{}] Auto-probe: No printer at localhost (silent failure)", get_name());
+
+    auto_probe_state_ = AutoProbeState::FAILED;
+
+    // Silent failure - just clear status, don't show error
+    lv_subject_copy_string(&connection_status_icon_, "");
+    lv_subject_copy_string(&connection_status_text_, "");
+    lv_subject_set_int(&connection_testing_, 0);
+
+    // Leave fields empty - user will enter manually
+}
+
+// ============================================================================
+// Input Change Handlers
+// ============================================================================
+
 void WizardConnectionStep::handle_ip_input_changed() {
     LVGL_SAFE_EVENT_CB_BEGIN("[Wizard Connection] handle_ip_input_changed");
+
+    // If auto-probe is in progress, cancel it
+    if (auto_probe_state_ == AutoProbeState::IN_PROGRESS) {
+        spdlog::debug("[{}] User input during auto-probe, cancelling", get_name());
+        auto_probe_state_ = AutoProbeState::FAILED; // Mark as failed to ignore callbacks
+        MoonrakerClient* client = get_moonraker_client();
+        if (client) {
+            client->disconnect();
+        }
+        lv_subject_set_int(&connection_testing_, 0);
+    }
 
     // Clear any previous status message
     const char* current_status = lv_subject_get_string(&connection_status_text_);
@@ -393,6 +572,17 @@ void WizardConnectionStep::handle_ip_input_changed() {
 
 void WizardConnectionStep::handle_port_input_changed() {
     LVGL_SAFE_EVENT_CB_BEGIN("[Wizard Connection] handle_port_input_changed");
+
+    // If auto-probe is in progress, cancel it
+    if (auto_probe_state_ == AutoProbeState::IN_PROGRESS) {
+        spdlog::debug("[{}] User input during auto-probe, cancelling", get_name());
+        auto_probe_state_ = AutoProbeState::FAILED; // Mark as failed to ignore callbacks
+        MoonrakerClient* client = get_moonraker_client();
+        if (client) {
+            client->disconnect();
+        }
+        lv_subject_set_int(&connection_testing_, 0);
+    }
 
     // Clear any previous status message
     const char* current_status = lv_subject_get_string(&connection_status_text_);
@@ -481,6 +671,13 @@ lv_obj_t* WizardConnectionStep::create(lv_obj_t* parent) {
 
     lv_obj_update_layout(screen_root_);
 
+    // Schedule auto-probe if appropriate (empty config, first visit)
+    if (should_auto_probe()) {
+        spdlog::debug("[{}] Scheduling auto-probe for localhost", get_name());
+        auto_probe_timer_ = lv_timer_create(auto_probe_timer_cb, 100, this);
+        lv_timer_set_repeat_count(auto_probe_timer_, 1); // One-shot timer
+    }
+
     spdlog::debug("[{}] Screen created successfully", get_name());
     return screen_root_;
 }
@@ -492,14 +689,24 @@ lv_obj_t* WizardConnectionStep::create(lv_obj_t* parent) {
 void WizardConnectionStep::cleanup() {
     spdlog::debug("[{}] Cleaning up connection screen", get_name());
 
-    // If a connection test is in progress, cancel it
-    if (lv_subject_get_int(&connection_testing_) == 1) {
+    // Cancel any pending auto-probe timer
+    if (auto_probe_timer_) {
+        lv_timer_delete(auto_probe_timer_);
+        auto_probe_timer_ = nullptr;
+    }
+
+    // If a connection test or auto-probe is in progress, cancel it
+    if (lv_subject_get_int(&connection_testing_) == 1 ||
+        auto_probe_state_ == AutoProbeState::IN_PROGRESS) {
         MoonrakerClient* client = get_moonraker_client();
         if (client) {
             client->disconnect();
         }
         lv_subject_set_int(&connection_testing_, 0);
     }
+
+    // Reset auto-probe state (but NOT auto_probe_attempted_ - that persists)
+    auto_probe_state_ = AutoProbeState::IDLE;
 
     // Clear status
     lv_subject_copy_string(&connection_status_icon_, "");
