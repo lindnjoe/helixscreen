@@ -31,6 +31,11 @@ else
 		LIBHV_DIR="$(LIBHV_DIR)" WPA_DIR="$(WPA_DIR)" VENV="$(VENV)" \
 		./scripts/check-deps.sh
 endif
+	@# Auto-enable git hooks if not already set up
+	@if [ -f ".githooks/pre-commit" ] && [ "$$(git config core.hooksPath 2>/dev/null)" != ".githooks" ]; then \
+		git config core.hooksPath .githooks; \
+		echo "$(GREEN)✓ Git pre-commit hooks enabled (auto-format with clang-format)$(RESET)"; \
+	fi
 
 # Auto-install missing dependencies (interactive, requires confirmation)
 install-deps:
@@ -286,9 +291,8 @@ $(SDL2_LIB):
 # This is needed for WiFi control on embedded Linux systems
 # Output: $(BUILD_DIR)/lib/libwpa_client.a for architecture isolation
 ifneq ($(UNAME_S),Darwin)
-$(WPA_CLIENT_LIB):
+$(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 	$(ECHO) "$(BOLD)$(BLUE)[WPA]$(RESET) Building wpa_supplicant client library..."
-	$(Q)mkdir -p $(BUILD_DIR)/lib
 	$(Q)if [ ! -f "$(WPA_DIR)/wpa_supplicant/.config" ]; then \
 		if [ -f "$(WPA_DIR)/wpa_supplicant/defconfig" ]; then \
 			echo "$(CYAN)→ Creating .config from defconfig...$(RESET)"; \
@@ -315,9 +319,8 @@ endif
 	$(ECHO) "$(GREEN)✓ libwpa_client.a built: $(BUILD_DIR)/lib/libwpa_client.a$(RESET)"
 else ifneq ($(CROSS_COMPILE),)
 # Cross-compilation from macOS to Linux - need wpa_supplicant
-$(WPA_CLIENT_LIB):
+$(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 	$(ECHO) "$(BOLD)$(BLUE)[WPA]$(RESET) Building wpa_supplicant client library (cross-compile)..."
-	$(Q)mkdir -p $(BUILD_DIR)/lib
 	$(Q)if [ ! -f "$(WPA_DIR)/wpa_supplicant/.config" ]; then \
 		if [ -f "$(WPA_DIR)/wpa_supplicant/defconfig" ]; then \
 			echo "$(CYAN)→ Creating .config from defconfig...$(RESET)"; \
@@ -372,6 +375,22 @@ $(VENV_PYTHON):
 	$(Q)$(MAKE) venv-setup
 
 # ============================================================================
+# Git Hooks Setup
+# ============================================================================
+
+.PHONY: setup-hooks
+setup-hooks:
+	$(ECHO) "$(CYAN)Setting up git hooks...$(RESET)"
+	$(Q)if [ -f ".githooks/pre-commit" ]; then \
+		git config core.hooksPath .githooks; \
+		echo "$(GREEN)✓ Git hooks enabled (.githooks/pre-commit)$(RESET)"; \
+		echo "$(CYAN)  Pre-commit will auto-format C/C++ files with clang-format$(RESET)"; \
+	else \
+		echo "$(RED)✗ .githooks/pre-commit not found$(RESET)"; \
+		exit 1; \
+	fi
+
+# ============================================================================
 # Build/Dependency Help
 # ============================================================================
 
@@ -396,6 +415,7 @@ help-build:
 	echo "  $${G}libhv-build$${X}         - Build libhv WebSocket library"; \
 	echo "  $${G}sdl2-build$${X}          - Build SDL2 from submodule"; \
 	echo "  $${G}venv-setup$${X}          - Set up Python virtual environment"; \
+	echo "  $${G}setup-hooks$${X}         - Enable git pre-commit hooks (clang-format)"; \
 	echo ""; \
 	echo "$${C}Patches:$${X}"; \
 	echo "  $${G}apply-patches$${X}       - Apply LVGL patches (idempotent)"; \
