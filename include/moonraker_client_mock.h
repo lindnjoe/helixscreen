@@ -322,8 +322,10 @@ class MoonrakerClientMock : public MoonrakerClient {
      *
      * Stops the background simulation thread.
      * Called automatically on disconnect() and destructor.
+     *
+     * @param during_destruction If true, skip logging (spdlog may be destroyed)
      */
-    void stop_temperature_simulation();
+    void stop_temperature_simulation(bool during_destruction = false);
 
     /**
      * @brief Set simulated extruder target temperature

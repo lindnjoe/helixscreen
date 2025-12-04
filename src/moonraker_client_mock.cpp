@@ -288,7 +288,8 @@ MoonrakerClientMock::~MoonrakerClientMock() {
         restart_thread_.join();
     }
 
-    stop_temperature_simulation();
+    // Pass true to skip logging during destruction - spdlog may already be destroyed
+    stop_temperature_simulation(true);
 }
 
 int MoonrakerClientMock::connect(const char* url, std::function<void()> on_connected,
@@ -621,7 +622,7 @@ void MoonrakerClientMock::dispatch_bed_mesh_update() {
 
 void MoonrakerClientMock::disconnect() {
     spdlog::info("[MoonrakerClientMock] Simulating disconnection");
-    stop_temperature_simulation();
+    stop_temperature_simulation(false);
     set_connection_state(ConnectionState::DISCONNECTED);
 }
 
@@ -1904,7 +1905,7 @@ void MoonrakerClientMock::start_temperature_simulation() {
     spdlog::info("[MoonrakerClientMock] Temperature simulation started");
 }
 
-void MoonrakerClientMock::stop_temperature_simulation() {
+void MoonrakerClientMock::stop_temperature_simulation(bool during_destruction) {
     if (!simulation_running_.load()) {
         return; // Not running
     }
@@ -1913,7 +1914,10 @@ void MoonrakerClientMock::stop_temperature_simulation() {
     if (simulation_thread_.joinable()) {
         simulation_thread_.join();
     }
-    spdlog::info("[MoonrakerClientMock] Temperature simulation stopped");
+    // Skip logging during static destruction - spdlog may already be destroyed
+    if (!during_destruction) {
+        spdlog::info("[MoonrakerClientMock] Temperature simulation stopped");
+    }
 }
 
 void MoonrakerClientMock::temperature_simulation_loop() {
