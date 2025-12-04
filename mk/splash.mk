@@ -47,10 +47,10 @@ $(BUILD_DIR)/splash/ui_notification_stub.o: tools/ui_notification_stub.cpp | $(B
 	$(Q)$(CXX) $(SPLASH_CXXFLAGS) -c $< -o $@
 
 # Link splash binary
-# Dependencies: splash object, display library, LVGL objects (compiled from source)
-$(SPLASH_BIN): $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(SPLASH_EXTRA_OBJS) | $(BUILD_DIR)/bin
+# Dependencies: splash object, display library, LVGL objects (compiled from source), fonts
+$(SPLASH_BIN): $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(SPLASH_EXTRA_OBJS) | $(BUILD_DIR)/bin
 	@echo "[LD] $@"
-	$(Q)$(CXX) $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(SPLASH_EXTRA_OBJS) -o $@ $(SPLASH_LDFLAGS)
+	$(Q)$(CXX) $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(FONT_OBJS) $(SPLASH_EXTRA_OBJS) -o $@ $(SPLASH_LDFLAGS)
 
 # Create build directories
 $(BUILD_DIR)/splash $(BUILD_DIR)/bin:

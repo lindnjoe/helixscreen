@@ -1881,6 +1881,43 @@ done
 <lv_button style_bg_color="0x111" style_radius="8" style_pad_all="12"/>
 ```
 
+### Part Selectors for Inline Styles
+
+Many widgets have multiple styleable parts. Use the `:part` suffix on inline style attributes to target specific parts:
+
+| Part | Description | Common Widgets |
+|------|-------------|----------------|
+| `main` | Background/container | All widgets |
+| `indicator` | Foreground element | `lv_slider`, `lv_bar`, `lv_arc`, `lv_spinner` |
+| `knob` | Draggable handle | `lv_slider`, `lv_arc` |
+| `items` | List items | `lv_dropdown`, `lv_roller` |
+| `selected` | Selected item | `lv_dropdown`, `lv_roller` |
+| `cursor` | Text cursor | `lv_textarea` |
+| `scrollbar` | Scrollbar | Scrollable containers |
+
+**Syntax:** `style_<property>:<part>="<value>"`
+
+**Examples:**
+
+```xml
+<!-- Hide the background track of a spinner (only show spinning arc) -->
+<lv_spinner width="64" height="64"
+            style_arc_color="#primary_color"
+            style_arc_opa:main="0"/>
+
+<!-- Style slider knob separately from track -->
+<lv_slider style_bg_color="#333333"
+           style_bg_color:indicator="#primary_color"
+           style_bg_color:knob="#ffffff"/>
+
+<!-- Style arc background vs foreground -->
+<lv_arc style_arc_width="8"
+        style_arc_color:main="#card_bg"
+        style_arc_color:indicator="#success_color"/>
+```
+
+**Note:** Without a part suffix, styles apply to the widget's default part (usually `main`, but `indicator` for arc-based widgets like `lv_spinner`).
+
 ### Conditional Style Binding
 
 Dynamically apply styles based on subject value:

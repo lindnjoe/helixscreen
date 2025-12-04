@@ -462,7 +462,13 @@ lv_xml_create(...);                           // 6. Create UI
 <view style_bg_color="#card_bg" style_border_width="0">
     <style name="my_style" selector="checked"/>
 </view>
+
+<!-- Target specific widget parts with :part suffix -->
+<lv_spinner style_arc_width:indicator="3" style_arc_opa:main="0"/>
+<lv_slider style_bg_color:knob="#ffffff"/>
 ```
+
+**Part selectors:** `main`, `indicator`, `knob`, `items`, `selected`, `cursor`, `scrollbar`
 
 ```xml
 <!-- Layout -->
