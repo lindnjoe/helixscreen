@@ -39,6 +39,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -589,6 +590,35 @@ WiFiError WifiBackendWpaSupplicant::trigger_scan() {
     }
 }
 
+// Deduplicate networks by SSID, keeping the strongest signal for each.
+// In mesh WiFi systems, multiple APs broadcast the same SSID - show only the best one.
+static std::vector<WiFiNetwork> deduplicate_by_ssid(std::vector<WiFiNetwork>& networks) {
+    std::unordered_map<std::string, size_t> best_index_by_ssid;
+
+    for (size_t i = 0; i < networks.size(); ++i) {
+        const auto& net = networks[i];
+        auto it = best_index_by_ssid.find(net.ssid);
+        if (it == best_index_by_ssid.end()) {
+            best_index_by_ssid[net.ssid] = i;
+        } else if (net.signal_strength > networks[it->second].signal_strength) {
+            it->second = i;
+        }
+    }
+
+    std::vector<WiFiNetwork> result;
+    result.reserve(best_index_by_ssid.size());
+    for (const auto& [ssid, idx] : best_index_by_ssid) {
+        result.push_back(networks[idx]);
+    }
+
+    if (result.size() < networks.size()) {
+        spdlog::debug("[WifiBackend] Deduplicated {} networks to {} unique SSIDs", networks.size(),
+                      result.size());
+    }
+
+    return result;
+}
+
 WiFiError WifiBackendWpaSupplicant::get_scan_results(std::vector<WiFiNetwork>& networks) {
     if (!isRunning()) {
         return WiFiError(WiFiResult::NOT_INITIALIZED, "Backend not started",
@@ -608,7 +638,8 @@ WiFiError WifiBackendWpaSupplicant::get_scan_results(std::vector<WiFiNetwork>& n
 
     try {
         networks = parse_scan_results(raw);
-        spdlog::debug("[WifiBackend] Retrieved {} scan results", networks.size());
+        networks = deduplicate_by_ssid(networks);
+        spdlog::debug("[WifiBackend] Retrieved {} unique networks", networks.size());
         return WiFiErrorHelper::success();
     } catch (const std::exception& e) {
         return WiFiError(WiFiResult::BACKEND_ERROR,
