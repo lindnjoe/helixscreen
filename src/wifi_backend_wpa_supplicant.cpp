@@ -62,7 +62,11 @@ WiFiError WifiBackendWpaSupplicant::start() {
     WiFiError preflight_result = check_system_prerequisites();
     if (!preflight_result.success()) {
         // User-facing critical error - wpa_supplicant not running or no permissions
-        if (preflight_result.result == WiFiResult::SERVICE_NOT_RUNNING) {
+        // In silent mode (e.g., HomePanel signal probe), only log - don't show modals
+        if (is_silent()) {
+            spdlog::debug("[WifiBackend] Pre-flight failed (silent mode): {}",
+                          preflight_result.technical_msg);
+        } else if (preflight_result.result == WiFiResult::SERVICE_NOT_RUNNING) {
             NOTIFY_ERROR_MODAL("WiFi Service Not Running",
                                "wpa_supplicant is not running. WiFi features unavailable.");
         } else if (preflight_result.result == WiFiResult::PERMISSION_DENIED) {

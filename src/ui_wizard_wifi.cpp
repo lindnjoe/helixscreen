@@ -490,6 +490,13 @@ void WizardWifiStep::handle_wifi_toggle_changed(lv_event_t* e) {
                     return;
                 }
 
+                // Check if cleanup was called (step navigated away)
+                if (self->cleanup_called_) {
+                    spdlog::debug("[{}] Cleanup was called, ignoring stale scan callback",
+                                  self->get_name());
+                    return;
+                }
+
                 lv_subject_set_int(&self->wifi_scanning_, 0);
                 self->populate_network_list(networks);
             });
@@ -542,6 +549,12 @@ void WizardWifiStep::handle_network_item_clicked(lv_event_t* e) {
             WizardWifiStep* self = this;
             wifi_manager_->connect(
                 network.ssid, "", [self](bool success, const std::string& error) {
+                    // Check if cleanup was called (step navigated away)
+                    if (self->cleanup_called_) {
+                        spdlog::debug("[{}] Cleanup was called, ignoring connect callback",
+                                      self->get_name());
+                        return;
+                    }
                     if (success) {
                         char msg[128];
                         snprintf(msg, sizeof(msg), "%s%s", get_status_text("connected"),
@@ -622,6 +635,13 @@ void WizardWifiStep::handle_modal_connect_clicked() {
         WizardWifiStep* self = this;
         wifi_manager_->connect(
             current_ssid_, password, [self](bool success, const std::string& error) {
+                // Check if cleanup was called (step navigated away)
+                if (self->cleanup_called_) {
+                    spdlog::debug("[{}] Cleanup was called, ignoring connect callback",
+                                  self->get_name());
+                    return;
+                }
+
                 lv_subject_set_int(&self->wifi_connecting_, 0);
 
                 lv_obj_t* connect_btn =
@@ -711,6 +731,9 @@ void WizardWifiStep::register_callbacks() {
 lv_obj_t* WizardWifiStep::create(lv_obj_t* parent) {
     spdlog::debug("[{}] Creating WiFi setup screen", get_name());
 
+    // Reset cleanup flag when (re)creating the screen
+    cleanup_called_ = false;
+
     if (!parent) {
         LOG_ERROR_INTERNAL("Cannot create WiFi screen: null parent");
         return nullptr;
@@ -799,6 +822,13 @@ void WizardWifiStep::init_wifi_manager() {
             // Start a scan to populate the network list
             lv_subject_set_int(&wifi_scanning_, 1);
             wifi_manager_->start_scan([this](const std::vector<WiFiNetwork>& networks) {
+                // Check if cleanup was called (step navigated away)
+                if (cleanup_called_) {
+                    spdlog::debug("[{}] Cleanup was called, ignoring init scan callback",
+                                  get_name());
+                    return;
+                }
+
                 lv_subject_set_int(&wifi_scanning_, 0);
                 if (!networks.empty()) {
                     // Use lv_async_call to update UI on main thread
@@ -807,6 +837,12 @@ void WizardWifiStep::init_wifi_manager() {
                     lv_async_call(
                         [](void* ctx) {
                             auto* self = static_cast<WizardWifiStep*>(ctx);
+                            // Double-check cleanup in async callback
+                            if (self->cleanup_called_) {
+                                spdlog::debug("[{}] Cleanup called, skipping network list update",
+                                              self->get_name());
+                                return;
+                            }
                             self->populate_network_list(self->cached_networks_);
                         },
                         this);
@@ -895,6 +931,9 @@ void WizardWifiStep::hide_password_modal() {
 
 void WizardWifiStep::cleanup() {
     spdlog::debug("[{}] Cleaning up WiFi screen", get_name());
+
+    // Mark as cleaned up FIRST to invalidate any pending async callbacks
+    cleanup_called_ = true;
 
     if (wifi_manager_) {
         spdlog::debug("[{}] Stopping scan", get_name());

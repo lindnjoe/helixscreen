@@ -162,6 +162,7 @@ class WizardWifiStep {
 
     // State tracking
     bool subjects_initialized_ = false;
+    bool cleanup_called_ = false; // Set true in cleanup() to invalidate pending callbacks
 
     // Cached networks for async UI update
     std::vector<WiFiNetwork> cached_networks_;
