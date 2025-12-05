@@ -74,6 +74,12 @@ class TempControlPanel {
     void update_nozzle_display();
     void update_bed_display();
 
+    // Status text and icon color update helpers
+    void update_nozzle_status();
+    void update_bed_status();
+    void update_nozzle_icon_color();
+    void update_bed_icon_color();
+
     // Graph creation helper
     ui_temp_graph_t* create_temp_graph(lv_obj_t* chart_area, const heater_config_t* config,
                                        int target_temp, int* series_id_out);
@@ -139,6 +145,14 @@ class TempControlPanel {
     lv_subject_t nozzle_graph_points_subject_;
     lv_subject_t bed_graph_points_subject_;
 
+    // Status text subjects (for reactive status messages)
+    lv_subject_t nozzle_status_subject_;
+    lv_subject_t bed_status_subject_;
+
+    // Heating state subjects (0=off, 1=on) for reactive icon visibility in XML
+    lv_subject_t nozzle_heating_subject_;
+    lv_subject_t bed_heating_subject_;
+
     // Subject string buffers
     std::array<char, 16> nozzle_current_buf_;
     std::array<char, 16> nozzle_target_buf_;
@@ -146,6 +160,8 @@ class TempControlPanel {
     std::array<char, 16> bed_target_buf_;
     std::array<char, 32> nozzle_display_buf_;
     std::array<char, 32> bed_display_buf_;
+    std::array<char, 64> nozzle_status_buf_;
+    std::array<char, 64> bed_status_buf_;
 
     // Panel widgets
     lv_obj_t* nozzle_panel_ = nullptr;

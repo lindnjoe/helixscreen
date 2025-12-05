@@ -50,40 +50,55 @@
           </text_small>
         </lv_obj>
       </lv_obj>
-      <!-- Right Column (33%): Controls -->
-      <lv_obj name="right_column" width="33%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_lg">
-        <!-- Current/Target Temperature Display Card -->
-        <ui_card name="temp_display_card" width="100%" height="80" style_border_width="1" style_radius="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
-          <text_small text="Current / Target" align="center" style_border_width="1"/>
-          <lv_label name="bed_temp_display" bind_text="bed_temp_display" style_text_font="montserrat_28" align="center" style_border_width="1"/>
+      <!-- Right Column (33%): Controls - use space_between for temp card at top, buttons at bottom -->
+      <lv_obj name="right_column" width="33%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="column" style_flex_main_place="space_between" style_flex_cross_place="center">
+        <!-- Current/Target Temperature Display Card with Icon and Status -->
+        <ui_card name="temp_display_card" width="100%" style_radius="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
+          <!-- Icon + Temp Row -->
+          <lv_obj style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md">
+            <!-- Composite heatbed icon: two overlapping sets with conditional visibility -->
+            <!-- Secondary (off) icons: hidden when heating (bed_heating == 1) -->
+            <lv_obj name="bed_icon_off" width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_cross_place="center" style_pad_row="-12">
+              <lv_obj-bind_flag_if_eq subject="bed_heating" flag="hidden" ref_value="1"/>
+              <icon name="heat_wave_icon_off" src="heat_wave" size="md" variant="secondary"/>
+              <icon name="flatbed_icon_off" src="train_flatbed" size="md" variant="secondary"/>
+            </lv_obj>
+            <!-- Accent (on) icons: hidden when not heating (bed_heating == 0) -->
+            <lv_obj name="bed_icon_on" width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_cross_place="center" style_pad_row="-12" style_margin_left="-32">
+              <lv_obj-bind_flag_if_eq subject="bed_heating" flag="hidden" ref_value="0"/>
+              <icon name="heat_wave_icon_on" src="heat_wave" size="md" variant="accent"/>
+              <icon name="flatbed_icon_on" src="train_flatbed" size="md" variant="accent"/>
+            </lv_obj>
+            <lv_obj style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
+              <text_small text="Current / Target" align="center"/>
+              <lv_label name="bed_temp_display" bind_text="bed_temp_display" style_text_font="montserrat_28" align="center"/>
+            </lv_obj>
+          </lv_obj>
+          <!-- Status Message inside the card -->
+          <text_small name="status_message" bind_text="bed_status" width="100%" style_text_align="center" scrollable="false"/>
         </ui_card>
-        <!-- Preset Buttons (2x2 Grid) -->
-        <lv_obj name="preset_grid" width="100%" height="124" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
-          <!-- Row 1: Off, PLA -->
-          <lv_obj width="100%" height="58" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
-            <lv_button name="preset_off" height="48" style_radius="6" style_border_width="0">
+        <!-- Buttons container: groups preset grid + custom button together -->
+        <lv_obj name="buttons_container" width="100%" height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
+          <!-- Preset Buttons (2x2 grid using flex wrap with 48% width per button) -->
+          <lv_obj name="preset_grid" width="100%" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="row_wrap" style_flex_main_place="space_between" style_flex_cross_place="center" style_pad_gap="#space_sm">
+            <lv_button name="preset_off" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="Off (0&#xB0;C)" align="center"/>
             </lv_button>
-            <lv_button name="preset_pla" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_pla" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="PLA (60&#xB0;C)" align="center"/>
             </lv_button>
-          </lv_obj>
-          <!-- Row 2: PETG, ABS -->
-          <lv_obj width="100%" height="58" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
-            <lv_button name="preset_petg" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_petg" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="PETG (80&#xB0;C)" align="center"/>
             </lv_button>
-            <lv_button name="preset_abs" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_abs" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="ABS (100&#xB0;C)" align="center"/>
             </lv_button>
           </lv_obj>
+          <!-- Custom Button -->
+          <lv_button name="btn_custom" width="100%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
+            <text_body text="Custom..." align="center"/>
+          </lv_button>
         </lv_obj>
-        <!-- Custom Button -->
-        <lv_button name="btn_custom" width="100%" height="48" style_radius="6" style_border_width="0">
-          <text_body text="Custom..." align="center"/>
-        </lv_button>
-        <!-- Status Message -->
-        <text_small name="status_message" text="Bed maintains temperature during printing to help material adhere." width="100%" style_text_align="center" scrollable="false"/>
       </lv_obj>
     </lv_obj>
   </view>

@@ -53,6 +53,8 @@ TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* ap
     bed_target_buf_.fill('\0');
     nozzle_display_buf_.fill('\0');
     bed_display_buf_.fill('\0');
+    nozzle_status_buf_.fill('\0');
+    bed_status_buf_.fill('\0');
 
     // Subscribe to PrinterState temperature subjects (ObserverGuard handles cleanup)
     nozzle_temp_observer_ =
@@ -98,6 +100,7 @@ void TempControlPanel::bed_target_observer_cb(lv_observer_t* observer, lv_subjec
 void TempControlPanel::on_nozzle_temp_changed(int temp) {
     nozzle_current_ = temp;
     update_nozzle_display();
+    update_nozzle_status(); // Update status text and heating icon state
 
     // Guard: don't track graph points until subjects initialized
     if (!subjects_initialized_) {
@@ -127,6 +130,7 @@ void TempControlPanel::on_nozzle_temp_changed(int temp) {
 void TempControlPanel::on_nozzle_target_changed(int target) {
     nozzle_target_ = target;
     update_nozzle_display();
+    update_nozzle_status(); // Update status text and heating icon state
 
     // Update target line on graph
     if (nozzle_graph_ && nozzle_series_id_ >= 0) {
@@ -140,6 +144,7 @@ void TempControlPanel::on_nozzle_target_changed(int target) {
 void TempControlPanel::on_bed_temp_changed(int temp) {
     bed_current_ = temp;
     update_bed_display();
+    update_bed_status(); // Update status text and heating icon state
 
     // Guard: don't track graph points until subjects initialized
     if (!subjects_initialized_) {
@@ -168,6 +173,7 @@ void TempControlPanel::on_bed_temp_changed(int temp) {
 void TempControlPanel::on_bed_target_changed(int target) {
     bed_target_ = target;
     update_bed_display();
+    update_bed_status(); // Update status text and heating icon state
 
     // Update target line on graph
     if (bed_graph_ && bed_series_id_ >= 0) {
@@ -272,6 +278,18 @@ void TempControlPanel::init_subjects() {
     // Labels become visible when count >= 60 (bound in XML with bind_flag_if_lt)
     UI_SUBJECT_INIT_AND_REGISTER_INT(nozzle_graph_points_subject_, 0, "nozzle_graph_points");
     UI_SUBJECT_INIT_AND_REGISTER_INT(bed_graph_points_subject_, 0, "bed_graph_points");
+
+    // Status text subjects (for reactive status messages like "Heating...", "Cooling down", "Idle")
+    snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Idle");
+    snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Idle");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(nozzle_status_subject_, nozzle_status_buf_.data(),
+                                        nozzle_status_buf_.data(), "nozzle_status");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_status_subject_, bed_status_buf_.data(),
+                                        bed_status_buf_.data(), "bed_status");
+
+    // Heating state subjects (0=off, 1=on) for reactive icon visibility in XML
+    UI_SUBJECT_INIT_AND_REGISTER_INT(nozzle_heating_subject_, 0, "nozzle_heating");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_heating_subject_, 0, "bed_heating");
 
     subjects_initialized_ = true;
     spdlog::debug("[TempPanel] Subjects initialized: nozzle={}/{}°C, bed={}/{}°C", nozzle_current_,
@@ -715,6 +733,73 @@ void TempControlPanel::setup_bed_panel(lv_obj_t* panel, lv_obj_t* parent_screen)
     setup_custom_button(overlay_content, HEATER_BED);
 
     spdlog::debug("[TempPanel] Bed panel setup complete!");
+}
+
+void TempControlPanel::update_nozzle_status() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    constexpr int NOZZLE_COOLING_THRESHOLD = 40; // °C - above this when off = "cooling down"
+    constexpr int TEMP_TOLERANCE = 2;            // °C - within this of target = "at target"
+
+    if (nozzle_target_ > 0 && nozzle_current_ < nozzle_target_ - TEMP_TOLERANCE) {
+        // Actively heating
+        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Heating to %d°C...",
+                 nozzle_target_);
+    } else if (nozzle_target_ > 0 && nozzle_current_ >= nozzle_target_ - TEMP_TOLERANCE) {
+        // At target temperature
+        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "At target temperature");
+    } else if (nozzle_target_ == 0 && nozzle_current_ > NOZZLE_COOLING_THRESHOLD) {
+        // Cooling down (heater off but still hot)
+        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Cooling down (%d°C)",
+                 nozzle_current_);
+    } else {
+        // Idle (heater off and cool)
+        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Idle");
+    }
+
+    lv_subject_copy_string(&nozzle_status_subject_, nozzle_status_buf_.data());
+
+    // Update heating state for reactive icon visibility (0=off, 1=on)
+    int heating_state = (nozzle_target_ > 0) ? 1 : 0;
+    lv_subject_set_int(&nozzle_heating_subject_, heating_state);
+
+    spdlog::trace("[TempPanel] Nozzle status: '{}' (heating={})", nozzle_status_buf_.data(),
+                  heating_state);
+}
+
+void TempControlPanel::update_bed_status() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    constexpr int BED_COOLING_THRESHOLD = 35; // °C - above this when off = "cooling down"
+    constexpr int TEMP_TOLERANCE = 2;         // °C - within this of target = "at target"
+
+    if (bed_target_ > 0 && bed_current_ < bed_target_ - TEMP_TOLERANCE) {
+        // Actively heating
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Heating to %d°C...", bed_target_);
+    } else if (bed_target_ > 0 && bed_current_ >= bed_target_ - TEMP_TOLERANCE) {
+        // At target temperature
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "At target temperature");
+    } else if (bed_target_ == 0 && bed_current_ > BED_COOLING_THRESHOLD) {
+        // Cooling down (heater off but still hot)
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Cooling down (%d°C)",
+                 bed_current_);
+    } else {
+        // Idle (heater off and cool)
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Idle");
+    }
+
+    lv_subject_copy_string(&bed_status_subject_, bed_status_buf_.data());
+
+    // Update heating state for reactive icon visibility (0=off, 1=on)
+    int heating_state = (bed_target_ > 0) ? 1 : 0;
+    lv_subject_set_int(&bed_heating_subject_, heating_state);
+
+    spdlog::trace("[TempPanel] Bed status: '{}' (heating={})", bed_status_buf_.data(),
+                  heating_state);
 }
 
 void TempControlPanel::set_nozzle(int current, int target) {

@@ -50,40 +50,51 @@
           </text_small>
         </lv_obj>
       </lv_obj>
-      <!-- Right Column (33%): Controls -->
-      <lv_obj name="right_column" width="33%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_lg">
-        <!-- Current/Target Temperature Display Card -->
-        <ui_card name="temp_display_card" width="100%" height="80" style_radius="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
-          <text_small text="Current / Target" align="center"/>
-          <lv_label name="nozzle_temp_display" bind_text="nozzle_temp_display" style_text_font="montserrat_28" align="center"/>
+      <!-- Right Column (33%): Controls - use space_between for temp card at top, buttons at bottom -->
+      <lv_obj name="right_column" width="33%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_flex_main_place="space_between" style_flex_cross_place="center">
+        <!-- Current/Target Temperature Display Card with Icon and Status -->
+        <ui_card name="temp_display_card" width="100%" style_radius="0" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
+          <!-- Icon + Temp Row -->
+          <lv_obj style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md">
+            <!-- Heating icon: two overlapping icons with conditional visibility -->
+            <!-- Secondary (off) icon: hidden when heating (nozzle_heating == 1) -->
+            <icon name="heater_icon_off" src="heater" size="lg" variant="secondary">
+              <lv_obj-bind_flag_if_eq subject="nozzle_heating" flag="hidden" ref_value="1"/>
+            </icon>
+            <!-- Accent (on) icon: hidden when not heating (nozzle_heating == 0) -->
+            <icon name="heater_icon_on" src="heater" size="lg" variant="accent" style_margin_left="-48">
+              <lv_obj-bind_flag_if_eq subject="nozzle_heating" flag="hidden" ref_value="0"/>
+            </icon>
+            <lv_obj style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
+              <text_small text="Current / Target" align="center"/>
+              <lv_label name="nozzle_temp_display" bind_text="nozzle_temp_display" style_text_font="montserrat_28" align="center"/>
+            </lv_obj>
+          </lv_obj>
+          <!-- Status Message inside the card -->
+          <text_small name="status_message" bind_text="nozzle_status" width="100%" style_text_align="center" scrollable="false"/>
         </ui_card>
-        <!-- Preset Buttons (2x2 Grid) -->
-        <lv_obj name="preset_grid" width="100%" height="124" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
-          <!-- Row 1: Off, PLA -->
-          <lv_obj width="100%" height="58" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
-            <lv_button name="preset_off" width="120" height="48" style_radius="6" style_border_width="0">
+        <!-- Buttons container: groups preset grid + custom button together -->
+        <lv_obj name="buttons_container" width="100%" height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
+          <!-- Preset Buttons (2x2 grid using flex wrap with 48% width per button) -->
+          <lv_obj name="preset_grid" width="100%" style_bg_opa="0" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="row_wrap" style_flex_main_place="space_between" style_flex_cross_place="center" style_pad_gap="#space_sm">
+            <lv_button name="preset_off" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="Off (0&#xB0;C)" align="center"/>
             </lv_button>
-            <lv_button name="preset_pla" width="120" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_pla" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="PLA (210&#xB0;C)" align="center"/>
             </lv_button>
-          </lv_obj>
-          <!-- Row 2: PETG, ABS -->
-          <lv_obj width="100%" height="58" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm">
-            <lv_button name="preset_petg" width="120" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_petg" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="PETG (240&#xB0;C)" align="center"/>
             </lv_button>
-            <lv_button name="preset_abs" width="120" height="48" style_radius="6" style_border_width="0">
+            <lv_button name="preset_abs" width="48%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
               <text_small text="ABS (250&#xB0;C)" align="center"/>
             </lv_button>
           </lv_obj>
+          <!-- Custom Button -->
+          <lv_button name="btn_custom" width="100%" height="#button_height_small" style_radius="#border_radius_small" style_border_width="0">
+            <text_body text="Custom..." align="center"/>
+          </lv_button>
         </lv_obj>
-        <!-- Custom Button -->
-        <lv_button name="btn_custom" width="100%" height="48" style_radius="6" style_border_width="0">
-          <text_body text="Custom..." align="center"/>
-        </lv_button>
-        <!-- Status Message -->
-        <text_small name="status_message" text="Heating nozzle to target temperature..." width="100%" style_text_align="center" scrollable="false"/>
       </lv_obj>
     </lv_obj>
   </view>
