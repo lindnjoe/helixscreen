@@ -230,6 +230,8 @@ MDI_ICONS+=",0xF1B35"    # train-car-flatbed (print bed base)
 
 # Custom icons
 MDI_ICONS+=",0xF01BE"    # cursor-move (4-way movement cross)
+MDI_ICONS+=",0xF004C"    # arrow-expand-all (expand_all/move)
+MDI_ICONS+=",0xF03D4"    # hourglass (timer/loading)
 
 # Arrow icons for motion control (using MDI arrows)
 MDI_ICONS+=",0xF005D"    # arrow-up

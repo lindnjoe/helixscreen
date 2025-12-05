@@ -456,7 +456,7 @@ MOCK_OBJS := $(patsubst $(TEST_MOCK_DIR)/%.cpp,$(OBJ_DIR)/tests/mocks/%.o,$(MOCK
 # Default target
 .DEFAULT_GOAL := all
 
-.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector strict
+.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts validate-fonts regen-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector strict quality
 
 # Help target - shows common commands, references topic-specific help
 help:
@@ -483,7 +483,9 @@ help:
 	echo "$${C}Tools:$${X}"; \
 	echo "  $${G}tools$${X}             - Build diagnostic tools"; \
 	echo "  $${G}moonraker-inspector$${X} - Query Moonraker printer metadata"; \
-	echo "  $${G}generate-fonts$${X}    - Regenerate MDI icon fonts"; \
+	echo "  $${G}validate-fonts$${X}    - Check all icons are in compiled fonts"; \
+	echo "  $${G}regen-fonts$${X}       - Regenerate MDI icon fonts"; \
+	echo "  $${G}quality$${X}           - Run all quality checks"; \
 	echo "  $${G}icon$${X}              - Generate app icon from logo"; \
 	echo ""; \
 	echo "$${C}More Help:$${X}  $${D}(use these for detailed target lists)$${X}"; \
@@ -518,6 +520,11 @@ screenshots: $(BIN)
 strict:
 	@echo "$(CYAN)$(BOLD)Building with strict warnings (-Werror)...$(RESET)"
 	$(Q)$(MAKE) WERROR=1 all
+
+# Run all quality checks (same as CI and pre-commit)
+quality:
+	@echo "$(CYAN)$(BOLD)Running quality checks...$(RESET)"
+	$(Q)./scripts/quality-checks.sh
 
 # Include modular makefiles
 include mk/deps.mk

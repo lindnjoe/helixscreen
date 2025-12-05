@@ -48,6 +48,7 @@
 | 8 | SPDX headers | 20-line GPL boilerplate | `// SPDX-License-Identifier: GPL-3.0-or-later` |
 | 9 | Class-based architecture | `ui_panel_*_init()` functions | Classes: `MotionPanel`, `WiFiManager` |
 | 10 | Clang-format | Inconsistent formatting | Let pre-commit hook fix it |
+| 11 | **Icon font sync** | Add icon, forget `make regen-fonts` | Add to codepoints.h + regen_mdi_fonts.sh, run `make regen-fonts`, rebuild |
 
 **Rule 1 - Design Tokens (MANDATORY):**
 

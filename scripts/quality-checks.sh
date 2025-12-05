@@ -45,12 +45,13 @@ if [ "$STAGED_ONLY" = true ]; then
   FILES=$(git diff --cached --name-only --diff-filter=ACM | \
     grep -E '\.(cpp|c|h|mm)$' | \
     grep -v '^lib/' | \
+    grep -v '^assets/fonts/' | \
     grep -v '^lv_conf\.h$' | \
     grep -v '^node_modules/' | \
     grep -v '^build/' | \
     grep -v '/\.' || true)
 else
-  # CI mode: check all files in src/ and include/ (lib/ is excluded as third-party)
+  # CI mode: check all files in src/ and include/ (lib/ and assets/fonts/ excluded as auto-generated)
   FILES=$(find src include -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.mm" 2>/dev/null | \
     grep -v '/\.' | \
     grep -v '^lv_conf\.h$' || true)
@@ -267,6 +268,31 @@ if [ "$STAGED_ONLY" = true ]; then
   fi
   echo ""
 fi
+
+# ====================================================================
+# Icon Font Validation
+# ====================================================================
+echo "🔤 Validating icon font codepoints..."
+
+# Check if all icons in ui_icon_codepoints.h are present in compiled fonts
+# This prevents the bug where icons are added to code but fonts aren't regenerated
+if [ -f "scripts/validate_icon_fonts.sh" ]; then
+  if ./scripts/validate_icon_fonts.sh 2>/dev/null; then
+    echo "✅ All icon codepoints present in fonts"
+  else
+    echo "❌ Missing icon codepoints in fonts!"
+    echo ""
+    echo "   Some icons in include/ui_icon_codepoints.h are not in the compiled fonts."
+    echo "   Run './scripts/regen_mdi_fonts.sh' to regenerate fonts, then rebuild."
+    echo ""
+    echo "   Or run './scripts/validate_icon_fonts.sh --fix' to auto-regenerate."
+    EXIT_CODE=1
+  fi
+else
+  echo "⚠️  validate_icon_fonts.sh not found - skipping icon validation"
+fi
+
+echo ""
 
 # ====================================================================
 # Code Style Check

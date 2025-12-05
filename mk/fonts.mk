@@ -25,6 +25,33 @@ $(FONT_SRCS): .fonts.stamp
 
 generate-fonts: .fonts.stamp
 
+# Validate that all icons in ui_icon_codepoints.h are present in compiled fonts
+# This prevents the bug where icons are added to code but fonts aren't regenerated
+validate-fonts:
+	$(ECHO) "$(CYAN)Validating icon font codepoints...$(RESET)"
+	$(Q)if [ -f scripts/validate_icon_fonts.sh ]; then \
+		if ./scripts/validate_icon_fonts.sh; then \
+			echo "$(GREEN)✓ All icon codepoints present in fonts$(RESET)"; \
+		else \
+			echo "$(RED)✗ Missing icon codepoints - run 'make regen-fonts' to fix$(RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(YELLOW)⚠ validate_icon_fonts.sh not found - skipping$(RESET)"; \
+	fi
+
+# Regenerate MDI icon fonts from scratch using the regen script
+# Use this when adding new icons to include/ui_icon_codepoints.h
+regen-fonts:
+	$(ECHO) "$(CYAN)Regenerating MDI icon fonts...$(RESET)"
+	$(Q)if [ -f scripts/regen_mdi_fonts.sh ]; then \
+		./scripts/regen_mdi_fonts.sh; \
+		echo "$(GREEN)✓ Fonts regenerated - rebuild required$(RESET)"; \
+	else \
+		echo "$(RED)✗ regen_mdi_fonts.sh not found$(RESET)"; \
+		exit 1; \
+	fi
+
 # Generate macOS .icns icon from source logo
 # Requires: ImageMagick (magick) for image processing
 # Source: assets/images/helixscreen-logo.png

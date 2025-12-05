@@ -64,8 +64,8 @@
     <!-- Runtime selects appropriate variant via ui_theme_register_responsive_fonts()
          Icon sizes for status card icons (home panel temp/network/light)
          Values: xs(16), sm(24), md(32), lg(48), xl(64) -->
-    <string name="icon_size_card_small" value="sm"/>
-    <string name="icon_size_card_medium" value="md"/>
+    <string name="icon_size_card_small" value="md"/>
+    <string name="icon_size_card_medium" value="lg"/>
     <string name="icon_size_card_large" value="xl"/>
 
     <!-- printer_img_size moved to home_panel.xml -->
