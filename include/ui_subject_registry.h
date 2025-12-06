@@ -107,6 +107,33 @@
     } while (0)
 
 /**
+ * @brief Initialize and register a string subject with explicit size
+ *
+ * Use this variant when the buffer is passed via pointer (e.g., std::array::data())
+ * where sizeof() would return pointer size instead of buffer size.
+ *
+ * @param subject The lv_subject_t variable (no &)
+ * @param buffer Pointer to char buffer
+ * @param size Size of the buffer in bytes
+ * @param initial_value C-string with initial value (will be copied to buffer)
+ * @param name XML registration name (C-string)
+ *
+ * Example:
+ * ```cpp
+ * std::array<char, 32> temp_buf;
+ * lv_subject_t temp_subject;
+ * UI_SUBJECT_INIT_AND_REGISTER_STRING_N(temp_subject, temp_buf.data(), temp_buf.size(), "25°C",
+ *                                        "temperature");
+ * ```
+ */
+#define UI_SUBJECT_INIT_AND_REGISTER_STRING_N(subject, buffer, size, initial_value, name)          \
+    do {                                                                                           \
+        snprintf((buffer), (size), "%s", (initial_value));                                         \
+        lv_subject_init_string(&(subject), (buffer), nullptr, (size), (buffer));                   \
+        lv_xml_register_subject(NULL, (name), &(subject));                                         \
+    } while (0)
+
+/**
  * @brief Initialize and register an integer subject with the XML system
  *
  * This macro combines subject initialization and registration into a single call.

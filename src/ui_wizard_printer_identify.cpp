@@ -192,6 +192,12 @@ static PrinterDetectionHint detect_printer_type() {
 // ============================================================================
 
 void WizardPrinterIdentifyStep::init_subjects() {
+    // Only initialize subjects once - they persist across wizard navigation
+    if (subjects_initialized_) {
+        spdlog::debug("[{}] Subjects already initialized, skipping", get_name());
+        return;
+    }
+
     spdlog::debug("[{}] Initializing subjects", get_name());
 
     // Load existing values from config if available
@@ -320,6 +326,11 @@ void WizardPrinterIdentifyStep::handle_printer_name_changed(lv_event_t* event) {
     lv_obj_t* ta = static_cast<lv_obj_t*>(lv_event_get_target(event));
     const char* text = lv_textarea_get_text(ta);
 
+    // Re-entry guard: if we're updating FROM the subject, don't update it again
+    if (updating_from_subject_) {
+        return;
+    }
+
     // Trim leading/trailing whitespace for validation
     std::string trimmed(text);
     trimmed.erase(0, trimmed.find_first_not_of(" \t\n\r\f\v"));
@@ -331,8 +342,10 @@ void WizardPrinterIdentifyStep::handle_printer_name_changed(lv_event_t* event) {
         spdlog::debug("[{}] Name changed: '{}'", get_name(), text);
     }
 
-    // Update subject with raw text
+    // Update subject with raw text (guard prevents re-entry from observer notification)
+    updating_from_subject_ = true;
     lv_subject_copy_string(&printer_name_, text);
+    updating_from_subject_ = false;
 
     // Validate
     const size_t max_length = sizeof(printer_name_buffer_) - 1;
@@ -476,15 +489,20 @@ void WizardPrinterIdentifyStep::cleanup() {
     // Save current subject values to config
     Config* config = Config::get_instance();
     try {
-        // Get current name from SUBJECT (not buffer - buffer only updates on user typing)
-        // The subject contains the authoritative value including auto-fill
-        const char* subject_value =
-            static_cast<const char*>(lv_subject_get_pointer(&printer_name_));
+        // Get current name from SUBJECT using lv_subject_get_string() for string subjects
+        const char* subject_value = lv_subject_get_string(&printer_name_);
+
+        spdlog::debug("[{}] Subject value: '{}'", get_name(),
+                      subject_value ? subject_value : "(null)");
+
         std::string current_name(subject_value ? subject_value : "");
 
         // Trim whitespace
         current_name.erase(0, current_name.find_first_not_of(" \t\n\r\f\v"));
         current_name.erase(current_name.find_last_not_of(" \t\n\r\f\v") + 1);
+
+        spdlog::debug("[{}] After trim: '{}' (length={})", get_name(), current_name,
+                      current_name.length());
 
         // Save printer name if valid
         if (current_name.length() > 0) {

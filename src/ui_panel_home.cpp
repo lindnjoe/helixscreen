@@ -400,12 +400,34 @@ void HomePanel::update_temp_icon_animation() {
 }
 
 void HomePanel::reload_from_config() {
-    // LED visibility is handled via XML bindings to printer_has_led subject
-
     Config* config = Config::get_instance();
     if (!config) {
         spdlog::warn("[{}] reload_from_config: Config not available", get_name());
         return;
+    }
+
+    // Reload LED configuration from wizard settings
+    // LED visibility is controlled by printer_has_led subject set via set_printer_capabilities()
+    // which is called by the on_discovery_complete_ callback after hardware discovery
+    std::string new_led = config->get<std::string>(WizardConfigPaths::LED_STRIP, "");
+    if (new_led != configured_led_) {
+        configured_led_ = new_led;
+        if (!configured_led_.empty() && configured_led_ != "None") {
+            // Tell PrinterState to track this LED for state updates
+            printer_state_.set_tracked_led(configured_led_);
+
+            // Subscribe to LED state changes if not already subscribed
+            if (!led_state_observer_) {
+                led_state_observer_ = ObserverGuard(printer_state_.get_led_state_subject(),
+                                                    led_state_observer_cb, this);
+            }
+
+            spdlog::info("[{}] Reloaded LED config: {}", get_name(), configured_led_);
+        } else {
+            // No LED configured - clear tracking
+            printer_state_.set_tracked_led("");
+            spdlog::debug("[{}] LED config cleared", get_name());
+        }
     }
 
     // Update printer image based on configured printer type

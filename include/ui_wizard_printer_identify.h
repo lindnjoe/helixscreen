@@ -143,6 +143,7 @@ class WizardPrinterIdentifyStep {
     // State tracking
     bool printer_identify_validated_ = false;
     bool subjects_initialized_ = false;
+    bool updating_from_subject_ = false; // Re-entry guard for observer loop prevention
 
     // Event handler implementations
     void handle_printer_name_changed(lv_event_t* e);

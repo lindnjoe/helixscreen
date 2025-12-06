@@ -290,18 +290,26 @@ void TempControlPanel::init_subjects() {
              bed_target_);
 
     // Initialize and register subjects
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(nozzle_current_subject_, nozzle_current_buf_.data(),
-                                        nozzle_current_buf_.data(), "nozzle_current_temp");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(nozzle_target_subject_, nozzle_target_buf_.data(),
-                                        nozzle_target_buf_.data(), "nozzle_target_temp");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_current_subject_, bed_current_buf_.data(),
-                                        bed_current_buf_.data(), "bed_current_temp");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_target_subject_, bed_target_buf_.data(),
-                                        bed_target_buf_.data(), "bed_target_temp");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(nozzle_display_subject_, nozzle_display_buf_.data(),
-                                        nozzle_display_buf_.data(), "nozzle_temp_display");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_display_subject_, bed_display_buf_.data(),
-                                        bed_display_buf_.data(), "bed_temp_display");
+    // NOTE: Use _N variant with explicit size for std::array buffers (sizeof(.data()) = pointer
+    // size)
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(nozzle_current_subject_, nozzle_current_buf_.data(),
+                                          nozzle_current_buf_.size(), nozzle_current_buf_.data(),
+                                          "nozzle_current_temp");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(nozzle_target_subject_, nozzle_target_buf_.data(),
+                                          nozzle_target_buf_.size(), nozzle_target_buf_.data(),
+                                          "nozzle_target_temp");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(bed_current_subject_, bed_current_buf_.data(),
+                                          bed_current_buf_.size(), bed_current_buf_.data(),
+                                          "bed_current_temp");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(bed_target_subject_, bed_target_buf_.data(),
+                                          bed_target_buf_.size(), bed_target_buf_.data(),
+                                          "bed_target_temp");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(nozzle_display_subject_, nozzle_display_buf_.data(),
+                                          nozzle_display_buf_.size(), nozzle_display_buf_.data(),
+                                          "nozzle_temp_display");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(bed_display_subject_, bed_display_buf_.data(),
+                                          bed_display_buf_.size(), bed_display_buf_.data(),
+                                          "bed_temp_display");
 
     // Point count subjects for reactive X-axis label visibility
     // Labels become visible when count >= 60 (bound in XML with bind_flag_if_lt)
@@ -311,10 +319,12 @@ void TempControlPanel::init_subjects() {
     // Status text subjects (for reactive status messages like "Heating...", "Cooling down", "Idle")
     snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Idle");
     snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Idle");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(nozzle_status_subject_, nozzle_status_buf_.data(),
-                                        nozzle_status_buf_.data(), "nozzle_status");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_status_subject_, bed_status_buf_.data(),
-                                        bed_status_buf_.data(), "bed_status");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(nozzle_status_subject_, nozzle_status_buf_.data(),
+                                          nozzle_status_buf_.size(), nozzle_status_buf_.data(),
+                                          "nozzle_status");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING_N(bed_status_subject_, bed_status_buf_.data(),
+                                          bed_status_buf_.size(), bed_status_buf_.data(),
+                                          "bed_status");
 
     // Heating state subjects (0=off, 1=on) for reactive icon visibility in XML
     UI_SUBJECT_INIT_AND_REGISTER_INT(nozzle_heating_subject_, 0, "nozzle_heating");
