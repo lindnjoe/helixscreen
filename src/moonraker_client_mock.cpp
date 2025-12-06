@@ -1860,8 +1860,8 @@ void MoonrakerClientMock::dispatch_initial_state() {
 void MoonrakerClientMock::dispatch_historical_temperatures() {
     // Generate 2-3 minutes of synthetic temperature history
     // At 250ms intervals, that's ~600 data points for 2.5 minutes
-    constexpr int HISTORY_DURATION_MS = 150000;       // 2.5 minutes of history
-    constexpr int SAMPLE_INTERVAL_MS = 250;           // Same as SIMULATION_INTERVAL_MS
+    constexpr int HISTORY_DURATION_MS = 150000; // 2.5 minutes of history
+    constexpr int SAMPLE_INTERVAL_MS = 250;     // Same as SIMULATION_INTERVAL_MS
     constexpr int HISTORY_SAMPLES = HISTORY_DURATION_MS / SAMPLE_INTERVAL_MS;
 
     spdlog::info("[MoonrakerClientMock] Dispatching {} historical temperature samples ({} seconds)",
@@ -1874,8 +1874,8 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
     // Timing: ~50s heating, ~30s hold, ~70s cooling (ends at ~35°C extruder, ~30°C bed)
     constexpr double PEAK_EXTRUDER_TEMP = 60.0;
     constexpr double PEAK_BED_TEMP = 40.0;
-    constexpr int HEAT_PHASE_SAMPLES = 200;  // ~50 seconds at 250ms = 200 samples
-    constexpr int HOLD_PHASE_SAMPLES = 120;  // ~30 seconds hold at peak
+    constexpr int HEAT_PHASE_SAMPLES = 200; // ~50 seconds at 250ms = 200 samples
+    constexpr int HOLD_PHASE_SAMPLES = 120; // ~30 seconds hold at peak
     // Cooling phase = remaining samples (~70s, cools extruder ~20°C to ~40°C)
 
     // Copy callbacks to avoid holding lock during dispatch
@@ -1890,7 +1890,8 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
 
     // If no callbacks registered yet, skip (caller should register before connect)
     if (callbacks_copy.empty()) {
-        spdlog::warn("[MoonrakerClientMock] No callbacks registered for historical temps - skipping");
+        spdlog::warn(
+            "[MoonrakerClientMock] No callbacks registered for historical temps - skipping");
         return;
     }
 
@@ -1927,8 +1928,8 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
         } else if (i < HEAT_PHASE_SAMPLES + HOLD_PHASE_SAMPLES) {
             // Hold phase: PID oscillation around target (realistic behavior)
             double offset = i - HEAT_PHASE_SAMPLES;
-            ext_temp_hist = PEAK_EXTRUDER_TEMP + 0.8 * std::sin(offset * 0.15) +
-                            0.3 * std::cos(offset * 0.31);
+            ext_temp_hist =
+                PEAK_EXTRUDER_TEMP + 0.8 * std::sin(offset * 0.15) + 0.3 * std::cos(offset * 0.31);
             bed_temp_hist =
                 PEAK_BED_TEMP + 0.4 * std::sin(offset * 0.12) + 0.15 * std::cos(offset * 0.27);
         } else {
@@ -1938,8 +1939,10 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
             // Exponential decay: T(t) = T_ambient + (T_0 - T_ambient) * e^(-t/tau)
             double ext_tau = 40.0; // Extruder thermal time constant (seconds)
             double bed_tau = 80.0; // Bed thermal time constant (slower)
-            ext_temp_hist = ROOM_TEMP + (PEAK_EXTRUDER_TEMP - ROOM_TEMP) * std::exp(-cool_time / ext_tau);
-            bed_temp_hist = ROOM_TEMP + (PEAK_BED_TEMP - ROOM_TEMP) * std::exp(-cool_time / bed_tau);
+            ext_temp_hist =
+                ROOM_TEMP + (PEAK_EXTRUDER_TEMP - ROOM_TEMP) * std::exp(-cool_time / ext_tau);
+            bed_temp_hist =
+                ROOM_TEMP + (PEAK_BED_TEMP - ROOM_TEMP) * std::exp(-cool_time / bed_tau);
         }
 
         // Add realistic sensor noise (±0.3°C for extruder, ±0.2°C for bed)
@@ -1950,9 +1953,8 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
         double bed_with_noise = bed_temp_hist + bed_noise;
 
         // Build minimal status object (only temperature data needed for graphs)
-        json status_obj = {
-            {"extruder", {{"temperature", ext_with_noise}, {"target", 0.0}}},
-            {"heater_bed", {{"temperature", bed_with_noise}, {"target", 0.0}}}};
+        json status_obj = {{"extruder", {{"temperature", ext_with_noise}, {"target", 0.0}}},
+                           {"heater_bed", {{"temperature", bed_with_noise}, {"target", 0.0}}}};
 
         json notification = {{"method", "notify_status_update"},
                              {"params", json::array({status_obj, timestamp_sec})}};

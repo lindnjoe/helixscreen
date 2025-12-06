@@ -107,8 +107,8 @@ void HeatingIconAnimator::update(int current_temp, int target_temp) {
             if (old_state == State::OFF) {
                 // Fresh heating start - capture current temp as ambient
                 ambient_temp_ = current_temp;
-                spdlog::debug("[HeatingIconAnimator] Captured ambient: {}°C, target: {}°C",
-                              ambient_temp_, target_temp);
+                spdlog::debug("[HeatingIconAnimator] Captured ambient: {:.1f}°C, target: {:.1f}°C",
+                              ambient_temp_ / 10.0, target_temp / 10.0);
             }
             // Start or continue pulse animation
             if (!pulse_active_) {

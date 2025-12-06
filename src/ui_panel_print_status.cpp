@@ -707,16 +707,15 @@ void PrintStatusPanel::excluded_objects_observer_cb(lv_observer_t* observer,
 
 void PrintStatusPanel::on_temperature_changed() {
     // Read all temperature values from PrinterState subjects
-    int extruder_temp = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
-    int extruder_target = lv_subject_get_int(printer_state_.get_extruder_target_subject());
-    int bed_temp = lv_subject_get_int(printer_state_.get_bed_temp_subject());
-    int bed_target = lv_subject_get_int(printer_state_.get_bed_target_subject());
+    nozzle_current_ = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
+    nozzle_target_ = lv_subject_get_int(printer_state_.get_extruder_target_subject());
+    bed_current_ = lv_subject_get_int(printer_state_.get_bed_temp_subject());
+    bed_target_ = lv_subject_get_int(printer_state_.get_bed_target_subject());
 
-    // Update internal state and display
-    set_temperatures(extruder_temp, extruder_target, bed_temp, bed_target);
+    update_all_displays();
 
     spdlog::trace("[{}] Temperatures updated: nozzle {}/{}°C, bed {}/{}°C", get_name(),
-                  extruder_temp, extruder_target, bed_temp, bed_target);
+                  nozzle_current_, nozzle_target_, bed_current_, bed_target_);
 }
 
 void PrintStatusPanel::on_print_progress_changed(int progress) {
@@ -882,14 +881,6 @@ void PrintStatusPanel::set_layer(int current, int total) {
 void PrintStatusPanel::set_times(int elapsed_secs, int remaining_secs) {
     elapsed_seconds_ = elapsed_secs;
     remaining_seconds_ = remaining_secs;
-    update_all_displays();
-}
-
-void PrintStatusPanel::set_temperatures(int nozzle_cur, int nozzle_tgt, int bed_cur, int bed_tgt) {
-    nozzle_current_ = nozzle_cur;
-    nozzle_target_ = nozzle_tgt;
-    bed_current_ = bed_cur;
-    bed_target_ = bed_tgt;
     update_all_displays();
 }
 

@@ -372,22 +372,27 @@ void HomePanel::on_led_state_changed(int state) {
                   light_on_ ? "ON" : "OFF");
 }
 
-void HomePanel::on_extruder_temp_changed(int temp) {
+void HomePanel::on_extruder_temp_changed(int temp_centi) {
+    // Convert centidegrees to degrees for display
+    // PrinterState stores temps as centidegrees (×10) for 0.1°C resolution
+    int temp_deg = temp_centi / 10;
+
     // Format temperature for display and update the string subject
-    std::snprintf(temp_buffer_, sizeof(temp_buffer_), "%d °C", temp);
+    std::snprintf(temp_buffer_, sizeof(temp_buffer_), "%d °C", temp_deg);
     lv_subject_copy_string(&temp_subject_, temp_buffer_);
 
-    // Update cached value and animator
-    cached_extruder_temp_ = temp;
+    // Update cached value and animator (animator expects centidegrees)
+    cached_extruder_temp_ = temp_centi;
     update_temp_icon_animation();
 
-    spdlog::trace("[{}] Extruder temperature updated: {}°C", get_name(), temp);
+    spdlog::trace("[{}] Extruder temperature updated: {}°C", get_name(), temp_deg);
 }
 
-void HomePanel::on_extruder_target_changed(int target) {
-    cached_extruder_target_ = target;
+void HomePanel::on_extruder_target_changed(int target_centi) {
+    // Animator expects centidegrees
+    cached_extruder_target_ = target_centi;
     update_temp_icon_animation();
-    spdlog::trace("[{}] Extruder target updated: {}°C", get_name(), target);
+    spdlog::trace("[{}] Extruder target updated: {}°C", get_name(), target_centi / 10);
 }
 
 void HomePanel::update_temp_icon_animation() {

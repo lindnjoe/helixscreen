@@ -41,11 +41,11 @@
         </lv_obj>
       </lv_obj>
       <!-- Status Message with accent bar (flex-grows to fill remaining horizontal space) -->
-      <lv_obj flex_grow="1" style_bg_opa="0%" style_border_width="0" style_pad_all="0" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#accent_bar_gap">
+      <lv_obj flex_grow="1" style_bg_opa="0%" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#accent_bar_gap">
         <!-- Vertical accent bar (height fills container) -->
         <lv_obj name="status_accent_bar" width="#accent_bar_width" height="100%" style_bg_color="#primary_color" style_bg_opa="255" style_radius="2" style_border_width="0" style_pad_all="0"/>
         <!-- Status text container with padding for breathing room -->
-        <lv_obj flex_grow="1" style_bg_opa="0%" style_border_width="0" style_pad_ver="8" style_pad_hor="0" flex_flow="row" style_pad_gap="#space_sm" clickable="true">
+        <lv_obj flex_grow="1" height="100%" flex_flow="row" style_bg_opa="0%" style_flex_track_place="center" style_border_width="0" style_pad_all="0" style_pad_gap="#space_sm" clickable="true">
           <event_cb trigger="clicked" callback="tip_text_clicked_cb"/>
           <!-- "Tip: " prefix -->
           <text_heading text="Tip:"/>

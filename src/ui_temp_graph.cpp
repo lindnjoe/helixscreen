@@ -431,14 +431,6 @@ void ui_temp_graph_update_series(ui_temp_graph_t* graph, int series_id, float te
         return;
     }
 
-    // Debug: Log first 10 values pushed to help track down "first value is 0" bug
-    static int debug_count = 0;
-    if (debug_count < 10) {
-        spdlog::info("[TempGraph] DEBUG: Pushing value #{} to series '{}': {:.1f}°C", debug_count,
-                     meta->name, temp);
-        debug_count++;
-    }
-
     // Add point to series (shifts old data left)
     lv_chart_set_next_value(graph->chart, meta->chart_series, (int32_t)temp);
 }

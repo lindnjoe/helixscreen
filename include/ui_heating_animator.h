@@ -17,15 +17,17 @@
  * Usage:
  *   HeatingIconAnimator animator;
  *   animator.attach(icon_widget);
- *   // Call on every temperature update:
- *   animator.update(current_temp, target_temp);
+ *   // Call on every temperature update (temperatures in centidegrees):
+ *   animator.update(current_temp_centi, target_temp_centi);
  *   // Cleanup:
  *   animator.detach();
  *
  * State machine:
- *   OFF ──(target > 0)──► HEATING ──(current ≥ target-2)──► AT_TARGET
+ *   OFF ──(target > 0)──► HEATING ──(current ≥ target-20)──► AT_TARGET
  *    ▲                        │                                  │
  *    └────(target = 0)────────┴──────────(target = 0)────────────┘
+ *
+ * Note: 20 centidegrees = 2°C tolerance
  */
 class HeatingIconAnimator {
   public:
@@ -69,8 +71,8 @@ class HeatingIconAnimator {
      * - Calculate progress and update gradient color
      * - Start/stop pulse animation based on state transitions
      *
-     * @param current_temp Current temperature in °C
-     * @param target_temp Target temperature in °C (0 = heater off)
+     * @param current_temp Current temperature in centidegrees (31.5°C = 315)
+     * @param target_temp Target temperature in centidegrees (0 = heater off)
      */
     void update(int current_temp, int target_temp);
 
@@ -89,8 +91,8 @@ class HeatingIconAnimator {
     }
 
   private:
-    /// Temperature tolerance for "at target" detection (matches TempControlPanel)
-    static constexpr int TEMP_TOLERANCE = 2;
+    /// Temperature tolerance for "at target" detection in centidegrees (2°C = 20)
+    static constexpr int TEMP_TOLERANCE = 20;
 
     /// Pulse animation opacity range (80% to 100%)
     static constexpr lv_opa_t PULSE_OPA_MIN = 204; // ~80%
@@ -102,9 +104,9 @@ class HeatingIconAnimator {
     lv_obj_t* icon_ = nullptr;
     State state_ = State::OFF;
 
-    int ambient_temp_ = 25; ///< Captured when heating starts
-    int current_temp_ = 25;
-    int target_temp_ = 0;
+    int ambient_temp_ = 250; ///< Captured when heating starts (centidegrees)
+    int current_temp_ = 250; ///< Current temperature (centidegrees)
+    int target_temp_ = 0;    ///< Target temperature (centidegrees)
 
     lv_color_t current_color_; ///< Current gradient color
     lv_opa_t current_opacity_ = LV_OPA_COVER;

@@ -97,8 +97,8 @@ void TempControlPanel::bed_target_observer_cb(lv_observer_t* observer, lv_subjec
     }
 }
 
-void TempControlPanel::on_nozzle_temp_changed(int temp) {
-    nozzle_current_ = temp;
+void TempControlPanel::on_nozzle_temp_changed(int temp_centi) {
+    nozzle_current_ = temp_centi;
     update_nozzle_display();
     update_nozzle_status(); // Update status text and heating icon state
 
@@ -109,7 +109,7 @@ void TempControlPanel::on_nozzle_temp_changed(int temp) {
                          .count();
 
     int write_idx = nozzle_history_count_ % TEMP_HISTORY_SIZE;
-    nozzle_history_[write_idx] = {temp, now_ms};
+    nozzle_history_[write_idx] = {temp_centi, now_ms};
     nozzle_history_count_++;
 
     // Guard: don't track graph points until subjects initialized
@@ -126,31 +126,33 @@ void TempControlPanel::on_nozzle_temp_changed(int temp) {
     // Update subject for reactive X-axis label visibility
     lv_subject_set_int(&nozzle_graph_points_subject_, nozzle_point_count_);
 
-    // Push to graph if it exists
+    // Push to graph if it exists (convert centidegrees to degrees with 0.1°C precision)
     if (nozzle_graph_ && nozzle_series_id_ >= 0) {
-        ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_, static_cast<float>(temp));
+        float temp_deg = static_cast<float>(temp_centi) / 10.0f;
+        ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_, temp_deg);
         update_x_axis_labels(nozzle_x_labels_, nozzle_start_time_ms_, nozzle_point_count_);
-        spdlog::trace("[TempPanel] Nozzle graph updated: {}°C (point #{})", temp,
+        spdlog::trace("[TempPanel] Nozzle graph updated: {:.1f}°C (point #{})", temp_deg,
                       nozzle_point_count_);
     }
 }
 
-void TempControlPanel::on_nozzle_target_changed(int target) {
-    nozzle_target_ = target;
+void TempControlPanel::on_nozzle_target_changed(int target_centi) {
+    nozzle_target_ = target_centi;
     update_nozzle_display();
     update_nozzle_status(); // Update status text and heating icon state
 
-    // Update target line on graph
+    // Update target line on graph (convert centidegrees to degrees)
     if (nozzle_graph_ && nozzle_series_id_ >= 0) {
-        bool show_target = (target > 0);
-        ui_temp_graph_set_series_target(nozzle_graph_, nozzle_series_id_,
-                                        static_cast<float>(target), show_target);
-        spdlog::trace("[TempPanel] Nozzle target line: {}°C (visible={})", target, show_target);
+        float target_deg = static_cast<float>(target_centi) / 10.0f;
+        bool show_target = (target_centi > 0);
+        ui_temp_graph_set_series_target(nozzle_graph_, nozzle_series_id_, target_deg, show_target);
+        spdlog::trace("[TempPanel] Nozzle target line: {:.1f}°C (visible={})", target_deg,
+                      show_target);
     }
 }
 
-void TempControlPanel::on_bed_temp_changed(int temp) {
-    bed_current_ = temp;
+void TempControlPanel::on_bed_temp_changed(int temp_centi) {
+    bed_current_ = temp_centi;
     update_bed_display();
     update_bed_status(); // Update status text and heating icon state
 
@@ -161,7 +163,7 @@ void TempControlPanel::on_bed_temp_changed(int temp) {
                          .count();
 
     int write_idx = bed_history_count_ % TEMP_HISTORY_SIZE;
-    bed_history_[write_idx] = {temp, now_ms};
+    bed_history_[write_idx] = {temp_centi, now_ms};
     bed_history_count_++;
 
     // Guard: don't track graph points until subjects initialized
@@ -178,25 +180,28 @@ void TempControlPanel::on_bed_temp_changed(int temp) {
     // Update subject for reactive X-axis label visibility
     lv_subject_set_int(&bed_graph_points_subject_, bed_point_count_);
 
-    // Push to graph if it exists
+    // Push to graph if it exists (convert centidegrees to degrees with 0.1°C precision)
     if (bed_graph_ && bed_series_id_ >= 0) {
-        ui_temp_graph_update_series(bed_graph_, bed_series_id_, static_cast<float>(temp));
+        float temp_deg = static_cast<float>(temp_centi) / 10.0f;
+        ui_temp_graph_update_series(bed_graph_, bed_series_id_, temp_deg);
         update_x_axis_labels(bed_x_labels_, bed_start_time_ms_, bed_point_count_);
-        spdlog::trace("[TempPanel] Bed graph updated: {}°C (point #{})", temp, bed_point_count_);
+        spdlog::trace("[TempPanel] Bed graph updated: {:.1f}°C (point #{})", temp_deg,
+                      bed_point_count_);
     }
 }
 
-void TempControlPanel::on_bed_target_changed(int target) {
-    bed_target_ = target;
+void TempControlPanel::on_bed_target_changed(int target_centi) {
+    bed_target_ = target_centi;
     update_bed_display();
     update_bed_status(); // Update status text and heating icon state
 
-    // Update target line on graph
+    // Update target line on graph (convert centidegrees to degrees)
     if (bed_graph_ && bed_series_id_ >= 0) {
-        bool show_target = (target > 0);
-        ui_temp_graph_set_series_target(bed_graph_, bed_series_id_, static_cast<float>(target),
-                                        show_target);
-        spdlog::trace("[TempPanel] Bed target line: {}°C (visible={})", target, show_target);
+        float target_deg = static_cast<float>(target_centi) / 10.0f;
+        bool show_target = (target_centi > 0);
+        ui_temp_graph_set_series_target(bed_graph_, bed_series_id_, target_deg, show_target);
+        spdlog::trace("[TempPanel] Bed target line: {:.1f}°C (visible={})", target_deg,
+                      show_target);
     }
 }
 
@@ -206,25 +211,30 @@ void TempControlPanel::update_nozzle_display() {
         return;
     }
 
+    // Convert from centidegrees to degrees for display
+    // nozzle_current_ and nozzle_target_ are stored as centidegrees (×10)
+    // nozzle_pending_ is in degrees (user-facing value from keypad/presets)
+    int current_deg = nozzle_current_ / 10;
+    int target_deg = nozzle_target_ / 10;
+
     // Show pending value if user has selected but not confirmed yet
     // Otherwise show actual target from Moonraker
-    int display_target = (nozzle_pending_ >= 0) ? nozzle_pending_ : nozzle_target_;
+    int display_target = (nozzle_pending_ >= 0) ? nozzle_pending_ : target_deg;
 
     if (nozzle_pending_ >= 0) {
         // Show pending with asterisk to indicate unsent
         if (nozzle_pending_ > 0) {
             snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / %d*",
-                     nozzle_current_, nozzle_pending_);
+                     current_deg, nozzle_pending_);
         } else {
             snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / --*",
-                     nozzle_current_);
+                     current_deg);
         }
     } else if (display_target > 0) {
-        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / %d", nozzle_current_,
+        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / %d", current_deg,
                  display_target);
     } else {
-        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / --",
-                 nozzle_current_);
+        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / --", current_deg);
     }
     lv_subject_copy_string(&nozzle_display_subject_, nozzle_display_buf_.data());
 }
@@ -235,27 +245,30 @@ void TempControlPanel::update_bed_display() {
         return;
     }
 
+    // Convert from centidegrees to degrees for display
+    // bed_current_ and bed_target_ are stored as centidegrees (×10)
+    // bed_pending_ is in degrees (user-facing value from keypad/presets)
+    int current_deg = bed_current_ / 10;
+    int target_deg = bed_target_ / 10;
+
     // Show pending value if user has selected but not confirmed yet
     // Otherwise show actual target from Moonraker
-    int display_target = (bed_pending_ >= 0) ? bed_pending_ : bed_target_;
+    int display_target = (bed_pending_ >= 0) ? bed_pending_ : target_deg;
 
     if (bed_pending_ >= 0) {
         // Show pending with asterisk to indicate unsent
         if (bed_pending_ > 0) {
-            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d*", bed_current_,
+            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d*", current_deg,
                      bed_pending_);
         } else {
-            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --*", bed_current_);
+            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --*", current_deg);
         }
     } else if (display_target > 0) {
-        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d", bed_current_,
+        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d", current_deg,
                  display_target);
     } else {
-        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --", bed_current_);
+        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --", current_deg);
     }
-
-    spdlog::debug("[TempPanel] Bed display: '{}' (pending={}, target={}, current={})",
-                  bed_display_buf_.data(), bed_pending_, bed_target_, bed_current_);
 
     lv_subject_copy_string(&bed_display_subject_, bed_display_buf_.data());
 }
@@ -784,20 +797,26 @@ void TempControlPanel::update_nozzle_status() {
         return;
     }
 
-    constexpr int NOZZLE_COOLING_THRESHOLD = 40; // °C - above this when off = "cooling down"
-    constexpr int TEMP_TOLERANCE = 2;            // °C - within this of target = "at target"
+    // Thresholds in centidegrees (×10) - values are stored as centidegrees
+    constexpr int NOZZLE_COOLING_THRESHOLD_CENTI =
+        400;                                 // 40°C - above this when off = "cooling down"
+    constexpr int TEMP_TOLERANCE_CENTI = 20; // 2°C - within this of target = "at target"
 
-    if (nozzle_target_ > 0 && nozzle_current_ < nozzle_target_ - TEMP_TOLERANCE) {
+    // Convert to degrees for display
+    int current_deg = nozzle_current_ / 10;
+    int target_deg = nozzle_target_ / 10;
+
+    if (nozzle_target_ > 0 && nozzle_current_ < nozzle_target_ - TEMP_TOLERANCE_CENTI) {
         // Actively heating
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Heating to %d°C...",
-                 nozzle_target_);
-    } else if (nozzle_target_ > 0 && nozzle_current_ >= nozzle_target_ - TEMP_TOLERANCE) {
+                 target_deg);
+    } else if (nozzle_target_ > 0 && nozzle_current_ >= nozzle_target_ - TEMP_TOLERANCE_CENTI) {
         // At target temperature
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "At target temperature");
-    } else if (nozzle_target_ == 0 && nozzle_current_ > NOZZLE_COOLING_THRESHOLD) {
+    } else if (nozzle_target_ == 0 && nozzle_current_ > NOZZLE_COOLING_THRESHOLD_CENTI) {
         // Cooling down (heater off but still hot)
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Cooling down (%d°C)",
-                 nozzle_current_);
+                 current_deg);
     } else {
         // Idle (heater off and cool)
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Idle");
@@ -809,7 +828,7 @@ void TempControlPanel::update_nozzle_status() {
     int heating_state = (nozzle_target_ > 0) ? 1 : 0;
     lv_subject_set_int(&nozzle_heating_subject_, heating_state);
 
-    // Update heating icon animator (gradient color + pulse animation)
+    // Update heating icon animator (gradient color + pulse animation, in centidegrees)
     nozzle_animator_.update(nozzle_current_, nozzle_target_);
 
     spdlog::trace("[TempPanel] Nozzle status: '{}' (heating={})", nozzle_status_buf_.data(),
@@ -821,19 +840,24 @@ void TempControlPanel::update_bed_status() {
         return;
     }
 
-    constexpr int BED_COOLING_THRESHOLD = 35; // °C - above this when off = "cooling down"
-    constexpr int TEMP_TOLERANCE = 2;         // °C - within this of target = "at target"
+    // Thresholds in centidegrees (×10) - values are stored as centidegrees
+    constexpr int BED_COOLING_THRESHOLD_CENTI = 350; // 35°C - above this when off = "cooling down"
+    constexpr int TEMP_TOLERANCE_CENTI = 20;         // 2°C - within this of target = "at target"
 
-    if (bed_target_ > 0 && bed_current_ < bed_target_ - TEMP_TOLERANCE) {
+    // Convert to degrees for display
+    int current_deg = bed_current_ / 10;
+    int target_deg = bed_target_ / 10;
+
+    if (bed_target_ > 0 && bed_current_ < bed_target_ - TEMP_TOLERANCE_CENTI) {
         // Actively heating
-        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Heating to %d°C...", bed_target_);
-    } else if (bed_target_ > 0 && bed_current_ >= bed_target_ - TEMP_TOLERANCE) {
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Heating to %d°C...", target_deg);
+    } else if (bed_target_ > 0 && bed_current_ >= bed_target_ - TEMP_TOLERANCE_CENTI) {
         // At target temperature
         snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "At target temperature");
-    } else if (bed_target_ == 0 && bed_current_ > BED_COOLING_THRESHOLD) {
+    } else if (bed_target_ == 0 && bed_current_ > BED_COOLING_THRESHOLD_CENTI) {
         // Cooling down (heater off but still hot)
         snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Cooling down (%d°C)",
-                 bed_current_);
+                 current_deg);
     } else {
         // Idle (heater off and cool)
         snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Idle");
@@ -845,7 +869,7 @@ void TempControlPanel::update_bed_status() {
     int heating_state = (bed_target_ > 0) ? 1 : 0;
     lv_subject_set_int(&bed_heating_subject_, heating_state);
 
-    // Update heating icon animator (gradient color + pulse animation)
+    // Update heating icon animator (gradient color + pulse animation, in centidegrees)
     bed_animator_.update(bed_current_, bed_target_);
 
     spdlog::trace("[TempPanel] Bed status: '{}' (heating={})", bed_status_buf_.data(),
@@ -908,25 +932,27 @@ void TempControlPanel::replay_nozzle_history_to_graph() {
     lv_subject_set_int(&nozzle_graph_points_subject_, nozzle_point_count_);
 
     // Replay all samples in chronological order
-    // Debug: Log first few values to track "first value is 0" bug
+    // Skip zero values (no valid data yet) to avoid graphing uninitialized entries
+    // Convert centidegrees to degrees for graph display
+    int replayed = 0;
     for (int i = 0; i < samples_to_replay; i++) {
         int idx = (start_idx + i) % TEMP_HISTORY_SIZE;
-        if (i < 5) {
-            spdlog::info("[TempPanel] DEBUG: Replaying history[{}] = {}°C (ts={}ms)", idx,
-                         nozzle_history_[idx].temp, nozzle_history_[idx].timestamp_ms);
+        int temp_centi = nozzle_history_[idx].temp;
+        if (temp_centi == 0) {
+            continue; // Skip uninitialized/zero entries
         }
-        ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_,
-                                    static_cast<float>(nozzle_history_[idx].temp));
+        float temp_deg = static_cast<float>(temp_centi) / 10.0f;
+        ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_, temp_deg);
+        replayed++;
     }
 
     // Update X-axis labels
     update_x_axis_labels(nozzle_x_labels_, nozzle_start_time_ms_, nozzle_point_count_);
 
-    spdlog::info(
-        "[TempPanel] Replayed {} nozzle temp samples to graph (oldest: {}ms ago)",
-        samples_to_replay,
-        nozzle_history_[(start_idx + samples_to_replay - 1) % TEMP_HISTORY_SIZE].timestamp_ms -
-            nozzle_start_time_ms_);
+    if (replayed > 0) {
+        spdlog::info("[TempPanel] Replayed {} nozzle temp samples to graph (skipped {} zeros)",
+                     replayed, samples_to_replay - replayed);
+    }
 }
 
 void TempControlPanel::replay_bed_history_to_graph() {
@@ -955,17 +981,25 @@ void TempControlPanel::replay_bed_history_to_graph() {
     lv_subject_set_int(&bed_graph_points_subject_, bed_point_count_);
 
     // Replay all samples in chronological order
+    // Skip zero values (no valid data yet) to avoid graphing uninitialized entries
+    // Convert centidegrees to degrees for graph display
+    int replayed = 0;
     for (int i = 0; i < samples_to_replay; i++) {
         int idx = (start_idx + i) % TEMP_HISTORY_SIZE;
-        ui_temp_graph_update_series(bed_graph_, bed_series_id_,
-                                    static_cast<float>(bed_history_[idx].temp));
+        int temp_centi = bed_history_[idx].temp;
+        if (temp_centi == 0) {
+            continue; // Skip uninitialized/zero entries
+        }
+        float temp_deg = static_cast<float>(temp_centi) / 10.0f;
+        ui_temp_graph_update_series(bed_graph_, bed_series_id_, temp_deg);
+        replayed++;
     }
 
     // Update X-axis labels
     update_x_axis_labels(bed_x_labels_, bed_start_time_ms_, bed_point_count_);
 
-    spdlog::info(
-        "[TempPanel] Replayed {} bed temp samples to graph (oldest: {}ms ago)", samples_to_replay,
-        bed_history_[(start_idx + samples_to_replay - 1) % TEMP_HISTORY_SIZE].timestamp_ms -
-            bed_start_time_ms_);
+    if (replayed > 0) {
+        spdlog::info("[TempPanel] Replayed {} bed temp samples to graph (skipped {} zeros)",
+                     replayed, samples_to_replay - replayed);
+    }
 }
