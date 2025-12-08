@@ -2161,6 +2161,9 @@ int main(int argc, char** argv) {
             }
         }
 
+        // Check display sleep (inactivity timeout)
+        SettingsManager::instance().check_display_sleep();
+
         // Run LVGL tasks - handles display events and processes input
         lv_timer_handler();
         fflush(stdout);

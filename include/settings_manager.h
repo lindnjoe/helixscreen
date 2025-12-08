@@ -317,6 +317,36 @@ class SettingsManager {
      */
     static int index_to_sleep_seconds(int index);
 
+    // =========================================================================
+    // DISPLAY SLEEP MANAGEMENT
+    // =========================================================================
+
+    /**
+     * @brief Check inactivity and trigger display sleep if timeout exceeded
+     *
+     * Call this from the main event loop. Uses LVGL's built-in inactivity
+     * tracking (lv_display_get_inactive_time) and the configured sleep timeout.
+     *
+     * When sleep triggers: backlight dims to minimum (10%)
+     * When touch detected: backlight restores to previous brightness
+     */
+    void check_display_sleep();
+
+    /**
+     * @brief Check if display is currently in sleep mode
+     * @return true if display is sleeping (dimmed due to inactivity)
+     */
+    bool is_display_sleeping() const {
+        return display_sleeping_;
+    }
+
+    /**
+     * @brief Manually wake the display (e.g., on important notification)
+     *
+     * Restores brightness to saved level and resets inactivity timer.
+     */
+    void wake_display();
+
   private:
     SettingsManager();
     ~SettingsManager() = default;
@@ -341,6 +371,9 @@ class SettingsManager {
     // State
     bool subjects_initialized_ = false;
     bool restart_pending_ = false;
+
+    // Display sleep state
+    bool display_sleeping_ = false;
 };
 
 #endif // __HELIX_SETTINGS_MANAGER_H__

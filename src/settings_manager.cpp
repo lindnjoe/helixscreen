@@ -31,6 +31,83 @@ static const char* SLEEP_OPTIONS_TEXT = "Never\n1 minute\n5 minutes\n10 minutes\
 
 #ifdef __linux__
 /**
+ * @brief Read current brightness from first available backlight device via sysfs
+ *
+ * Searches /sys/class/backlight/ for any device and reads current brightness
+ * as a percentage of max_brightness. Used to sync UI with actual hardware state
+ * on startup.
+ *
+ * @param[out] percent Current brightness percentage (10-100)
+ * @return true if brightness was read, false if no device found
+ */
+static bool read_backlight_brightness_linux(int& percent) {
+    const char* backlight_base = "/sys/class/backlight";
+
+    DIR* dir = opendir(backlight_base);
+    if (!dir) {
+        spdlog::debug("[Backlight] No backlight class found at {}", backlight_base);
+        return false;
+    }
+
+    struct dirent* entry = nullptr;
+    bool success = false;
+
+    while ((entry = readdir(dir)) != nullptr) {
+        // Skip . and ..
+        if (entry->d_name[0] == '.') {
+            continue;
+        }
+
+        // Build paths to max_brightness and brightness files
+        std::string device_path = std::string(backlight_base) + "/" + entry->d_name;
+        std::string max_path = device_path + "/max_brightness";
+        std::string brightness_path = device_path + "/brightness";
+
+        // Check if this is a valid backlight device
+        struct stat st{};
+        if (stat(brightness_path.c_str(), &st) != 0) {
+            continue;
+        }
+
+        // Read max brightness
+        std::ifstream max_file(max_path);
+        if (!max_file.is_open()) {
+            continue;
+        }
+
+        int max_brightness = 0;
+        max_file >> max_brightness;
+        max_file.close();
+
+        if (max_brightness <= 0) {
+            continue;
+        }
+
+        // Read current brightness
+        std::ifstream brightness_file(brightness_path);
+        if (!brightness_file.is_open()) {
+            continue;
+        }
+
+        int current_brightness = 0;
+        brightness_file >> current_brightness;
+        brightness_file.close();
+
+        // Calculate percentage
+        percent = (current_brightness * 100) / max_brightness;
+        percent = std::max(10, std::min(100, percent)); // Clamp to valid range
+
+        spdlog::info("[Backlight] Read {} brightness: {}/{} ({}%)", entry->d_name,
+                     current_brightness, max_brightness, percent);
+        success = true;
+        break; // Use first available device
+    }
+
+    closedir(dir);
+    return success;
+}
+
+/**
  * @brief Apply brightness to first available backlight device via sysfs
  *
  * Searches /sys/class/backlight/ for any device and sets brightness
@@ -82,9 +159,9 @@ static bool apply_backlight_brightness_linux(int percent) {
             continue;
         }
 
-        // Calculate and clamp target value
+        // Calculate and clamp target value (allow 0 for sleep mode)
         int target = (percent * max_brightness) / 100;
-        target = std::max(1, std::min(max_brightness, target));
+        target = std::max(0, std::min(max_brightness, target));
 
         // Write brightness
         std::ofstream brightness_file(brightness_path);
@@ -133,6 +210,36 @@ static void apply_hardware_brightness(int percent) {
 #endif
 }
 
+/**
+ * @brief Read current brightness from hardware (platform-independent wrapper)
+ *
+ * In test mode, returns false (use config value).
+ * On Linux, reads from sysfs backlight device.
+ * On macOS/other, returns false (use config value).
+ *
+ * @param[out] percent Current brightness percentage (10-100)
+ * @return true if brightness was read from hardware, false to use config fallback
+ */
+static bool read_hardware_brightness(int& percent) {
+    // Skip hardware access in test mode - use config value
+    if (get_runtime_config().is_test_mode()) {
+        spdlog::debug("[Backlight] Test mode - using config brightness value");
+        return false;
+    }
+
+#ifdef __linux__
+    if (read_backlight_brightness_linux(percent)) {
+        return true;
+    }
+    spdlog::debug("[Backlight] No readable backlight device found - using config value");
+    return false;
+#else
+    spdlog::debug("[Backlight] Hardware brightness read not supported on this platform");
+    (void)percent;
+    return false;
+#endif
+}
+
 SettingsManager& SettingsManager::instance() {
     static SettingsManager instance;
     return instance;
@@ -161,10 +268,18 @@ void SettingsManager::init_subjects() {
     int sleep_sec = config->get<int>("/display_sleep_sec", 600);
     lv_subject_init_int(&display_sleep_subject_, sleep_sec);
 
-    // Brightness (default: 50%, range 10-100)
-    int brightness = config->get<int>("/brightness", 50);
-    brightness = std::max(10, std::min(100, brightness));
+    // Brightness: Read from hardware first (Pi/Linux), fall back to config
+    // This ensures UI reflects actual display state on startup
+    int brightness = 50; // Default
+    bool brightness_from_hardware = read_hardware_brightness(brightness);
+    if (!brightness_from_hardware) {
+        // Fall back to config value
+        brightness = config->get<int>("/brightness", 50);
+        brightness = std::max(10, std::min(100, brightness));
+    }
     lv_subject_init_int(&brightness_subject_, brightness);
+    spdlog::info("[SettingsManager] Brightness initialized to {}% (from {})", brightness,
+                 brightness_from_hardware ? "hardware" : "config");
 
     // LED state (ephemeral, not persisted - start as off)
     lv_subject_init_int(&led_enabled_subject_, 0);
@@ -447,4 +562,59 @@ void SettingsManager::set_estop_require_confirmation(bool require) {
 
     spdlog::debug("[SettingsManager] E-Stop confirmation {} and saved",
                   require ? "enabled" : "disabled");
+}
+
+// =============================================================================
+// DISPLAY SLEEP MANAGEMENT
+// =============================================================================
+
+void SettingsManager::check_display_sleep() {
+    // Get configured sleep timeout (0 = disabled)
+    int sleep_timeout_sec = get_display_sleep_sec();
+    if (sleep_timeout_sec == 0) {
+        // Sleep disabled - ensure we're awake
+        if (display_sleeping_) {
+            wake_display();
+        }
+        return;
+    }
+
+    // Get LVGL inactivity time (milliseconds since last touch/input)
+    uint32_t inactive_ms = lv_display_get_inactive_time(nullptr);
+    uint32_t timeout_ms = static_cast<uint32_t>(sleep_timeout_sec) * 1000U;
+
+    if (display_sleeping_) {
+        // Currently sleeping - check if user touched screen (activity detected)
+        // LVGL resets inactivity time on any input event
+        if (inactive_ms < 500) { // Touch detected (< 500ms since activity)
+            wake_display();
+        }
+    } else {
+        // Currently awake - check if we should sleep
+        if (inactive_ms >= timeout_ms) {
+            display_sleeping_ = true;
+
+            // Turn backlight OFF (0%) - don't use set_brightness() to avoid persisting
+            apply_hardware_brightness(0);
+            spdlog::info("[DisplaySleep] Display sleeping (backlight off) after {}s inactivity",
+                         sleep_timeout_sec);
+        }
+    }
+}
+
+void SettingsManager::wake_display() {
+    if (!display_sleeping_) {
+        return; // Already awake
+    }
+
+    display_sleeping_ = false;
+
+    // Restore configured brightness from config file (source of truth)
+    Config* config = Config::get_instance();
+    int brightness = config->get<int>("/brightness", 50);
+    brightness = std::max(10, std::min(100, brightness));
+
+    apply_hardware_brightness(brightness);
+    spdlog::info("[DisplaySleep] Display woken, brightness restored to {}% (from config)",
+                 brightness);
 }
