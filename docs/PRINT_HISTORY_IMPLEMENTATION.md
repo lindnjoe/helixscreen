@@ -1,5 +1,45 @@
 # Print History Feature Implementation Plan
 
+## Current Status
+
+| Stage | Name | Status | Commits |
+|-------|------|--------|---------|
+| 1 | Data Layer Foundation | ✅ Complete | Merged to main |
+| 2 | Dashboard Panel - Stats Display | ✅ Complete | `f5379eb` and earlier |
+| 3 | History List Panel - Basic List | ✅ Complete | `f5379eb` |
+| 4 | Search, Filter, Sort | ✅ Complete | `d3c57b9`, `ad69972`, `d013da5` |
+| 5 | Print Details Overlay | 🔲 Not Started | - |
+| 6 | Dashboard Charts | 🔲 Not Started | - |
+| 7 | Small Screen Adaptations | 🔲 Not Started | - |
+
+**Branch**: `feature/print-history`
+**Worktree**: `/Users/pbrown/Code/Printing/helixscreen-print-history`
+**Last Updated**: 2025-12-08
+
+### Session 3 Bug Fixes (2025-12-08)
+
+Three bugs discovered and fixed during testing:
+
+1. **`cc04ef8`** - Back button in dashboard not wired
+   - Missing `ui_panel_setup_back_button()` call in `ui_panel_history_dashboard.cpp`
+
+2. **`ad69972`** - Dropdown chevrons not rendering
+   - Must set BOTH symbol AND `LV_PART_INDICATOR` font to MDI
+
+3. **`d013da5`** - Search/filter/sort not working
+   - Event callbacks registered in `setup()` (AFTER XML creation)
+   - Moved to `init_global_history_list_panel()` (BEFORE XML creation)
+
+### Key Lessons Learned
+
+1. **XML event callbacks must be registered BEFORE `lv_xml_create()`** - the parser looks up callbacks during parsing, not after.
+
+2. **Dropdown chevrons require TWO steps**: `lv_dropdown_set_symbol()` + `lv_obj_set_style_text_font(..., LV_PART_INDICATOR)`.
+
+3. **Follow the pattern exactly** - compare with working code (`ui_panel_history_dashboard.cpp` vs `ui_panel_history_list.cpp`).
+
+---
+
 ## Overview
 
 A two-panel print history feature providing printer lifetime statistics and historical print records.
