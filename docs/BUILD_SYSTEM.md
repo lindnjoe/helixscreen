@@ -218,6 +218,61 @@ Display backend is selected via `DISPLAY_BACKEND` in `mk/cross.mk` and controls:
 
 ---
 
+## Git Worktrees
+
+Git worktrees allow parallel development on multiple branches without switching contexts. HelixScreen uses worktrees for feature development.
+
+### Creating a Worktree
+
+```bash
+# Create a new worktree with a new branch
+git worktree add -b feature/my-feature ../helixscreen-my-feature main
+
+# Initialize the worktree (REQUIRED - submodules don't auto-clone!)
+./scripts/init-worktree.sh ../helixscreen-my-feature
+
+# Build and test
+cd ../helixscreen-my-feature
+make -j
+./build/bin/helix-screen --test -vv
+```
+
+### Why init-worktree.sh is Required
+
+Git worktrees share `.git/config` and `.gitmodules` but **NOT** submodule content. Each worktree needs its own clone of every submodule. The `init-worktree.sh` script handles:
+
+1. **Submodule initialization** - Clones all required submodules
+2. **libhv headers** - Copies generated headers (created during build, not in git)
+3. **SDL2 handling** - On macOS, uses system SDL2 via Homebrew
+4. **Pre-built libraries** - Optionally copies `libhv.a` to save build time
+
+### Active Worktrees
+
+List existing worktrees:
+```bash
+git worktree list
+```
+
+Common worktrees:
+| Path | Branch | Purpose |
+|------|--------|---------|
+| `helixscreen` | `main` | Main development |
+| `helixscreen-feature-parity` | `feature/feature-parity` | Feature parity initiative |
+| `helixscreen-print-history` | `feature/print-history` | Print history feature |
+| `helixscreen-ams-feature` | `feature/ams-support` | AMS/multi-material |
+
+### Cleanup
+
+```bash
+# Remove a worktree
+git worktree remove ../helixscreen-my-feature
+
+# Or force remove if dirty
+git worktree remove --force ../helixscreen-my-feature
+```
+
+---
+
 ## Build System Overview
 
 The project uses **GNU Make** with a modular architecture:
