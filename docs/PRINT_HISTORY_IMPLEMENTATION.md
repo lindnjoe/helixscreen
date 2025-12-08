@@ -641,10 +641,69 @@ Update this section as stages complete:
 
 | Stage | Status | Notes |
 |-------|--------|-------|
-| 1. Data Layer | Not Started | |
+| 1. Data Layer | ✅ Complete | All tests pass, mock faithful to real API |
 | 2. Dashboard Stats | Not Started | |
 | 3. History List | Not Started | |
 | 4. Search/Filter/Sort | Not Started | |
 | 5. Detail Overlay | Not Started | |
 | 6. Charts | Not Started | |
 | 7. Small Screen | Not Started | |
+
+---
+
+## Session Notes
+
+### Session: 2025-12-08 (Stage 1 Implementation)
+
+**Worktree:** `/Users/pbrown/Code/Printing/helixscreen-print-history`
+**Branch:** `feature/print-history`
+
+**Completed:**
+- ✅ Created `include/print_history_data.h` with:
+  - `PrintHistoryJob` struct
+  - `PrintHistoryTotals` struct
+  - `HistoryTimeFilter` enum
+  - `PrintJobStatus` enum
+  - Helper functions: `parse_job_status()`, `status_to_icon()`, `status_to_variant()`
+
+- ✅ Modified `include/moonraker_api.h`:
+  - Added `#include "print_history_data.h"`
+  - Added `HistoryListCallback` and `HistoryTotalsCallback` types
+  - Added `get_history_list()`, `get_history_totals()`, `delete_history_job()` method signatures
+
+- ✅ Modified `src/moonraker_api.cpp`:
+  - Added helper functions: `format_history_duration()`, `format_history_date()`, `format_history_filament()`
+  - Added `parse_history_job()` for JSON parsing
+  - Implemented all 3 history API methods
+
+- ✅ Modified `src/moonraker_client_mock.cpp`:
+  - Added 20 mock jobs with realistic data
+  - Added `server.history.list` handler with pagination and time filtering
+  - Added `server.history.totals` handler
+  - Added `server.history.delete_job` handler
+
+**Next Steps:**
+1. ~~Initialize submodules in worktree~~ ✅
+2. ~~Build and test~~ ✅
+3. ~~Verify history API calls appear in logs~~ ✅
+4. Proceed to Stage 2 (Dashboard Panel)
+
+### Session: 2025-12-08 (Stage 1 Completion)
+
+**Changes:**
+- Fixed test linker errors (tests.mk was missing several object files)
+- Fixed mock to faithfully reproduce real Moonraker API (no fake breakdown counts)
+- Fixed test expectations to match real API behavior
+- All 4 print history tests pass (59 assertions)
+
+**Important Design Decision:**
+Real Moonraker's `server.history.totals` doesn't provide `total_completed`, `total_cancelled`, `total_failed` breakdown counts. The mock now correctly returns only what real Moonraker returns. If we need breakdown counts in the UI, we must calculate them client-side from the job list.
+
+**Commits:**
+- `5e5c7b1` fix(history): align mock and tests with real Moonraker API behavior
+
+**Ready for Stage 2:**
+Stage 1 (Data Layer) is complete. The API methods work:
+- `get_history_list()` - Returns paginated jobs with metadata
+- `get_history_totals()` - Returns aggregate statistics
+- `delete_history_job()` - Removes job from history

@@ -152,19 +152,25 @@ static void draw_task_cb(lv_event_t* e) {
     lv_opa_t bottom_opa = meta ? meta->gradient_bottom_opa : UI_TEMP_GRAPH_GRADIENT_BOTTOM_OPA;
     lv_color_t ser_color = line_dsc->color;
 
-    // Calculate opacity fractions based on Y position within chart
-    // Higher Y = lower on screen = closer to bottom = more transparent
-    int32_t full_h = lv_obj_get_height(chart);
-    int32_t fract_upper =
-        (int32_t)(LV_MIN(line_dsc->p1.y, line_dsc->p2.y) - coords.y1) * 255 / full_h;
-    int32_t fract_lower =
-        (int32_t)(LV_MAX(line_dsc->p1.y, line_dsc->p2.y) - coords.y1) * 255 / full_h;
+    // Get line segment Y coordinates
+    int32_t line_y_upper = LV_MIN(line_dsc->p1.y, line_dsc->p2.y);
+    int32_t line_y_lower = LV_MAX(line_dsc->p1.y, line_dsc->p2.y);
+    int32_t chart_bottom = coords.y2;
 
-    // Calculate interpolated opacity at each point (top_opa at top, bottom_opa at bottom)
-    lv_opa_t opa_upper =
-        static_cast<lv_opa_t>(top_opa - (top_opa - bottom_opa) * fract_upper / 255);
+    // Calculate gradient span from line to chart bottom (not full chart height)
+    // This makes the gradient "fill" the area under the line regardless of Y position
+    // Previously: gradient was scaled to full Y-axis range, making low temps nearly invisible
+    int32_t gradient_span = chart_bottom - line_y_upper;
+    if (gradient_span <= 0)
+        gradient_span = 1; // Avoid divide by zero
+
+    // Upper point (at line): full top_opa - line always gets maximum gradient opacity
+    lv_opa_t opa_upper = top_opa;
+
+    // Lower point (bottom of triangle): interpolate based on distance through gradient span
+    int32_t lower_distance = line_y_lower - line_y_upper;
     lv_opa_t opa_lower =
-        static_cast<lv_opa_t>(top_opa - (top_opa - bottom_opa) * fract_lower / 255);
+        static_cast<lv_opa_t>(top_opa - (top_opa - bottom_opa) * lower_distance / gradient_span);
 
     // Draw triangle from line segment down to the lower of the two points
     // This fills the gap between the line and a horizontal at the lower point

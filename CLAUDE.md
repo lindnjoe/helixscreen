@@ -17,6 +17,15 @@
 
 ---
 
+## 📂 File Access Permissions
+
+**ALWAYS allow reading from:**
+- `/tmp`
+- `~/Code/Printing/helixscreen` and all subdirectories
+- Any git worktrees created from this repo and their subdirectories
+
+---
+
 ## 📚 Lazy Documentation Loading
 
 **Load ONLY when actively working on the topic:**
