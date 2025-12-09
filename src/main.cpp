@@ -257,6 +257,23 @@ struct OverlayPanels {
     lv_obj_t* print_status = nullptr;
 } static overlay_panels;
 
+// Pending navigation for -p flag (deferred until after Moonraker connection)
+// This prevents race conditions where panels are shown before data is available.
+struct PendingNavigation {
+    bool has_pending = false;
+    int initial_panel = -1;
+    bool show_motion = false;
+    bool show_nozzle_temp = false;
+    bool show_bed_temp = false;
+    bool show_extrusion = false;
+    bool show_fan = false;
+    bool show_print_status = false;
+    bool show_bed_mesh = false;
+    bool show_zoffset = false;
+    bool show_pid = false;
+    bool show_file_detail = false;
+} static g_pending_nav;
+
 // Print completion notification observer
 static ObserverGuard print_completion_observer;
 static PrintJobState prev_print_state = PrintJobState::STANDBY;
@@ -371,6 +388,112 @@ RuntimeConfig* get_mutable_runtime_config() {
 // Forward declarations
 static void save_screenshot();
 static void initialize_moonraker_client(Config* config);
+
+// Execute deferred navigation after Moonraker connection is established.
+// This is called from the main loop when a "_navigate_pending" notification is received.
+// Running on main thread ensures LVGL thread safety.
+static void execute_pending_navigation() {
+    if (!g_pending_nav.has_pending) {
+        return;
+    }
+
+    spdlog::info("[Navigation] Executing deferred navigation after connection established");
+    g_pending_nav.has_pending = false;
+
+    lv_obj_t* screen = lv_display_get_screen_active(NULL);
+    if (!screen) {
+        spdlog::error("[Navigation] No active screen for deferred navigation");
+        return;
+    }
+
+    // Navigate to initial panel if requested
+    if (g_pending_nav.initial_panel >= 0) {
+        spdlog::debug("[Navigation] Setting active panel: {}", g_pending_nav.initial_panel);
+        ui_nav_set_active(static_cast<ui_panel_id_t>(g_pending_nav.initial_panel));
+    }
+
+    // Show deferred overlay panels
+    if (g_pending_nav.show_motion) {
+        spdlog::debug("[Navigation] Opening deferred motion overlay");
+        overlay_panels.motion = (lv_obj_t*)lv_xml_create(screen, "motion_panel", nullptr);
+        if (overlay_panels.motion) {
+            get_global_motion_panel().setup(overlay_panels.motion, screen);
+            ui_nav_push_overlay(overlay_panels.motion);
+        }
+    }
+    if (g_pending_nav.show_nozzle_temp) {
+        spdlog::debug("[Navigation] Opening deferred nozzle temp overlay");
+        overlay_panels.nozzle_temp = (lv_obj_t*)lv_xml_create(screen, "nozzle_temp_panel", nullptr);
+        if (overlay_panels.nozzle_temp && temp_control_panel) {
+            temp_control_panel->setup_nozzle_panel(overlay_panels.nozzle_temp, screen);
+            ui_nav_push_overlay(overlay_panels.nozzle_temp);
+        }
+    }
+    if (g_pending_nav.show_bed_temp) {
+        spdlog::debug("[Navigation] Opening deferred bed temp overlay");
+        overlay_panels.bed_temp = (lv_obj_t*)lv_xml_create(screen, "bed_temp_panel", nullptr);
+        if (overlay_panels.bed_temp && temp_control_panel) {
+            temp_control_panel->setup_bed_panel(overlay_panels.bed_temp, screen);
+            ui_nav_push_overlay(overlay_panels.bed_temp);
+        }
+    }
+    if (g_pending_nav.show_extrusion) {
+        spdlog::debug("[Navigation] Opening deferred extrusion overlay");
+        overlay_panels.extrusion = (lv_obj_t*)lv_xml_create(screen, "extrusion_panel", nullptr);
+        if (overlay_panels.extrusion) {
+            get_global_extrusion_panel().setup(overlay_panels.extrusion, screen);
+            ui_nav_push_overlay(overlay_panels.extrusion);
+        }
+    }
+    if (g_pending_nav.show_fan) {
+        spdlog::debug("[Navigation] Opening deferred fan control overlay");
+        auto& fan_panel = get_global_fan_panel();
+        if (!fan_panel.are_subjects_initialized()) {
+            fan_panel.init_subjects();
+        }
+        lv_obj_t* fan_obj = (lv_obj_t*)lv_xml_create(screen, "fan_panel", nullptr);
+        if (fan_obj) {
+            fan_panel.setup(fan_obj, screen);
+            ui_nav_push_overlay(fan_obj);
+        }
+    }
+    if (g_pending_nav.show_print_status && overlay_panels.print_status) {
+        spdlog::debug("[Navigation] Opening deferred print status overlay");
+        ui_nav_push_overlay(overlay_panels.print_status);
+    }
+    if (g_pending_nav.show_bed_mesh) {
+        spdlog::debug("[Navigation] Opening deferred bed mesh overlay");
+        lv_obj_t* bed_mesh = (lv_obj_t*)lv_xml_create(screen, "bed_mesh_panel", nullptr);
+        if (bed_mesh) {
+            get_global_bed_mesh_panel().setup(bed_mesh, screen);
+            ui_nav_push_overlay(bed_mesh);
+            spdlog::debug("[Navigation] Bed mesh overlay pushed to nav stack");
+        }
+    }
+    if (g_pending_nav.show_zoffset) {
+        spdlog::debug("[Navigation] Opening deferred Z-offset calibration overlay");
+        lv_obj_t* zoffset_panel =
+            (lv_obj_t*)lv_xml_create(screen, "calibration_zoffset_panel", nullptr);
+        if (zoffset_panel) {
+            get_global_zoffset_cal_panel().setup(zoffset_panel, screen, moonraker_client.get());
+            ui_nav_push_overlay(zoffset_panel);
+        }
+    }
+    if (g_pending_nav.show_pid) {
+        spdlog::debug("[Navigation] Opening deferred PID tuning overlay");
+        lv_obj_t* pid_panel = (lv_obj_t*)lv_xml_create(screen, "calibration_pid_panel", nullptr);
+        if (pid_panel) {
+            get_global_pid_cal_panel().setup(pid_panel, screen, moonraker_client.get());
+            ui_nav_push_overlay(pid_panel);
+        }
+    }
+    if (g_pending_nav.show_file_detail) {
+        spdlog::debug("[Navigation] File detail requested - navigating to print select panel");
+        ui_nav_set_active(UI_PANEL_PRINT_SELECT);
+    }
+
+    spdlog::info("[Navigation] Deferred navigation complete");
+}
 
 // Parse command-line arguments
 // Returns true on success, false if help was shown or error occurred
@@ -2007,103 +2130,32 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Navigate to initial panel (if not showing wizard and panel was requested)
-    if (!wizard_active && initial_panel >= 0) {
-        spdlog::debug("Navigating to initial panel: {}", initial_panel);
-        ui_nav_set_active(static_cast<ui_panel_id_t>(initial_panel));
+    // Defer panel/overlay navigation until after Moonraker connection (if connecting).
+    // This prevents race conditions where panels are shown before data is available.
+    // Overlays that don't require Moonraker data (keypad, keyboard, etc.) open immediately.
+    bool needs_moonraker = show_motion || show_nozzle_temp || show_bed_temp || show_extrusion ||
+                           show_fan || show_print_status || show_bed_mesh || show_zoffset ||
+                           show_pid || show_file_detail || initial_panel >= 0;
+
+    if (!wizard_active && needs_moonraker) {
+        // Store pending navigation - will be executed after Moonraker discovery completes
+        g_pending_nav.has_pending = true;
+        g_pending_nav.initial_panel = initial_panel;
+        g_pending_nav.show_motion = show_motion;
+        g_pending_nav.show_nozzle_temp = show_nozzle_temp;
+        g_pending_nav.show_bed_temp = show_bed_temp;
+        g_pending_nav.show_extrusion = show_extrusion;
+        g_pending_nav.show_fan = show_fan;
+        g_pending_nav.show_print_status = show_print_status;
+        g_pending_nav.show_bed_mesh = show_bed_mesh;
+        g_pending_nav.show_zoffset = show_zoffset;
+        g_pending_nav.show_pid = show_pid;
+        g_pending_nav.show_file_detail = show_file_detail;
+        spdlog::info("[Navigation] Deferred panel/overlay navigation until Moonraker connects");
     }
 
-    // Show requested overlay panels (motion, temp controls, etc.)
+    // Show non-Moonraker overlays immediately (they don't need printer data)
     if (!wizard_active) {
-        if (show_motion) {
-            spdlog::debug("Opening motion overlay as requested by command-line flag");
-            overlay_panels.motion = (lv_obj_t*)lv_xml_create(screen, "motion_panel", nullptr);
-            if (overlay_panels.motion) {
-                get_global_motion_panel().setup(overlay_panels.motion, screen);
-                ui_nav_push_overlay(overlay_panels.motion);
-            }
-        }
-        if (show_nozzle_temp) {
-            spdlog::debug("Opening nozzle temp overlay as requested by command-line flag");
-            overlay_panels.nozzle_temp =
-                (lv_obj_t*)lv_xml_create(screen, "nozzle_temp_panel", nullptr);
-            if (overlay_panels.nozzle_temp) {
-                temp_control_panel->setup_nozzle_panel(overlay_panels.nozzle_temp, screen);
-                ui_nav_push_overlay(overlay_panels.nozzle_temp);
-            }
-        }
-        if (show_bed_temp) {
-            spdlog::debug("Opening bed temp overlay as requested by command-line flag");
-            overlay_panels.bed_temp = (lv_obj_t*)lv_xml_create(screen, "bed_temp_panel", nullptr);
-            if (overlay_panels.bed_temp) {
-                temp_control_panel->setup_bed_panel(overlay_panels.bed_temp, screen);
-                ui_nav_push_overlay(overlay_panels.bed_temp);
-            }
-        }
-        if (show_extrusion) {
-            spdlog::debug("Opening extrusion overlay as requested by command-line flag");
-            overlay_panels.extrusion = (lv_obj_t*)lv_xml_create(screen, "extrusion_panel", nullptr);
-            if (overlay_panels.extrusion) {
-                get_global_extrusion_panel().setup(overlay_panels.extrusion, screen);
-                ui_nav_push_overlay(overlay_panels.extrusion);
-            }
-        }
-        if (show_fan) {
-            spdlog::debug("Opening fan control overlay as requested by command-line flag");
-            auto& fan_panel = get_global_fan_panel();
-            if (!fan_panel.are_subjects_initialized()) {
-                fan_panel.init_subjects();
-            }
-            lv_obj_t* fan_obj = (lv_obj_t*)lv_xml_create(screen, "fan_panel", nullptr);
-            if (fan_obj) {
-                fan_panel.setup(fan_obj, screen);
-                ui_nav_push_overlay(fan_obj);
-            }
-        }
-        if (show_print_status && overlay_panels.print_status) {
-            spdlog::debug("Opening print status overlay as requested by command-line flag");
-            ui_nav_push_overlay(overlay_panels.print_status);
-        }
-        if (show_bed_mesh) {
-            spdlog::debug("Opening bed mesh overlay as requested by command-line flag");
-            lv_obj_t* bed_mesh = (lv_obj_t*)lv_xml_create(screen, "bed_mesh_panel", nullptr);
-            if (bed_mesh) {
-                spdlog::debug("Bed mesh overlay created successfully, calling setup");
-                get_global_bed_mesh_panel().setup(bed_mesh, screen);
-                ui_nav_push_overlay(bed_mesh);
-                spdlog::debug("Bed mesh overlay pushed to nav stack");
-            } else {
-                spdlog::error(
-                    "Failed to create bed mesh overlay from XML component 'bed_mesh_panel'");
-            }
-        }
-        if (show_zoffset) {
-            spdlog::debug("Opening Z-offset calibration overlay as requested by command-line flag");
-            lv_obj_t* zoffset_panel =
-                (lv_obj_t*)lv_xml_create(screen, "calibration_zoffset_panel", nullptr);
-            if (zoffset_panel) {
-                spdlog::debug("Z-offset calibration overlay created successfully, calling setup");
-                get_global_zoffset_cal_panel().setup(zoffset_panel, screen, moonraker_client.get());
-                ui_nav_push_overlay(zoffset_panel);
-                spdlog::debug("Z-offset calibration overlay pushed to nav stack");
-            } else {
-                spdlog::error("Failed to create Z-offset calibration overlay from XML component "
-                              "'calibration_zoffset_panel'");
-            }
-        }
-        if (show_pid) {
-            spdlog::debug("Opening PID tuning overlay as requested by command-line flag");
-            lv_obj_t* pid_panel =
-                (lv_obj_t*)lv_xml_create(screen, "calibration_pid_panel", nullptr);
-            if (pid_panel) {
-                get_global_pid_cal_panel().setup(pid_panel, screen, moonraker_client.get());
-                ui_nav_push_overlay(pid_panel);
-                spdlog::debug("PID tuning overlay pushed to nav stack");
-            } else {
-                spdlog::error("Failed to create PID tuning overlay from XML component "
-                              "'calibration_pid_panel'");
-            }
-        }
         if (show_keypad) {
             spdlog::debug("Opening keypad modal as requested by command-line flag");
             ui_keypad_config_t keypad_config = {.initial_value = 0.0f,
@@ -2221,8 +2273,14 @@ int main(int argc, char** argv) {
                 // State change callback will handle updating PrinterState
 
                 // Start auto-discovery (must be called AFTER connection is established)
-                moonraker_client->discover_printer(
-                    []() { spdlog::info("✓ Printer auto-discovery complete"); });
+                moonraker_client->discover_printer([]() {
+                    spdlog::info("✓ Printer auto-discovery complete");
+                    // Queue notification to trigger deferred navigation on main thread
+                    if (g_pending_nav.has_pending) {
+                        std::lock_guard<std::mutex> lock(notification_mutex);
+                        notification_queue.push({{"_navigate_pending", true}});
+                    }
+                });
             },
             []() {
                 spdlog::warn("✗ Disconnected from Moonraker");
@@ -2289,6 +2347,12 @@ int main(int argc, char** argv) {
             while (!notification_queue.empty()) {
                 json notification = notification_queue.front();
                 notification_queue.pop();
+
+                // Check for deferred navigation trigger (queued from discovery callback)
+                if (notification.contains("_navigate_pending")) {
+                    execute_pending_navigation();
+                    continue;
+                }
 
                 // Check for connection state change (queued from state_change_callback)
                 if (notification.contains("_connection_state")) {

@@ -1003,7 +1003,7 @@
     #define LV_SDL_BUF_COUNT        1    /*1 or 2*/
     #define LV_SDL_ACCELERATED      1    /*1: Use hardware acceleration*/
     #define LV_SDL_FULLSCREEN       0    /*1: Make the window full screen by default*/
-    #define LV_SDL_DIRECT_EXIT      1    /*1: Exit the application when all SDL windows are closed*/
+    #define LV_SDL_DIRECT_EXIT      0    /*0: Return to main loop for graceful shutdown (prevents deadlock on exit)*/
     #define LV_SDL_MOUSEWHEEL_MODE  LV_SDL_MOUSEWHEEL_MODE_CROWN  /*LV_SDL_MOUSEWHEEL_MODE_ENCODER/CROWN*/
 #endif
 
