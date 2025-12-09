@@ -100,6 +100,12 @@ class AmsPanel : public PanelBase {
     ObserverGuard gates_version_observer_;
     ObserverGuard action_observer_;
     ObserverGuard current_gate_observer_;
+    ObserverGuard gate_count_observer_;
+
+    // === Dynamic Slot State ===
+
+    int current_slot_count_ = 0;    ///< Number of slots currently created
+    lv_obj_t* slot_grid_ = nullptr; ///< Container for dynamically created slots
 
     // === Setup Helpers ===
 
@@ -107,12 +113,26 @@ class AmsPanel : public PanelBase {
     void setup_action_buttons();
     void setup_status_display();
 
+    /**
+     * @brief Create slot widgets dynamically based on gate count
+     * @param count Number of slots to create (0 to max 8)
+     *
+     * Deletes existing slots and creates new ones. Uses lv_xml_create()
+     * to instantiate ams_slot C++ widgets, then sets their slot_index.
+     */
+    void create_slots(int count);
+
+    // === Gate Count Observer ===
+
+    static void on_gate_count_changed(lv_observer_t* observer, lv_subject_t* subject);
+
     // === UI Update Handlers ===
 
     void update_slot_colors();
     void update_slot_status(int gate_index);
     void update_action_display(AmsAction action);
     void update_current_gate_highlight(int gate_index);
+    void update_current_loaded_display(int gate_index);
 
     // === Event Callbacks (static trampolines) ===
 
@@ -138,11 +158,13 @@ class AmsPanel : public PanelBase {
     void show_context_menu(int slot_index, lv_obj_t* near_widget);
     void hide_context_menu();
 
-    // === Action Handlers ===
-
+    // === Action Handlers (public for XML event callbacks) ===
+  public:
     void handle_slot_tap(int slot_index);
     void handle_unload();
     void handle_home();
+
+  private:
     void handle_context_load();
     void handle_context_unload();
     void handle_context_edit();

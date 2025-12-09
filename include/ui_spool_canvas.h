@@ -1,0 +1,42 @@
+// Copyright 2025 HelixScreen
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#ifndef UI_SPOOL_CANVAS_H
+#define UI_SPOOL_CANVAS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "lvgl/lvgl.h"
+
+/**
+ * @file ui_spool_canvas.h
+ * @brief Pseudo-3D filament spool visualization using LVGL canvas
+ *
+ * Creates a visually appealing 3D-style spool with approximately 20 degrees
+ * rotation, showing a front face ellipse plus visible side depth.
+ *
+ * XML usage:
+ * @code{.xml}
+ * <spool_canvas color="0xFF5722" fill_level="0.75" size="64"/>
+ * @endcode
+ *
+ * Properties:
+ *   - color: Filament color as hex (e.g., "0xFF5722")
+ *   - fill_level: Amount of filament 0.0 (empty) to 1.0 (full)
+ *   - size: Canvas size in pixels (default 64)
+ */
+
+void ui_spool_canvas_register(void);
+void ui_spool_canvas_set_color(lv_obj_t* canvas, lv_color_t color);
+void ui_spool_canvas_set_fill_level(lv_obj_t* canvas, float fill_level);
+void ui_spool_canvas_redraw(lv_obj_t* canvas);
+float ui_spool_canvas_get_fill_level(lv_obj_t* canvas);
+lv_color_t ui_spool_canvas_get_color(lv_obj_t* canvas);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // UI_SPOOL_CANVAS_H

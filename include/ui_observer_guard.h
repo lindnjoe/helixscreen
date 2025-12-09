@@ -43,6 +43,16 @@ class ObserverGuard {
         }
     }
 
+    /**
+     * @brief Release ownership without calling lv_observer_remove()
+     *
+     * Use during shutdown when subjects may already be destroyed.
+     * The observer will not be removed from the subject (it may already be gone).
+     */
+    void release() {
+        observer_ = nullptr;
+    }
+
     explicit operator bool() const {
         return observer_ != nullptr;
     }

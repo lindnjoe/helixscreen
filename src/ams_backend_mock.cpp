@@ -38,15 +38,16 @@ struct MockFilament {
 };
 
 // Predefined sample filaments for visual testing
+// Covers common material types: PLA, PETG, ABS, ASA, PA, TPU, and CF/GF variants
 constexpr MockFilament SAMPLE_FILAMENTS[] = {
-    {0xE53935, "Red", "PLA", "Polymaker"},    // Gate 0: Red PLA
-    {0x1E88E5, "Blue", "PETG", "eSUN"},       // Gate 1: Blue PETG
-    {0x43A047, "Green", "PLA", "Bambu"},      // Gate 2: Green PLA
-    {0xFDD835, "Yellow", "ABS", "Polymaker"}, // Gate 3: Yellow ABS
-    {0x8E24AA, "Purple", "PLA", "Hatchbox"},  // Gate 4: Purple PLA
-    {0xFF6F00, "Orange", "PETG", "Overture"}, // Gate 5: Orange PETG
-    {0xFFFFFF, "White", "PLA", "eSUN"},       // Gate 6: White PLA
-    {0x212121, "Black", "PLA", "Bambu"},      // Gate 7: Black PLA
+    {0xE53935, "Red", "PLA", "Polymaker"},      // Gate 0: Red PLA
+    {0x1E88E5, "Blue", "PETG", "eSUN"},         // Gate 1: Blue PETG
+    {0x43A047, "Green", "ABS", "Bambu"},        // Gate 2: Green ABS
+    {0xFDD835, "Yellow", "ASA", "Polymaker"},   // Gate 3: Yellow ASA
+    {0x424242, "Carbon", "PLA-CF", "Overture"}, // Gate 4: Carbon PLA-CF
+    {0x8E24AA, "Purple", "PA-CF", "Bambu"},     // Gate 5: Purple PA-CF (Nylon)
+    {0xFF6F00, "Orange", "TPU", "eSUN"},        // Gate 6: Orange TPU (Flexible)
+    {0x90CAF9, "Sky Blue", "PETG-GF", "Prusa"}, // Gate 7: PETG-GF (Glass Filled)
 };
 constexpr int NUM_SAMPLE_FILAMENTS = sizeof(SAMPLE_FILAMENTS) / sizeof(SAMPLE_FILAMENTS[0]);
 } // namespace
@@ -96,28 +97,41 @@ AmsBackendMock::AmsBackendMock(int gate_count) {
         gate.material = sample.material;
         gate.brand = sample.brand;
 
-        // Mock Spoolman data
+        // Mock Spoolman data with dramatic fill level differences for demo
         gate.spoolman_id = 1000 + i;
         gate.spool_name = std::string(sample.color_name) + " " + sample.material;
         gate.total_weight_g = 1000.0f;
-        gate.remaining_weight_g = 750.0f - (i * 100.0f); // Varying amounts
-        if (gate.remaining_weight_g < 100.0f) {
-            gate.remaining_weight_g = 100.0f;
-        }
+        // Vary fill levels dramatically: 100%, 75%, 40%, 10% for clear visual difference
+        static const float fill_levels[] = {1.0f, 0.75f, 0.40f, 0.10f, 0.90f, 0.50f, 0.25f, 0.05f};
+        gate.remaining_weight_g = gate.total_weight_g * fill_levels[i % 8];
 
-        // Temperature recommendations
-        if (std::string(sample.material) == "PLA") {
+        // Temperature recommendations based on material type
+        std::string mat(sample.material);
+        if (mat == "PLA" || mat == "PLA-CF") {
             gate.nozzle_temp_min = 190;
             gate.nozzle_temp_max = 220;
             gate.bed_temp = 60;
-        } else if (std::string(sample.material) == "PETG") {
+        } else if (mat == "PETG" || mat == "PETG-GF") {
             gate.nozzle_temp_min = 230;
             gate.nozzle_temp_max = 250;
             gate.bed_temp = 80;
-        } else if (std::string(sample.material) == "ABS") {
+        } else if (mat == "ABS") {
             gate.nozzle_temp_min = 240;
             gate.nozzle_temp_max = 260;
             gate.bed_temp = 100;
+        } else if (mat == "ASA") {
+            gate.nozzle_temp_min = 240;
+            gate.nozzle_temp_max = 270;
+            gate.bed_temp = 90;
+        } else if (mat == "PA-CF" || mat == "PA" || mat == "PA-GF") {
+            // Nylon-based materials need high temps
+            gate.nozzle_temp_min = 260;
+            gate.nozzle_temp_max = 290;
+            gate.bed_temp = 85;
+        } else if (mat == "TPU") {
+            gate.nozzle_temp_min = 220;
+            gate.nozzle_temp_max = 250;
+            gate.bed_temp = 50;
         }
 
         unit.gates.push_back(gate);

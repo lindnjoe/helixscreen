@@ -3,6 +3,7 @@
 
 #include "ui_panel_ams.h"
 
+#include "ui_ams_slot.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
@@ -19,6 +20,27 @@
 
 #include <cstring>
 #include <memory>
+
+// Global instance pointer for XML callback access
+static AmsPanel* g_ams_panel_instance = nullptr;
+
+// ============================================================================
+// XML Event Callback Wrappers (for <event_cb> elements in XML)
+// ============================================================================
+
+static void on_unload_clicked_xml(lv_event_t* e) {
+    LV_UNUSED(e);
+    if (g_ams_panel_instance) {
+        g_ams_panel_instance->handle_unload();
+    }
+}
+
+static void on_home_clicked_xml(lv_event_t* e) {
+    LV_UNUSED(e);
+    if (g_ams_panel_instance) {
+        g_ams_panel_instance->handle_home();
+    }
+}
 
 // ============================================================================
 // Construction
@@ -70,6 +92,10 @@ void AmsPanel::init_subjects() {
     current_gate_observer_ = ObserverGuard(AmsState::instance().get_current_gate_subject(),
                                            on_current_gate_changed, this);
 
+    // Gate count observer for dynamic slot creation
+    gate_count_observer_ =
+        ObserverGuard(AmsState::instance().get_gate_count_subject(), on_gate_count_changed, this);
+
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized via AmsState + observers registered", get_name());
 }
@@ -117,51 +143,88 @@ void AmsPanel::on_deactivate() {
 // ============================================================================
 
 void AmsPanel::setup_slots() {
-    lv_obj_t* slot_grid = lv_obj_find_by_name(panel_, "slot_grid");
-    if (!slot_grid) {
+    slot_grid_ = lv_obj_find_by_name(panel_, "slot_grid");
+    if (!slot_grid_) {
         spdlog::warn("[{}] slot_grid not found in XML", get_name());
         return;
     }
 
-    // Find slot widgets by name pattern: slot_0, slot_1, etc.
-    char slot_name[16];
-    int slots_found = 0;
-
-    for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
-        snprintf(slot_name, sizeof(slot_name), "slot_%d", i);
-        slot_widgets_[i] = lv_obj_find_by_name(slot_grid, slot_name);
-
-        if (slot_widgets_[i]) {
-            // Store slot index as user data for click handler
-            lv_obj_set_user_data(slot_widgets_[i],
-                                 reinterpret_cast<void*>(static_cast<intptr_t>(i)));
-            lv_obj_add_event_cb(slot_widgets_[i], on_slot_clicked, LV_EVENT_CLICKED, this);
-            ++slots_found;
-        }
-    }
-
-    spdlog::debug("[{}] Found {}/{} slot widgets", get_name(), slots_found, MAX_VISIBLE_SLOTS);
+    // Get initial gate count and create slots
+    int gate_count = lv_subject_get_int(AmsState::instance().get_gate_count_subject());
+    create_slots(gate_count);
 }
 
-void AmsPanel::setup_action_buttons() {
-    lv_obj_t* content = lv_obj_find_by_name(panel_, "overlay_content");
-    if (!content) {
+void AmsPanel::create_slots(int count) {
+    if (!slot_grid_) {
         return;
     }
 
-    // Unload button
-    lv_obj_t* unload_btn = lv_obj_find_by_name(content, "btn_unload");
-    if (unload_btn) {
-        lv_obj_add_event_cb(unload_btn, on_unload_clicked, LV_EVENT_CLICKED, this);
+    // Clamp to reasonable range
+    if (count < 0) {
+        count = 0;
+    }
+    if (count > MAX_VISIBLE_SLOTS) {
+        spdlog::warn("[{}] Clamping gate_count {} to max {}", get_name(), count, MAX_VISIBLE_SLOTS);
+        count = MAX_VISIBLE_SLOTS;
     }
 
-    // Home button
-    lv_obj_t* home_btn = lv_obj_find_by_name(content, "btn_home");
-    if (home_btn) {
-        lv_obj_add_event_cb(home_btn, on_home_clicked, LV_EVENT_CLICKED, this);
+    // Skip if unchanged
+    if (count == current_slot_count_) {
+        return;
     }
 
-    spdlog::debug("[{}] Action buttons wired", get_name());
+    spdlog::debug("[{}] Creating {} slots (was {})", get_name(), count, current_slot_count_);
+
+    // Delete existing slots
+    for (int i = 0; i < current_slot_count_; ++i) {
+        if (slot_widgets_[i]) {
+            lv_obj_delete(slot_widgets_[i]);
+            slot_widgets_[i] = nullptr;
+        }
+    }
+
+    // Create new slots via XML system (widget handles its own sizing/appearance)
+    for (int i = 0; i < count; ++i) {
+        lv_obj_t* slot = static_cast<lv_obj_t*>(lv_xml_create(slot_grid_, "ams_slot", nullptr));
+        if (!slot) {
+            spdlog::error("[{}] Failed to create ams_slot for index {}", get_name(), i);
+            continue;
+        }
+
+        // Configure slot index (triggers reactive binding setup)
+        ui_ams_slot_set_index(slot, i);
+
+        // Store reference and setup click handler
+        slot_widgets_[i] = slot;
+        lv_obj_set_user_data(slot, reinterpret_cast<void*>(static_cast<intptr_t>(i)));
+        lv_obj_add_event_cb(slot, on_slot_clicked, LV_EVENT_CLICKED, this);
+    }
+
+    current_slot_count_ = count;
+    spdlog::info("[{}] Created {} slot widgets", get_name(), count);
+}
+
+void AmsPanel::on_gate_count_changed(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<AmsPanel*>(lv_observer_get_user_data(observer));
+    if (!self || !self->panel_) {
+        return;
+    }
+
+    int new_count = lv_subject_get_int(subject);
+    spdlog::debug("[AmsPanel] Gate count changed to {}", new_count);
+    self->create_slots(new_count);
+}
+
+void AmsPanel::setup_action_buttons() {
+    // Register XML event callbacks for buttons
+    // These callbacks are referenced in ams_panel.xml via <event_cb> elements
+    lv_xml_register_event_cb(nullptr, "ams_unload_clicked_cb", on_unload_clicked_xml);
+    lv_xml_register_event_cb(nullptr, "ams_home_clicked_cb", on_home_clicked_xml);
+
+    // Store panel pointer for static callbacks to access
+    g_ams_panel_instance = this;
+
+    spdlog::debug("[{}] Action button callbacks registered", get_name());
 }
 
 void AmsPanel::setup_status_display() {
@@ -195,6 +258,7 @@ void AmsPanel::refresh_slots() {
 
 void AmsPanel::update_slot_colors() {
     int gate_count = lv_subject_get_int(AmsState::instance().get_gate_count_subject());
+    AmsBackend* backend = AmsState::instance().get_backend();
 
     for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
         if (!slot_widgets_[i]) {
@@ -219,6 +283,25 @@ void AmsPanel::update_slot_colors() {
             lv_obj_t* swatch = lv_obj_find_by_name(slot_widgets_[i], "color_swatch");
             if (swatch) {
                 lv_obj_set_style_bg_color(swatch, color, 0);
+            }
+        }
+
+        // Update material label and fill level from backend gate info
+        if (backend) {
+            GateInfo gate_info = backend->get_gate_info(i);
+            lv_obj_t* material_label = lv_obj_find_by_name(slot_widgets_[i], "material_label");
+            if (material_label) {
+                if (!gate_info.material.empty()) {
+                    lv_label_set_text(material_label, gate_info.material.c_str());
+                } else {
+                    lv_label_set_text(material_label, "---");
+                }
+            }
+
+            // Set fill level from Spoolman weight data
+            if (gate_info.total_weight_g > 0.0f) {
+                float fill_level = gate_info.remaining_weight_g / gate_info.total_weight_g;
+                ui_ams_slot_set_fill_level(slot_widgets_[i], fill_level);
             }
         }
 
@@ -299,16 +382,78 @@ void AmsPanel::update_action_display(AmsAction action) {
 }
 
 void AmsPanel::update_current_gate_highlight(int gate_index) {
-    // Remove highlight from all slots
+    // Remove highlight from all slots (set border opacity to 0)
     for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
         if (slot_widgets_[i]) {
             lv_obj_remove_state(slot_widgets_[i], LV_STATE_CHECKED);
+            lv_obj_set_style_border_opa(slot_widgets_[i], LV_OPA_0, 0);
         }
     }
 
-    // Add highlight to current gate
+    // Add highlight to current gate (show border)
     if (gate_index >= 0 && gate_index < MAX_VISIBLE_SLOTS && slot_widgets_[gate_index]) {
         lv_obj_add_state(slot_widgets_[gate_index], LV_STATE_CHECKED);
+        lv_obj_set_style_border_opa(slot_widgets_[gate_index], LV_OPA_100, 0);
+    }
+
+    // Update the "Currently Loaded" card in the right column
+    update_current_loaded_display(gate_index);
+}
+
+void AmsPanel::update_current_loaded_display(int gate_index) {
+    if (!panel_) {
+        return;
+    }
+
+    // Find the "Currently Loaded" card elements
+    lv_obj_t* current_swatch = lv_obj_find_by_name(panel_, "current_swatch");
+    lv_obj_t* current_material = lv_obj_find_by_name(panel_, "current_material");
+    lv_obj_t* current_slot_label = lv_obj_find_by_name(panel_, "current_slot_label");
+
+    AmsBackend* backend = AmsState::instance().get_backend();
+    bool filament_loaded =
+        lv_subject_get_int(AmsState::instance().get_filament_loaded_subject()) != 0;
+
+    if (gate_index >= 0 && filament_loaded && backend) {
+        // Filament is loaded - show the loaded gate info
+        GateInfo gate_info = backend->get_gate_info(gate_index);
+
+        // Set swatch color
+        if (current_swatch) {
+            lv_color_t color = lv_color_hex(gate_info.color_rgb);
+            lv_obj_set_style_bg_color(current_swatch, color, 0);
+            lv_obj_set_style_border_color(current_swatch, color, 0);
+        }
+
+        // Set material name
+        if (current_material) {
+            if (!gate_info.material.empty()) {
+                lv_label_set_text(current_material, gate_info.material.c_str());
+            } else {
+                lv_label_set_text(current_material, "Filament");
+            }
+        }
+
+        // Set slot label (1-based for user display)
+        if (current_slot_label) {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "Slot %d", gate_index + 1);
+            lv_label_set_text(current_slot_label, buf);
+        }
+    } else {
+        // No filament loaded - show empty state
+        if (current_swatch) {
+            lv_obj_set_style_bg_color(current_swatch, lv_color_hex(0x505050), 0);
+            lv_obj_set_style_border_color(current_swatch, lv_color_hex(0x505050), 0);
+        }
+
+        if (current_material) {
+            lv_label_set_text(current_material, "---");
+        }
+
+        if (current_slot_label) {
+            lv_label_set_text(current_slot_label, "None");
+        }
     }
 }
 
