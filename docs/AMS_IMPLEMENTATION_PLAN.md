@@ -3,7 +3,7 @@
 **Feature Branch:** `feature/ams-support`
 **Worktree:** `/Users/pbrown/Code/Printing/helixscreen-ams-feature`
 **Started:** 2025-12-07
-**Last Updated:** 2025-12-08
+**Last Updated:** 2025-12-08 (Session 3: Enhanced spool rendering)
 
 ---
 
@@ -199,16 +199,24 @@ Future Modals (Phase 3+):
 | 3D perspective | Narrow ellipses (45% horizontal compression) |
 | Physical correctness | Front flange solid, filament only visible from side |
 | Fill level | 0.0-1.0 controls wound filament radius |
-| Filament gradient | Lighter top → darker bottom (3D lighting) |
+| Filament gradient | sqrt curve for fast light→dark transition |
+| Flange gradient | Vertical gradient (bright top → dark bottom) |
+| Edge highlights | 2px bright-to-dark gradient on flange left edges |
 | Hub hole gradient | Dark top → light bottom (interior shadow) |
-| Anti-aliasing | Coverage-based edge smoothing on all ellipses |
+| Anti-aliasing | Coverage-based edge smoothing + pole pixels |
 | XML attributes | `color`, `fill_level`, `size` |
 
 **Drawing Algorithm (back-to-front):**
-1. Back flange (solid gray ellipse)
+1. Back flange (gradient ellipse + left edge highlight)
 2. Filament cylinder with gradient (back ellipse + rectangle + front ellipse)
-3. Front flange (solid gray ellipse - covers filament, physically correct)
+3. Front flange (gradient ellipse + left edge highlight)
 4. Hub hole with gradient (shadow effect)
+
+**Enhanced Rendering (2025-12-08):**
+- [x] sqrt() curve on gradients for faster light-to-dark transition
+- [x] Edge highlights on flanges (2px band along left edge, gradient top→bottom)
+- [x] Pole pixel rendering for smoother top/bottom ellipse edges
+- [x] Increased lighten/darken amounts for more dramatic 3D effect
 
 **XML Usage:**
 ```xml
@@ -220,6 +228,11 @@ Future Modals (Phase 3+):
 - [x] Anti-aliased edges render smoothly
 - [x] Fill levels display correctly (100%/75%/40%/10%)
 - [x] Gradients visible on filament and hub
+- [x] Edge highlights give flanges 3D thickness illusion
+
+**Known Limitations:**
+- Ellipse poles (top/bottom) appear somewhat flat due to horizontal compression
+  at 72px resolution - this is inherent to compressed ellipse geometry
 
 ---
 

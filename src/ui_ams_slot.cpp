@@ -424,6 +424,7 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     lv_obj_set_style_border_width(container, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(container, 2, LV_PART_MAIN);
     lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
     // Use flex layout: column, center items
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
@@ -475,6 +476,11 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
         lv_obj_t* canvas = ui_spool_canvas_create(spool_container, spool_size);
         if (canvas) {
             lv_obj_align(canvas, LV_ALIGN_CENTER, 0, 0);
+            // Prevent flex layout from resizing the canvas
+            lv_obj_set_style_min_width(canvas, spool_size, LV_PART_MAIN);
+            lv_obj_set_style_min_height(canvas, spool_size, LV_PART_MAIN);
+            lv_obj_set_style_max_width(canvas, spool_size, LV_PART_MAIN);
+            lv_obj_set_style_max_height(canvas, spool_size, LV_PART_MAIN);
             ui_spool_canvas_set_color(canvas, lv_color_hex(AMS_DEFAULT_GATE_COLOR));
             ui_spool_canvas_set_fill_level(canvas, data->fill_level);
             data->spool_canvas = canvas;

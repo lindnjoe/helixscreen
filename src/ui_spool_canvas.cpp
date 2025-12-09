@@ -18,7 +18,7 @@
 // Geometry constants for Bambu-style 3D spool (SIDE VIEW)
 // Spool axis is HORIZONTAL - we view from an angle
 // Shows: back flange (left), filament cylinder (middle), front flange (right), hub hole (center)
-static constexpr float FLANGE_RADIUS = 0.42f; // Flange radius (vertical) - keep margin for AA
+static constexpr float FLANGE_RADIUS = 0.42f; // Flange radius (vertical)
 static constexpr float ELLIPSE_RATIO =
     0.45f;                                  // Horizontal compression (narrower = more angled view)
 static constexpr float HUB_RADIUS = 0.10f;  // Center hub hole radius
@@ -100,28 +100,36 @@ static void draw_filled_ellipse(lv_layer_t* layer, int32_t cx, int32_t cy, int32
 }
 
 // Draw ellipse with vertical gradient (top_color at top, bottom_color at bottom)
-// Includes coverage-based anti-aliasing at edges
+// Includes coverage-based anti-aliasing at left/right edges
 static void draw_gradient_ellipse(lv_layer_t* layer, int32_t cx, int32_t cy, int32_t rx, int32_t ry,
                                   lv_color_t top_color, lv_color_t bottom_color) {
     lv_draw_fill_dsc_t fill_dsc;
     lv_draw_fill_dsc_init(&fill_dsc);
 
-    // Draw ellipse as horizontal line strips with gradient and AA edges
     for (int32_t y = -ry; y <= ry; y++) {
         float y_norm = (float)y / (float)ry;
         float x_extent = rx * sqrtf(1.0f - y_norm * y_norm);
-        if (x_extent < 0.5f)
-            continue;
 
         // Gradient factor: 0.0 at top (-ry), 1.0 at bottom (+ry)
         float gradient_factor = (float)(y + ry) / (float)(2 * ry);
+        gradient_factor = sqrtf(gradient_factor); // Quick transition from light to dark
         fill_dsc.color = blend_color(top_color, bottom_color, gradient_factor);
+
+        // Handle pole pixels (very narrow scanlines near top/bottom)
+        if (x_extent < 0.5f) {
+            // Draw single center pixel with proportional opacity
+            float pole_opa = (x_extent > 0.01f) ? (x_extent * 2.0f) : 0.3f;
+            fill_dsc.opa = (lv_opa_t)(pole_opa * 255.0f);
+            lv_area_t pole_pixel = {cx, cy + y, cx, cy + y};
+            lv_draw_fill(layer, &fill_dsc, &pole_pixel);
+            continue;
+        }
 
         // Calculate integer bounds and fractional coverage
         int32_t x_inner = (int32_t)x_extent;
         float x_frac = x_extent - (float)x_inner;
 
-        // Draw anti-aliased edge pixels (partial coverage)
+        // Draw anti-aliased left/right edge pixels
         if (x_frac > 0.01f) {
             fill_dsc.opa = (lv_opa_t)(x_frac * 255.0f);
             lv_area_t left_edge = {cx - x_inner - 1, cy + y, cx - x_inner - 1, cy + y};
@@ -153,10 +161,44 @@ static void draw_gradient_rect(lv_layer_t* layer, int32_t x1, int32_t y1, int32_
     // Draw scanline by scanline with gradient
     for (int32_t y = y1; y <= y2; y++) {
         float gradient_factor = (float)(y - y1) / (float)height;
+        gradient_factor = sqrtf(gradient_factor); // Quick transition from light to dark
         fill_dsc.color = blend_color(top_color, bottom_color, gradient_factor);
 
         lv_area_t line = {x1, y, x2, y};
         lv_draw_fill(layer, &fill_dsc, &line);
+    }
+}
+
+// Draw a highlight edge along the LEFT side of an ellipse (simulates 3D thickness)
+// width_px: how many pixels wide the highlight band is
+static void draw_ellipse_left_edge(lv_layer_t* layer, int32_t cx, int32_t cy, int32_t rx,
+                                   int32_t ry, lv_color_t top_color, lv_color_t bottom_color,
+                                   int32_t width_px) {
+    lv_draw_fill_dsc_t fill_dsc;
+    lv_draw_fill_dsc_init(&fill_dsc);
+
+    // Draw left edge highlight following ellipse curvature
+    for (int32_t y = -ry; y <= ry; y++) {
+        float y_norm = (float)y / (float)ry;
+        float x_extent = rx * sqrtf(1.0f - y_norm * y_norm);
+        if (x_extent < 0.5f)
+            continue;
+
+        // Gradient factor for vertical shading (same curve as main ellipse)
+        float gradient_factor = (float)(y + ry) / (float)(2 * ry);
+        gradient_factor = sqrtf(gradient_factor); // Quick transition from light to dark
+        fill_dsc.color = blend_color(top_color, bottom_color, gradient_factor);
+        fill_dsc.opa = LV_OPA_COVER;
+
+        // Draw only the leftmost pixels (the edge highlight)
+        // Use floorf to align with ellipse edge (truncation causes 1px offset at middle)
+        int32_t left_edge = cx - (int32_t)floorf(x_extent + 0.5f);
+        int32_t right_edge = left_edge + width_px - 1;
+        if (right_edge > cx)
+            right_edge = cx; // Don't go past center
+
+        lv_area_t edge = {left_edge, cy + y, right_edge, cy + y};
+        lv_draw_fill(layer, &fill_dsc, &edge);
     }
 }
 
@@ -199,10 +241,19 @@ static void redraw_spool(SpoolCanvasData* data) {
     lv_canvas_init_layer(data->canvas, &layer);
 
     // ========================================
-    // STEP 1: Draw LEFT side ellipse (back flange)
-    // Full gray ellipse (narrow due to angle)
+    // STEP 1: Draw BACK FLANGE (left side) with gradient + edge highlight
     // ========================================
-    draw_filled_ellipse(&layer, left_x, cy, flange_rx, flange_ry, back_color);
+    {
+        lv_color_t bf_light = lighten_color(back_color, 40);
+        lv_color_t bf_dark = darken_color(back_color, 25);
+        // Main flange ellipse with gradient
+        draw_gradient_ellipse(&layer, left_x, cy, flange_rx, flange_ry, bf_light, bf_dark);
+        // Edge highlight on left side (gives 3D thickness illusion)
+        // Dramatic gradient: very bright at top, dark at bottom
+        lv_color_t edge_light = lighten_color(back_color, 100);
+        lv_color_t edge_dark = darken_color(back_color, 40);
+        draw_ellipse_left_edge(&layer, left_x, cy, flange_rx, flange_ry, edge_light, edge_dark, 2);
+    }
 
     // ========================================
     // STEP 2: Draw complete FILAMENT cylinder
@@ -211,7 +262,7 @@ static void redraw_spool(SpoolCanvasData* data) {
     // ========================================
     if (fill > 0.01f) {
         // Gradient colors for 3D lighting effect (stronger gradient)
-        lv_color_t fil_light = lighten_color(filament_side, 35); // Top: brighter
+        lv_color_t fil_light = lighten_color(filament_side, 70); // Top: much brighter
         lv_color_t fil_dark = darken_color(filament_side, 35);   // Bottom: darker
 
         // 2a: Back face ellipse (with gradient)
@@ -223,18 +274,26 @@ static void redraw_spool(SpoolCanvasData* data) {
         draw_gradient_rect(&layer, left_x, fil_top, right_x, fil_bottom, fil_light, fil_dark);
 
         // 2c: Front face ellipse (will be covered by front flange anyway)
-        lv_color_t front_light = lighten_color(filament_color, 35);
+        lv_color_t front_light = lighten_color(filament_color, 70);
         lv_color_t front_dark = darken_color(filament_color, 35);
         draw_gradient_ellipse(&layer, right_x, cy, filament_rx, filament_ry, front_light,
                               front_dark);
     }
 
     // ========================================
-    // STEP 3: Draw RIGHT side flange as FULL SOLID ellipse
-    // This completely covers any filament behind it - the flange is OPAQUE
-    // You cannot see filament "through" the flange - only from the SIDE
+    // STEP 3: Draw FRONT FLANGE (right side) with gradient + edge highlight
     // ========================================
-    draw_filled_ellipse(&layer, right_x, cy, flange_rx, flange_ry, front_color);
+    {
+        lv_color_t ff_light = lighten_color(front_color, 40);
+        lv_color_t ff_dark = darken_color(front_color, 25);
+        // Main flange ellipse with gradient
+        draw_gradient_ellipse(&layer, right_x, cy, flange_rx, flange_ry, ff_light, ff_dark);
+        // Edge highlight on left side (gives 3D thickness illusion)
+        // Dramatic gradient: very bright at top, dark at bottom
+        lv_color_t edge_light = lighten_color(front_color, 100);
+        lv_color_t edge_dark = darken_color(front_color, 40);
+        draw_ellipse_left_edge(&layer, right_x, cy, flange_rx, flange_ry, edge_light, edge_dark, 2);
+    }
 
     // ========================================
     // STEP 4: Draw CENTER HOLE ellipse (hub)
