@@ -221,8 +221,23 @@ else
   XML_FILES=$(find ui_xml -name "*.xml" 2>/dev/null || true)
 fi
 
+VENV_PYTHON=".venv/bin/python"
+
 if [ -n "$XML_FILES" ]; then
-  if command -v xmllint >/dev/null 2>&1; then
+  # Prefer Python formatter with attribute wrapping, fallback to xmllint
+  if [ -x "$VENV_PYTHON" ] && $VENV_PYTHON -c "import lxml" 2>/dev/null; then
+    # Use our custom formatter with --check mode
+    if $VENV_PYTHON scripts/format-xml.py --check $XML_FILES 2>/dev/null; then
+      echo "✅ All XML files properly formatted"
+    else
+      echo "⚠️  XML files need formatting"
+      echo "ℹ️  Fix with: .venv/bin/python scripts/format-xml.py <files>"
+      echo "ℹ️  Or run: make format"
+      # Don't fail CI for XML formatting - it's a style preference
+      # EXIT_CODE=1
+    fi
+  elif command -v xmllint >/dev/null 2>&1; then
+    echo "ℹ️  Python formatter not available, using xmllint (basic check only)"
     FORMAT_ISSUES=""
     for file in $XML_FILES; do
       if [ -f "$file" ]; then
@@ -240,15 +255,15 @@ if [ -n "$XML_FILES" ]; then
     done
 
     if [ -n "$FORMAT_ISSUES" ]; then
-      echo "⚠️  XML files need formatting:"
+      echo "⚠️  XML files may need formatting (basic check):"
       echo "$FORMAT_ISSUES" | tr ' ' '\n' | grep -v '^$' | sed 's/^/   /'
-      echo "ℹ️  Fix with: xmllint --format -o <file> <file>"
-      echo "ℹ️  Or run: make format"
+      echo "ℹ️  For proper formatting: make venv-setup && make format"
     else
-      echo "✅ All XML files properly formatted"
+      echo "✅ All XML files pass basic formatting check"
     fi
   else
-    echo "ℹ️  xmllint not found - skipping XML format check"
+    echo "ℹ️  No XML formatter available - skipping XML format check"
+    echo "   Run 'make venv-setup' to enable full XML formatting"
   fi
 else
   echo "ℹ️  No XML files to check"
