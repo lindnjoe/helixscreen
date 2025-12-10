@@ -5,17 +5,15 @@
  * @file ui_component_keypad.cpp
  * @brief Numeric keypad overlay with reactive Subject-Observer pattern
  *
- * The keypad is shown/hidden directly via LVGL flags (NOT through ui_nav) so it
- * appears on top of the current overlay panel without hiding it. This allows
- * users to see the temperature graph while entering a custom temperature value.
- *
- * The XML binds to the keypad_display subject, so updating the subject
- * automatically updates the UI.
+ * Uses standard overlay navigation (ui_nav_push_overlay/go_back) and reactive
+ * bindings for the display. The XML binds to the keypad_display subject,
+ * so updating the subject automatically updates the UI.
  */
 
 #include "ui_component_keypad.h"
 
 #include "ui_event_safety.h"
+#include "ui_nav.h"
 
 #include "lvgl/lvgl.h"
 #include "lvgl/src/xml/lv_xml.h"
@@ -30,16 +28,15 @@
 // Reactive State (Subject for XML binding)
 // ============================================================================
 static lv_subject_t keypad_display_subject;
-static char keypad_display_buf[16] = "0";
+static char keypad_display_buf[16] = "";
 static bool subjects_initialized = false;
 
 // Widget reference (for showing/hiding via nav system)
 static lv_obj_t* keypad_widget = nullptr;
-static lv_obj_t* title_label = nullptr;
 
 // Current config and input state
 static ui_keypad_config_t current_config;
-static char input_buffer[16] = "0";
+static char input_buffer[16] = "";
 
 // ============================================================================
 // Forward declarations
@@ -59,9 +56,9 @@ void ui_keypad_init_subjects() {
         return;
     }
 
-    // Initialize display subject for reactive binding
+    // Initialize display subject for reactive binding (starts empty)
     lv_subject_init_string(&keypad_display_subject, keypad_display_buf, nullptr,
-                           sizeof(keypad_display_buf), "0");
+                           sizeof(keypad_display_buf), "");
 
     // Register with XML binding system so <lv_label-bind_text subject="keypad_display"/> works
     lv_xml_register_subject(nullptr, "keypad_display", &keypad_display_subject);
@@ -87,19 +84,13 @@ void ui_keypad_init(lv_obj_t* parent) {
     // Ensure subjects are initialized first
     ui_keypad_init_subjects();
 
-    // Create keypad from XML component
-    const char* attrs[] = {"title", "Enter Value", "unit_label", "", NULL};
+    // Create keypad from XML component (no title - header just has back/OK)
+    const char* attrs[] = {"unit_label", "", NULL};
 
     keypad_widget = (lv_obj_t*)lv_xml_create(parent, "numeric_keypad_modal", attrs);
     if (!keypad_widget) {
         spdlog::error("Failed to create keypad from XML");
         return;
-    }
-
-    // Find title label in header_bar for dynamic updates
-    title_label = lv_obj_find_by_name(keypad_widget, "header_title");
-    if (!title_label) {
-        spdlog::warn("Keypad: header_title not found (title updates disabled)");
     }
 
     // Wire button events
@@ -120,25 +111,14 @@ void ui_keypad_show(const ui_keypad_config_t* config) {
     // Store config
     current_config = *config;
 
-    // Format initial value
-    if (config->allow_decimal) {
-        snprintf(input_buffer, sizeof(input_buffer), "%.1f", config->initial_value);
-    } else {
-        snprintf(input_buffer, sizeof(input_buffer), "%d", (int)config->initial_value);
-    }
+    // Start with empty display (user enters fresh value)
+    input_buffer[0] = '\0';
 
     // Update display via subject (reactive binding updates XML automatically)
     update_display();
 
-    // Update title if provided
-    if (title_label && config->title_label) {
-        lv_label_set_text(title_label, config->title_label);
-    }
-
-    // Show directly (NOT via nav system) so underlying panel stays visible
-    // This allows users to see the temperature graph while entering custom temp
-    lv_obj_remove_flag(keypad_widget, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_move_foreground(keypad_widget);
+    // Show via standard overlay navigation
+    ui_nav_push_overlay(keypad_widget);
 
     spdlog::info("Keypad: showing (initial={:.1f}, range={:.0f}-{:.0f})", config->initial_value,
                  config->min_value, config->max_value);
@@ -146,8 +126,7 @@ void ui_keypad_show(const ui_keypad_config_t* config) {
 
 void ui_keypad_hide() {
     if (keypad_widget && ui_keypad_is_visible()) {
-        // Hide directly (NOT via nav system)
-        lv_obj_add_flag(keypad_widget, LV_OBJ_FLAG_HIDDEN);
+        ui_nav_go_back();
     }
 }
 
@@ -171,13 +150,6 @@ static void update_display() {
 static void append_digit(int digit) {
     size_t len = strlen(input_buffer);
 
-    // Replace initial "0" with first digit
-    if (len == 1 && input_buffer[0] == '0') {
-        input_buffer[0] = '0' + digit;
-        update_display();
-        return;
-    }
-
     // Count digits (ignore decimal/minus)
     int digit_count = 0;
     for (size_t i = 0; i < len; i++) {
@@ -191,7 +163,7 @@ static void append_digit(int digit) {
         return;
     }
 
-    // Append
+    // Append digit
     if (len < sizeof(input_buffer) - 1) {
         input_buffer[len] = '0' + digit;
         input_buffer[len + 1] = '\0';
@@ -204,12 +176,7 @@ static void handle_backspace() {
     if (len > 0) {
         input_buffer[len - 1] = '\0';
     }
-
-    // Reset to "0" if empty
-    if (strlen(input_buffer) == 0 || strcmp(input_buffer, "-") == 0) {
-        strcpy(input_buffer, "0");
-    }
-
+    // Stay empty if all digits deleted (don't reset to "0")
     update_display();
 }
 
@@ -219,8 +186,10 @@ static void handle_cancel() {
 }
 
 static void handle_confirm() {
-    // Parse and clamp value
-    float value = static_cast<float>(atof(input_buffer));
+    // Parse value (empty = 0)
+    float value = (input_buffer[0] == '\0') ? 0.0f : static_cast<float>(atof(input_buffer));
+
+    // Clamp to configured range
     if (value < current_config.min_value)
         value = current_config.min_value;
     if (value > current_config.max_value)

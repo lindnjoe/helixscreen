@@ -103,6 +103,24 @@
     <px name="spinner_arc_xs_medium" value="2"/>
     <px name="spinner_arc_xs_large" value="2"/>
 
+    <!-- ===================================================================== -->
+    <!-- Responsive Keypad Sizes (keypad_*)                                    -->
+    <!-- ===================================================================== -->
+    <!-- Runtime selects appropriate variant via ui_theme_register_responsive_spacing()
+         Numeric keypad overlay - button heights, panel width, display area -->
+    <!-- keypad_btn_height: Touch-friendly button heights -->
+    <px name="keypad_btn_height_small" value="48"/>
+    <px name="keypad_btn_height_medium" value="56"/>
+    <px name="keypad_btn_height_large" value="72"/>
+    <!-- keypad_width: Panel width (right-aligned overlay) -->
+    <px name="keypad_width_small" value="280"/>
+    <px name="keypad_width_medium" value="340"/>
+    <px name="keypad_width_large" value="400"/>
+    <!-- keypad_display_height: Value entry display area -->
+    <px name="keypad_display_height_small" value="56"/>
+    <px name="keypad_display_height_medium" value="72"/>
+    <px name="keypad_display_height_large" value="88"/>
+
     <!-- printer_img_size moved to home_panel.xml -->
     <!-- accent_bar_width moved to home_panel.xml -->
     <px name="accent_bar_height" value="28"/>
