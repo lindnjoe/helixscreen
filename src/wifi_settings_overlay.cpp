@@ -101,6 +101,8 @@ void WiFiSettingsOverlay::init_subjects() {
     // Integer subjects
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_enabled_, 0, "wifi_enabled");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_connected_, 0, "wifi_connected");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_only_24ghz_, 1,
+                                     "wifi_only_24ghz"); // Default: assume 2.4GHz only
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_scanning_, 0, "wifi_scanning");
     UI_SUBJECT_INIT_AND_REGISTER_INT(test_running_, 0, "test_running");
     UI_SUBJECT_INIT_AND_REGISTER_INT(test_gateway_status_, 0, "test_gateway_status");
@@ -236,6 +238,14 @@ void WiFiSettingsOverlay::show() {
 
     // Update connection status
     update_connection_status();
+
+    // Update band capability indicator (show "Only 2.4GHz" if 5GHz not supported)
+    if (wifi_manager_) {
+        bool only_24ghz = !wifi_manager_->supports_5ghz();
+        lv_subject_set_int(&wifi_only_24ghz_, only_24ghz ? 1 : 0);
+        spdlog::debug("[WiFiSettingsOverlay] WiFi band capability: {}",
+                      only_24ghz ? "2.4GHz only" : "2.4GHz + 5GHz");
+    }
 
     // Start scanning if WiFi enabled
     if (wifi_manager_ && wifi_manager_->is_enabled()) {

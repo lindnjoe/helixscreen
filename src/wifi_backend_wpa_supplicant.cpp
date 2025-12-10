@@ -891,6 +891,13 @@ WifiBackend::ConnectionStatus WifiBackendWpaSupplicant::get_status() {
     return status;
 }
 
+bool WifiBackendWpaSupplicant::supports_5ghz() const {
+    // Most embedded Linux WiFi adapters (ESP32, RTL8723, etc.) are 2.4GHz only
+    // Could query wpa_supplicant for driver capabilities, but default to false
+    // since target hardware (Pi Zero W, AD5M, etc.) typically uses 2.4GHz-only adapters
+    return false;
+}
+
 // ============================================================================
 // Helper Methods (encapsulate wpa_supplicant ugliness)
 // ============================================================================

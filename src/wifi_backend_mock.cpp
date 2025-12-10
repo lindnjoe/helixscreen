@@ -337,6 +337,11 @@ WifiBackend::ConnectionStatus WifiBackendMock::get_status() {
     return status;
 }
 
+bool WifiBackendMock::supports_5ghz() const {
+    // Mock simulates typical embedded hardware which is 2.4GHz only
+    return false;
+}
+
 // ============================================================================
 // Internal Helpers
 // ============================================================================

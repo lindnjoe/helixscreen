@@ -153,6 +153,7 @@ class WifiBackendWpaSupplicant : public WifiBackend, private hv::EventLoopThread
     WiFiError connect_network(const std::string& ssid, const std::string& password) override;
     WiFiError disconnect_network() override;
     ConnectionStatus get_status() override;
+    bool supports_5ghz() const override;
 
   private:
     // ========================================================================

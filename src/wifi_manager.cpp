@@ -270,6 +270,13 @@ int WiFiManager::get_signal_strength() {
     return status.signal_strength;
 }
 
+bool WiFiManager::supports_5ghz() {
+    if (!backend_)
+        return false;
+
+    return backend_->supports_5ghz();
+}
+
 // ============================================================================
 // Hardware Detection (Legacy Compatibility)
 // ============================================================================

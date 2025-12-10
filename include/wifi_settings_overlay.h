@@ -141,9 +141,10 @@ class WiFiSettingsOverlay {
     lv_obj_t* parent_screen_ = nullptr;
     lv_obj_t* networks_list_ = nullptr;
 
-    // Subjects (10 total)
+    // Subjects (11 total)
     lv_subject_t wifi_enabled_;
     lv_subject_t wifi_connected_;
+    lv_subject_t wifi_only_24ghz_; // 1 if hardware only supports 2.4GHz
     lv_subject_t connected_ssid_;
     lv_subject_t ip_address_;
     lv_subject_t mac_address_;

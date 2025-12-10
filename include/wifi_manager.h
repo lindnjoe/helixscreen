@@ -147,6 +147,16 @@ class WiFiManager {
      */
     int get_signal_strength();
 
+    /**
+     * @brief Check if WiFi hardware supports 5GHz band
+     *
+     * Returns true if the WiFi adapter can connect to 5GHz networks.
+     * Used to conditionally show "Only 2.4GHz networks" in the UI.
+     *
+     * @return true if 5GHz is supported, false if only 2.4GHz
+     */
+    bool supports_5ghz();
+
     // ========================================================================
     // Hardware Detection (Legacy Compatibility)
     // ========================================================================

@@ -427,6 +427,13 @@ WifiBackend::ConnectionStatus WifiBackendMacOS::get_status() {
     return status;
 }
 
+bool WifiBackendMacOS::supports_5ghz() const {
+    // macOS devices (MacBooks, iMacs, etc.) support 5GHz
+    // Could query CWInterface supportedWLANChannels for precise detection,
+    // but all modern Macs support 5GHz so we return true
+    return true;
+}
+
 // ============================================================================
 // System Validation
 // ============================================================================
