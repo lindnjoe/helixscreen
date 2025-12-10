@@ -346,6 +346,22 @@ class SettingsManager {
      */
     void wake_display();
 
+    /**
+     * @brief Force display ON at startup
+     *
+     * Called early in app initialization to ensure display is visible regardless
+     * of previous app's sleep state. Also disables OS console blanking on Linux.
+     */
+    void ensure_display_on();
+
+    /**
+     * @brief Restore display to usable state on shutdown
+     *
+     * Called during app cleanup to ensure display is awake before exiting.
+     * Prevents next app from starting with a black screen.
+     */
+    void restore_display_on_shutdown();
+
   private:
     SettingsManager();
     ~SettingsManager() = default;

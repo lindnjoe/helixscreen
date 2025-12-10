@@ -704,8 +704,12 @@ int main(int argc, char** argv) {
         helix::logging::init(log_config);
     }
 
-    spdlog::info("HelixScreen UI Prototype");
-    spdlog::info("========================");
+    spdlog::info("HelixScreen starting...");
+    spdlog::info("=======================");
+
+    // Force display ON at startup (restore brightness from config)
+    // This ensures display is visible even if previous app left it in sleep state
+    SettingsManager::instance().ensure_display_on();
     spdlog::debug("Target: {}x{}", g_screen_width, g_screen_height);
     spdlog::debug("DPI: {}{}", (args.dpi > 0 ? args.dpi : LV_DPI_DEF),
                   (args.dpi > 0 ? " (custom)" : " (default)"));
@@ -1285,6 +1289,10 @@ int main(int argc, char** argv) {
     destroy_wizard_wifi_step();
 
     helix::deinit_lvgl(lvgl_ctx); // Releases display backend and LVGL
+
+    // Restore display to usable state before exiting
+    // This ensures the next app (or user) doesn't start with a black screen
+    SettingsManager::instance().restore_display_on_shutdown();
 
     // Shutdown spdlog BEFORE static destruction begins.
     // Many static unique_ptr<Panel> objects have destructors that may log.

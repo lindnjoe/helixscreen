@@ -626,3 +626,31 @@ void SettingsManager::wake_display() {
     spdlog::info("[DisplaySleep] Display woken, brightness restored to {}% (from config)",
                  brightness);
 }
+
+void SettingsManager::ensure_display_on() {
+    // Force display awake at startup regardless of previous state
+    display_sleeping_ = false;
+
+    // Get configured brightness (or default to 50%)
+    Config* config = Config::get_instance();
+    int brightness = config->get<int>("/brightness", 50);
+    brightness = std::max(10, std::min(100, brightness));
+
+    // Apply to hardware - this ensures display is visible
+    apply_hardware_brightness(brightness);
+    spdlog::info("[Display] Startup: forcing display ON at {}% brightness", brightness);
+
+    // Note: We control display sleep via backlight brightness only.
+    // Linux VT console blanking (TIOCLINUX) is not used - we're on DRM/KMS.
+}
+
+void SettingsManager::restore_display_on_shutdown() {
+    // Ensure display is awake before exiting so next app doesn't start with black screen
+    Config* config = Config::get_instance();
+    int brightness = config->get<int>("/brightness", 50);
+    brightness = std::max(10, std::min(100, brightness));
+
+    apply_hardware_brightness(brightness);
+    display_sleeping_ = false;
+    spdlog::info("[Display] Shutdown: restoring display to {}% brightness", brightness);
+}

@@ -30,7 +30,6 @@
             <text_heading text="WiFi"/>
             <!-- WiFi toggle: wired to wifi_enabled subject via C++ event handler -->
             <ui_switch name="wifi_toggle" size="small">
-              <!-- Bind checked state to wifi_enabled subject (bidirectional) -->
               <event_cb trigger="value_changed" callback="on_wifi_toggle_changed"/>
             </ui_switch>
           </lv_obj>

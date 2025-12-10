@@ -108,7 +108,8 @@ WiFiError WifiBackendWpaSupplicant::start() {
     // Wait for init_wpa() to complete (with timeout)
     {
         std::unique_lock<std::mutex> lock(init_mutex_);
-        if (!init_cv_.wait_for(lock, std::chrono::seconds(5), [this] { return init_complete_.load(); })) {
+        if (!init_cv_.wait_for(lock, std::chrono::seconds(5),
+                               [this] { return init_complete_.load(); })) {
             spdlog::error("[WifiBackend] Initialization timed out after 5 seconds");
             return WiFiError(WiFiResult::TIMEOUT, "Backend initialization timed out",
                              "WiFi system took too long to start");

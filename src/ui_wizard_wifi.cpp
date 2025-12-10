@@ -114,8 +114,7 @@ WizardWifiStep::WizardWifiStep() {
 }
 
 WizardWifiStep::~WizardWifiStep() {
-    // Clean up WiFi/Ethernet managers FIRST - they have background threads
-    // that may access spdlog or mutexes. Must be destroyed before those resources.
+    // Release references to managers - shared WiFiManager continues running
     wifi_manager_.reset();
     ethernet_manager_.reset();
 
@@ -420,7 +419,8 @@ void WizardWifiStep::clear_network_list() {
 // ============================================================================
 
 void WizardWifiStep::on_wifi_toggle_changed_static(lv_event_t* e) {
-    auto* self = static_cast<WizardWifiStep*>(lv_event_get_user_data(e));
+    // Use global accessor pattern (XML event_cb doesn't provide user_data)
+    WizardWifiStep* self = get_wizard_wifi_step();
     if (self) {
         self->handle_wifi_toggle_changed(e);
     }
@@ -760,13 +760,7 @@ lv_obj_t* WizardWifiStep::create(lv_obj_t* parent) {
         return nullptr;
     }
 
-    // Find WiFi toggle and attach callback with 'this' as user_data
-    lv_obj_t* wifi_toggle = lv_obj_find_by_name(screen_root_, "wifi_toggle");
-    if (wifi_toggle) {
-        lv_obj_add_event_cb(wifi_toggle, on_wifi_toggle_changed_static, LV_EVENT_VALUE_CHANGED,
-                            this);
-        spdlog::debug("[{}] WiFi toggle callback attached", get_name());
-    }
+    // WiFi toggle callback is attached via XML event_cb (uses global accessor pattern)
 
     lv_obj_update_layout(screen_root_);
 
@@ -781,8 +775,7 @@ lv_obj_t* WizardWifiStep::create(lv_obj_t* parent) {
 void WizardWifiStep::init_wifi_manager() {
     spdlog::debug("[{}] Initializing WiFi and Ethernet managers", get_name());
 
-    wifi_manager_ = std::make_shared<WiFiManager>();
-    wifi_manager_->init_self_reference(wifi_manager_);
+    wifi_manager_ = get_wifi_manager();
 
     ethernet_manager_ = std::make_unique<EthernetManager>();
 
@@ -943,10 +936,7 @@ void WizardWifiStep::cleanup() {
     spdlog::debug("[{}] Clearing network list", get_name());
     clear_network_list();
 
-    spdlog::debug("[{}] Destroying WiFi manager", get_name());
     wifi_manager_.reset();
-
-    spdlog::debug("[{}] Destroying Ethernet manager", get_name());
     ethernet_manager_.reset();
 
     screen_root_ = nullptr;

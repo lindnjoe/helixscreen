@@ -320,7 +320,8 @@ help-cross:
 	echo ""; \
 	echo "$${C}Pi Deployment:$${X}"; \
 	echo "  $${G}deploy-pi$${X}            - Deploy binaries + assets to Pi via rsync"; \
-	echo "  $${G}deploy-pi-run$${X}        - Deploy and run in foreground"; \
+	echo "  $${G}deploy-pi-run$${X}        - Deploy and run in foreground (debug)"; \
+	echo "  $${G}deploy-pi-bg$${X}         - Deploy and run in background"; \
 	echo "  $${G}pi-test$${X}              - Full cycle: build + deploy + run"; \
 	echo "  $${G}pi-ssh$${X}               - SSH into the Pi"; \
 	echo ""; \
@@ -357,7 +358,7 @@ endif
 # Pi Deployment Targets
 # =============================================================================
 
-.PHONY: deploy-pi deploy-pi-run deploy-pi-run-quiet pi-ssh pi-test
+.PHONY: deploy-pi deploy-pi-run deploy-pi-run-quiet deploy-pi-bg pi-ssh pi-test
 
 # Deploy full application to Pi using rsync (binary + assets + config + XML)
 # Uses rsync for efficient delta transfers - only changed files are sent
@@ -387,6 +388,13 @@ deploy-pi-run: deploy-pi
 deploy-pi-run-quiet: deploy-pi
 	@echo "$(CYAN)Starting helix-screen on $(PI_HOST)...$(RESET)"
 	ssh -t $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-screen helix-splash 2>/dev/null || true; sleep 0.5; ./config/helix-launcher.sh"
+
+# Deploy and run in background (kills existing, starts detached)
+deploy-pi-bg: deploy-pi
+	@echo "$(CYAN)Starting helix-screen on $(PI_HOST) in background...$(RESET)"
+	ssh $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-screen helix-splash 2>/dev/null || true; sleep 0.5; nohup ./config/helix-launcher.sh > /tmp/helix.log 2>&1 &"
+	@echo "$(GREEN)✓ helix-screen started in background on $(PI_HOST)$(RESET)"
+	@echo "$(DIM)Logs: ssh $(PI_SSH_TARGET) 'tail -f /tmp/helix.log'$(RESET)"
 
 # Convenience: SSH into the Pi
 pi-ssh:
