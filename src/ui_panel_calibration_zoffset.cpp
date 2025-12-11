@@ -209,8 +209,8 @@ void ZOffsetCalibrationPanel::send_probe_calibrate() {
 
     spdlog::info("[ZOffsetCal] Sending PROBE_CALIBRATE");
     int result = client_->gcode_script("PROBE_CALIBRATE");
-    if (result <= 0) {
-        spdlog::error("[ZOffsetCal] Failed to send PROBE_CALIBRATE");
+    if (result != 0) {
+        spdlog::error("[ZOffsetCal] Failed to send PROBE_CALIBRATE (error {})", result);
         on_calibration_result(false, "Failed to start calibration");
     }
     // State transition to ADJUSTING is handled by on_manual_probe_active_changed
@@ -226,8 +226,8 @@ void ZOffsetCalibrationPanel::send_testz(float delta) {
     spdlog::debug("[ZOffsetCal] Sending: {}", cmd);
 
     int result = client_->gcode_script(cmd);
-    if (result <= 0) {
-        spdlog::warn("[ZOffsetCal] Failed to send TESTZ");
+    if (result != 0) {
+        spdlog::warn("[ZOffsetCal] Failed to send TESTZ (error {})", result);
     }
 
     // Z position display is updated by the manual_probe_z_position observer
@@ -240,8 +240,8 @@ void ZOffsetCalibrationPanel::send_accept() {
 
     spdlog::info("[ZOffsetCal] Sending ACCEPT");
     int result = client_->gcode_script("ACCEPT");
-    if (result <= 0) {
-        spdlog::error("[ZOffsetCal] Failed to send ACCEPT");
+    if (result != 0) {
+        spdlog::error("[ZOffsetCal] Failed to send ACCEPT (error {})", result);
         on_calibration_result(false, "Failed to accept calibration");
         return;
     }
@@ -254,8 +254,8 @@ void ZOffsetCalibrationPanel::send_accept() {
 
     spdlog::info("[ZOffsetCal] Sending SAVE_CONFIG");
     result = client_->gcode_script("SAVE_CONFIG");
-    if (result <= 0) {
-        spdlog::error("[ZOffsetCal] Failed to send SAVE_CONFIG");
+    if (result != 0) {
+        spdlog::error("[ZOffsetCal] Failed to send SAVE_CONFIG (error {})", result);
         on_calibration_result(false, "Failed to save configuration");
     }
     // Note: SAVE_CONFIG restarts Klipper, we need to wait for reconnection

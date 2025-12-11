@@ -1790,9 +1790,10 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         spdlog::warn("[MoonrakerClientMock] STUB: Z_TILT_ADJUST NOT IMPLEMENTED");
     }
 
-    // Probe (NOT IMPLEMENTED)
-    if (gcode.find("PROBE") != std::string::npos && gcode.find("BED_MESH") == std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: PROBE NOT IMPLEMENTED");
+    // Probe (NOT IMPLEMENTED) - excludes PROBE_CALIBRATE which is handled above
+    if (gcode.find("PROBE") != std::string::npos && gcode.find("BED_MESH") == std::string::npos &&
+        gcode.find("PROBE_CALIBRATE") == std::string::npos) {
+        spdlog::warn("[MoonrakerClientMock] STUB: PROBE command not fully implemented");
     }
 
     return 0; // Success
