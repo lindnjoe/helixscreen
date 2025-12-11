@@ -436,14 +436,56 @@ void ZOffsetCalibrationPanel::on_retry_clicked(lv_event_t* e) {
 }
 
 // ============================================================================
-// GLOBAL INSTANCE
+// GLOBAL INSTANCE AND ROW CLICK HANDLER
 // ============================================================================
 
 static std::unique_ptr<ZOffsetCalibrationPanel> g_zoffset_cal_panel;
+static lv_obj_t* g_zoffset_cal_panel_obj = nullptr;
+
+// Forward declarations
+static void on_zoffset_row_clicked(lv_event_t* e);
+MoonrakerClient* get_moonraker_client();
 
 ZOffsetCalibrationPanel& get_global_zoffset_cal_panel() {
     if (!g_zoffset_cal_panel) {
         g_zoffset_cal_panel = std::make_unique<ZOffsetCalibrationPanel>();
     }
     return *g_zoffset_cal_panel;
+}
+
+void init_zoffset_row_handler() {
+    lv_xml_register_event_cb(nullptr, "on_zoffset_row_clicked", on_zoffset_row_clicked);
+    spdlog::debug("[ZOffsetCal] Row click callback registered");
+}
+
+/**
+ * @brief Row click handler for opening Z-Offset calibration from Advanced panel
+ *
+ * Registered via init_zoffset_row_handler().
+ * Lazy-creates the calibration panel on first click.
+ */
+static void on_zoffset_row_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[ZOffsetCal] Z-Offset row clicked");
+
+    // Lazy-create the Z-Offset calibration panel
+    if (!g_zoffset_cal_panel_obj) {
+        spdlog::debug("[ZOffsetCal] Creating calibration panel...");
+        g_zoffset_cal_panel_obj = static_cast<lv_obj_t*>(lv_xml_create(
+            lv_display_get_screen_active(NULL), "calibration_zoffset_panel", nullptr));
+
+        if (g_zoffset_cal_panel_obj) {
+            MoonrakerClient* client = get_moonraker_client();
+            get_global_zoffset_cal_panel().setup(g_zoffset_cal_panel_obj,
+                                                 lv_display_get_screen_active(NULL), client);
+            lv_obj_add_flag(g_zoffset_cal_panel_obj, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[ZOffsetCal] Panel created and setup complete");
+        } else {
+            spdlog::error("[ZOffsetCal] Failed to create calibration_zoffset_panel");
+            return;
+        }
+    }
+
+    // Show the overlay
+    ui_nav_push_overlay(g_zoffset_cal_panel_obj);
 }

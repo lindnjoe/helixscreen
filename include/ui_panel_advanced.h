@@ -92,24 +92,11 @@ class AdvancedPanel : public PanelBase {
     // === Widget References (Action Rows) ===
     //
 
-    lv_obj_t* bed_leveling_row_ = nullptr;
     lv_obj_t* input_shaping_row_ = nullptr;
-    lv_obj_t* z_offset_row_ = nullptr;
     lv_obj_t* machine_limits_row_ = nullptr;
     lv_obj_t* spoolman_row_ = nullptr;
     lv_obj_t* macros_row_ = nullptr;
-    lv_obj_t* console_row_ = nullptr;
-    lv_obj_t* print_history_row_ = nullptr;
     lv_obj_t* restart_row_ = nullptr;
-
-    //
-    // === Lazily-Created Overlay Panels ===
-    //
-
-    lv_obj_t* zoffset_cal_panel_ = nullptr;       ///< Z-Offset calibration overlay
-    lv_obj_t* history_dashboard_panel_ = nullptr; ///< Print history dashboard
-    lv_obj_t* console_panel_ = nullptr;           ///< G-code console overlay
-    lv_obj_t* screws_tilt_panel_ = nullptr;       ///< Screws tilt adjust panel
 
     //
     // === Setup Helpers ===
@@ -121,28 +108,20 @@ class AdvancedPanel : public PanelBase {
     // === Navigation Handlers ===
     //
 
-    void handle_bed_leveling_clicked();
     void handle_input_shaping_clicked();
-    void handle_z_offset_clicked();
     void handle_machine_limits_clicked();
     void handle_spoolman_clicked();
     void handle_macros_clicked();
-    void handle_console_clicked();
-    void handle_print_history_clicked();
     void handle_restart_clicked();
 
     //
     // === Static Event Trampolines ===
     //
 
-    static void on_bed_leveling_clicked(lv_event_t* e);
     static void on_input_shaping_clicked(lv_event_t* e);
-    static void on_z_offset_clicked(lv_event_t* e);
     static void on_machine_limits_clicked(lv_event_t* e);
     static void on_spoolman_clicked(lv_event_t* e);
     static void on_macros_clicked(lv_event_t* e);
-    static void on_console_clicked(lv_event_t* e);
-    static void on_print_history_clicked(lv_event_t* e);
     static void on_restart_clicked(lv_event_t* e);
 };
 

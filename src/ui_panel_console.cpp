@@ -20,6 +20,9 @@
 #include <cstring>
 #include <memory>
 
+// Forward declaration for row click callback (registered in init_subjects)
+static void on_console_row_clicked(lv_event_t* e);
+
 ConsolePanel::ConsolePanel(PrinterState& printer_state, MoonrakerAPI* api)
     : PanelBase(printer_state, api) {
     std::snprintf(status_buf_, sizeof(status_buf_), "Loading history...");
@@ -35,8 +38,11 @@ void ConsolePanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(status_subject_, status_buf_, status_buf_,
                                         "console_status");
 
+    // Register row click callback for opening from Advanced panel
+    lv_xml_register_event_cb(nullptr, "on_console_row_clicked", on_console_row_clicked);
+
     subjects_initialized_ = true;
-    spdlog::debug("[{}] Subjects initialized: console_status", get_name());
+    spdlog::debug("[{}] init_subjects() - registered row click callback", get_name());
 }
 
 void ConsolePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -241,12 +247,61 @@ void ConsolePanel::update_visibility() {
     lv_subject_copy_string(&status_subject_, status_buf_);
 }
 
-// Global instance accessor
+// ============================================================================
+// Global Instance and Row Click Handler
+// ============================================================================
+
 static std::unique_ptr<ConsolePanel> g_console_panel;
+static lv_obj_t* g_console_panel_obj = nullptr;
 
 ConsolePanel& get_global_console_panel() {
     if (!g_console_panel) {
-        g_console_panel = std::make_unique<ConsolePanel>(get_printer_state(), get_moonraker_api());
+        spdlog::error("get_global_console_panel() called before initialization!");
+        throw std::runtime_error("ConsolePanel not initialized");
     }
     return *g_console_panel;
+}
+
+void init_global_console_panel(PrinterState& printer_state, MoonrakerAPI* api) {
+    if (g_console_panel) {
+        spdlog::warn("ConsolePanel already initialized, skipping");
+        return;
+    }
+    g_console_panel = std::make_unique<ConsolePanel>(printer_state, api);
+    spdlog::debug("ConsolePanel initialized");
+}
+
+/**
+ * @brief Row click handler for opening console from Advanced panel
+ *
+ * Registered via lv_xml_register_event_cb() in init_subjects().
+ * Lazy-creates the console panel on first click.
+ */
+static void on_console_row_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[Console] Console row clicked");
+
+    if (!g_console_panel) {
+        spdlog::error("[Console] Global instance not initialized!");
+        return;
+    }
+
+    // Lazy-create the console panel
+    if (!g_console_panel_obj) {
+        spdlog::debug("[Console] Creating console panel...");
+        g_console_panel_obj = static_cast<lv_obj_t*>(
+            lv_xml_create(lv_display_get_screen_active(NULL), "console_panel", nullptr));
+
+        if (g_console_panel_obj) {
+            g_console_panel->setup(g_console_panel_obj, lv_display_get_screen_active(NULL));
+            lv_obj_add_flag(g_console_panel_obj, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[Console] Panel created and setup complete");
+        } else {
+            spdlog::error("[Console] Failed to create console_panel");
+            return;
+        }
+    }
+
+    // Show the overlay
+    ui_nav_push_overlay(g_console_panel_obj);
 }

@@ -138,3 +138,11 @@ class ZOffsetCalibrationPanel {
 
 // Global instance accessor
 ZOffsetCalibrationPanel& get_global_zoffset_cal_panel();
+
+/**
+ * @brief Initialize row click callback for opening from Advanced panel
+ *
+ * Must be called during app initialization before XML creation.
+ * Registers "on_zoffset_row_clicked" callback.
+ */
+void init_zoffset_row_handler();

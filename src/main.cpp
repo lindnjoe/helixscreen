@@ -43,6 +43,7 @@
 #include "ui_panel_bed_mesh.h"
 #include "ui_panel_calibration_pid.h"
 #include "ui_panel_calibration_zoffset.h"
+#include "ui_panel_console.h"
 #include "ui_panel_controls.h"
 #include "ui_panel_extrusion.h"
 #include "ui_panel_fan.h"
@@ -1184,8 +1185,13 @@ static void initialize_subjects() {
     init_global_timelapse_settings(get_printer_state(),
                                    nullptr);         // Initialize timelapse settings overlay
     get_global_timelapse_settings().init_subjects(); // Timelapse settings callbacks
-    ui_wizard_init_subjects();                       // Wizard subjects (for first-run config)
-    ui_keypad_init_subjects(); // Keypad display subject (for reactive binding)
+    init_global_console_panel(get_printer_state(),
+                              nullptr);         // Initialize console panel
+    get_global_console_panel().init_subjects(); // Console panel callbacks
+    init_screws_tilt_row_handler();             // Screws tilt row callback
+    init_zoffset_row_handler();                 // Z-Offset row callback
+    ui_wizard_init_subjects();                  // Wizard subjects (for first-run config)
+    ui_keypad_init_subjects();                  // Keypad display subject (for reactive binding)
 
     // Panels that need MoonrakerAPI - store pointers for deferred set_api()
     print_select_panel = get_print_select_panel(get_printer_state(), nullptr);

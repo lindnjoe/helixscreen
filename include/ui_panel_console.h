@@ -157,9 +157,19 @@ class ConsolePanel : public PanelBase {
 /**
  * @brief Get the global ConsolePanel instance
  *
- * Creates the instance on first call. Used by static callbacks
- * and for panel registration.
+ * Returns reference to singleton. Must call init_global_console_panel() first.
  *
  * @return Reference to singleton ConsolePanel
+ * @throws std::runtime_error if not initialized
  */
 ConsolePanel& get_global_console_panel();
+
+/**
+ * @brief Initialize the global ConsolePanel instance
+ *
+ * Must be called by main.cpp before accessing get_global_console_panel().
+ *
+ * @param printer_state Reference to PrinterState
+ * @param api Pointer to MoonrakerAPI
+ */
+void init_global_console_panel(PrinterState& printer_state, MoonrakerAPI* api);

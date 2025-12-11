@@ -16,13 +16,57 @@
 #include <cstdio>
 
 // ============================================================================
-// GLOBAL INSTANCE
+// GLOBAL INSTANCE AND ROW CLICK HANDLER
 // ============================================================================
 
 static ScrewsTiltPanel s_screws_tilt_panel;
+static lv_obj_t* g_screws_tilt_panel_obj = nullptr;
+
+// Forward declarations
+static void on_screws_tilt_row_clicked(lv_event_t* e);
+MoonrakerClient* get_moonraker_client();
+MoonrakerAPI* get_moonraker_api();
 
 ScrewsTiltPanel& get_global_screws_tilt_panel() {
     return s_screws_tilt_panel;
+}
+
+void init_screws_tilt_row_handler() {
+    lv_xml_register_event_cb(nullptr, "on_screws_tilt_row_clicked", on_screws_tilt_row_clicked);
+    spdlog::debug("[ScrewsTilt] Row click callback registered");
+}
+
+/**
+ * @brief Row click handler for opening screws tilt from Advanced panel
+ *
+ * Registered via init_screws_tilt_row_handler().
+ * Lazy-creates the screws tilt panel on first click.
+ */
+static void on_screws_tilt_row_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[ScrewsTilt] Bed leveling row clicked");
+
+    // Lazy-create the screws tilt panel
+    if (!g_screws_tilt_panel_obj) {
+        spdlog::debug("[ScrewsTilt] Creating screws tilt panel...");
+        g_screws_tilt_panel_obj = static_cast<lv_obj_t*>(
+            lv_xml_create(lv_display_get_screen_active(NULL), "screws_tilt_panel", nullptr));
+
+        if (g_screws_tilt_panel_obj) {
+            MoonrakerClient* client = get_moonraker_client();
+            MoonrakerAPI* api = get_moonraker_api();
+            s_screws_tilt_panel.setup(g_screws_tilt_panel_obj, lv_display_get_screen_active(NULL),
+                                      client, api);
+            lv_obj_add_flag(g_screws_tilt_panel_obj, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[ScrewsTilt] Panel created and setup complete");
+        } else {
+            spdlog::error("[ScrewsTilt] Failed to create screws_tilt_panel");
+            return;
+        }
+    }
+
+    // Show the overlay
+    ui_nav_push_overlay(g_screws_tilt_panel_obj);
 }
 
 // ============================================================================

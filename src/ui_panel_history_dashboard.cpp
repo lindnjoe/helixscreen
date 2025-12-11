@@ -22,6 +22,10 @@
 
 // Global instance (singleton pattern)
 static std::unique_ptr<HistoryDashboardPanel> g_history_dashboard_panel;
+static lv_obj_t* g_history_dashboard_panel_obj = nullptr;
+
+// Forward declaration
+static void on_history_row_clicked(lv_event_t* e);
 
 HistoryDashboardPanel& get_global_history_dashboard_panel() {
     if (!g_history_dashboard_panel) {
@@ -48,7 +52,10 @@ void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerA
     lv_xml_register_event_cb(nullptr, "history_view_full_clicked",
                              HistoryDashboardPanel::on_view_history_clicked);
 
-    spdlog::debug("[History Dashboard] Event callbacks registered");
+    // Register row click callback for opening from Advanced panel
+    lv_xml_register_event_cb(nullptr, "on_history_row_clicked", on_history_row_clicked);
+
+    spdlog::debug("[History Dashboard] Event callbacks registered (including row click)");
 }
 
 // ============================================================================
@@ -762,4 +769,45 @@ void HistoryDashboardPanel::on_view_history_clicked(lv_event_t* e) {
     list_panel.on_activate();
 
     spdlog::debug("[History Dashboard] History list panel opened");
+}
+
+// ============================================================================
+// Row Click Handler (for opening from Advanced panel)
+// ============================================================================
+
+/**
+ * @brief Row click handler for opening history dashboard from Advanced panel
+ *
+ * Registered in init_global_history_dashboard_panel().
+ * Lazy-creates the dashboard panel on first click.
+ */
+static void on_history_row_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[History Dashboard] History row clicked");
+
+    if (!g_history_dashboard_panel) {
+        spdlog::error("[History Dashboard] Global instance not initialized!");
+        return;
+    }
+
+    // Lazy-create the dashboard panel
+    if (!g_history_dashboard_panel_obj) {
+        spdlog::debug("[History Dashboard] Creating dashboard panel...");
+        g_history_dashboard_panel_obj = static_cast<lv_obj_t*>(
+            lv_xml_create(lv_display_get_screen_active(NULL), "history_dashboard_panel", nullptr));
+
+        if (g_history_dashboard_panel_obj) {
+            g_history_dashboard_panel->setup(g_history_dashboard_panel_obj,
+                                             lv_display_get_screen_active(NULL));
+            lv_obj_add_flag(g_history_dashboard_panel_obj, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[History Dashboard] Panel created and setup complete");
+        } else {
+            spdlog::error("[History Dashboard] Failed to create history_dashboard_panel");
+            return;
+        }
+    }
+
+    // Show the overlay and activate it
+    ui_nav_push_overlay(g_history_dashboard_panel_obj);
+    g_history_dashboard_panel->on_activate();
 }

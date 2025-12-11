@@ -182,3 +182,11 @@ ScrewsTiltPanel& get_global_screws_tilt_panel();
  * Registers callbacks for all button events (start, cancel, done, reprobe, retry).
  */
 void ui_panel_screws_tilt_register_callbacks();
+
+/**
+ * @brief Initialize row click callback for opening from Advanced panel
+ *
+ * Must be called during app initialization before XML creation.
+ * Registers "on_screws_tilt_row_clicked" callback.
+ */
+void init_screws_tilt_row_handler();
