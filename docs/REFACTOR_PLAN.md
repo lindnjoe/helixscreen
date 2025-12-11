@@ -275,9 +275,9 @@ done
 |-------|----------|--------|--------|--------|
 | 1. SubscriptionGuard | HIGH | DONE | RAII for subscriptions | ✅ COMPLETED |
 | 2. RAII Migrations | HIGH | DONE | Prevents memory leaks, use-after-free | ✅ COMPLETED |
-| 3. Design Tokens | HIGH | 1-2 days | Enables proper theming, consistency | **NEXT** |
-| 4. Event Callbacks | MEDIUM | 3-5 days | Cleaner architecture, XML-driven UI | TODO |
-| 5. Architecture | MEDIUM | 1-2 weeks | Testability, maintainability | TODO |
+| 3. Design Tokens | HIGH | DONE | Enables proper theming, consistency | ✅ COMPLETED |
+| 4. Event Callbacks | MEDIUM | N/A | Cleaner architecture | ⏸️ DEFERRED (architecture appropriate) |
+| 5. Architecture | MEDIUM | 1-2 weeks | Testability, maintainability | TODO (incremental) |
 | 6. Code Style | LOW | 2-4 hours | Consistency, reduced noise | TODO |
 
 ---
