@@ -68,6 +68,7 @@
 #include "ui_text.h"
 #include "ui_text_input.h"
 #include "ui_theme.h"
+#include "ui_timelapse_settings.h"
 #include "ui_toast.h"
 #include "ui_utils.h"
 #include "ui_wizard.h"
@@ -1180,6 +1181,9 @@ static void initialize_subjects() {
     init_global_history_list_panel(get_printer_state(),
                                    nullptr);         // Initialize history list panel
     get_global_history_list_panel().init_subjects(); // History list panel subjects
+    init_global_timelapse_settings(get_printer_state(),
+                                   nullptr);         // Initialize timelapse settings overlay
+    get_global_timelapse_settings().init_subjects(); // Timelapse settings callbacks
     ui_wizard_init_subjects();                       // Wizard subjects (for first-run config)
     ui_keypad_init_subjects(); // Keypad display subject (for reactive binding)
 

@@ -178,6 +178,7 @@ void register_xml_components() {
     // Settings overlay panels
     lv_xml_register_component_from_file("A:ui_xml/display_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/wifi_settings_overlay.xml");
+    lv_xml_register_component_from_file("A:ui_xml/timelapse_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/hidden_network_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/wifi_network_item.xml");
 

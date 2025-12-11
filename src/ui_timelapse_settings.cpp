@@ -1,0 +1,292 @@
+// Copyright 2025 356C LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "ui_timelapse_settings.h"
+
+#include "ui_nav.h"
+
+#include "lvgl/src/xml/lv_xml.h"
+#include "runtime_config.h"
+
+#include <spdlog/spdlog.h>
+
+// Global instance and panel
+static std::unique_ptr<TimelapseSettingsOverlay> g_timelapse_settings;
+static lv_obj_t* g_timelapse_settings_panel = nullptr;
+
+// Forward declaration for row click callback
+static void on_timelapse_row_clicked(lv_event_t* e);
+
+TimelapseSettingsOverlay& get_global_timelapse_settings() {
+    if (!g_timelapse_settings) {
+        spdlog::error("get_global_timelapse_settings() called before initialization!");
+        throw std::runtime_error("TimelapseSettingsOverlay not initialized");
+    }
+    return *g_timelapse_settings;
+}
+
+void init_global_timelapse_settings(PrinterState& printer_state, MoonrakerAPI* api) {
+    if (g_timelapse_settings) {
+        spdlog::warn("TimelapseSettingsOverlay already initialized, skipping");
+        return;
+    }
+    g_timelapse_settings = std::make_unique<TimelapseSettingsOverlay>(printer_state, api);
+    spdlog::debug("TimelapseSettingsOverlay initialized");
+}
+
+// Framerate mapping
+constexpr int TimelapseSettingsOverlay::FRAMERATE_VALUES[];
+
+int TimelapseSettingsOverlay::framerate_to_index(int framerate) {
+    for (int i = 0; i < FRAMERATE_COUNT; i++) {
+        if (FRAMERATE_VALUES[i] == framerate) {
+            return i;
+        }
+    }
+    return 2; // Default to 30fps (index 2)
+}
+
+int TimelapseSettingsOverlay::index_to_framerate(int index) {
+    if (index >= 0 && index < FRAMERATE_COUNT) {
+        return FRAMERATE_VALUES[index];
+    }
+    return 30; // Default to 30fps
+}
+
+TimelapseSettingsOverlay::TimelapseSettingsOverlay(PrinterState& printer_state, MoonrakerAPI* api)
+    : PanelBase(printer_state, api) {
+    spdlog::debug("[TimelapseSettings] Constructor");
+}
+
+void TimelapseSettingsOverlay::init_subjects() {
+    // Register the row click callback for opening this overlay from advanced panel
+    lv_xml_register_event_cb(nullptr, "on_timelapse_row_clicked", on_timelapse_row_clicked);
+    spdlog::debug("[{}] init_subjects() - registered row click callback", get_name());
+}
+
+void TimelapseSettingsOverlay::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
+    PanelBase::setup(panel, parent_screen);
+
+    spdlog::debug("[{}] setup() - finding widgets", get_name());
+
+    // Find widgets (recursive search)
+    enable_switch_ = lv_obj_find_by_name(panel_, "timelapse_enable_switch");
+    mode_dropdown_ = lv_obj_find_by_name(panel_, "timelapse_mode_dropdown");
+    mode_info_text_ = lv_obj_find_by_name(panel_, "mode_info_text");
+    framerate_dropdown_ = lv_obj_find_by_name(panel_, "timelapse_framerate_dropdown");
+    autorender_switch_ = lv_obj_find_by_name(panel_, "timelapse_autorender_switch");
+
+    // Log widget discovery
+    spdlog::debug("[{}] Widgets found: enable={} mode={} info={} framerate={} autorender={}",
+                  get_name(), enable_switch_ != nullptr, mode_dropdown_ != nullptr,
+                  mode_info_text_ != nullptr, framerate_dropdown_ != nullptr,
+                  autorender_switch_ != nullptr);
+
+    // Register event callbacks via XML system
+    lv_xml_register_event_cb(nullptr, "on_timelapse_enabled_changed", on_enabled_changed);
+    lv_xml_register_event_cb(nullptr, "on_timelapse_mode_changed", on_mode_changed);
+    lv_xml_register_event_cb(nullptr, "on_timelapse_framerate_changed", on_framerate_changed);
+    lv_xml_register_event_cb(nullptr, "on_timelapse_autorender_changed", on_autorender_changed);
+}
+
+void TimelapseSettingsOverlay::on_activate() {
+    spdlog::debug("[{}] on_activate() - fetching current settings", get_name());
+    fetch_settings();
+}
+
+void TimelapseSettingsOverlay::on_deactivate() {
+    spdlog::debug("[{}] on_deactivate()", get_name());
+}
+
+void TimelapseSettingsOverlay::fetch_settings() {
+    if (!api_) {
+        spdlog::debug("[{}] No API available, using defaults", get_name());
+        // Use defaults for test mode
+        current_settings_ = TimelapseSettings{};
+        settings_loaded_ = true;
+        // Update UI with defaults
+        if (enable_switch_) {
+            lv_obj_remove_state(enable_switch_, LV_STATE_CHECKED);
+        }
+        if (mode_dropdown_) {
+            lv_dropdown_set_selected(mode_dropdown_, 0); // Layer Macro
+        }
+        if (framerate_dropdown_) {
+            lv_dropdown_set_selected(framerate_dropdown_, 2); // 30fps
+        }
+        if (autorender_switch_) {
+            lv_obj_add_state(autorender_switch_, LV_STATE_CHECKED);
+        }
+        update_mode_info(0);
+        return;
+    }
+
+    spdlog::debug("[{}] Fetching timelapse settings from API", get_name());
+
+    api_->get_timelapse_settings(
+        [this](const TimelapseSettings& settings) {
+            spdlog::info("[{}] Got timelapse settings: enabled={} mode={} fps={} autorender={}",
+                         get_name(), settings.enabled, settings.mode, settings.output_framerate,
+                         settings.autorender);
+
+            current_settings_ = settings;
+            settings_loaded_ = true;
+
+            // Update UI on main thread
+            if (enable_switch_) {
+                if (settings.enabled) {
+                    lv_obj_add_state(enable_switch_, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(enable_switch_, LV_STATE_CHECKED);
+                }
+            }
+
+            if (mode_dropdown_) {
+                int mode_index = (settings.mode == "hyperlapse") ? 1 : 0;
+                lv_dropdown_set_selected(mode_dropdown_, mode_index);
+                update_mode_info(mode_index);
+            }
+
+            if (framerate_dropdown_) {
+                int fps_index = framerate_to_index(settings.output_framerate);
+                lv_dropdown_set_selected(framerate_dropdown_, fps_index);
+            }
+
+            if (autorender_switch_) {
+                if (settings.autorender) {
+                    lv_obj_add_state(autorender_switch_, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(autorender_switch_, LV_STATE_CHECKED);
+                }
+            }
+        },
+        [this](const MoonrakerError& error) {
+            spdlog::error("[{}] Failed to fetch timelapse settings: {}", get_name(), error.message);
+            // Use defaults on error
+            settings_loaded_ = false;
+        });
+}
+
+void TimelapseSettingsOverlay::save_settings() {
+    if (!api_) {
+        spdlog::debug("[{}] No API available, not saving", get_name());
+        return;
+    }
+
+    spdlog::debug("[{}] Saving timelapse settings: enabled={} mode={} fps={} autorender={}",
+                  get_name(), current_settings_.enabled, current_settings_.mode,
+                  current_settings_.output_framerate, current_settings_.autorender);
+
+    api_->set_timelapse_settings(
+        current_settings_,
+        [this]() { spdlog::info("[{}] Timelapse settings saved successfully", get_name()); },
+        [this](const MoonrakerError& error) {
+            spdlog::error("[{}] Failed to save timelapse settings: {}", get_name(), error.message);
+        });
+}
+
+void TimelapseSettingsOverlay::update_mode_info(int mode_index) {
+    if (!mode_info_text_) {
+        return;
+    }
+
+    const char* info_text = (mode_index == 1)
+                                ? "Hyperlapse captures frames at fixed time intervals. "
+                                  "Good for very long prints."
+                                : "Layer Macro captures one frame per layer change. "
+                                  "Best for most prints.";
+
+    lv_label_set_text(mode_info_text_, info_text);
+}
+
+// Static event handlers
+void TimelapseSettingsOverlay::on_enabled_changed(lv_event_t* e) {
+    if (!g_timelapse_settings) {
+        return;
+    }
+
+    lv_obj_t* sw = static_cast<lv_obj_t*>(lv_event_get_target(e));
+    bool enabled = lv_obj_has_state(sw, LV_STATE_CHECKED);
+
+    spdlog::debug("[TimelapseSettings] Enable changed: {}", enabled);
+    g_timelapse_settings->current_settings_.enabled = enabled;
+    g_timelapse_settings->save_settings();
+}
+
+void TimelapseSettingsOverlay::on_mode_changed(lv_event_t* e) {
+    if (!g_timelapse_settings) {
+        return;
+    }
+
+    lv_obj_t* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(e));
+    int index = lv_dropdown_get_selected(dropdown);
+
+    const char* mode = (index == 1) ? "hyperlapse" : "layermacro";
+    spdlog::debug("[TimelapseSettings] Mode changed: {} (index {})", mode, index);
+
+    g_timelapse_settings->current_settings_.mode = mode;
+    g_timelapse_settings->update_mode_info(index);
+    g_timelapse_settings->save_settings();
+}
+
+void TimelapseSettingsOverlay::on_framerate_changed(lv_event_t* e) {
+    if (!g_timelapse_settings) {
+        return;
+    }
+
+    lv_obj_t* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(e));
+    int index = lv_dropdown_get_selected(dropdown);
+    int framerate = index_to_framerate(index);
+
+    spdlog::debug("[TimelapseSettings] Framerate changed: {} fps (index {})", framerate, index);
+
+    g_timelapse_settings->current_settings_.output_framerate = framerate;
+    g_timelapse_settings->save_settings();
+}
+
+void TimelapseSettingsOverlay::on_autorender_changed(lv_event_t* e) {
+    if (!g_timelapse_settings) {
+        return;
+    }
+
+    lv_obj_t* sw = static_cast<lv_obj_t*>(lv_event_get_target(e));
+    bool autorender = lv_obj_has_state(sw, LV_STATE_CHECKED);
+
+    spdlog::debug("[TimelapseSettings] Autorender changed: {}", autorender);
+    g_timelapse_settings->current_settings_.autorender = autorender;
+    g_timelapse_settings->save_settings();
+}
+
+// ============================================================================
+// Row Click Callback (opens this overlay from Advanced panel)
+// ============================================================================
+
+static void on_timelapse_row_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[TimelapseSettings] Timelapse row clicked");
+
+    if (!g_timelapse_settings) {
+        spdlog::error("[TimelapseSettings] Global instance not initialized!");
+        return;
+    }
+
+    // Lazy-create the timelapse settings panel
+    if (!g_timelapse_settings_panel) {
+        spdlog::debug("[TimelapseSettings] Creating timelapse settings panel...");
+        g_timelapse_settings_panel = static_cast<lv_obj_t*>(
+            lv_xml_create(lv_display_get_screen_active(NULL), "timelapse_settings_overlay", NULL));
+
+        if (g_timelapse_settings_panel) {
+            g_timelapse_settings->setup(g_timelapse_settings_panel,
+                                        lv_display_get_screen_active(NULL));
+            spdlog::debug("[TimelapseSettings] Panel created and setup complete");
+        } else {
+            spdlog::error("[TimelapseSettings] Failed to create timelapse_settings_overlay");
+            return;
+        }
+    }
+
+    // Show the overlay and activate it
+    ui_nav_push_overlay(g_timelapse_settings_panel);
+    g_timelapse_settings->on_activate();
+}

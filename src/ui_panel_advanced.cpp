@@ -8,6 +8,7 @@
 #include "ui_panel_console.h"
 #include "ui_panel_history_dashboard.h"
 #include "ui_panel_screws_tilt.h"
+#include "ui_timelapse_settings.h"
 #include "ui_toast.h"
 
 #include "moonraker_api.h"
