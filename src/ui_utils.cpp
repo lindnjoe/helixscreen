@@ -50,6 +50,33 @@ std::string get_display_filename(const std::string& path) {
     return strip_gcode_extension(get_filename_basename(path));
 }
 
+std::string resolve_gcode_filename(const std::string& path) {
+    // Pattern: .helix_temp/modified_123456789_OriginalName.gcode
+    // Also handles: /tmp/helixscreen_mod_XXXXXX_filename.gcode
+    static const std::string helix_temp_prefix = ".helix_temp/modified_";
+    static const std::string local_temp_prefix = "/tmp/helixscreen_mod_";
+
+    size_t underscore_pos = std::string::npos;
+
+    if (path.find(helix_temp_prefix) != std::string::npos) {
+        // Extract original: .helix_temp/modified_123456789_OriginalName.gcode -> OriginalName.gcode
+        size_t prefix_end = path.find(helix_temp_prefix) + helix_temp_prefix.size();
+        underscore_pos = path.find('_', prefix_end);
+    } else if (path.find(local_temp_prefix) != std::string::npos) {
+        // Extract original: /tmp/helixscreen_mod_123456_OriginalName.gcode -> OriginalName.gcode
+        size_t prefix_end = path.find(local_temp_prefix) + local_temp_prefix.size();
+        underscore_pos = path.find('_', prefix_end);
+    }
+
+    if (underscore_pos != std::string::npos && underscore_pos + 1 < path.size()) {
+        std::string original = path.substr(underscore_pos + 1);
+        spdlog::debug("[resolve_gcode_filename] '{}' -> '{}'", path, original);
+        return original;
+    }
+
+    return path;
+}
+
 // ============================================================================
 // Time Formatting
 // ============================================================================

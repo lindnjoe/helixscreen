@@ -12,6 +12,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <cstdlib>
 
 // ============================================================================
@@ -584,6 +585,13 @@ bool NavigationManager::go_back() {
     }
 
     return true;
+}
+
+bool NavigationManager::is_panel_in_stack(lv_obj_t* panel) const {
+    if (!panel) {
+        return false;
+    }
+    return std::find(panel_stack_.begin(), panel_stack_.end(), panel) != panel_stack_.end();
 }
 
 // ============================================================================

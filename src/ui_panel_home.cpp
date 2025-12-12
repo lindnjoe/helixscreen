@@ -11,6 +11,7 @@
 #include "ui_panel_print_status.h"
 #include "ui_panel_temp_control.h"
 #include "ui_subject_registry.h"
+#include "ui_utils.h"
 
 #include "ams_state.h"
 #include "app_globals.h"
@@ -19,6 +20,7 @@
 #include "moonraker_api.h"
 #include "printer_detector.h"
 #include "printer_state.h"
+#include "thumbnail_cache.h"
 #include "wifi_manager.h"
 #include "wifi_settings_overlay.h"
 #include "wizard_config_paths.h"
@@ -46,7 +48,18 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     extruder_target_observer_ = ObserverGuard(printer_state_.get_extruder_target_subject(),
                                               extruder_target_observer_cb, this);
 
+    // Subscribe to print state for dynamic print card updates
+    print_state_observer_ =
+        ObserverGuard(printer_state_.get_print_state_enum_subject(), print_state_observer_cb, this);
+    print_progress_observer_ = ObserverGuard(printer_state_.get_print_progress_subject(),
+                                             print_progress_observer_cb, this);
+    print_time_left_observer_ = ObserverGuard(printer_state_.get_print_time_left_subject(),
+                                              print_time_left_observer_cb, this);
+    print_filename_observer_ = ObserverGuard(printer_state_.get_print_filename_subject(),
+                                             print_filename_observer_cb, this);
+
     spdlog::debug("[{}] Subscribed to PrinterState extruder temperature and target", get_name());
+    spdlog::debug("[{}] Subscribed to PrinterState print state/progress/time/filename", get_name());
 
     // Load configured LED from wizard settings and tell PrinterState to track it
     Config* config = Config::get_instance();
@@ -174,6 +187,12 @@ void HomePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         }
     }
 
+    // Cache tip label for fade animation
+    tip_label_ = lv_obj_find_by_name(panel_, "status_text_label");
+    if (!tip_label_) {
+        spdlog::warn("[{}] Could not find status_text_label for tip animation", get_name());
+    }
+
     // Start tip rotation timer (60 seconds = 60000ms)
     if (!tip_rotation_timer_) {
         tip_rotation_timer_ = lv_timer_create(tip_rotation_timer_cb, 60000, this);
@@ -212,6 +231,21 @@ void HomePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         update_ams_indicator(gate_count);
     }
 
+    // Look up print card widgets for dynamic updates during printing
+    print_card_thumb_ = lv_obj_find_by_name(panel_, "print_card_thumb");
+    print_card_label_ = lv_obj_find_by_name(panel_, "print_card_label");
+    if (print_card_thumb_ && print_card_label_) {
+        spdlog::debug("[{}] Found print card widgets for dynamic updates", get_name());
+
+        // Check initial print state (observer may have fired before setup)
+        auto state = static_cast<PrintJobState>(
+            lv_subject_get_int(printer_state_.get_print_state_enum_subject()));
+        if (state == PrintJobState::PRINTING || state == PrintJobState::PAUSED) {
+            // Already printing - load thumbnail and update label
+            on_print_state_changed(state);
+        }
+    }
+
     spdlog::info("[{}] Setup complete!", get_name());
 }
 
@@ -240,15 +274,91 @@ void HomePanel::update_tip_of_day() {
     auto tip = TipsManager::get_instance()->get_random_unique_tip();
 
     if (!tip.title.empty()) {
-        // Store full tip for dialog display
-        current_tip_ = tip;
-
-        std::snprintf(status_buffer_, sizeof(status_buffer_), "%s", tip.title.c_str());
-        lv_subject_copy_string(&status_subject_, status_buffer_);
-        spdlog::debug("[{}] Updated tip: {}", get_name(), tip.title);
+        // Use animated transition if label is available and not already animating
+        if (tip_label_ && !tip_animating_) {
+            start_tip_fade_transition(tip);
+        } else {
+            // Fallback: instant update (initial load or animation in progress)
+            current_tip_ = tip;
+            std::snprintf(status_buffer_, sizeof(status_buffer_), "%s", tip.title.c_str());
+            lv_subject_copy_string(&status_subject_, status_buffer_);
+            spdlog::debug("[{}] Updated tip (instant): {}", get_name(), tip.title);
+        }
     } else {
         spdlog::warn("[{}] Failed to get tip, keeping current", get_name());
     }
+}
+
+// Animation duration constants
+static constexpr uint32_t TIP_FADE_DURATION_MS = 300;
+
+void HomePanel::start_tip_fade_transition(const PrintingTip& new_tip) {
+    if (!tip_label_ || tip_animating_) {
+        return;
+    }
+
+    // Store the pending tip to apply after fade-out
+    pending_tip_ = new_tip;
+    tip_animating_ = true;
+
+    spdlog::debug("[{}] Starting tip fade transition to: {}", get_name(), new_tip.title);
+
+    // Fade out animation
+    lv_anim_t anim;
+    lv_anim_init(&anim);
+    lv_anim_set_var(&anim, this);
+    lv_anim_set_values(&anim, 255, 0);
+    lv_anim_set_duration(&anim, TIP_FADE_DURATION_MS);
+    lv_anim_set_path_cb(&anim, lv_anim_path_ease_in);
+
+    // Execute callback: update opacity on each frame
+    lv_anim_set_exec_cb(&anim, [](void* var, int32_t value) {
+        auto* self = static_cast<HomePanel*>(var);
+        if (self->tip_label_) {
+            lv_obj_set_style_opa(self->tip_label_, static_cast<lv_opa_t>(value), LV_PART_MAIN);
+        }
+    });
+
+    // Completion callback: apply new text and start fade-in
+    lv_anim_set_completed_cb(&anim, [](lv_anim_t* a) {
+        auto* self = static_cast<HomePanel*>(a->var);
+        self->apply_pending_tip();
+    });
+
+    lv_anim_start(&anim);
+}
+
+void HomePanel::apply_pending_tip() {
+    // Apply the pending tip text
+    current_tip_ = pending_tip_;
+    std::snprintf(status_buffer_, sizeof(status_buffer_), "%s", pending_tip_.title.c_str());
+    lv_subject_copy_string(&status_subject_, status_buffer_);
+
+    spdlog::debug("[{}] Applied pending tip: {}", get_name(), pending_tip_.title);
+
+    // Fade in animation
+    lv_anim_t anim;
+    lv_anim_init(&anim);
+    lv_anim_set_var(&anim, this);
+    lv_anim_set_values(&anim, 0, 255);
+    lv_anim_set_duration(&anim, TIP_FADE_DURATION_MS);
+    lv_anim_set_path_cb(&anim, lv_anim_path_ease_out);
+
+    // Execute callback: update opacity on each frame
+    lv_anim_set_exec_cb(&anim, [](void* var, int32_t value) {
+        auto* self = static_cast<HomePanel*>(var);
+        if (self->tip_label_) {
+            lv_obj_set_style_opa(self->tip_label_, static_cast<lv_opa_t>(value), LV_PART_MAIN);
+        }
+    });
+
+    // Completion callback: mark animation as done
+    lv_anim_set_completed_cb(&anim, [](lv_anim_t* a) {
+        auto* self = static_cast<HomePanel*>(a->var);
+        self->tip_animating_ = false;
+    });
+
+    lv_anim_start(&anim);
 }
 
 void HomePanel::detect_network_type() {
@@ -775,6 +885,181 @@ void HomePanel::update_ams_indicator(int gate_count) {
         ui_ams_mini_status_refresh(ams_indicator_);
         spdlog::debug("[{}] AMS indicator refreshed ({} gates)", get_name(), gate_count);
     }
+}
+
+// ============================================================================
+// PRINT CARD DYNAMIC UPDATES
+// ============================================================================
+
+void HomePanel::print_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        auto state = static_cast<PrintJobState>(lv_subject_get_int(subject));
+        self->on_print_state_changed(state);
+    }
+}
+
+void HomePanel::print_progress_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    (void)subject;
+    auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->on_print_progress_or_time_changed();
+    }
+}
+
+void HomePanel::print_time_left_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    (void)subject;
+    auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->on_print_progress_or_time_changed();
+    }
+}
+
+void HomePanel::print_filename_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    (void)subject;
+    auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        // If a print is active, reload thumbnail when filename changes
+        auto state = static_cast<PrintJobState>(
+            lv_subject_get_int(self->printer_state_.get_print_state_enum_subject()));
+        if (state == PrintJobState::PRINTING || state == PrintJobState::PAUSED) {
+            self->load_current_print_thumbnail();
+        }
+    }
+}
+
+void HomePanel::on_print_state_changed(PrintJobState state) {
+    if (!print_card_thumb_ || !print_card_label_) {
+        return; // Widgets not found (shouldn't happen after setup)
+    }
+
+    bool is_active = (state == PrintJobState::PRINTING || state == PrintJobState::PAUSED);
+
+    if (is_active) {
+        spdlog::info("[{}] Print active - updating card with thumbnail and progress", get_name());
+        load_current_print_thumbnail();
+        on_print_progress_or_time_changed(); // Update label immediately
+    } else {
+        spdlog::info("[{}] Print not active - reverting card to idle state", get_name());
+        reset_print_card_to_idle();
+    }
+}
+
+void HomePanel::on_print_progress_or_time_changed() {
+    auto state = static_cast<PrintJobState>(
+        lv_subject_get_int(printer_state_.get_print_state_enum_subject()));
+
+    // Only update if actively printing
+    if (state != PrintJobState::PRINTING && state != PrintJobState::PAUSED) {
+        return;
+    }
+
+    int progress = lv_subject_get_int(printer_state_.get_print_progress_subject());
+    int time_left = lv_subject_get_int(printer_state_.get_print_time_left_subject());
+
+    update_print_card_label(progress, time_left);
+}
+
+void HomePanel::update_print_card_label(int progress, int time_left_secs) {
+    if (!print_card_label_) {
+        return;
+    }
+
+    char buf[64];
+    int hours = time_left_secs / 3600;
+    int minutes = (time_left_secs % 3600) / 60;
+
+    if (hours > 0) {
+        snprintf(buf, sizeof(buf), "%d%% \u2022 %dh %02dm left", progress, hours, minutes);
+    } else if (minutes > 0) {
+        snprintf(buf, sizeof(buf), "%d%% \u2022 %dm left", progress, minutes);
+    } else {
+        snprintf(buf, sizeof(buf), "%d%% \u2022 < 1m left", progress);
+    }
+
+    lv_label_set_text(print_card_label_, buf);
+}
+
+void HomePanel::reset_print_card_to_idle() {
+    if (print_card_thumb_) {
+        lv_image_set_src(print_card_thumb_, "A:assets/images/benchy_thumbnail_white.png");
+    }
+    if (print_card_label_) {
+        lv_label_set_text(print_card_label_, "Print Files");
+    }
+    // Invalidate any in-flight thumbnail loads
+    ++thumbnail_load_generation_;
+}
+
+void HomePanel::load_current_print_thumbnail() {
+    if (!print_card_thumb_ || !api_) {
+        spdlog::debug("[{}] Cannot load thumbnail - widget={}, api={}", get_name(),
+                      (void*)print_card_thumb_, (void*)api_);
+        return;
+    }
+
+    const char* filename = lv_subject_get_string(printer_state_.get_print_filename_subject());
+    if (!filename || filename[0] == '\0') {
+        spdlog::debug("[{}] No filename - keeping current thumbnail", get_name());
+        return;
+    }
+
+    // Increment generation to invalidate any in-flight async operations
+    ++thumbnail_load_generation_;
+    int current_gen = thumbnail_load_generation_;
+
+    spdlog::debug("[{}] Loading print thumbnail for: {} (gen={})", get_name(), filename,
+                  current_gen);
+
+    // Resolve to original filename if this is a modified temp file
+    // (Moonraker only has metadata for original files, not modified copies)
+    std::string metadata_filename = resolve_gcode_filename(filename);
+
+    // Get file metadata to find thumbnail path
+    api_->get_file_metadata(
+        metadata_filename,
+        [this, current_gen](const FileMetadata& metadata) {
+            // Check if this callback is still relevant
+            if (current_gen != thumbnail_load_generation_) {
+                spdlog::trace("[{}] Stale metadata callback (gen {} != {}), ignoring", get_name(),
+                              current_gen, thumbnail_load_generation_);
+                return;
+            }
+
+            // Get the largest thumbnail available
+            std::string thumbnail_rel_path = metadata.get_largest_thumbnail();
+            if (thumbnail_rel_path.empty()) {
+                spdlog::debug("[{}] No thumbnail available in metadata", get_name());
+                return;
+            }
+
+            spdlog::debug("[{}] Found thumbnail: {}", get_name(), thumbnail_rel_path);
+
+            // Use ThumbnailCache to download/cache (handles LVGL path formatting correctly)
+            get_thumbnail_cache().fetch(
+                api_, thumbnail_rel_path,
+                [this, current_gen](const std::string& lvgl_path) {
+                    // Check if this callback is still relevant
+                    if (current_gen != thumbnail_load_generation_) {
+                        spdlog::trace("[{}] Stale thumbnail callback (gen {} != {}), ignoring",
+                                      get_name(), current_gen, thumbnail_load_generation_);
+                        return;
+                    }
+
+                    if (!print_card_thumb_) {
+                        return;
+                    }
+
+                    lv_image_set_src(print_card_thumb_, lvgl_path.c_str());
+                    spdlog::info("[{}] Print thumbnail loaded: {}", get_name(), lvgl_path);
+                },
+                [this](const std::string& error) {
+                    spdlog::warn("[{}] Failed to fetch thumbnail: {}", get_name(), error);
+                });
+        },
+        [this](const MoonrakerError& error) {
+            spdlog::warn("[{}] Failed to get file metadata: {}", get_name(), error.message);
+        });
 }
 
 static std::unique_ptr<HomePanel> g_home_panel;

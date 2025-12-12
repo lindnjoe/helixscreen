@@ -15,6 +15,7 @@
 class WiFiManager;
 class EthernetManager;
 class TempControlPanel;
+enum class PrintJobState : int;
 
 /**
  * @brief Home panel - Main dashboard showing printer status and quick actions
@@ -101,8 +102,11 @@ class HomePanel : public PanelBase {
     bool light_on_ = false;
     network_type_t current_network_ = NETWORK_WIFI;
     PrintingTip current_tip_;
+    PrintingTip pending_tip_; // Tip waiting to be displayed after fade-out
     std::string configured_led_;
     lv_timer_t* tip_rotation_timer_ = nullptr;
+    lv_obj_t* tip_label_ = nullptr;                     // Cached for fade animation
+    bool tip_animating_ = false;                        // Prevents overlapping animations
     lv_timer_t* signal_poll_timer_ = nullptr;           // Polls WiFi signal strength every 5s
     std::shared_ptr<WiFiManager> wifi_manager_;         // For signal strength queries
     std::unique_ptr<EthernetManager> ethernet_manager_; // For Ethernet status queries
@@ -114,6 +118,8 @@ class HomePanel : public PanelBase {
     lv_obj_t* ams_indicator_ = nullptr;
 
     void update_tip_of_day();
+    void start_tip_fade_transition(const PrintingTip& new_tip);
+    void apply_pending_tip();         // Called when fade-out completes
     void detect_network_type();       // Detects WiFi vs Ethernet vs disconnected
     int compute_network_icon_state(); // Maps network type + signal → 0-5
     void update_network_icon_state(); // Updates the subject
@@ -150,12 +156,37 @@ class HomePanel : public PanelBase {
     ObserverGuard led_state_observer_;
     ObserverGuard ams_gate_count_observer_;
 
+    // Print card observers (for showing progress during active print)
+    ObserverGuard print_state_observer_;
+    ObserverGuard print_progress_observer_;
+    ObserverGuard print_time_left_observer_;
+    ObserverGuard print_filename_observer_;
+
+    // Print card widgets (looked up after XML creation)
+    lv_obj_t* print_card_thumb_ = nullptr;
+    lv_obj_t* print_card_label_ = nullptr;
+
+    // Thumbnail loading generation counter (prevents stale async callbacks)
+    int thumbnail_load_generation_ = 0;
+
     // Heating icon animator (gradient color + pulse while heating)
     HeatingIconAnimator temp_icon_animator_;
     int cached_extruder_temp_ = 25;
     int cached_extruder_target_ = 0;
 
     void update_ams_indicator(int gate_count);
+
+    // Print card update methods
+    void on_print_state_changed(PrintJobState state);
+    void on_print_progress_or_time_changed();
+    void load_current_print_thumbnail();
+    void update_print_card_label(int progress, int time_left_secs);
+    void reset_print_card_to_idle();
+
+    static void print_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void print_progress_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void print_time_left_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void print_filename_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 };
 
 // Global instance accessor (needed by main.cpp)

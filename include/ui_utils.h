@@ -45,6 +45,22 @@ std::string strip_gcode_extension(const std::string& filename);
  */
 std::string get_display_filename(const std::string& path);
 
+/**
+ * @brief Resolve a G-code filename to its original/canonical form
+ *
+ * When HelixScreen modifies a G-code file before printing (e.g., to add
+ * filament change commands), it stores the modified file with patterns like:
+ * - `.helix_temp/modified_123456789_OriginalName.gcode`
+ * - `/tmp/helixscreen_mod_123456_OriginalName.gcode`
+ *
+ * This function extracts the original filename for metadata/thumbnail lookups.
+ * If the path is not a modified temp path, returns the input unchanged.
+ *
+ * @param path File path that might be a modified temp file
+ * @return Original filename if temp pattern matches, otherwise input unchanged
+ */
+std::string resolve_gcode_filename(const std::string& path);
+
 // ============================================================================
 // Time Formatting
 // ============================================================================

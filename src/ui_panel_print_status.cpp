@@ -18,6 +18,7 @@
 #include "moonraker_api.h"
 #include "printer_state.h"
 #include "runtime_config.h"
+#include "thumbnail_cache.h"
 #include "wizard_config_paths.h"
 
 #include <spdlog/spdlog.h>
@@ -1573,9 +1574,13 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
         return;
     }
 
+    // Resolve to original filename if this is a modified temp file
+    // (Moonraker only has metadata for original files, not modified copies)
+    std::string metadata_filename = resolve_gcode_filename(filename);
+
     // First, get file metadata to find thumbnail path
     api_->get_file_metadata(
-        filename,
+        metadata_filename,
         [this, current_gen](const FileMetadata& metadata) {
             // Check if this callback is still relevant
             if (current_gen != thumbnail_load_generation_) {
@@ -1593,15 +1598,10 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
 
             spdlog::debug("[{}] Found thumbnail: {}", get_name(), thumbnail_rel_path);
 
-            // Generate cache path (using simple hash to avoid path conflicts)
-            std::string cache_filename =
-                std::to_string(std::hash<std::string>{}(thumbnail_rel_path)) + ".png";
-            std::string cache_path = "/tmp/helix_print_thumb_" + cache_filename;
-
-            // Download thumbnail to cache
-            api_->download_thumbnail(
-                thumbnail_rel_path, cache_path,
-                [this, current_gen, cache_path](const std::string& local_path) {
+            // Use centralized ThumbnailCache for download and LVGL path handling
+            get_thumbnail_cache().fetch(
+                api_, thumbnail_rel_path,
+                [this, current_gen](const std::string& lvgl_path) {
                     // Check if this callback is still relevant
                     if (current_gen != thumbnail_load_generation_) {
                         spdlog::trace("[{}] Stale thumbnail callback (gen {} != {}), ignoring",
@@ -1609,22 +1609,16 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
                         return;
                     }
 
-                    // Store the cached path
-                    cached_thumbnail_path_ = local_path;
+                    // Store the cached path (without "A:" prefix for internal use)
+                    cached_thumbnail_path_ = lvgl_path;
 
-                    // Set the image source - LVGL expects "A:" prefix for filesystem paths
-                    // But avoid double-prefix if path already has it (e.g., from mock API)
-                    std::string lvgl_path = local_path;
-                    if (lvgl_path.size() < 2 || lvgl_path[0] != 'A' || lvgl_path[1] != ':') {
-                        lvgl_path = "A:" + local_path;
-                    }
                     if (print_thumbnail_) {
                         lv_image_set_src(print_thumbnail_, lvgl_path.c_str());
                         spdlog::info("[{}] Thumbnail loaded: {}", get_name(), lvgl_path);
                     }
                 },
-                [this](const MoonrakerError& err) {
-                    spdlog::warn("[{}] Failed to download thumbnail: {}", get_name(), err.message);
+                [this](const std::string& error) {
+                    spdlog::warn("[{}] Failed to fetch thumbnail: {}", get_name(), error);
                 });
         },
         [this](const MoonrakerError& err) {

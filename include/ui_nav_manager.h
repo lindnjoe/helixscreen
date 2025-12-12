@@ -140,6 +140,17 @@ class NavigationManager {
      */
     bool go_back();
 
+    /**
+     * @brief Check if a panel is in the overlay stack
+     *
+     * Used to determine if a specific panel (like PrintStatusPanel) is currently
+     * visible as an overlay.
+     *
+     * @param panel Panel widget to check for
+     * @return true if panel is in the overlay stack
+     */
+    bool is_panel_in_stack(lv_obj_t* panel) const;
+
   private:
     // Private constructor for singleton
     NavigationManager() = default;
