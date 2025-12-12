@@ -34,6 +34,8 @@ struct OverlayFlags {
     bool bed_mesh = false;
     bool zoffset = false;
     bool pid = false;
+    bool screws_tilt = false;
+    bool input_shaper = false;
     bool file_detail = false;
     bool keypad = false;
     bool keyboard = false;
@@ -42,11 +44,12 @@ struct OverlayFlags {
     bool gcode_test = false;
     bool glyphs = false;
     bool gradient_test = false;
+    bool history_dashboard = false;
 
     /** @brief Check if any overlay requiring Moonraker data is requested */
     bool needs_moonraker() const {
         return motion || nozzle_temp || bed_temp || extrusion || fan || print_status || bed_mesh ||
-               zoffset || pid || file_detail;
+               zoffset || pid || screws_tilt || input_shaper || file_detail || history_dashboard;
     }
 };
 

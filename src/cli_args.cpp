@@ -126,6 +126,8 @@ static void print_help(const char* program_name) {
     printf("    --real-moonraker   Connect to real printer (requires --test)\n");
     printf("    --real-files       Use real files from printer (requires --test)\n");
     printf("    --disconnected     Simulate disconnected state (requires --test)\n");
+    printf("    --test-history     Enable test history API data\n");
+    printf("    --sim-speed <n>    Simulation speedup factor (1.0-1000.0, e.g., 100 for 100x)\n");
     printf("    --select-file <name>  Auto-select file in print-select panel\n");
     printf("\nG-code Viewer Options (require --test):\n");
     printf("  --gcode-file <path>  Load specific G-code file in gcode-test panel\n");
@@ -196,6 +198,16 @@ static bool parse_panel_arg(const char* panel_arg, CliArgs& args) {
         args.overlays.zoffset = true;
     } else if (strcmp(panel_arg, "pid") == 0) {
         args.overlays.pid = true;
+    } else if (strcmp(panel_arg, "screws") == 0 || strcmp(panel_arg, "screws-tilt") == 0 ||
+               strcmp(panel_arg, "bed-leveling") == 0) {
+        args.overlays.screws_tilt = true;
+    } else if (strcmp(panel_arg, "input-shaper") == 0 || strcmp(panel_arg, "input_shaper") == 0 ||
+               strcmp(panel_arg, "shaper") == 0) {
+        args.overlays.input_shaper = true;
+    } else if (strcmp(panel_arg, "history-dashboard") == 0 ||
+               strcmp(panel_arg, "history_dashboard") == 0 ||
+               strcmp(panel_arg, "print-history") == 0) {
+        args.overlays.history_dashboard = true;
     } else if (strcmp(panel_arg, "glyphs") == 0) {
         args.overlays.glyphs = true;
     } else if (strcmp(panel_arg, "gradient-test") == 0) {
@@ -208,9 +220,9 @@ static bool parse_panel_arg(const char* panel_arg, CliArgs& args) {
         } else {
             printf("Unknown panel: %s\n", panel_arg);
             printf("Available panels: home, controls, motion, nozzle-temp, bed-temp, "
-                   "bed-mesh, zoffset, pid, extrusion, fan, print-status, filament, "
-                   "settings, advanced, print-select, step-test, test, gcode-test, glyphs, "
-                   "gradient-test\n");
+                   "bed-mesh, zoffset, pid, screws, input-shaper, extrusion, fan, "
+                   "print-status, filament, settings, advanced, print-history, "
+                   "print-select, step-test, test, gcode-test, glyphs, gradient-test\n");
             return false;
         }
     }
@@ -406,6 +418,21 @@ bool parse_cli_args(int argc, char** argv, CliArgs& args, int& screen_width, int
             config.use_real_files = true;
         } else if (strcmp(argv[i], "--disconnected") == 0) {
             config.simulate_disconnect = true;
+        } else if (strcmp(argv[i], "--test-history") == 0) {
+            config.test_history_api = true;
+        } else if (strcmp(argv[i], "--sim-speed") == 0) {
+            if (i + 1 >= argc) {
+                printf("Error: --sim-speed requires a speedup factor (1.0-1000.0)\n");
+                return false;
+            }
+            double val;
+            if (!parse_double(argv[++i], val, "--sim-speed"))
+                return false;
+            if (val < 1.0 || val > 1000.0) {
+                printf("Error: --sim-speed must be 1.0-1000.0\n");
+                return false;
+            }
+            config.sim_speedup = val;
         }
         // Select file
         else if (strcmp(argv[i], "--select-file") == 0) {
