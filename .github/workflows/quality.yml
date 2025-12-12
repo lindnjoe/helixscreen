@@ -10,25 +10,31 @@ jobs:
   quality-checks:
     name: Code Quality Checks
     runs-on: ubuntu-22.04
+    timeout-minutes: 10
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Install clang-format 18
-      run: |
-        # Install clang-format 18 from LLVM apt repository for consistent formatting
-        # Version must match .clang-format file expectations
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-        echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
-        sudo apt-get update
-        sudo apt-get install -y clang-format-18
-        # Remove old clang-format and make clang-format-18 the default
-        sudo rm -f /usr/bin/clang-format
-        sudo ln -s /usr/bin/clang-format-18 /usr/bin/clang-format
-        clang-format --version
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 3
+        max_attempts: 3
+        command: |
+          # Install clang-format 18 from LLVM apt repository for consistent formatting
+          # Version must match .clang-format file expectations
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
+          # Remove old clang-format and make clang-format-18 the default
+          sudo rm -f /usr/bin/clang-format
+          sudo ln -s /usr/bin/clang-format-18 /usr/bin/clang-format
+          clang-format --version
 
     - name: Run quality checks
+      timeout-minutes: 5
       run: |
         # Use shared script - single source of truth for pre-commit and CI
         chmod +x scripts/quality-checks.sh

@@ -10,6 +10,7 @@ jobs:
   build-ubuntu:
     name: Build (Ubuntu 22.04)
     runs-on: ubuntu-22.04
+    timeout-minutes: 20
 
     steps:
     - name: Checkout repository
@@ -18,46 +19,79 @@ jobs:
         submodules: recursive
 
     - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libsdl2-dev \
-          clang \
-          make \
-          python3 \
-          npm \
-          libssl-dev \
-          pkg-config \
-          libfmt-dev \
-          libcairo2-dev \
-          libpango1.0-dev \
-          libpng-dev \
-          libjpeg-dev
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        command: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl2-dev \
+            clang \
+            make \
+            python3 \
+            npm \
+            libssl-dev \
+            pkg-config \
+            libfmt-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libpng-dev \
+            libjpeg-dev \
+            libnl-3-dev \
+            libnl-genl-3-dev \
+            libxml2-utils
+
+    - name: Cache compiled dependencies
+      uses: actions/cache@v4
+      id: cache-deps
+      with:
+        path: |
+          build/lib/
+          lib/libhv/lib/
+          lib/libhv/include/hv/
+          lib/tinygl/lib/
+          lib/wpa_supplicant/wpa_supplicant/libwpa_client.a
+        key: deps-ubuntu-22.04-${{ hashFiles('lib/libhv/**/*.c', 'lib/libhv/**/*.cpp', 'lib/libhv/**/*.h', 'lib/tinygl/src/*.c', 'lib/tinygl/include/**/*.h', 'lib/wpa_supplicant/src/**/*.c', 'lib/wpa_supplicant/src/**/*.h') }}
+        restore-keys: |
+          deps-ubuntu-22.04-
 
     - name: Verify submodules
       run: |
         echo "Checking submodule status..."
         git submodule status
-        echo "✓ Submodules initialized"
+        echo "Submodules initialized"
 
     - name: Install Node.js dependencies
-      run: npm install
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 2
+        max_attempts: 3
+        command: npm install
 
     - name: Build HelixScreen (includes all dependencies)
+      timeout-minutes: 10
       run: |
         # The Makefile handles all dependency builds automatically:
         # - libhv (HTTP/WebSocket library)
         # - wpa_supplicant client library (WiFi on Linux)
         # - TinyGL (3D G-code visualization)
-        # - Font generation (FontAwesome only, skips platform-specific arrows on Linux)
+        # - Font generation
         # - LVGL patches
+        # Dependencies are cached and will only rebuild if source changed
         make -j$(nproc)
-        echo "✓ HelixScreen and all dependencies built successfully"
+        echo "HelixScreen and all dependencies built successfully"
+
+    - name: Run unit tests
+      timeout-minutes: 5
+      run: |
+        make test-run
+        echo "All tests passed"
 
     - name: Verify binary
       run: |
         ./build/bin/helix-screen --help || true
-        echo "✓ Binary verified"
+        echo "Binary verified"
 
     - name: Upload binary
       uses: actions/upload-artifact@v4
@@ -69,6 +103,7 @@ jobs:
   build-macos:
     name: Build (macOS 14)
     runs-on: macos-14
+    timeout-minutes: 20
 
     steps:
     - name: Checkout repository
@@ -80,31 +115,55 @@ jobs:
       run: |
         brew install sdl2
         # node/npm usually pre-installed on GitHub Actions macOS runners
-        # If not installed, brew install node will also provide npm
+
+    - name: Cache compiled dependencies
+      uses: actions/cache@v4
+      id: cache-deps
+      with:
+        path: |
+          build/lib/
+          lib/libhv/lib/
+          lib/libhv/include/hv/
+          lib/tinygl/lib/
+        key: deps-macos-14-${{ hashFiles('lib/libhv/**/*.c', 'lib/libhv/**/*.cpp', 'lib/libhv/**/*.h', 'lib/tinygl/src/*.c', 'lib/tinygl/include/**/*.h') }}
+        restore-keys: |
+          deps-macos-14-
 
     - name: Verify submodules
       run: |
         echo "Checking submodule status..."
         git submodule status
-        echo "✓ Submodules initialized"
+        echo "Submodules initialized"
 
     - name: Install Node.js dependencies
-      run: npm install
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 2
+        max_attempts: 3
+        command: npm install
 
     - name: Build HelixScreen (includes all dependencies)
+      timeout-minutes: 10
       run: |
         # The Makefile handles all dependency builds automatically:
         # - libhv (HTTP/WebSocket library)
         # - TinyGL (3D G-code visualization)
-        # - Font generation (all fonts including platform-specific arrows on macOS)
+        # - Font generation
         # - LVGL patches
+        # Dependencies are cached and will only rebuild if source changed
         make -j$(sysctl -n hw.ncpu)
-        echo "✓ HelixScreen and all dependencies built successfully"
+        echo "HelixScreen and all dependencies built successfully"
+
+    - name: Run unit tests
+      timeout-minutes: 5
+      run: |
+        make test-run
+        echo "All tests passed"
 
     - name: Verify binary
       run: |
         ./build/bin/helix-screen --help || true
-        echo "✓ Binary verified"
+        echo "Binary verified"
 
     - name: Upload binary
       uses: actions/upload-artifact@v4
@@ -123,11 +182,11 @@ jobs:
     - name: Check build results
       run: |
         if [ "${{ needs.build-ubuntu.result }}" != "success" ]; then
-          echo "❌ Ubuntu build failed"
+          echo "Ubuntu build failed"
           exit 1
         fi
         if [ "${{ needs.build-macos.result }}" != "success" ]; then
-          echo "❌ macOS build failed"
+          echo "macOS build failed"
           exit 1
         fi
-        echo "✅ All builds passed"
+        echo "All builds passed"
