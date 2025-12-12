@@ -1,0 +1,687 @@
+// Copyright 2025 HelixScreen
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "ui_error_reporting.h"
+#include "ui_notification.h"
+
+#include "hv/requests.h"
+#include "moonraker_api.h"
+#include "moonraker_api_internal.h"
+#include "spdlog/spdlog.h"
+
+#include <sstream>
+
+using namespace moonraker_internal;
+
+// ============================================================================
+// Motion Control Operations
+// ============================================================================
+
+void MoonrakerAPI::home_axes(const std::string& axes, SuccessCallback on_success,
+                             ErrorCallback on_error) {
+    // Validate axes string (empty means all, or contains only XYZE)
+    if (!axes.empty()) {
+        for (char axis : axes) {
+            if (!is_valid_axis(axis)) {
+                NOTIFY_ERROR("Invalid axis '{}' in homing command. Must be X, Y, Z, or E.", axis);
+                if (on_error) {
+                    MoonrakerError err;
+                    err.type = MoonrakerErrorType::VALIDATION_ERROR;
+                    err.message = "Invalid axis character (must be X, Y, Z, or E)";
+                    err.method = "home_axes";
+                    on_error(err);
+                }
+                return;
+            }
+        }
+    }
+
+    std::string gcode = generate_home_gcode(axes);
+    spdlog::info("[Moonraker API] Homing axes: {} (G-code: {})", axes.empty() ? "all" : axes,
+                 gcode);
+
+    execute_gcode(gcode, on_success, on_error);
+}
+
+void MoonrakerAPI::move_axis(char axis, double distance, double feedrate,
+                             SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate axis
+    if (!is_valid_axis(axis)) {
+        NOTIFY_ERROR("Invalid axis '{}'. Must be X, Y, Z, or E.", axis);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid axis: " + std::string(1, axis) + " (must be X, Y, Z, or E)";
+            err.method = "move_axis";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate distance is within safety limits
+    if (!is_safe_distance(distance, safety_limits_)) {
+        NOTIFY_ERROR("Move distance {:.1f}mm is too large. Maximum: {:.1f}mm.", std::abs(distance),
+                     safety_limits_.max_relative_distance_mm);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Distance " + std::to_string(distance) + "mm exceeds safety limits (" +
+                          std::to_string(safety_limits_.min_relative_distance_mm) + "-" +
+                          std::to_string(safety_limits_.max_relative_distance_mm) + "mm)";
+            err.method = "move_axis";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate feedrate if specified (0 means use default, negative is invalid)
+    if (feedrate != 0 && !is_safe_feedrate(feedrate, safety_limits_)) {
+        NOTIFY_ERROR("Speed {:.0f}mm/min is too fast. Maximum: {:.0f}mm/min.", feedrate,
+                     safety_limits_.max_feedrate_mm_min);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Feedrate " + std::to_string(feedrate) +
+                          "mm/min exceeds safety limits (" +
+                          std::to_string(safety_limits_.min_feedrate_mm_min) + "-" +
+                          std::to_string(safety_limits_.max_feedrate_mm_min) + "mm/min)";
+            err.method = "move_axis";
+            on_error(err);
+        }
+        return;
+    }
+
+    std::string gcode = generate_move_gcode(axis, distance, feedrate);
+    spdlog::info("[Moonraker API] Moving axis {} by {}mm (G-code: {})", axis, distance, gcode);
+
+    execute_gcode(gcode, on_success, on_error);
+}
+
+void MoonrakerAPI::move_to_position(char axis, double position, double feedrate,
+                                    SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate axis
+    if (!is_valid_axis(axis)) {
+        NOTIFY_ERROR("Invalid axis '{}'. Must be X, Y, Z, or E.", axis);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid axis character (must be X, Y, Z, or E)";
+            err.method = "move_to_position";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate position is within safety limits
+    if (!is_safe_position(position, safety_limits_)) {
+        NOTIFY_ERROR("Position {:.1f}mm is out of range. Valid: {:.1f}mm to {:.1f}mm.", position,
+                     safety_limits_.min_absolute_position_mm,
+                     safety_limits_.max_absolute_position_mm);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Position " + std::to_string(position) + "mm exceeds safety limits (" +
+                          std::to_string(safety_limits_.min_absolute_position_mm) + "-" +
+                          std::to_string(safety_limits_.max_absolute_position_mm) + "mm)";
+            err.method = "move_to_position";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate feedrate if specified (0 means use default, negative is invalid)
+    if (feedrate != 0 && !is_safe_feedrate(feedrate, safety_limits_)) {
+        NOTIFY_ERROR("Speed {:.0f}mm/min is too fast. Maximum: {:.0f}mm/min.", feedrate,
+                     safety_limits_.max_feedrate_mm_min);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Feedrate " + std::to_string(feedrate) +
+                          "mm/min exceeds safety limits (" +
+                          std::to_string(safety_limits_.min_feedrate_mm_min) + "-" +
+                          std::to_string(safety_limits_.max_feedrate_mm_min) + "mm/min)";
+            err.method = "move_to_position";
+            on_error(err);
+        }
+        return;
+    }
+
+    std::string gcode = generate_absolute_move_gcode(axis, position, feedrate);
+    spdlog::info("[Moonraker API] Moving axis {} to {}mm (G-code: {})", axis, position, gcode);
+
+    execute_gcode(gcode, on_success, on_error);
+}
+
+// ============================================================================
+// Temperature Control Operations
+// ============================================================================
+
+// ============================================================================
+// Temperature Control Operations
+// ============================================================================
+
+void MoonrakerAPI::set_temperature(const std::string& heater, double temperature,
+                                   SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate heater name
+    if (!is_safe_identifier(heater)) {
+        NOTIFY_ERROR("Invalid heater name '{}'. Contains unsafe characters.", heater);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid heater name contains illegal characters";
+            err.method = "set_temperature";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate temperature range
+    if (!is_safe_temperature(temperature, safety_limits_)) {
+        NOTIFY_ERROR("Temperature {:.0f}°C is out of range. Valid: {:.0f}°C to {:.0f}°C.",
+                     temperature, safety_limits_.min_temperature_celsius,
+                     safety_limits_.max_temperature_celsius);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message =
+                "Temperature " + std::to_string(static_cast<int>(temperature)) +
+                "°C exceeds safety limits (" +
+                std::to_string(static_cast<int>(safety_limits_.min_temperature_celsius)) + "-" +
+                std::to_string(static_cast<int>(safety_limits_.max_temperature_celsius)) + "°C)";
+            err.method = "set_temperature";
+            on_error(err);
+        }
+        return;
+    }
+
+    std::ostringstream gcode;
+    gcode << "SET_HEATER_TEMPERATURE HEATER=" << heater << " TARGET=" << temperature;
+
+    spdlog::info("[Moonraker API] Setting {} temperature to {}°C", heater, temperature);
+
+    execute_gcode(gcode.str(), on_success, on_error);
+}
+
+void MoonrakerAPI::set_fan_speed(const std::string& fan, double speed, SuccessCallback on_success,
+                                 ErrorCallback on_error) {
+    // Validate fan name
+    if (!is_safe_identifier(fan)) {
+        NOTIFY_ERROR("Invalid fan name '{}'. Contains unsafe characters.", fan);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid fan name contains illegal characters";
+            err.method = "set_fan_speed";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate speed percentage
+    if (!is_safe_fan_speed(speed, safety_limits_)) {
+        NOTIFY_ERROR("Fan speed {:.0f}% is out of range. Valid: {:.0f}% to {:.0f}%.", speed,
+                     safety_limits_.min_fan_speed_percent, safety_limits_.max_fan_speed_percent);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message =
+                "Fan speed " + std::to_string(static_cast<int>(speed)) +
+                "% exceeds safety limits (" +
+                std::to_string(static_cast<int>(safety_limits_.min_fan_speed_percent)) + "-" +
+                std::to_string(static_cast<int>(safety_limits_.max_fan_speed_percent)) + "%)";
+            err.method = "set_fan_speed";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Convert percentage to 0-255 range for M106 command
+    int fan_value = static_cast<int>(speed * 255.0 / 100.0);
+
+    std::ostringstream gcode;
+    if (fan == "fan") {
+        // Part cooling fan uses M106
+        gcode << "M106 S" << fan_value;
+    } else {
+        // Generic fans use SET_FAN_SPEED
+        gcode << "SET_FAN_SPEED FAN=" << fan << " SPEED=" << (speed / 100.0);
+    }
+
+    spdlog::info("[Moonraker API] Setting {} speed to {}%", fan, speed);
+
+    execute_gcode(gcode.str(), on_success, on_error);
+}
+
+void MoonrakerAPI::set_led(const std::string& led, double red, double green, double blue,
+                           double white, SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate LED name
+    if (!is_safe_identifier(led)) {
+        NOTIFY_ERROR("Invalid LED name '{}'. Contains unsafe characters.", led);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid LED name contains illegal characters";
+            err.method = "set_led";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Clamp color values to 0.0-1.0 range
+    red = std::clamp(red, 0.0, 1.0);
+    green = std::clamp(green, 0.0, 1.0);
+    blue = std::clamp(blue, 0.0, 1.0);
+    white = std::clamp(white, 0.0, 1.0);
+
+    // Extract just the LED name without the type prefix (e.g., "neopixel " or "led ")
+    std::string led_name = led;
+    size_t space_pos = led.find(' ');
+    if (space_pos != std::string::npos) {
+        led_name = led.substr(space_pos + 1);
+    }
+
+    // Build SET_LED G-code command
+    std::ostringstream gcode;
+    gcode << "SET_LED LED=" << led_name << " RED=" << red << " GREEN=" << green << " BLUE=" << blue;
+
+    // Only add WHITE parameter if non-zero (for RGBW LEDs)
+    if (white > 0.0) {
+        gcode << " WHITE=" << white;
+    }
+
+    spdlog::info("[Moonraker API] Setting LED {}: R={:.2f} G={:.2f} B={:.2f} W={:.2f}", led_name,
+                 red, green, blue, white);
+
+    execute_gcode(gcode.str(), on_success, on_error);
+}
+
+void MoonrakerAPI::set_led_on(const std::string& led, SuccessCallback on_success,
+                              ErrorCallback on_error) {
+    set_led(led, 1.0, 1.0, 1.0, 1.0, on_success, on_error);
+}
+
+void MoonrakerAPI::set_led_off(const std::string& led, SuccessCallback on_success,
+                               ErrorCallback on_error) {
+    set_led(led, 0.0, 0.0, 0.0, 0.0, on_success, on_error);
+}
+
+// ============================================================================
+// Power Device Control Operations
+// ============================================================================
+
+// ============================================================================
+// Power Device Control Operations
+// ============================================================================
+
+void MoonrakerAPI::get_power_devices(PowerDevicesCallback on_success, ErrorCallback on_error) {
+    if (http_base_url_.empty()) {
+        spdlog::error("[Moonraker API] HTTP base URL not configured for power devices");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "Not connected to Moonraker";
+            err.method = "get_power_devices";
+            on_error(err);
+        }
+        return;
+    }
+
+    std::string url = http_base_url_ + "/machine/device_power/devices";
+    spdlog::debug("[Moonraker API] Fetching power devices from: {}", url);
+
+    launch_http_thread([url, on_success, on_error]() {
+        auto resp = requests::get(url.c_str());
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP request failed for power devices");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP request failed";
+                err.method = "get_power_devices";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 200) {
+            spdlog::error("[Moonraker API] Power devices request failed: HTTP {}",
+                          static_cast<int>(resp->status_code));
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code));
+                err.method = "get_power_devices";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Parse JSON response
+        try {
+            json j = json::parse(resp->body);
+            std::vector<MoonrakerAPI::PowerDevice> devices;
+
+            if (j.contains("result") && j["result"].contains("devices")) {
+                for (const auto& [name, info] : j["result"]["devices"].items()) {
+                    MoonrakerAPI::PowerDevice dev;
+                    dev.device = name;
+                    dev.type = info.value("type", "unknown");
+                    dev.status = info.value("status", "off");
+                    dev.locked_while_printing = info.value("locked_while_printing", false);
+                    devices.push_back(dev);
+                }
+            }
+
+            spdlog::info("[Moonraker API] Found {} power devices", devices.size());
+            if (on_success) {
+                on_success(devices);
+            }
+        } catch (const std::exception& e) {
+            spdlog::error("[Moonraker API] Failed to parse power devices: {}", e.what());
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.message = e.what();
+                err.method = "get_power_devices";
+                on_error(err);
+            }
+        }
+    });
+}
+
+void MoonrakerAPI::set_device_power(const std::string& device, const std::string& action,
+                                    SuccessCallback on_success, ErrorCallback on_error) {
+    // Validate device name
+    if (!is_safe_identifier(device)) {
+        spdlog::error("[Moonraker API] Invalid device name: {}", device);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid device name";
+            err.method = "set_device_power";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Validate action
+    if (action != "on" && action != "off" && action != "toggle") {
+        spdlog::error("[Moonraker API] Invalid power action: {}", action);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid action (must be on, off, or toggle)";
+            err.method = "set_device_power";
+            on_error(err);
+        }
+        return;
+    }
+
+    if (http_base_url_.empty()) {
+        spdlog::error("[Moonraker API] HTTP base URL not configured for power device control");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "Not connected to Moonraker";
+            err.method = "set_device_power";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Build URL with query params
+    std::string url =
+        http_base_url_ + "/machine/device_power/device?device=" + device + "&action=" + action;
+
+    spdlog::info("[Moonraker API] Setting power device '{}' to '{}'", device, action);
+
+    launch_http_thread([url, device, action, on_success, on_error]() {
+        auto resp = requests::post(url.c_str(), "");
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP request failed for power device");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP request failed";
+                err.method = "set_device_power";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 200) {
+            spdlog::error("[Moonraker API] Power device command failed: HTTP {}",
+                          static_cast<int>(resp->status_code));
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code));
+                err.method = "set_device_power";
+                on_error(err);
+            }
+            return;
+        }
+
+        spdlog::info("[Moonraker API] Power device '{}' set to '{}' successfully", device, action);
+        if (on_success) {
+            on_success();
+        }
+    });
+}
+
+// ============================================================================
+// System Control Operations
+// ============================================================================
+
+// ============================================================================
+// System Control Operations
+// ============================================================================
+
+void MoonrakerAPI::execute_gcode(const std::string& gcode, SuccessCallback on_success,
+                                 ErrorCallback on_error) {
+    json params = {{"script", gcode}};
+
+    spdlog::debug("[Moonraker API] Executing G-code: {}", gcode);
+
+    client_.send_jsonrpc(
+        "printer.gcode.script", params, [on_success](json) { on_success(); }, on_error);
+}
+
+// ============================================================================
+// Object Exclusion Operations
+// ============================================================================
+
+void MoonrakerAPI::exclude_object(const std::string& object_name, SuccessCallback on_success,
+                                  ErrorCallback on_error) {
+    // Validate object name to prevent G-code injection
+    if (!is_safe_identifier(object_name)) {
+        NOTIFY_ERROR("Invalid object name '{}'. Contains unsafe characters.", object_name);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid object name contains illegal characters";
+            err.method = "exclude_object";
+            on_error(err);
+        }
+        return;
+    }
+
+    std::ostringstream gcode;
+    gcode << "EXCLUDE_OBJECT NAME=" << object_name;
+
+    spdlog::info("[Moonraker API] Excluding object: {}", object_name);
+
+    execute_gcode(gcode.str(), on_success, on_error);
+}
+
+void MoonrakerAPI::emergency_stop(SuccessCallback on_success, ErrorCallback on_error) {
+    spdlog::warn("[Moonraker API] Emergency stop requested!");
+
+    client_.send_jsonrpc(
+        "printer.emergency_stop", json::object(),
+        [on_success](json) {
+            spdlog::info("[Moonraker API] Emergency stop executed");
+            on_success();
+        },
+        on_error);
+}
+
+void MoonrakerAPI::restart_firmware(SuccessCallback on_success, ErrorCallback on_error) {
+    spdlog::info("[Moonraker API] Restarting firmware");
+
+    client_.send_jsonrpc(
+        "printer.firmware_restart", json::object(),
+        [on_success](json) {
+            spdlog::info("[Moonraker API] Firmware restart initiated");
+            on_success();
+        },
+        on_error);
+}
+
+void MoonrakerAPI::restart_klipper(SuccessCallback on_success, ErrorCallback on_error) {
+    spdlog::info("[Moonraker API] Restarting Klipper");
+
+    client_.send_jsonrpc(
+        "printer.restart", json::object(),
+        [on_success](json) {
+            spdlog::info("[Moonraker API] Klipper restart initiated");
+            on_success();
+        },
+        on_error);
+}
+
+// ============================================================================
+// Query Operations
+// ============================================================================
+
+// ============================================================================
+// Safety Limits Configuration
+// ============================================================================
+
+void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
+                                                     ErrorCallback on_error) {
+    // Only update if limits haven't been explicitly set
+    if (limits_explicitly_set_) {
+        spdlog::debug("[Moonraker API] Safety limits explicitly configured, skipping Moonraker "
+                      "auto-detection");
+        if (on_success) {
+            on_success();
+        }
+        return;
+    }
+
+    // Query printer configuration for safety limits
+    json params = {{"objects", json::object({{"configfile", json::array({"settings"})}})}};
+
+    client_.send_jsonrpc(
+        "printer.objects.query", params,
+        [this, on_success](json response) {
+            try {
+                if (!response.contains("result") || !response["result"].contains("status") ||
+                    !response["result"]["status"].contains("configfile") ||
+                    !response["result"]["status"]["configfile"].contains("settings")) {
+                    spdlog::warn("[Moonraker API] Printer configuration not available, using "
+                                 "default safety limits");
+                    if (on_success) {
+                        on_success();
+                    }
+                    return;
+                }
+
+                const json& settings = response["result"]["status"]["configfile"]["settings"];
+                bool updated = false;
+
+                // Extract max_velocity from printer settings
+                if (settings.contains("printer") && settings["printer"].contains("max_velocity")) {
+                    double max_velocity_mm_s = settings["printer"]["max_velocity"].get<double>();
+                    safety_limits_.max_feedrate_mm_min = max_velocity_mm_s * 60.0;
+                    updated = true;
+                    spdlog::info(
+                        "[Moonraker API] Updated max_feedrate from printer config: {} mm/min",
+                        safety_limits_.max_feedrate_mm_min);
+                }
+
+                // Extract axis limits from stepper configurations
+                for (const std::string& stepper : {"stepper_x", "stepper_y", "stepper_z"}) {
+                    if (settings.contains(stepper)) {
+                        if (settings[stepper].contains("position_max")) {
+                            double pos_max = settings[stepper]["position_max"].get<double>();
+                            // Use the largest axis max as absolute position limit
+                            if (pos_max > safety_limits_.max_absolute_position_mm) {
+                                safety_limits_.max_absolute_position_mm = pos_max;
+                                updated = true;
+                            }
+                        }
+                        if (settings[stepper].contains("position_min")) {
+                            double pos_min = settings[stepper]["position_min"].get<double>();
+                            // Use the smallest (most negative) axis min as absolute position limit
+                            if (pos_min < safety_limits_.min_absolute_position_mm) {
+                                safety_limits_.min_absolute_position_mm = pos_min;
+                                updated = true;
+                            }
+                        }
+                    }
+                }
+
+                // Extract temperature limits from heater configurations
+                for (const auto& [key, value] : settings.items()) {
+                    if ((key.find("extruder") != std::string::npos ||
+                         key.find("heater_") != std::string::npos) &&
+                        value.is_object()) {
+                        if (value.contains("max_temp")) {
+                            double max_temp = value["max_temp"].get<double>();
+                            // Use the highest heater max_temp as temperature limit
+                            if (max_temp > safety_limits_.max_temperature_celsius) {
+                                safety_limits_.max_temperature_celsius = max_temp;
+                                updated = true;
+                            }
+                        }
+                        if (value.contains("min_temp")) {
+                            double min_temp = value["min_temp"].get<double>();
+                            // Use the lowest heater min_temp as temperature limit
+                            if (min_temp < safety_limits_.min_temperature_celsius) {
+                                safety_limits_.min_temperature_celsius = min_temp;
+                                updated = true;
+                            }
+                        }
+                    }
+                }
+
+                if (updated) {
+                    spdlog::info(
+                        "[Moonraker API] Updated safety limits from printer configuration:");
+                    spdlog::info("[Moonraker API]   Temperature: {} to {}°C",
+                                 safety_limits_.min_temperature_celsius,
+                                 safety_limits_.max_temperature_celsius);
+                    spdlog::info("[Moonraker API]   Position: {} to {}mm",
+                                 safety_limits_.min_absolute_position_mm,
+                                 safety_limits_.max_absolute_position_mm);
+                    spdlog::info("[Moonraker API]   Feedrate: {} to {} mm/min",
+                                 safety_limits_.min_feedrate_mm_min,
+                                 safety_limits_.max_feedrate_mm_min);
+                } else {
+                    spdlog::debug("[Moonraker API] No safety limit overrides found in printer "
+                                  "config, using defaults");
+                }
+
+                if (on_success) {
+                    on_success();
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR_INTERNAL("Failed to parse printer configuration for safety limits: {}",
+                                   e.what());
+                if (on_success) {
+                    on_success(); // Continue with defaults on parse error
+                }
+            }
+        },
+        on_error);
+}
+
+// ============================================================================
+// HTTP File Transfer Operations
+// ============================================================================

@@ -119,6 +119,11 @@ TEST_MOONRAKER_DEPS := \
     $(OBJ_DIR)/moonraker_client.o \
     $(OBJ_DIR)/moonraker_client_mock.o \
     $(OBJ_DIR)/moonraker_api.o \
+    $(OBJ_DIR)/moonraker_api_files.o \
+    $(OBJ_DIR)/moonraker_api_print.o \
+    $(OBJ_DIR)/moonraker_api_motion.o \
+    $(OBJ_DIR)/moonraker_api_advanced.o \
+    $(OBJ_DIR)/moonraker_api_history.o \
     $(OBJ_DIR)/moonraker_api_mock.o \
     $(OBJ_DIR)/printer_state.o \
     $(OBJ_DIR)/printer_detector.o \
