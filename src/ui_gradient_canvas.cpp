@@ -21,8 +21,9 @@ namespace {
 
 // Default gradient colors (matching original thumbnail-gradient-bg.png)
 // Diagonal gradient: bright at top-right, dark at bottom-left
-constexpr uint8_t DEFAULT_START_GRAY = 80; // Top-right - brighter
-constexpr uint8_t DEFAULT_END_GRAY = 0;    // Bottom-left - darker
+// Lightened ~50% from original (80,0) to (123,43) for better visibility
+constexpr uint8_t DEFAULT_START_GRAY = 123; // Top-right - brighter
+constexpr uint8_t DEFAULT_END_GRAY = 43;    // Bottom-left - darker
 
 // Pre-rendered gradient buffer size
 // 256x256 ensures full coverage when clipped to rectangular cards (~170x245)

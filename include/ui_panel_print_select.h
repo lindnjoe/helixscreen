@@ -86,6 +86,7 @@ struct PrintFileData {
     int print_time_minutes;    ///< Print time in minutes
     float filament_grams;      ///< Filament weight in grams
     std::string filament_type; ///< Filament type (e.g., "PLA", "PETG", "ABS")
+    uint32_t layer_count = 0;  ///< Total layer count from slicer
     bool is_dir = false;       ///< True if this is a directory
 
     // Formatted strings (cached for performance)
@@ -93,6 +94,7 @@ struct PrintFileData {
     std::string modified_str;
     std::string print_time_str;
     std::string filament_str;
+    std::string layer_count_str; ///< Formatted layer count string
 };
 
 /**
@@ -249,9 +251,10 @@ class PrintSelectPanel : public PanelBase {
      * @param thumbnail_src Thumbnail path
      * @param print_time Formatted print time
      * @param filament_weight Formatted filament weight
+     * @param layer_count Formatted layer count (or "--" if unknown)
      */
     void set_selected_file(const char* filename, const char* thumbnail_src, const char* print_time,
-                           const char* filament_weight);
+                           const char* filament_weight, const char* layer_count);
 
     /**
      * @brief Show detail view overlay for selected file
@@ -382,6 +385,9 @@ class PrintSelectPanel : public PanelBase {
 
     lv_subject_t selected_filament_weight_subject_;
     char selected_filament_weight_buffer_[32];
+
+    lv_subject_t selected_layer_count_subject_;
+    char selected_layer_count_buffer_[32];
 
     lv_subject_t detail_view_visible_subject_;
 

@@ -47,7 +47,7 @@
           </lv_obj>
           <!-- Filament weight (icon + text) -->
           <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#icon_text_gap" style_flex_cross_place="center">
-            <icon src="layers" size="xs" variant="accent"/>
+            <icon src="weight" size="xs" variant="accent"/>
             <text_xs text="$filament_weight" flex_grow="1" name="filament_label"/>
           </lv_obj>
         </lv_obj>

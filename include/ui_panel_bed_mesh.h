@@ -108,12 +108,12 @@ class BedMeshPanel : public PanelBase {
     lv_subject_t bed_mesh_calibrating_;
     lv_subject_t bed_mesh_rename_modal_visible_;
     lv_subject_t bed_mesh_rename_old_name_;
-    lv_subject_t bed_mesh_delete_modal_visible_;
-    lv_subject_t bed_mesh_delete_profile_name_;
     lv_subject_t bed_mesh_save_config_modal_visible_;
 
     char rename_old_name_buf_[64];
-    char delete_profile_name_buf_[64];
+
+    // Delete confirmation modal widget (uses ui_modal_show pattern)
+    lv_obj_t* delete_modal_widget_ = nullptr;
 
     // ========== UI Widget Pointers ==========
     lv_obj_t* canvas_ = nullptr;

@@ -15,7 +15,7 @@
       <!-- for static data, but detail view needs bindings (bind_*) for     -->
       <!-- reactive updates when user selects different files.              -->
       <!-- ================================================================== -->
-      <ui_card name="detail_card" flex_grow="5" height="100%" style_radius="#border_radius" style_pad_all="0" style_clip_corner="true">
+      <ui_card name="detail_card" flex_grow="5" height="100%" style_radius="#border_radius" style_pad_all="0" style_clip_corner="true" style_margin_left="#space_sm">
         <!-- Gradient background -->
         <ui_gradient_canvas width="100%" height="100%" dither="true"/>
         <!-- Thumbnail with reactive binding -->
@@ -33,10 +33,15 @@
                 <icon src="clock" size="xs" variant="accent"/>
                 <text_small bind_text="selected_print_time" flex_grow="1" style_min_width="35" name="detail_time_label"/>
               </lv_obj>
-              <!-- Filament weight -->
+              <!-- Filament weight (uses weight icon) -->
+              <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xxs" style_flex_cross_place="center">
+                <icon src="weight" size="xs" variant="accent"/>
+                <text_small bind_text="selected_filament_weight" flex_grow="1" style_min_width="35" name="detail_filament_label"/>
+              </lv_obj>
+              <!-- Layer count -->
               <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xxs" style_flex_cross_place="center">
                 <icon src="layers" size="xs" variant="accent"/>
-                <text_small bind_text="selected_filament_weight" flex_grow="1" style_min_width="35" name="detail_filament_label"/>
+                <text_small bind_text="selected_layer_count" flex_grow="1" style_min_width="35" name="detail_layers_label"/>
               </lv_obj>
             </lv_obj>
           </lv_obj>

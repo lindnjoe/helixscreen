@@ -128,6 +128,8 @@ void PrintSelectPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_filament_weight_subject_,
                                         selected_filament_weight_buffer_, "",
                                         "selected_filament_weight");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_layer_count_subject_, selected_layer_count_buffer_,
+                                        "", "selected_layer_count");
 
     // Initialize detail view visibility subject (0 = hidden, 1 = visible)
     UI_SUBJECT_INIT_AND_REGISTER_INT(detail_view_visible_subject_, 0, "detail_view_visible");
@@ -285,6 +287,9 @@ void PrintSelectPanel::toggle_view() {
             lv_image_set_src(view_toggle_icon_, grid_icon);
         }
         spdlog::debug("[{}] Switched to list view", get_name());
+
+        // Populate list view (initializes pool if needed)
+        populate_list_view();
     } else {
         // Switch to card view
         current_view_mode_ = PrintSelectViewMode::CARD;
@@ -298,6 +303,9 @@ void PrintSelectPanel::toggle_view() {
             lv_image_set_src(view_toggle_icon_, list_icon);
         }
         spdlog::debug("[{}] Switched to card view", get_name());
+
+        // Repopulate card view
+        populate_card_view();
     }
 
     update_empty_state();
@@ -487,10 +495,13 @@ void PrintSelectPanel::fetch_all_metadata() {
                 float filament_grams = static_cast<float>(metadata.filament_weight_total);
                 std::string filament_type = metadata.filament_type;
                 std::string thumb_path = metadata.get_largest_thumbnail();
+                uint32_t layer_count = metadata.layer_count;
 
                 // Format strings on background thread (uses standalone helper functions)
                 std::string print_time_str = format_print_time(print_time_minutes);
                 std::string filament_str = format_filament_weight(filament_grams);
+                std::string layer_count_str =
+                    layer_count > 0 ? std::to_string(layer_count) : "--";
 
                 // Check if thumbnail is a local file (background thread - filesystem OK)
                 bool thumb_is_local = !thumb_path.empty() && std::filesystem::exists(thumb_path);
@@ -515,6 +526,8 @@ void PrintSelectPanel::fetch_all_metadata() {
                     std::string filament_type;
                     std::string print_time_str;
                     std::string filament_str;
+                    uint32_t layer_count;
+                    std::string layer_count_str;
                     std::string thumb_path;
                     std::string cache_file;
                     bool thumb_is_local;
@@ -523,7 +536,8 @@ void PrintSelectPanel::fetch_all_metadata() {
                 ui_async_call_safe<MetadataUpdate>(
                     std::make_unique<MetadataUpdate>(MetadataUpdate{
                         self, i, filename, print_time_minutes, filament_grams, filament_type,
-                        print_time_str, filament_str, thumb_path, cache_file, thumb_is_local}),
+                        print_time_str, filament_str, layer_count, layer_count_str, thumb_path,
+                        cache_file, thumb_is_local}),
                     [](MetadataUpdate* d) {
                         auto* self = d->panel;
 
@@ -541,10 +555,12 @@ void PrintSelectPanel::fetch_all_metadata() {
                         self->file_list_[d->index].filament_type = d->filament_type;
                         self->file_list_[d->index].print_time_str = d->print_time_str;
                         self->file_list_[d->index].filament_str = d->filament_str;
+                        self->file_list_[d->index].layer_count = d->layer_count;
+                        self->file_list_[d->index].layer_count_str = d->layer_count_str;
 
-                        spdlog::debug("[{}] Updated metadata for {}: {}min, {}g, type={}",
+                        spdlog::debug("[{}] Updated metadata for {}: {}min, {}g, {} layers",
                                       self->get_name(), d->filename, d->print_time_minutes,
-                                      d->filament_grams, d->filament_type);
+                                      d->filament_grams, d->layer_count);
 
                         // Handle thumbnail
                         if (!d->thumb_path.empty() && self->api_) {
@@ -609,7 +625,8 @@ void PrintSelectPanel::fetch_all_metadata() {
                             self->set_selected_file(
                                 d->filename.c_str(),
                                 self->file_list_[d->index].thumbnail_path.c_str(),
-                                d->print_time_str.c_str(), d->filament_str.c_str());
+                                d->print_time_str.c_str(), d->filament_str.c_str(),
+                                d->layer_count_str.c_str());
                         }
                     });
             },
@@ -681,7 +698,8 @@ void PrintSelectPanel::navigate_up() {
 }
 
 void PrintSelectPanel::set_selected_file(const char* filename, const char* thumbnail_src,
-                                         const char* print_time, const char* filament_weight) {
+                                         const char* print_time, const char* filament_weight,
+                                         const char* layer_count) {
     lv_subject_copy_string(&selected_filename_subject_, filename);
 
     // Thumbnail uses POINTER subject - copy to buffer then update pointer
@@ -691,6 +709,7 @@ void PrintSelectPanel::set_selected_file(const char* filename, const char* thumb
 
     lv_subject_copy_string(&selected_print_time_subject_, print_time);
     lv_subject_copy_string(&selected_filament_weight_subject_, filament_weight);
+    lv_subject_copy_string(&selected_layer_count_subject_, layer_count);
 
     spdlog::info("[{}] Selected file: {}", get_name(), filename);
 }
@@ -1562,7 +1581,8 @@ void PrintSelectPanel::handle_file_click(size_t file_index) {
     } else {
         // File clicked - show detail view
         set_selected_file(file.filename.c_str(), file.thumbnail_path.c_str(),
-                          file.print_time_str.c_str(), file.filament_str.c_str());
+                          file.print_time_str.c_str(), file.filament_str.c_str(),
+                          file.layer_count_str.c_str());
         selected_filament_type_ = file.filament_type;
         show_detail_view();
     }

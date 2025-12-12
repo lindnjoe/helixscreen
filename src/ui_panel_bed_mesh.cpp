@@ -4,6 +4,7 @@
 #include "ui_panel_bed_mesh.h"
 
 #include "ui_bed_mesh.h"
+#include "ui_modal.h"
 #include "ui_nav.h"
 #include "ui_panel_common.h"
 #include "ui_subject_registry.h"
@@ -51,7 +52,6 @@ BedMeshPanel::BedMeshPanel(PrinterState& printer_state, MoonrakerAPI* api)
     std::memset(min_value_buf_, 0, sizeof(min_value_buf_));
     std::memset(variance_buf_, 0, sizeof(variance_buf_));
     std::memset(rename_old_name_buf_, 0, sizeof(rename_old_name_buf_));
-    std::memset(delete_profile_name_buf_, 0, sizeof(delete_profile_name_buf_));
 
     // Initialize profile buffers
     for (int i = 0; i < BED_MESH_MAX_PROFILES; i++) {
@@ -126,10 +126,7 @@ void BedMeshPanel::init_subjects() {
                                      "bed_mesh_rename_modal_visible");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_mesh_rename_old_name_, rename_old_name_buf_, "",
                                         "bed_mesh_rename_old_name");
-    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_delete_modal_visible_, 0,
-                                     "bed_mesh_delete_modal_visible");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_mesh_delete_profile_name_, delete_profile_name_buf_, "",
-                                        "bed_mesh_delete_profile_name");
+    // Note: delete modal uses ui_modal_show() instead of subject-based visibility
     UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_save_config_modal_visible_, 0,
                                      "bed_mesh_save_config_modal_visible");
 
@@ -540,8 +537,42 @@ void BedMeshPanel::show_rename_modal(const std::string& profile_name) {
 
 void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
     pending_delete_profile_ = profile_name;
-    lv_subject_copy_string(&bed_mesh_delete_profile_name_, profile_name.c_str());
-    lv_subject_set_int(&bed_mesh_delete_modal_visible_, 1);
+
+    // Configure modal (same pattern as print_select)
+    ui_modal_config_t config = {
+        .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
+        .backdrop_opa = 180,
+        .keyboard = nullptr,
+        .persistent = false,
+        .on_close = nullptr};
+
+    // Create message with profile name
+    char msg_buf[256];
+    snprintf(msg_buf, sizeof(msg_buf), "Delete profile '%s'? This action cannot be undone.",
+             profile_name.c_str());
+
+    const char* attrs[] = {"title", "Delete Profile?", "message", msg_buf, NULL};
+
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Delete", "Cancel");
+    delete_modal_widget_ = ui_modal_show("modal_dialog", &config, attrs);
+
+    if (!delete_modal_widget_) {
+        spdlog::error("[{}] Failed to create delete confirmation modal", get_name());
+        return;
+    }
+
+    // Wire up cancel button
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(delete_modal_widget_, "btn_secondary");
+    if (cancel_btn) {
+        lv_obj_add_event_cb(cancel_btn, on_delete_cancel_cb, LV_EVENT_CLICKED, nullptr);
+    }
+
+    // Wire up confirm button
+    lv_obj_t* confirm_btn = lv_obj_find_by_name(delete_modal_widget_, "btn_primary");
+    if (confirm_btn) {
+        lv_obj_add_event_cb(confirm_btn, on_delete_confirm_cb, LV_EVENT_CLICKED, nullptr);
+    }
+
     spdlog::debug("[{}] Showing delete confirm modal for: {}", get_name(), profile_name);
 }
 
@@ -554,8 +585,13 @@ void BedMeshPanel::hide_all_modals() {
     lv_subject_set_int(&bed_mesh_calibrate_modal_visible_, 0);
     lv_subject_set_int(&bed_mesh_calibrating_, 0);
     lv_subject_set_int(&bed_mesh_rename_modal_visible_, 0);
-    lv_subject_set_int(&bed_mesh_delete_modal_visible_, 0);
     lv_subject_set_int(&bed_mesh_save_config_modal_visible_, 0);
+
+    // Hide delete modal (uses ui_modal_hide pattern)
+    if (delete_modal_widget_) {
+        ui_modal_hide(delete_modal_widget_);
+        delete_modal_widget_ = nullptr;
+    }
 }
 
 void BedMeshPanel::confirm_delete_profile() {
