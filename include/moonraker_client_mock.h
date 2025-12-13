@@ -515,6 +515,26 @@ class MoonrakerClientMock : public MoonrakerClient {
     void dispatch_manual_probe_update();
 
     /**
+     * @brief Dispatch a G-code response notification
+     *
+     * Simulates `notify_gcode_response` WebSocket notification by invoking
+     * all registered method callbacks for that method. Used to simulate
+     * PRINT_START macro output during preheat phase.
+     *
+     * @param line G-code response line to dispatch
+     */
+    void dispatch_gcode_response(const std::string& line);
+
+    /**
+     * @brief Advance PRINT_START simulation based on temperature progress
+     *
+     * Called during PREHEAT phase to dispatch simulated G-code responses
+     * for common PRINT_START phases (homing, heating, QGL, etc.) based on
+     * temperature progress toward targets.
+     */
+    void advance_print_start_simulation();
+
+    /**
      * @brief Generate next mock request ID
      * @return Valid request ID (always > 0)
      */
@@ -599,6 +619,21 @@ class MoonrakerClientMock : public MoonrakerClient {
 
     // Simulation tick counter
     std::atomic<uint32_t> tick_count_{0};
+
+    // PRINT_START simulation phases (for G-code response notifications)
+    // Tracks which phases have already been dispatched during current print
+    enum class SimulatedPrintStartPhase : uint8_t {
+        NONE = 0,
+        PRINT_START_MARKER = 1, // "PRINT_START" detected
+        HOMING = 2,             // "G28" dispatched
+        HEATING_BED = 3,        // "M190 S60" dispatched
+        HEATING_NOZZLE = 4,     // "M109 S210" dispatched
+        QGL = 5,                // "QUAD_GANTRY_LEVEL" dispatched
+        BED_MESH = 6,           // "BED_MESH_CALIBRATE" dispatched
+        PURGING = 7,            // "VORON_PURGE" dispatched
+        LAYER_1 = 8             // "SET_PRINT_STATS_INFO CURRENT_LAYER=1" dispatched
+    };
+    std::atomic<uint8_t> simulated_print_start_phase_{0};
 
     // Simulation thread control
     std::thread simulation_thread_;

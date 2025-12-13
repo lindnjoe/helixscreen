@@ -124,3 +124,79 @@ TEST_CASE("Console: typical Klipper info messages", "[console][error_detection]"
     REQUIRE(is_error_message("echo: G28 homing completed") == false);
     REQUIRE(is_error_message("Recv: ok") == false);
 }
+
+// ============================================================================
+// Temperature Message Filtering Tests
+// (Replicated from ui_panel_console.cpp since it's a private static method)
+// ============================================================================
+
+/**
+ * @brief Check if a message is a temperature status update
+ *
+ * Filters out periodic temperature reports like:
+ * "ok T:210.0 /210.0 B:60.0 /60.0"
+ */
+static bool is_temp_message(const std::string& message) {
+    if (message.empty()) {
+        return false;
+    }
+
+    // Look for temperature patterns: T: or B: followed by numbers
+    // Simple heuristic: contains "T:" or "B:" with "/" nearby
+    size_t t_pos = message.find("T:");
+    size_t b_pos = message.find("B:");
+
+    if (t_pos != std::string::npos || b_pos != std::string::npos) {
+        // Check for temperature format: number / number
+        size_t slash_pos = message.find('/');
+        if (slash_pos != std::string::npos) {
+            // Very likely a temperature status message
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ============================================================================
+// Temperature Message Detection Tests
+// ============================================================================
+
+TEST_CASE("Console: is_temp_message() with empty string", "[console][temp_filter]") {
+    REQUIRE(is_temp_message("") == false);
+}
+
+TEST_CASE("Console: is_temp_message() with standard temp reports", "[console][temp_filter]") {
+    // Standard Klipper temperature reports
+    REQUIRE(is_temp_message("T:210.0 /210.0 B:60.0 /60.0") == true);
+    REQUIRE(is_temp_message("ok T:210.5 /210.0 B:60.2 /60.0") == true);
+    REQUIRE(is_temp_message("B:60.0 /60.0 T0:210.0 /210.0") == true);
+    REQUIRE(is_temp_message("T0:200.0 /200.0 T1:0.0 /0.0 B:55.0 /55.0") == true);
+}
+
+TEST_CASE("Console: is_temp_message() with partial temp formats", "[console][temp_filter]") {
+    // Partial formats that should still be detected
+    REQUIRE(is_temp_message("T:25.0 /0.0") == true); // Cold extruder
+    REQUIRE(is_temp_message("B:22.0 /0.0") == true); // Cold bed
+}
+
+TEST_CASE("Console: is_temp_message() with non-temp messages", "[console][temp_filter]") {
+    // These should NOT be flagged as temperature messages
+    REQUIRE(is_temp_message("ok") == false);
+    REQUIRE(is_temp_message("// Klipper state: Ready") == false);
+    REQUIRE(is_temp_message("echo: G28 completed") == false);
+    REQUIRE(is_temp_message("!! Error: Heater failed") == false);
+    REQUIRE(is_temp_message("M104 S200") == false); // Temp command, not status
+    REQUIRE(is_temp_message("G28 X Y") == false);
+}
+
+TEST_CASE("Console: is_temp_message() edge cases", "[console][temp_filter]") {
+    // Edge cases that look like temps but aren't
+    REQUIRE(is_temp_message("T:") == false);               // No value or slash
+    REQUIRE(is_temp_message("B:60") == false);             // No slash
+    REQUIRE(is_temp_message("Setting T: value") == false); // No slash
+
+    // Edge cases that might have slashes but no temp
+    REQUIRE(is_temp_message("path/to/file") == false); // No T: or B:
+    REQUIRE(is_temp_message("50/50 complete") == false);
+}

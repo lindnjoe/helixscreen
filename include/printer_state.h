@@ -78,6 +78,30 @@ enum class PrintJobState {
 PrintJobState parse_print_job_state(const char* state_str);
 
 /**
+ * @brief Print start initialization phase (detected from G-code response output)
+ *
+ * Represents the current phase during PRINT_START macro execution.
+ * Used to show progress to the user during the initialization sequence
+ * before actual printing begins.
+ *
+ * @note Phases are detected via best-effort pattern matching on G-code responses.
+ *       Not all macros output all phases - progress estimation handles missing phases.
+ */
+enum class PrintStartPhase {
+    IDLE = 0,           ///< Not in PRINT_START (normal operation)
+    INITIALIZING = 1,   ///< PRINT_START detected, waiting for phases
+    HOMING = 2,         ///< G28 / Home All Axes detected
+    HEATING_BED = 3,    ///< M140/M190 / Heating bed detected
+    HEATING_NOZZLE = 4, ///< M104/M109 / Heating nozzle detected
+    QGL = 5,            ///< QUAD_GANTRY_LEVEL detected
+    Z_TILT = 6,         ///< Z_TILT_ADJUST detected
+    BED_MESH = 7,       ///< BED_MESH_CALIBRATE or BED_MESH_PROFILE LOAD detected
+    CLEANING = 8,       ///< CLEAN_NOZZLE / nozzle wipe detected
+    PURGING = 9,        ///< VORON_PURGE / LINE_PURGE detected
+    COMPLETE = 10       ///< Transitioning to PRINTING state
+};
+
+/**
  * @brief Convert PrintJobState enum to display string
  *
  * Returns a human-readable string for UI display.
@@ -267,6 +291,68 @@ class PrinterState {
     lv_subject_t* get_print_time_left_subject() {
         return &print_time_left_;
     }
+
+    // ========================================================================
+    // PRINT START PROGRESS (detected from G-code response during PRINT_START)
+    // ========================================================================
+
+    /**
+     * @brief Get print start phase subject for UI binding
+     *
+     * Integer subject holding PrintStartPhase enum value.
+     * Use with bind_flag_if_eq/not_eq in XML to show/hide progress overlay.
+     */
+    lv_subject_t* get_print_start_phase_subject() {
+        return &print_start_phase_;
+    }
+
+    /**
+     * @brief Get print start message subject for UI binding
+     *
+     * String subject with human-readable phase description (e.g., "Heating Nozzle...").
+     * Use with bind_text in XML.
+     */
+    lv_subject_t* get_print_start_message_subject() {
+        return &print_start_message_;
+    }
+
+    /**
+     * @brief Get print start progress subject for UI binding
+     *
+     * Integer subject with 0-100% progress based on weighted phase completion.
+     * Use with bind_value on lv_bar in XML.
+     */
+    lv_subject_t* get_print_start_progress_subject() {
+        return &print_start_progress_;
+    }
+
+    /**
+     * @brief Check if currently in print start phase
+     *
+     * Convenience method to check if we're showing PRINT_START progress.
+     *
+     * @return true if phase is not IDLE
+     */
+    bool is_in_print_start() const;
+
+    /**
+     * @brief Set print start phase and update message/progress
+     *
+     * Called by PrintStartCollector when phases are detected.
+     * Updates all three subjects: phase, message, and progress.
+     *
+     * @param phase Current PrintStartPhase
+     * @param message Human-readable message (e.g., "Heating Nozzle...")
+     * @param progress Estimated progress 0-100%
+     */
+    void set_print_start_state(PrintStartPhase phase, const char* message, int progress);
+
+    /**
+     * @brief Reset print start to IDLE
+     *
+     * Called when print initialization completes or print is cancelled.
+     */
+    void reset_print_start_state();
 
     // Motion subjects
     lv_subject_t* get_position_x_subject() {
@@ -638,6 +724,11 @@ class PrinterState {
     lv_subject_t print_duration_;  // Elapsed print time in seconds
     lv_subject_t print_time_left_; // Estimated remaining time in seconds
 
+    // Print start progress subjects (for PRINT_START macro tracking)
+    lv_subject_t print_start_phase_;    // Integer: PrintStartPhase enum value
+    lv_subject_t print_start_message_;  // String: human-readable phase message
+    lv_subject_t print_start_progress_; // Integer: 0-100% estimated progress
+
     // Motion subjects
     lv_subject_t position_x_;
     lv_subject_t position_y_;
@@ -704,6 +795,7 @@ class PrinterState {
     char printer_connection_message_buf_[128];
     char klipper_version_buf_[64];
     char moonraker_version_buf_[64];
+    char print_start_message_buf_[64]; // "Heating Nozzle...", "Homing...", etc.
 
     // JSON cache for complex data
     json json_state_;

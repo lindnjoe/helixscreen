@@ -148,8 +148,9 @@ static const IconMapping ICON_MAP[] = {
     {"rotate_right",       "\xF3\xB0\x91\xA7"},  // F0467 rotate-right (CW)
     {"router",             "\xF3\xB0\x91\xA9"},  // F0469 router-wireless
 
-    // SD card
+    // SD card / Send
     {"sd",                 "\xF3\xB0\x91\xB9"},  // F0479 sd
+    {"send",               "\xF3\xB0\x92\x8A"},  // F048A send
     {"settings",           "\xF3\xB0\x92\x93"},  // F0493 cog
     {"sine_wave",          "\xF3\xB0\xA5\x9B"},  // F095B sine-wave
     {"speed",              "\xF3\xB0\x93\x85"},  // F04C5 speedometer

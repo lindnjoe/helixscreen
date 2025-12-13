@@ -1358,6 +1358,9 @@ bool MoonrakerClientMock::start_print_internal(const std::string& filename) {
         excluded_objects_.clear();
     }
 
+    // Reset PRINT_START simulation phase tracking for new print
+    simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::NONE));
+
     // Transition to PREHEAT phase
     print_phase_.store(MockPrintPhase::PREHEAT);
     print_state_.store(1); // "printing" for backward compatibility
@@ -1429,6 +1432,9 @@ bool MoonrakerClientMock::cancel_print_internal() {
     // Set targets to 0 (begin cooldown)
     extruder_target_.store(0.0);
     bed_target_.store(0.0);
+
+    // Reset PRINT_START simulation phase
+    simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::NONE));
 
     // Transition to CANCELLED
     print_phase_.store(MockPrintPhase::CANCELLED);
@@ -1855,9 +1861,21 @@ void MoonrakerClientMock::temperature_simulation_loop() {
             break;
 
         case MockPrintPhase::PREHEAT:
+            // Advance PRINT_START simulation (dispatches G-code responses)
+            advance_print_start_simulation();
+
             // Check if both extruder and bed have reached target temps
             if (is_temp_stable(ext_temp, ext_target) &&
                 is_temp_stable(bed_temp_val, bed_target_val)) {
+                // Dispatch layer 1 marker before transitioning to PRINTING
+                uint8_t current_sim_phase = simulated_print_start_phase_.load();
+                if (current_sim_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::LAYER_1)) {
+                    dispatch_gcode_response("SET_PRINT_STATS_INFO CURRENT_LAYER=1");
+                    dispatch_gcode_response("// Layer 1 starting");
+                    simulated_print_start_phase_.store(
+                        static_cast<uint8_t>(SimulatedPrintStartPhase::LAYER_1));
+                }
+
                 // Transition to PRINTING phase
                 print_phase_.store(MockPrintPhase::PRINTING);
                 printing_start_time_ = std::chrono::steady_clock::now();
@@ -2130,6 +2148,123 @@ void MoonrakerClientMock::dispatch_manual_probe_update() {
 }
 
 // ============================================================================
+// G-code Response Simulation (for PRINT_START progress tracking)
+// ============================================================================
+
+void MoonrakerClientMock::dispatch_gcode_response(const std::string& line) {
+    // Build notify_gcode_response message format:
+    // {"method": "notify_gcode_response", "params": ["<line>"]}
+    json notification = {{"method", "notify_gcode_response"}, {"params", json::array({line})}};
+
+    // Collect callbacks while holding lock, invoke outside
+    std::vector<std::function<void(json)>> callbacks_to_invoke;
+    {
+        std::lock_guard<std::mutex> lock(callbacks_mutex_);
+        auto method_it = method_callbacks_.find("notify_gcode_response");
+        if (method_it != method_callbacks_.end()) {
+            for (auto& [handler_name, cb] : method_it->second) {
+                callbacks_to_invoke.push_back(cb);
+            }
+        }
+    }
+
+    // Invoke callbacks outside lock to prevent deadlock
+    for (auto& cb : callbacks_to_invoke) {
+        cb(notification);
+    }
+
+    spdlog::trace("[MoonrakerClientMock] Dispatched G-code response: {}", line);
+}
+
+void MoonrakerClientMock::advance_print_start_simulation() {
+    // Get current temperatures and targets
+    double ext_temp = extruder_temp_.load();
+    double ext_target = extruder_target_.load();
+    double bed_temp = bed_temp_.load();
+    double bed_target = bed_target_.load();
+
+    // Get current simulated phase
+    uint8_t current_phase = simulated_print_start_phase_.load();
+
+    // Progress through phases based on temperature state
+    // Each phase is dispatched once per print job
+
+    // Phase 1: PRINT_START marker (immediately when print starts)
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::PRINT_START_MARKER)) {
+        dispatch_gcode_response(
+            "PRINT_START BED_TEMP=" + std::to_string(static_cast<int>(bed_target)) +
+            " EXTRUDER_TEMP=" + std::to_string(static_cast<int>(ext_target)));
+        simulated_print_start_phase_.store(
+            static_cast<uint8_t>(SimulatedPrintStartPhase::PRINT_START_MARKER));
+        return; // One phase per tick to spread out messages
+    }
+
+    // Phase 2: Homing (a few ticks after start)
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::HOMING)) {
+        dispatch_gcode_response("G28");
+        dispatch_gcode_response("Homing X Y Z");
+        simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::HOMING));
+        return;
+    }
+
+    // Phase 3: Heating bed (when bed starts warming, ~10% toward target)
+    double bed_progress =
+        (bed_target > ROOM_TEMP) ? (bed_temp - ROOM_TEMP) / (bed_target - ROOM_TEMP) : 1.0;
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::HEATING_BED) &&
+        bed_progress > 0.05) {
+        dispatch_gcode_response("M190 S" + std::to_string(static_cast<int>(bed_target)));
+        dispatch_gcode_response("Heating bed to " + std::to_string(static_cast<int>(bed_target)) +
+                                "C");
+        simulated_print_start_phase_.store(
+            static_cast<uint8_t>(SimulatedPrintStartPhase::HEATING_BED));
+        return;
+    }
+
+    // Phase 4: Heating nozzle (when extruder starts warming, ~10% toward target)
+    double ext_progress =
+        (ext_target > ROOM_TEMP) ? (ext_temp - ROOM_TEMP) / (ext_target - ROOM_TEMP) : 1.0;
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::HEATING_NOZZLE) &&
+        ext_progress > 0.05) {
+        dispatch_gcode_response("M109 S" + std::to_string(static_cast<int>(ext_target)));
+        dispatch_gcode_response("Heating extruder to " +
+                                std::to_string(static_cast<int>(ext_target)) + "C");
+        simulated_print_start_phase_.store(
+            static_cast<uint8_t>(SimulatedPrintStartPhase::HEATING_NOZZLE));
+        return;
+    }
+
+    // Phase 5: QGL (when bed is ~50% heated - simulate while heating)
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::QGL) && bed_progress > 0.4) {
+        dispatch_gcode_response("QUAD_GANTRY_LEVEL");
+        dispatch_gcode_response("// Gantry leveling complete");
+        simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::QGL));
+        return;
+    }
+
+    // Phase 6: Bed mesh (when bed is ~70% heated)
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::BED_MESH) &&
+        bed_progress > 0.65) {
+        dispatch_gcode_response("BED_MESH_CALIBRATE");
+        dispatch_gcode_response("// Bed mesh calibration complete");
+        simulated_print_start_phase_.store(
+            static_cast<uint8_t>(SimulatedPrintStartPhase::BED_MESH));
+        return;
+    }
+
+    // Phase 7: Purge line (when temps are nearly ready, ~90%)
+    if (current_phase < static_cast<uint8_t>(SimulatedPrintStartPhase::PURGING) &&
+        bed_progress > 0.85 && ext_progress > 0.85) {
+        dispatch_gcode_response("VORON_PURGE");
+        dispatch_gcode_response("// Purge complete");
+        simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::PURGING));
+        return;
+    }
+
+    // Phase 8: Layer 1 marker (when transitioning to PRINTING phase)
+    // This is handled in the simulation loop when temps are stable
+}
+
+// ============================================================================
 // Restart Simulation Helper Methods
 // ============================================================================
 
@@ -2160,6 +2295,9 @@ void MoonrakerClientMock::trigger_restart(bool is_firmware) {
         std::lock_guard<std::mutex> lock(excluded_objects_mutex_);
         excluded_objects_.clear();
     }
+
+    // Reset PRINT_START simulation phase
+    simulated_print_start_phase_.store(static_cast<uint8_t>(SimulatedPrintStartPhase::NONE));
 
     // Dispatch klippy state change notification
     json status = {{"webhooks",

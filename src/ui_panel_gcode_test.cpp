@@ -764,3 +764,15 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
 
     return panel_root;
 }
+
+// ============================================================================
+// LIFECYCLE HOOKS (stub implementations)
+// ============================================================================
+
+void GcodeTestPanel::on_activate() {
+    spdlog::debug("[{}] Panel activated", get_name());
+}
+
+void GcodeTestPanel::on_deactivate() {
+    spdlog::debug("[{}] Panel deactivated", get_name());
+}

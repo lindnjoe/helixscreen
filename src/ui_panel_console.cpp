@@ -5,6 +5,7 @@
 
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
+#include "ui_keyboard_manager.h"
 #include "ui_nav.h"
 #include "ui_panel_common.h"
 #include "ui_subject_registry.h"
@@ -16,12 +17,15 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 
-// Forward declaration for row click callback (registered in init_subjects)
+// Forward declarations for callbacks (registered in init_subjects)
 static void on_console_row_clicked(lv_event_t* e);
+static void on_console_send_clicked(lv_event_t* e);
+static void on_console_clear_clicked(lv_event_t* e);
 
 ConsolePanel::ConsolePanel(PrinterState& printer_state, MoonrakerAPI* api)
     : PanelBase(printer_state, api) {
@@ -38,11 +42,13 @@ void ConsolePanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(status_subject_, status_buf_, status_buf_,
                                         "console_status");
 
-    // Register row click callback for opening from Advanced panel
+    // Register callbacks
     lv_xml_register_event_cb(nullptr, "on_console_row_clicked", on_console_row_clicked);
+    lv_xml_register_event_cb(nullptr, "on_console_send_clicked", on_console_send_clicked);
+    lv_xml_register_event_cb(nullptr, "on_console_clear_clicked", on_console_clear_clicked);
 
     subjects_initialized_ = true;
-    spdlog::debug("[{}] init_subjects() - registered row click callback", get_name());
+    spdlog::debug("[{}] init_subjects() - registered callbacks", get_name());
 }
 
 void ConsolePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -65,11 +71,26 @@ void ConsolePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         console_container_ = lv_obj_find_by_name(overlay_content, "console_container");
         empty_state_ = lv_obj_find_by_name(overlay_content, "empty_state");
         status_label_ = lv_obj_find_by_name(overlay_content, "status_message");
+
+        // Find the input row and get the text input
+        lv_obj_t* input_row = lv_obj_find_by_name(overlay_content, "input_row");
+        if (input_row) {
+            gcode_input_ = lv_obj_find_by_name(input_row, "gcode_input");
+            if (gcode_input_) {
+                // Register textarea for keyboard integration
+                ui_keyboard_register_textarea(gcode_input_);
+                spdlog::debug("[{}] Registered gcode_input for keyboard", get_name());
+            }
+        }
     }
 
     if (!console_container_) {
         spdlog::error("[{}] console_container not found!", get_name());
         return;
+    }
+
+    if (!gcode_input_) {
+        spdlog::warn("[{}] gcode_input not found - input disabled", get_name());
     }
 
     // Fetch initial history
@@ -82,10 +103,16 @@ void ConsolePanel::on_activate() {
     spdlog::debug("[{}] Panel activated", get_name());
     // Refresh history when panel becomes visible
     fetch_history();
+    // Subscribe to real-time updates
+    subscribe_to_gcode_responses();
+    // Reset scroll tracking
+    user_scrolled_up_ = false;
 }
 
 void ConsolePanel::on_deactivate() {
     spdlog::debug("[{}] Panel deactivated", get_name());
+    // Unsubscribe from real-time updates
+    unsubscribe_from_gcode_responses();
 }
 
 void ConsolePanel::fetch_history() {
@@ -218,6 +245,33 @@ bool ConsolePanel::is_error_message(const std::string& message) {
     return false;
 }
 
+bool ConsolePanel::is_temp_message(const std::string& message) {
+    if (message.empty()) {
+        return false;
+    }
+
+    // Temperature status messages look like:
+    // "ok T:210.5 /210.0 B:60.2 /60.0"
+    // "T:210.5 /210.0 B:60.2 /60.0"
+    // "ok B:60.0 /60.0 T0:210.0 /210.0"
+
+    // Look for temperature patterns: T: or B: followed by numbers
+    // Simple heuristic: contains "T:" or "B:" with "/" nearby
+    size_t t_pos = message.find("T:");
+    size_t b_pos = message.find("B:");
+
+    if (t_pos != std::string::npos || b_pos != std::string::npos) {
+        // Check for temperature format: number / number
+        size_t slash_pos = message.find('/');
+        if (slash_pos != std::string::npos) {
+            // Very likely a temperature status message
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void ConsolePanel::update_visibility() {
     bool has_entries = !entries_.empty();
 
@@ -245,6 +299,155 @@ void ConsolePanel::update_visibility() {
         std::snprintf(status_buf_, sizeof(status_buf_), "");
     }
     lv_subject_copy_string(&status_subject_, status_buf_);
+}
+
+// ============================================================================
+// Real-time G-code Response Streaming
+// ============================================================================
+
+void ConsolePanel::subscribe_to_gcode_responses() {
+    if (is_subscribed_) {
+        return;
+    }
+
+    MoonrakerClient* client = get_moonraker_client();
+    if (!client) {
+        spdlog::debug("[{}] Cannot subscribe - no client", get_name());
+        return;
+    }
+
+    // Generate unique handler name
+    static std::atomic<uint64_t> s_handler_id{0};
+    gcode_handler_name_ = "console_panel_" + std::to_string(++s_handler_id);
+
+    // Register for notify_gcode_response notifications
+    // Capture 'this' safely since we unregister in on_deactivate()
+    client->register_method_callback("notify_gcode_response", gcode_handler_name_,
+                                     [this](const nlohmann::json& msg) { on_gcode_response(msg); });
+
+    is_subscribed_ = true;
+    spdlog::debug("[{}] Subscribed to notify_gcode_response (handler: {})", get_name(),
+                  gcode_handler_name_);
+}
+
+void ConsolePanel::unsubscribe_from_gcode_responses() {
+    if (!is_subscribed_) {
+        return;
+    }
+
+    MoonrakerClient* client = get_moonraker_client();
+    if (client) {
+        client->unregister_method_callback("notify_gcode_response", gcode_handler_name_);
+        spdlog::debug("[{}] Unsubscribed from notify_gcode_response", get_name());
+    }
+
+    is_subscribed_ = false;
+    gcode_handler_name_.clear();
+}
+
+void ConsolePanel::on_gcode_response(const nlohmann::json& msg) {
+    // Parse notify_gcode_response format: {"method": "...", "params": ["line"]}
+    if (!msg.contains("params") || !msg["params"].is_array() || msg["params"].empty()) {
+        return;
+    }
+
+    const std::string& line = msg["params"][0].get_ref<const std::string&>();
+
+    // Skip empty lines and common noise
+    if (line.empty() || line == "ok") {
+        return;
+    }
+
+    // Filter temperature status messages if enabled
+    if (filter_temps_ && is_temp_message(line)) {
+        return;
+    }
+
+    // Create entry for this response
+    GcodeEntry entry;
+    entry.message = line;
+    entry.timestamp = 0.0; // Real-time entries don't have timestamps
+    entry.type = GcodeEntry::Type::RESPONSE;
+    entry.is_error = is_error_message(line);
+
+    add_entry(entry);
+}
+
+void ConsolePanel::add_entry(const GcodeEntry& entry) {
+    // Add to deque
+    entries_.push_back(entry);
+
+    // Enforce max size (remove oldest)
+    while (entries_.size() > MAX_ENTRIES && console_container_) {
+        entries_.pop_front();
+        // Remove oldest widget (first child)
+        lv_obj_t* first_child = lv_obj_get_child(console_container_, 0);
+        if (first_child) {
+            lv_obj_delete(first_child);
+        }
+    }
+
+    // Create widget for new entry
+    create_entry_widget(entry);
+
+    // Update visibility state
+    update_visibility();
+
+    // Smart auto-scroll: only scroll if user hasn't scrolled up manually
+    if (!user_scrolled_up_) {
+        scroll_to_bottom();
+    }
+}
+
+void ConsolePanel::send_gcode_command() {
+    if (!gcode_input_) {
+        spdlog::warn("[{}] Cannot send - no input field", get_name());
+        return;
+    }
+
+    // Get text from input
+    const char* text = lv_textarea_get_text(gcode_input_);
+    if (!text || text[0] == '\0') {
+        spdlog::debug("[{}] Empty command, ignoring", get_name());
+        return;
+    }
+
+    std::string command(text);
+    spdlog::info("[{}] Sending G-code: {}", get_name(), command);
+
+    // Clear the input field immediately
+    lv_textarea_set_text(gcode_input_, "");
+
+    // Add command to console display
+    GcodeEntry cmd_entry;
+    cmd_entry.message = command;
+    cmd_entry.timestamp = 0.0;
+    cmd_entry.type = GcodeEntry::Type::COMMAND;
+    cmd_entry.is_error = false;
+    add_entry(cmd_entry);
+
+    // Send via MoonrakerClient
+    MoonrakerClient* client = get_moonraker_client();
+    if (client) {
+        int result = client->gcode_script(command);
+        if (result < 0) {
+            spdlog::error("[{}] Failed to send G-code command", get_name());
+            // Add error response to console
+            GcodeEntry err_entry;
+            err_entry.message = "!! Failed to send command";
+            err_entry.type = GcodeEntry::Type::RESPONSE;
+            err_entry.is_error = true;
+            add_entry(err_entry);
+        }
+    } else {
+        spdlog::warn("[{}] No MoonrakerClient available", get_name());
+    }
+}
+
+void ConsolePanel::clear_display() {
+    spdlog::debug("[{}] Clearing console display", get_name());
+    clear_entries();
+    update_visibility();
 }
 
 // ============================================================================
@@ -304,4 +507,40 @@ static void on_console_row_clicked(lv_event_t* e) {
 
     // Show the overlay
     ui_nav_push_overlay(g_console_panel_obj);
+}
+
+/**
+ * @brief Send button click handler
+ *
+ * Registered via lv_xml_register_event_cb() in init_subjects().
+ * Sends the current G-code command from the input field.
+ */
+static void on_console_send_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[Console] Send button clicked");
+
+    if (!g_console_panel) {
+        spdlog::error("[Console] Global instance not initialized!");
+        return;
+    }
+
+    g_console_panel->send_gcode_command();
+}
+
+/**
+ * @brief Clear button click handler
+ *
+ * Registered via lv_xml_register_event_cb() in init_subjects().
+ * Clears all entries from the console display.
+ */
+static void on_console_clear_clicked(lv_event_t* e) {
+    (void)e;
+    spdlog::debug("[Console] Clear button clicked");
+
+    if (!g_console_panel) {
+        spdlog::error("[Console] Global instance not initialized!");
+        return;
+    }
+
+    g_console_panel->clear_display();
 }

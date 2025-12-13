@@ -7,6 +7,7 @@
 #include "printer_capabilities.h"
 #include "runtime_config.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 
@@ -70,6 +71,7 @@ PrinterState::PrinterState() {
     std::memset(printer_connection_message_buf_, 0, sizeof(printer_connection_message_buf_));
     std::memset(klipper_version_buf_, 0, sizeof(klipper_version_buf_));
     std::memset(moonraker_version_buf_, 0, sizeof(moonraker_version_buf_));
+    std::memset(print_start_message_buf_, 0, sizeof(print_start_message_buf_));
 
     // Set default values
     std::strcpy(print_state_buf_, "standby");
@@ -103,6 +105,9 @@ void PrinterState::reset_for_testing() {
     lv_subject_deinit(&print_state_enum_);
     lv_subject_deinit(&print_layer_current_);
     lv_subject_deinit(&print_layer_total_);
+    lv_subject_deinit(&print_start_phase_);
+    lv_subject_deinit(&print_start_message_);
+    lv_subject_deinit(&print_start_progress_);
     lv_subject_deinit(&position_x_);
     lv_subject_deinit(&position_y_);
     lv_subject_deinit(&position_z_);
@@ -168,6 +173,12 @@ void PrinterState::init_subjects(bool register_xml) {
     // Print time tracking subjects (in seconds)
     lv_subject_init_int(&print_duration_, 0);
     lv_subject_init_int(&print_time_left_, 0);
+
+    // Print start progress subjects (for PRINT_START macro tracking)
+    lv_subject_init_int(&print_start_phase_, static_cast<int>(PrintStartPhase::IDLE));
+    lv_subject_init_string(&print_start_message_, print_start_message_buf_, nullptr,
+                           sizeof(print_start_message_buf_), "");
+    lv_subject_init_int(&print_start_progress_, 0);
 
     // Motion subjects
     lv_subject_init_int(&position_x_, 0);
@@ -241,6 +252,9 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "print_layer_total", &print_layer_total_);
         lv_xml_register_subject(NULL, "print_duration", &print_duration_);
         lv_xml_register_subject(NULL, "print_time_left", &print_time_left_);
+        lv_xml_register_subject(NULL, "print_start_phase", &print_start_phase_);
+        lv_xml_register_subject(NULL, "print_start_message", &print_start_message_);
+        lv_xml_register_subject(NULL, "print_start_progress", &print_start_progress_);
         lv_xml_register_subject(NULL, "position_x", &position_x_);
         lv_xml_register_subject(NULL, "position_y", &position_y_);
         lv_xml_register_subject(NULL, "position_z", &position_z_);
@@ -870,5 +884,34 @@ void PrinterState::clear_pending_z_offset_delta() {
     if (has_pending_z_offset_adjustment()) {
         spdlog::info("[PrinterState] Clearing pending Z-offset delta");
         lv_subject_set_int(&pending_z_offset_delta_, 0);
+    }
+}
+
+// ============================================================================
+// PRINT START PROGRESS TRACKING
+// ============================================================================
+
+bool PrinterState::is_in_print_start() const {
+    int phase = lv_subject_get_int(const_cast<lv_subject_t*>(&print_start_phase_));
+    return phase != static_cast<int>(PrintStartPhase::IDLE);
+}
+
+void PrinterState::set_print_start_state(PrintStartPhase phase, const char* message, int progress) {
+    spdlog::debug("[PrinterState] Print start: phase={}, message='{}', progress={}%",
+                  static_cast<int>(phase), message ? message : "", progress);
+
+    lv_subject_set_int(&print_start_phase_, static_cast<int>(phase));
+    if (message) {
+        lv_subject_copy_string(&print_start_message_, message);
+    }
+    lv_subject_set_int(&print_start_progress_, std::clamp(progress, 0, 100));
+}
+
+void PrinterState::reset_print_start_state() {
+    if (is_in_print_start()) {
+        spdlog::info("[PrinterState] Resetting print start state to IDLE");
+        lv_subject_set_int(&print_start_phase_, static_cast<int>(PrintStartPhase::IDLE));
+        lv_subject_copy_string(&print_start_message_, "");
+        lv_subject_set_int(&print_start_progress_, 0);
     }
 }

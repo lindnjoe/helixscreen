@@ -663,14 +663,14 @@ class MoonrakerClient : public hv::WebSocketClient {
     std::atomic<SubscriptionId> next_subscription_id_{1}; // Start at 1 (0 = invalid)
     std::mutex callbacks_mutex_; // Protect notify_callbacks_ and method_callbacks_
 
+    // Persistent method-specific callbacks (protected to allow mock to dispatch)
+    // method_name : { handler_name : callback }
+    std::map<std::string, std::map<std::string, std::function<void(json)>>> method_callbacks_;
+
   private:
     // Pending requests keyed by request ID
     std::map<uint64_t, PendingRequest> pending_requests_;
     std::mutex requests_mutex_; // Protect pending_requests_ map
-
-    // Persistent method-specific callbacks
-    // method_name : { handler_name : callback }
-    std::map<std::string, std::map<std::string, std::function<void(json)>>> method_callbacks_;
 
     // Auto-incrementing JSON-RPC request ID
     std::atomic_uint64_t request_id_;

@@ -76,6 +76,7 @@
 #include "moonraker_client_mock.h"
 #include "print_completion.h"
 #include "print_history_data.h"
+#include "print_start_collector.h"
 #include "printer_state.h"
 #include "runtime_config.h"
 #include "settings_manager.h"
@@ -285,6 +286,11 @@ struct OverlayPanels {
 
 // Print completion notification observer (implementation in print_completion.cpp)
 static ObserverGuard print_completion_observer;
+
+// PRINT_START progress collector (monitors G-code responses during print initialization)
+static std::shared_ptr<PrintStartCollector> print_start_collector;
+static ObserverGuard print_start_observer;
+static ObserverGuard print_start_phase_observer;
 
 const RuntimeConfig& get_runtime_config() {
     return g_runtime_config;
@@ -887,6 +893,53 @@ static void initialize_moonraker_client(Config* config) {
     EmergencyStopOverlay::instance().on_panel_changed("home_panel");
 
     spdlog::debug("Moonraker client initialized (not connected yet)");
+
+    // Create PRINT_START progress collector
+    // Monitors notify_gcode_response during print initialization to show phase progress
+    print_start_collector =
+        std::make_shared<PrintStartCollector>(*moonraker_client, get_printer_state());
+
+    // Set up observer to start/stop collector based on print state
+    // When print state becomes PRINTING, start the collector
+    // When print completes, cancels, or errors, stop the collector
+    print_start_observer = ObserverGuard(
+        get_printer_state().get_print_state_enum_subject(),
+        [](lv_observer_t* /*observer*/, lv_subject_t* subject) {
+            auto state = static_cast<PrintJobState>(lv_subject_get_int(subject));
+
+            if (state == PrintJobState::PRINTING) {
+                // Check if not already active (print just started)
+                if (!print_start_collector->is_active()) {
+                    print_start_collector->reset();
+                    print_start_collector->start();
+                    spdlog::info("[main] PRINT_START collector started");
+                }
+            } else {
+                // Any non-printing state stops the collector
+                if (print_start_collector->is_active()) {
+                    print_start_collector->stop();
+                    spdlog::info("[main] PRINT_START collector stopped (state={})",
+                                 static_cast<int>(state));
+                }
+            }
+        },
+        nullptr);
+
+    // Watch print_start_phase for COMPLETE to stop collector when layer 1 detected
+    print_start_phase_observer = ObserverGuard(
+        get_printer_state().get_print_start_phase_subject(),
+        [](lv_observer_t* /*observer*/, lv_subject_t* subject) {
+            auto phase = static_cast<PrintStartPhase>(lv_subject_get_int(subject));
+
+            if (phase == PrintStartPhase::COMPLETE) {
+                // Layer 1 detected - collector has done its job
+                if (print_start_collector && print_start_collector->is_active()) {
+                    print_start_collector->stop();
+                    spdlog::info("[main] PRINT_START collector stopped (phase=COMPLETE)");
+                }
+            }
+        },
+        nullptr);
 
     // Test print history API if requested (for Stage 1 validation)
     if (get_runtime_config().test_history_api) {

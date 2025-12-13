@@ -10,6 +10,7 @@
 #include "printer_state.h"
 
 #include <deque>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -59,6 +60,22 @@ class ConsolePanel : public PanelBase {
     // Lifecycle hooks
     void on_activate() override;
     void on_deactivate() override;
+
+    /**
+     * @brief Send the current G-code command from the input field
+     *
+     * Gets text from gcode_input_, sends via Moonraker, clears input,
+     * and adds a COMMAND entry to the console. Public for callback access.
+     */
+    void send_gcode_command();
+
+    /**
+     * @brief Clear all entries from the console display
+     *
+     * Removes all entries and widgets, shows empty state.
+     * Public for callback access.
+     */
+    void clear_display();
 
   private:
     /**
@@ -138,15 +155,68 @@ class ConsolePanel : public PanelBase {
      */
     void update_visibility();
 
+    /**
+     * @brief Add a single entry to the console (real-time)
+     *
+     * Appends entry to history, creates widget, and auto-scrolls if
+     * user hasn't manually scrolled up. Used by notify_gcode_response handler.
+     *
+     * @param entry The gcode entry to add
+     */
+    void add_entry(const GcodeEntry& entry);
+
+    /**
+     * @brief Handle incoming G-code response from WebSocket
+     *
+     * Called by notify_gcode_response callback. Parses the notification
+     * and adds entry to console.
+     *
+     * @param msg JSON notification message
+     */
+    void on_gcode_response(const nlohmann::json& msg);
+
+    /**
+     * @brief Subscribe to real-time G-code responses
+     *
+     * Registers callback for notify_gcode_response WebSocket notifications.
+     * Called from on_activate().
+     */
+    void subscribe_to_gcode_responses();
+
+    /**
+     * @brief Unsubscribe from real-time G-code responses
+     *
+     * Unregisters callback. Called from on_deactivate().
+     */
+    void unsubscribe_from_gcode_responses();
+
+    /**
+     * @brief Check if a message is a temperature status update
+     *
+     * Filters out periodic temperature reports like:
+     * "ok T:210.0 /210.0 B:60.0 /60.0"
+     *
+     * @param message The G-code response message
+     * @return true if message is a temperature status
+     */
+    static bool is_temp_message(const std::string& message);
+
     // Widget references
     lv_obj_t* console_container_ = nullptr; ///< Scrollable container for entries
     lv_obj_t* empty_state_ = nullptr;       ///< Shown when no entries
     lv_obj_t* status_label_ = nullptr;      ///< Status message label
+    lv_obj_t* gcode_input_ = nullptr;       ///< G-code text input field
 
     // Data
     std::deque<GcodeEntry> entries_;           ///< History buffer
     static constexpr size_t MAX_ENTRIES = 200; ///< Maximum entries to display
     static constexpr int FETCH_COUNT = 100;    ///< Number of entries to fetch
+
+    // Real-time subscription state
+    std::string gcode_handler_name_; ///< Unique handler name for callback registration
+    bool is_subscribed_ = false;     ///< True if subscribed to notify_gcode_response
+    bool user_scrolled_up_ = false;  ///< True if user manually scrolled up
+    bool filter_temps_ = true;       ///< Filter out temperature status messages
 
     // Subjects
     bool subjects_initialized_ = false;
