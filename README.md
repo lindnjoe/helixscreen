@@ -16,7 +16,26 @@
 
 HelixScreen is a next-generation printer control interface built from the ground up using LVGL 9's declarative XML system. Designed for embedded hardware with limited resources, it brings advanced Klipper features to printers that ship with restrictive vendor UIs.
 
-> 🚀 **Development Status:** Beta - Core functionality is complete with 14 production panels, 18 settings, and full Moonraker integration. Ready for testing on real hardware. See [Project Status](#project-status) for details.
+---
+
+> ## 🎉 We're Getting Close!
+>
+> **Status: Early Beta — Seeking Brave Testers**
+>
+> HelixScreen is approaching its first public release. We haven't had outside testers yet, so please set expectations accordingly — you'll be among the first!
+>
+> **What's been tested:**
+> - Raspberry Pi 5 with 5" touchscreen
+> - FlashForge Adventurer 5M Pro (with Klipper mod)
+> - Automated and manual testing during development
+>
+> **Our Vision:** The best Klipper touchscreen experience available — period. Low memory footprint, beautiful modern UI, and the full functionality you'd expect from premium commercial printer displays. But open source and community-driven.
+>
+> We want HelixScreen to look as polished and work as smoothly as the best commercial touchscreens out there, while remaining lightweight enough to run on resource-constrained hardware and open enough for the community to extend and improve.
+>
+> **Ready to help?** See [Getting Started](#quick-start) and [Documentation](docs/user/INSTALL.md). Issues and feedback welcome!
+
+---
 
 **Quick Links:** [Features](#key-features) · [Screenshots](#screenshots) · [Getting Started](#quick-start) · [Requirements](#requirements) · [Documentation](#documentation) · [FAQ](#faq) · [Contributing](docs/CONTRIBUTING.md) · [Roadmap](docs/ROADMAP.md)
 
