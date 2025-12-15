@@ -158,9 +158,11 @@ AmsBackendMock::~AmsBackendMock() {
     shutdown_cv_.notify_all();
     wait_for_operation_thread();
 
-    // Stop dryer thread if running
-    if (dryer_thread_.joinable()) {
-        dryer_thread_.join();
+    // Stop dryer thread if running - use atomic exchange to prevent double-join
+    if (dryer_thread_running_.exchange(false)) {
+        if (dryer_thread_.joinable()) {
+            dryer_thread_.join();
+        }
     }
 
     // Don't call stop() - it would try to lock the mutex which may be invalid
@@ -168,8 +170,12 @@ AmsBackendMock::~AmsBackendMock() {
 }
 
 void AmsBackendMock::wait_for_operation_thread() {
-    if (operation_thread_.joinable()) {
-        operation_thread_.join();
+    // Use atomic exchange to prevent double-join race condition
+    // Only one caller can "win" the exchange and actually join
+    if (operation_thread_running_.exchange(false)) {
+        if (operation_thread_.joinable()) {
+            operation_thread_.join();
+        }
     }
 }
 
@@ -389,6 +395,7 @@ AmsError AmsBackendMock::select_slot(int slot_index) {
 }
 
 AmsError AmsBackendMock::change_tool(int tool_number) {
+    int target_slot = 0; // Captured inside lock, used after
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
@@ -410,12 +417,12 @@ AmsError AmsBackendMock::change_tool(int tool_number) {
         // Start tool change (unload + load sequence)
         system_info_.action = AmsAction::UNLOADING; // Start with unload
         system_info_.operation_detail = "Tool change to T" + std::to_string(tool_number);
+        target_slot = system_info_.tool_to_slot_map[tool_number]; // Capture while locked
         spdlog::info("[AmsBackendMock] Tool change to T{}", tool_number);
     }
 
     emit_event(EVENT_STATE_CHANGED);
-    schedule_completion(AmsAction::LOADING, EVENT_TOOL_CHANGED,
-                        system_info_.tool_to_slot_map[tool_number]);
+    schedule_completion(AmsAction::LOADING, EVENT_TOOL_CHANGED, target_slot);
 
     return AmsErrorHelper::success();
 }
@@ -699,9 +706,11 @@ AmsError AmsBackendMock::start_drying(float temp_c, int duration_min, int fan_pc
         speed_x = dryer_speed_x_;
     }
 
-    // Wait for previous thread to finish
-    if (dryer_thread_.joinable()) {
-        dryer_thread_.join();
+    // Wait for previous thread to finish using atomic exchange
+    if (dryer_thread_running_.exchange(false)) {
+        if (dryer_thread_.joinable()) {
+            dryer_thread_.join();
+        }
     }
 
     float start_temp;
@@ -717,6 +726,9 @@ AmsError AmsBackendMock::start_drying(float temp_c, int duration_min, int fan_pc
         dryer_state_.fan_pct = (fan_pct >= 0) ? fan_pct : 50;
         start_temp = dryer_state_.current_temp_c; // Use current temp as starting point
     }
+
+    // Mark dryer thread as running BEFORE creating it
+    dryer_thread_running_ = true;
 
     // Start simulation thread
     // speed_x: how many simulated seconds pass per real second
@@ -792,14 +804,15 @@ AmsError AmsBackendMock::start_drying(float temp_c, int duration_min, int fan_pc
             emit_event(EVENT_STATE_CHANGED);
         }
 
-        // Final room temp
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            dryer_state_.current_temp_c = 25.0f;
+        // Final room temp (skip if shutting down)
+        if (!dryer_stop_requested_) {
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                dryer_state_.current_temp_c = 25.0f;
+            }
+            emit_event(EVENT_STATE_CHANGED);
+            spdlog::info("[AmsBackendMock] Drying complete/stopped, cooled to room temp");
         }
-        emit_event(EVENT_STATE_CHANGED);
-
-        spdlog::info("[AmsBackendMock] Drying complete/stopped, cooled to room temp");
     });
 
     emit_event(EVENT_STATE_CHANGED);
@@ -822,9 +835,11 @@ AmsError AmsBackendMock::stop_drying() {
         dryer_stop_requested_ = true;
     }
 
-    // Wait for thread to finish
-    if (dryer_thread_.joinable()) {
-        dryer_thread_.join();
+    // Wait for thread to finish using atomic exchange
+    if (dryer_thread_running_.exchange(false)) {
+        if (dryer_thread_.joinable()) {
+            dryer_thread_.join();
+        }
     }
 
     return AmsError{AmsResult::SUCCESS};
@@ -849,6 +864,9 @@ void AmsBackendMock::schedule_completion(AmsAction action, const std::string& co
 
     // Reset shutdown flag for new operation
     shutdown_requested_ = false;
+
+    // Mark thread as running BEFORE creating it (for safe shutdown)
+    operation_thread_running_ = true;
 
     // Simulate operation delay in background thread with path segment progression
     operation_thread_ = std::thread([this, action, complete_event, slot_index]() {

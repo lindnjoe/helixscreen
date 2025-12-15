@@ -174,15 +174,17 @@ class AmsBackendMock : public AmsBackend {
     PathSegment error_segment_ = PathSegment::NONE;    ///< Error location (if any)
 
     // Thread-safe shutdown support
-    std::thread operation_thread_;                ///< Current operation thread (if any)
-    std::atomic<bool> shutdown_requested_{false}; ///< Signal thread to exit
-    std::condition_variable shutdown_cv_;         ///< For interruptible sleep
-    mutable std::mutex shutdown_mutex_;           ///< Protects shutdown_cv_ wait
+    std::thread operation_thread_;                      ///< Current operation thread (if any)
+    std::atomic<bool> operation_thread_running_{false}; ///< Guards against double-join
+    std::atomic<bool> shutdown_requested_{false};       ///< Signal thread to exit
+    std::condition_variable shutdown_cv_;               ///< For interruptible sleep
+    mutable std::mutex shutdown_mutex_;                 ///< Protects shutdown_cv_ wait
 
     // Dryer simulation state
     bool dryer_enabled_ = false;                    ///< Whether dryer is simulated
     DryerInfo dryer_state_;                         ///< Current dryer state
     std::thread dryer_thread_;                      ///< Background thread for dryer simulation
+    std::atomic<bool> dryer_thread_running_{false}; ///< Guards against double-join
     std::atomic<bool> dryer_stop_requested_{false}; ///< Signal dryer thread to stop
     int dryer_speed_x_ = 60; ///< Speed multiplier (60 = 1 real sec = 1 sim min)
 };
