@@ -69,7 +69,7 @@ jobs:
         command: npm install
 
     - name: Build HelixScreen (includes all dependencies)
-      timeout-minutes: 15
+      timeout-minutes: 20
       run: |
         # The Makefile handles all dependency builds automatically:
         # - libhv (HTTP/WebSocket library)
@@ -142,7 +142,7 @@ jobs:
         command: npm install
 
     - name: Build HelixScreen (includes all dependencies)
-      timeout-minutes: 15
+      timeout-minutes: 20
       run: |
         # The Makefile handles all dependency builds automatically:
         # - libhv (HTTP/WebSocket library)
