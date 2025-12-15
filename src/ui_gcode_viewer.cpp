@@ -17,6 +17,7 @@
 
 #include "gcode_camera.h"
 #include "gcode_parser.h"
+#include "memory_utils.h"
 
 #ifdef ENABLE_TINYGL_3D
 #include "gcode_tinygl_renderer.h"
@@ -716,65 +717,86 @@ static void ui_gcode_viewer_load_file_async(lv_obj_t* obj, const char* file_path
 
                 // PHASE 2: Build geometry (slow, 1-5s for large files)
                 // This is thread-safe - no OpenGL calls, just CPU work
-                helix::gcode::GeometryBuilder builder;
-                // Aggressive simplification: 0.5mm merges more collinear segments
-                // (still well within 3D printer precision of ~50 microns)
-                helix::gcode::SimplificationOptions opts{.tolerance_mm = 0.5f,
-                                                         .min_segment_length_mm = 0.05f};
 
-                // Configure builder with metadata
-                // Set tool color palette for multicolor prints
-                if (!result->gcode_file->tool_color_palette.empty()) {
-                    builder.set_tool_color_palette(result->gcode_file->tool_color_palette);
-                    spdlog::debug("[GCode Viewer] Set tool color palette with {} colors",
-                                  result->gcode_file->tool_color_palette.size());
+                // Check if system is memory-constrained (< 64MB available)
+                // On constrained systems, ONLY build coarse geometry to save ~50MB
+                auto mem_info = helix::get_system_memory_info();
+                bool memory_constrained = mem_info.is_constrained();
+                if (memory_constrained) {
+                    spdlog::info("[GCode Viewer] Memory constrained ({}MB available) - "
+                                 "building coarse geometry only",
+                                 mem_info.available_mb());
                 }
 
-                if (result->gcode_file->perimeter_extrusion_width_mm > 0.0f) {
-                    builder.set_extrusion_width(result->gcode_file->perimeter_extrusion_width_mm);
-                } else if (result->gcode_file->extrusion_width_mm > 0.0f) {
-                    builder.set_extrusion_width(result->gcode_file->extrusion_width_mm);
+                // Helper lambda to configure a builder with common settings
+                auto configure_builder = [&](helix::gcode::GeometryBuilder& builder) {
+                    if (!result->gcode_file->tool_color_palette.empty()) {
+                        builder.set_tool_color_palette(result->gcode_file->tool_color_palette);
+                    }
+                    if (result->gcode_file->perimeter_extrusion_width_mm > 0.0f) {
+                        builder.set_extrusion_width(
+                            result->gcode_file->perimeter_extrusion_width_mm);
+                    } else if (result->gcode_file->extrusion_width_mm > 0.0f) {
+                        builder.set_extrusion_width(result->gcode_file->extrusion_width_mm);
+                    }
+                    builder.set_layer_height(result->gcode_file->layer_height_mm);
+                };
+
+                // Build full geometry only on non-constrained systems
+                if (!memory_constrained) {
+                    helix::gcode::GeometryBuilder builder;
+                    configure_builder(builder);
+
+                    // Aggressive simplification: 0.5mm merges more collinear segments
+                    // (still well within 3D printer precision of ~50 microns)
+                    helix::gcode::SimplificationOptions opts{.tolerance_mm = 0.5f,
+                                                             .min_segment_length_mm = 0.05f};
+
+                    result->geometry = std::make_unique<helix::gcode::RibbonGeometry>(
+                        builder.build(*result->gcode_file, opts));
+
+                    spdlog::info("[GCode Viewer] Built full geometry: {} vertices, {} triangles",
+                                 result->geometry->vertices.size(),
+                                 result->geometry->extrusion_triangle_count +
+                                     result->geometry->travel_triangle_count);
                 }
 
-                builder.set_layer_height(result->gcode_file->layer_height_mm);
-
-                result->geometry = std::make_unique<helix::gcode::RibbonGeometry>(
-                    builder.build(*result->gcode_file, opts));
-
-                spdlog::info("[GCode Viewer] Built full geometry with {} vertices, {} triangles",
-                             result->geometry->vertices.size(),
-                             result->geometry->extrusion_triangle_count +
-                                 result->geometry->travel_triangle_count);
-
-                // Build coarse LOD geometry for interaction (Phase 6)
+                // Build coarse LOD geometry for interaction (always needed)
                 // More aggressive simplification for better frame rate during drag
                 // 2.0mm tolerance gives ~55% fewer triangles - good balance of quality/speed
-                helix::gcode::SimplificationOptions coarse_opts{.tolerance_mm = 2.0f,
-                                                                .min_segment_length_mm = 0.5f};
-                helix::gcode::GeometryBuilder coarse_builder;
-                if (!result->gcode_file->tool_color_palette.empty()) {
-                    coarse_builder.set_tool_color_palette(result->gcode_file->tool_color_palette);
-                }
-                if (result->gcode_file->perimeter_extrusion_width_mm > 0.0f) {
-                    coarse_builder.set_extrusion_width(
-                        result->gcode_file->perimeter_extrusion_width_mm);
-                } else if (result->gcode_file->extrusion_width_mm > 0.0f) {
-                    coarse_builder.set_extrusion_width(result->gcode_file->extrusion_width_mm);
-                }
-                coarse_builder.set_layer_height(result->gcode_file->layer_height_mm);
+                {
+                    helix::gcode::GeometryBuilder coarse_builder;
+                    configure_builder(coarse_builder);
 
-                result->coarse_geometry = std::make_unique<helix::gcode::RibbonGeometry>(
-                    coarse_builder.build(*result->gcode_file, coarse_opts));
+                    helix::gcode::SimplificationOptions coarse_opts{.tolerance_mm = 2.0f,
+                                                                    .min_segment_length_mm = 0.5f};
 
-                size_t full_tris = result->geometry->extrusion_triangle_count +
-                                   result->geometry->travel_triangle_count;
-                size_t coarse_tris = result->coarse_geometry->extrusion_triangle_count +
-                                     result->coarse_geometry->travel_triangle_count;
-                float reduction =
-                    full_tris > 0 ? 100.0f * (1.0f - float(coarse_tris) / float(full_tris)) : 0.0f;
-                spdlog::info(
-                    "[GCode Viewer] Built coarse LOD with {} triangles ({:.0f}% reduction)",
-                    coarse_tris, reduction);
+                    result->coarse_geometry = std::make_unique<helix::gcode::RibbonGeometry>(
+                        coarse_builder.build(*result->gcode_file, coarse_opts));
+
+                    size_t coarse_tris = result->coarse_geometry->extrusion_triangle_count +
+                                         result->coarse_geometry->travel_triangle_count;
+
+                    if (memory_constrained) {
+                        spdlog::info("[GCode Viewer] Built coarse-only geometry: {} triangles",
+                                     coarse_tris);
+                    } else {
+                        size_t full_tris = result->geometry->extrusion_triangle_count +
+                                           result->geometry->travel_triangle_count;
+                        float reduction =
+                            full_tris > 0 ? 100.0f * (1.0f - float(coarse_tris) / float(full_tris))
+                                          : 0.0f;
+                        spdlog::info("[GCode Viewer] Built coarse LOD: {} triangles ({:.0f}% "
+                                     "reduction from full)",
+                                     coarse_tris, reduction);
+                    }
+                }
+
+                // PHASE 2.5: Free parsed segment data immediately - no longer needed
+                // This releases 40-160MB on large files while preserving metadata
+                size_t freed = result->gcode_file->clear_segments();
+                spdlog::info("[GCode Viewer] Freed {} MB of parsed segment data",
+                             freed / (1024 * 1024));
             }
         } catch (const std::exception& ex) {
             result->success = false;
@@ -808,14 +830,23 @@ static void ui_gcode_viewer_load_file_async(lv_obj_t* obj, const char* file_path
                 // Store G-code data
                 st->gcode_file = std::move(r->gcode_file);
 
-                // Set pre-built geometry on renderer (full detail + coarse LOD)
+                // Set pre-built geometry on renderer
+                // On memory-constrained systems, we only have coarse geometry
 #ifdef ENABLE_TINYGL_3D
-                spdlog::debug("[GCode Viewer] Calling set_prebuilt_geometry");
-                st->renderer_->set_prebuilt_geometry(std::move(r->geometry),
-                                                     st->gcode_file->filename);
-                // Set coarse LOD geometry for interaction (Phase 6)
-                if (r->coarse_geometry) {
-                    st->renderer_->set_prebuilt_coarse_geometry(std::move(r->coarse_geometry));
+                if (r->geometry) {
+                    // Normal case: full + coarse geometry
+                    spdlog::debug("[GCode Viewer] Setting full + coarse geometry");
+                    st->renderer_->set_prebuilt_geometry(std::move(r->geometry),
+                                                         st->gcode_file->filename);
+                    if (r->coarse_geometry) {
+                        st->renderer_->set_prebuilt_coarse_geometry(std::move(r->coarse_geometry));
+                    }
+                } else if (r->coarse_geometry) {
+                    // Memory-constrained: use coarse as primary (no separate LOD)
+                    spdlog::info("[GCode Viewer] Memory-constrained mode: using coarse geometry as "
+                                 "primary (no LOD switching)");
+                    st->renderer_->set_prebuilt_geometry(std::move(r->coarse_geometry),
+                                                         st->gcode_file->filename);
                 }
 #endif
 

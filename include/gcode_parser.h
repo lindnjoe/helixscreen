@@ -182,6 +182,33 @@ struct ParsedGCodeFile {
      * @return Layer index or -1 if no layers
      */
     int find_layer_at_z(float z) const;
+
+    /**
+     * @brief Clear segment data to free memory
+     *
+     * After geometry is built, the raw segment data is no longer needed.
+     * This frees the segment vectors while preserving metadata (bounding box,
+     * statistics, slicer info, etc.). Call this after geometry building to
+     * reduce memory usage by 40-160MB on large files.
+     *
+     * @return Bytes freed (approximate)
+     */
+    size_t clear_segments() {
+        size_t freed = 0;
+        for (auto& layer : layers) {
+            // Estimate ~80 bytes per segment
+            freed += layer.segments.size() * 80;
+            layer.segments.clear();
+            layer.segments.shrink_to_fit();
+        }
+        // Also clear the objects polygon data (rarely used after geometry build)
+        for (auto& [name, obj] : objects) {
+            freed += obj.polygon.size() * sizeof(glm::vec2);
+            obj.polygon.clear();
+            obj.polygon.shrink_to_fit();
+        }
+        return freed;
+    }
 };
 
 /**
