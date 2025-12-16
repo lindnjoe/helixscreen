@@ -94,6 +94,7 @@ class SettingsPanel : public PanelBase {
 
     // Action rows (clickable)
     lv_obj_t* display_settings_row_ = nullptr;
+    lv_obj_t* filament_sensors_row_ = nullptr;
     lv_obj_t* bed_mesh_row_ = nullptr;
     lv_obj_t* z_offset_row_ = nullptr;
     lv_obj_t* pid_tuning_row_ = nullptr;
@@ -108,6 +109,7 @@ class SettingsPanel : public PanelBase {
 
     // Lazily-created overlay panels
     lv_obj_t* display_settings_overlay_ = nullptr;
+    lv_obj_t* filament_sensors_overlay_ = nullptr;
     lv_obj_t* bed_mesh_panel_ = nullptr;
     lv_obj_t* zoffset_cal_panel_ = nullptr;
     lv_obj_t* pid_cal_panel_ = nullptr;
@@ -140,12 +142,14 @@ class SettingsPanel : public PanelBase {
     void handle_scroll_limit_changed(int value);
 
     void handle_display_settings_clicked();
+    void handle_filament_sensors_clicked();
     void handle_bed_mesh_clicked();
     void handle_z_offset_clicked();
     void handle_pid_tuning_clicked();
     void handle_network_clicked();
     void handle_factory_reset_clicked();
     void show_theme_restart_dialog();
+    void populate_sensor_list();
 
     //
     // === Static Trampolines ===
@@ -161,6 +165,7 @@ class SettingsPanel : public PanelBase {
     static void on_scroll_limit_changed(lv_event_t* e);
 
     static void on_display_settings_clicked(lv_event_t* e);
+    static void on_filament_sensors_clicked(lv_event_t* e);
     static void on_bed_mesh_clicked(lv_event_t* e);
     static void on_z_offset_clicked(lv_event_t* e);
     static void on_pid_tuning_clicked(lv_event_t* e);

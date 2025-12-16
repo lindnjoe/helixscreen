@@ -225,7 +225,7 @@ void MoonrakerClientMock::populate_capabilities() {
 
     // Filament sensors (common setup: runout sensor at spool holder)
     // Check HELIX_MOCK_FILAMENT_SENSORS env var for custom sensor names
-    // Default: single switch sensor named "fsensor"
+    // Default: single switch sensor named "runout_sensor"
     const char* sensor_env = std::getenv("HELIX_MOCK_FILAMENT_SENSORS");
     if (sensor_env && std::string(sensor_env) == "none") {
         // Explicitly disabled
@@ -254,9 +254,9 @@ void MoonrakerClientMock::populate_capabilities() {
         spdlog::debug("[MoonrakerClientMock] Custom filament sensors from env: {}", sensor_env);
     } else {
         // Default: one switch sensor (typical Voron setup)
-        mock_objects.push_back("filament_switch_sensor fsensor");
+        mock_objects.push_back("filament_switch_sensor runout_sensor");
         spdlog::debug(
-            "[MoonrakerClientMock] Default filament sensor: filament_switch_sensor fsensor");
+            "[MoonrakerClientMock] Default filament sensor: filament_switch_sensor runout_sensor");
     }
 
     // Parse objects into capabilities (for PrinterCapabilities queries)

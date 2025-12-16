@@ -15,6 +15,7 @@
 
 #include "app_globals.h"
 #include "config.h"
+#include "filament_sensor_manager.h"
 #include "helix_version.h"
 #include "moonraker_client.h"
 #include "network_settings_overlay.h"
@@ -76,6 +77,16 @@ static void on_version_long_pressed(lv_event_t*) {
                  is_visible ? "ON" : "OFF");
 }
 
+// Static callback for filament sensor master toggle (XML event_cb)
+static void on_filament_master_toggle_changed(lv_event_t* e) {
+    auto* toggle = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    bool enabled = lv_obj_has_state(toggle, LV_STATE_CHECKED);
+    auto& mgr = helix::FilamentSensorManager::instance();
+    mgr.set_master_enabled(enabled);
+    mgr.save_config();
+    spdlog::info("[SettingsPanel] Filament sensor master enabled: {}", enabled ? "ON" : "OFF");
+}
+
 void SettingsPanel::init_subjects() {
     if (subjects_initialized_) {
         spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
@@ -105,6 +116,9 @@ void SettingsPanel::init_subjects() {
 
     // Register XML event callbacks for action rows
     lv_xml_register_event_cb(nullptr, "on_display_settings_clicked", on_display_settings_clicked);
+    lv_xml_register_event_cb(nullptr, "on_filament_sensors_clicked", on_filament_sensors_clicked);
+    lv_xml_register_event_cb(nullptr, "on_filament_master_toggle_changed",
+                             on_filament_master_toggle_changed);
     lv_xml_register_event_cb(nullptr, "on_bed_mesh_clicked", on_bed_mesh_clicked);
     lv_xml_register_event_cb(nullptr, "on_z_offset_clicked", on_z_offset_clicked);
     lv_xml_register_event_cb(nullptr, "on_pid_tuning_clicked", on_pid_tuning_clicked);
@@ -277,6 +291,12 @@ void SettingsPanel::setup_action_handlers() {
     display_settings_row_ = lv_obj_find_by_name(panel_, "row_display_settings");
     if (display_settings_row_) {
         spdlog::debug("[{}]   ✓ Display settings action row", get_name());
+    }
+
+    // === Filament Sensors Row ===
+    filament_sensors_row_ = lv_obj_find_by_name(panel_, "row_filament_sensors");
+    if (filament_sensors_row_) {
+        spdlog::debug("[{}]   ✓ Filament sensors action row", get_name());
     }
 
     // === Bed Mesh Row ===
@@ -640,6 +660,181 @@ void SettingsPanel::handle_display_settings_clicked() {
     }
 }
 
+void SettingsPanel::handle_filament_sensors_clicked() {
+    spdlog::debug("[{}] Filament Sensors clicked - opening overlay", get_name());
+
+    // Create filament sensors overlay on first access (lazy initialization)
+    if (!filament_sensors_overlay_ && parent_screen_) {
+        spdlog::debug("[{}] Creating filament sensors overlay...", get_name());
+
+        // Create from XML - component name matches filename
+        filament_sensors_overlay_ = static_cast<lv_obj_t*>(
+            lv_xml_create(parent_screen_, "filament_sensors_overlay", nullptr));
+        if (filament_sensors_overlay_) {
+            // Wire up back button
+            lv_obj_t* header = lv_obj_find_by_name(filament_sensors_overlay_, "overlay_header");
+            if (header) {
+                lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
+                if (back_btn) {
+                    lv_obj_add_event_cb(
+                        back_btn, [](lv_event_t*) { ui_nav_go_back(); }, LV_EVENT_CLICKED, nullptr);
+                }
+            }
+
+            // Note: Master toggle state and events are handled declaratively via XML:
+            // - Initial state via bind_state_if_eq to filament_master_enabled subject
+            // - Value changes via event_cb to on_filament_master_toggle_changed
+
+            // Update sensor count label
+            lv_obj_t* count_label =
+                lv_obj_find_by_name(filament_sensors_overlay_, "sensor_count_label");
+            if (count_label) {
+                auto& mgr = helix::FilamentSensorManager::instance();
+                lv_label_set_text_fmt(count_label, "(%zu)", mgr.sensor_count());
+            }
+
+            // Populate sensor list
+            populate_sensor_list();
+
+            // Initially hidden
+            lv_obj_add_flag(filament_sensors_overlay_, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[{}] Filament sensors overlay created", get_name());
+        } else {
+            spdlog::error("[{}] Failed to create filament sensors overlay from XML", get_name());
+            return;
+        }
+    }
+
+    // Push overlay onto navigation history and show it
+    if (filament_sensors_overlay_) {
+        ui_nav_push_overlay(filament_sensors_overlay_);
+    }
+}
+
+void SettingsPanel::populate_sensor_list() {
+    if (!filament_sensors_overlay_) {
+        return;
+    }
+
+    lv_obj_t* sensors_list = lv_obj_find_by_name(filament_sensors_overlay_, "sensors_list");
+    if (!sensors_list) {
+        spdlog::error("[{}] Could not find sensors_list container", get_name());
+        return;
+    }
+
+    // Get discovered sensors
+    auto& mgr = helix::FilamentSensorManager::instance();
+    auto sensors = mgr.get_sensors();
+
+    spdlog::debug("[{}] Populating sensor list with {} sensors", get_name(), sensors.size());
+
+    // NOTE: Placeholder visibility is handled by XML binding to filament_sensor_count subject
+    // via <lv_obj-bind_flag_if_ne subject="filament_sensor_count" flag="hidden" ref_value="0"/>
+
+    // Create a row for each sensor
+    for (const auto& sensor : sensors) {
+        // Create sensor row from XML component
+        const char* attrs[] = {
+            "sensor_name", sensor.sensor_name.c_str(), "sensor_type",
+            sensor.type == helix::FilamentSensorType::MOTION ? "motion" : "switch", nullptr};
+        auto* row =
+            static_cast<lv_obj_t*>(lv_xml_create(sensors_list, "filament_sensor_row", attrs));
+        if (!row) {
+            spdlog::error("[{}] Failed to create sensor row for {}", get_name(),
+                          sensor.sensor_name);
+            continue;
+        }
+
+        // Store klipper_name as user data for callbacks
+        // Note: We need to allocate this because sensor goes out of scope
+        char* klipper_name = static_cast<char*>(lv_malloc(sensor.klipper_name.size() + 1));
+        strcpy(klipper_name, sensor.klipper_name.c_str());
+        lv_obj_set_user_data(row, klipper_name);
+
+        // Register cleanup to free allocated string when row is deleted
+        // (LV_EVENT_DELETE is acceptable exception to "no lv_obj_add_event_cb" rule)
+        lv_obj_add_event_cb(
+            row,
+            [](lv_event_t* e) {
+                lv_obj_t* obj = lv_event_get_target_obj(e);
+                char* data = static_cast<char*>(lv_obj_get_user_data(obj));
+                if (data) {
+                    lv_free(data);
+                }
+            },
+            LV_EVENT_DELETE, nullptr);
+
+        // Wire up role dropdown
+        lv_obj_t* role_dropdown = lv_obj_find_by_name(row, "role_dropdown");
+        if (role_dropdown) {
+            // Set options with proper newline separators (XML can't do this)
+            lv_dropdown_set_options(role_dropdown, "None\nRunout\nToolhead\nEntry");
+
+            // Set current role
+            lv_dropdown_set_selected(role_dropdown, static_cast<uint32_t>(sensor.role));
+
+            // Store klipper_name reference for callback
+            lv_obj_set_user_data(role_dropdown, klipper_name);
+
+            // Wire up value change
+            lv_obj_add_event_cb(
+                role_dropdown,
+                [](lv_event_t* e) {
+                    auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+                    auto* klipper_name_ptr =
+                        static_cast<const char*>(lv_obj_get_user_data(dropdown));
+                    if (!klipper_name_ptr)
+                        return;
+
+                    int index = static_cast<int>(lv_dropdown_get_selected(dropdown));
+                    auto role = static_cast<helix::FilamentSensorRole>(index);
+
+                    auto& mgr = helix::FilamentSensorManager::instance();
+                    mgr.set_sensor_role(klipper_name_ptr, role);
+                    mgr.save_config();
+                    spdlog::info("[SettingsPanel] Sensor {} role changed to {}", klipper_name_ptr,
+                                 helix::role_to_config_string(role));
+                },
+                LV_EVENT_VALUE_CHANGED, nullptr);
+        }
+
+        // Wire up enable toggle
+        lv_obj_t* enable_toggle = lv_obj_find_by_name(row, "enable_toggle");
+        if (enable_toggle) {
+            // Set current state
+            if (sensor.enabled) {
+                lv_obj_add_state(enable_toggle, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(enable_toggle, LV_STATE_CHECKED);
+            }
+
+            // Store klipper_name reference for callback
+            lv_obj_set_user_data(enable_toggle, klipper_name);
+
+            // Wire up value change
+            lv_obj_add_event_cb(
+                enable_toggle,
+                [](lv_event_t* e) {
+                    auto* toggle = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+                    auto* klipper_name_ptr = static_cast<const char*>(lv_obj_get_user_data(toggle));
+                    if (!klipper_name_ptr)
+                        return;
+
+                    bool enabled = lv_obj_has_state(toggle, LV_STATE_CHECKED);
+
+                    auto& mgr = helix::FilamentSensorManager::instance();
+                    mgr.set_sensor_enabled(klipper_name_ptr, enabled);
+                    mgr.save_config();
+                    spdlog::info("[SettingsPanel] Sensor {} enabled: {}", klipper_name_ptr,
+                                 enabled ? "ON" : "OFF");
+                },
+                LV_EVENT_VALUE_CHANGED, nullptr);
+        }
+
+        spdlog::debug("[{}]   ✓ Created row for sensor: {}", get_name(), sensor.sensor_name);
+    }
+}
+
 void SettingsPanel::handle_bed_mesh_clicked() {
     spdlog::debug("[{}] Bed Mesh clicked - opening visualization", get_name());
 
@@ -899,6 +1094,12 @@ void SettingsPanel::on_scroll_limit_changed(lv_event_t* e) {
 void SettingsPanel::on_display_settings_clicked(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_display_settings_clicked");
     get_global_settings_panel().handle_display_settings_clicked();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void SettingsPanel::on_filament_sensors_clicked(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_filament_sensors_clicked");
+    get_global_settings_panel().handle_filament_sensors_clicked();
     LVGL_SAFE_EVENT_CB_END();
 }
 

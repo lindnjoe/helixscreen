@@ -1622,10 +1622,13 @@ int main(int argc, char** argv) {
 
     // Connect to Moonraker (only if not in wizard and we have saved config OR CLI override)
     // Wizard will handle its own connection test
+    // In test mode, always connect (uses mock client regardless of wizard state)
     std::string saved_host = config->get<std::string>(config->df() + "moonraker_host", "");
     bool has_cli_url = !args.moonraker_url.empty();
-    if (!args.force_wizard &&
-        (has_cli_url || (!config->is_wizard_required() && !saved_host.empty()))) {
+    bool should_connect =
+        has_cli_url || g_runtime_config.test_mode ||
+        (!args.force_wizard && !config->is_wizard_required() && !saved_host.empty());
+    if (should_connect) {
         std::string moonraker_url;
         std::string http_base_url;
 

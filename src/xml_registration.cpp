@@ -105,6 +105,7 @@ void register_xml_components() {
     // Core UI components
     lv_xml_register_component_from_file("A:ui_xml/icon.xml");
     lv_xml_register_component_from_file("A:ui_xml/filament_sensor_indicator.xml");
+    lv_xml_register_component_from_file("A:ui_xml/filament_sensor_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/temp_display.xml");
     lv_xml_register_component_from_file("A:ui_xml/header_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/overlay_backdrop.xml");
@@ -190,6 +191,7 @@ void register_xml_components() {
 
     // Settings overlay panels
     lv_xml_register_component_from_file("A:ui_xml/display_settings_overlay.xml");
+    lv_xml_register_component_from_file("A:ui_xml/filament_sensors_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/network_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/timelapse_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/hidden_network_modal.xml");

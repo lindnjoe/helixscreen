@@ -230,6 +230,7 @@ style_flex_cross_place="center"
 | `style_img_recolor` | `style_image_recolor` (full word) |
 | `style_pad_row` + `style_flex_track_place="space_evenly"` | Use one or the other (track_place overrides pad_row) |
 | `<lv_label><lv_label-bind_text subject="x"/></lv_label>` | `<lv_label bind_text="x"/>` (attribute, not child) |
+| `options="A\nB\nC"` (literal `\n`) | `options="A&#10;B&#10;C"` (XML entity for newline) |
 
 ---
 

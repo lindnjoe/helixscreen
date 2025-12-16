@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!-- Copyright 2025 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Filament Sensor Row Component -->
+<!-- A single row in the filament sensors settings list -->
+<!-- Shows sensor name, role dropdown, and enable toggle -->
+<!-- Usage: Created dynamically by C++ in filament_sensors_overlay -->
+<component>
+  <api>
+    <prop name="sensor_name" type="string" default="Sensor"/>
+    <prop name="sensor_type" type="string" default="switch"/>
+  </api>
+  <view name="sensor_row"
+        extends="lv_obj" width="100%" height="content" style_bg_opa="0" style_border_width="0"
+        style_pad_left="#space_sm" style_pad_right="#space_sm" style_pad_top="#space_md" style_pad_bottom="#space_md"
+        scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
+    <!-- Top Row: Name + Type indicator -->
+    <lv_obj width="100%"
+            height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+            flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+      <!-- Left: Sensor name -->
+      <lv_obj width="content"
+              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+              flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <icon src="filament" size="sm" variant="accent"/>
+        <text_body name="name_label" text="$sensor_name" style_text_color="#text_primary"/>
+      </lv_obj>
+      <!-- Right: Type badge (switch/motion) -->
+      <lv_obj width="content"
+              height="content" style_bg_color="#card_border" style_bg_opa="180" style_border_width="0"
+              style_radius="#border_radius" style_pad_left="#space_sm" style_pad_right="#space_sm"
+              style_pad_top="#space_xxs" style_pad_bottom="#space_xxs" scrollable="false">
+        <text_small name="type_label" text="$sensor_type" style_text_color="#text_secondary"/>
+      </lv_obj>
+    </lv_obj>
+    <!-- Bottom Row: Role dropdown + Enable toggle -->
+    <lv_obj width="100%"
+            height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+            flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+      <!-- Role Dropdown -->
+      <lv_obj width="content"
+              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+              flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <text_small text="Role:" style_text_color="#text_secondary"/>
+        <lv_dropdown name="role_dropdown"
+                     width="120" height="36" options="None&#10;Runout&#10;Toolhead&#10;Entry" style_radius="#border_radius"
+                     style_border_width="0"/>
+      </lv_obj>
+      <!-- Enable Toggle -->
+      <lv_obj width="content"
+              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+              flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <text_small text="Enabled" style_text_color="#text_secondary"/>
+        <lv_switch name="enable_toggle" width="44" height="24"/>
+      </lv_obj>
+    </lv_obj>
+    <!-- Divider at bottom -->
+    <lv_obj width="100%"
+            height="1" style_bg_color="#card_border" style_bg_opa="60" style_border_width="0" scrollable="false"
+            style_margin_top="#space_xs"/>
+  </view>
+</component>
