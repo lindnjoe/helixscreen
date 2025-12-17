@@ -142,6 +142,8 @@ void register_xml_components() {
 
     // Core UI components
     lv_xml_register_component_from_file("A:ui_xml/icon.xml");
+    lv_xml_register_component_from_file("A:ui_xml/filament_sensor_indicator.xml");
+    lv_xml_register_component_from_file("A:ui_xml/filament_sensor_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/temp_display.xml");
     lv_xml_register_component_from_file("A:ui_xml/header_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/overlay_backdrop.xml");
@@ -163,6 +165,7 @@ void register_xml_components() {
     // Modal dialogs
     lv_xml_register_component_from_file("A:ui_xml/modal_dialog.xml");
     lv_xml_register_component_from_file("A:ui_xml/numeric_keypad_modal.xml");
+    lv_xml_register_component_from_file("A:ui_xml/runout_guidance_modal.xml");
 
     // Print file components
     lv_xml_register_component_from_file("A:ui_xml/print_file_card.xml");
@@ -227,6 +230,7 @@ void register_xml_components() {
 
     // Settings overlay panels
     lv_xml_register_component_from_file("A:ui_xml/display_settings_overlay.xml");
+    lv_xml_register_component_from_file("A:ui_xml/filament_sensors_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/network_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/timelapse_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/hidden_network_modal.xml");

@@ -377,6 +377,7 @@ class PrintSelectPanel : public PanelBase {
     lv_obj_t* detail_view_widget_ = nullptr;
     lv_obj_t* confirmation_dialog_widget_ = nullptr;
     lv_obj_t* print_status_panel_widget_ = nullptr;
+    lv_obj_t* filament_warning_dialog_ = nullptr; ///< Pre-print filament sensor warning
 
     // Pre-print option checkboxes (looked up during create_detail_view)
     lv_obj_t* bed_leveling_checkbox_ = nullptr;
@@ -648,8 +649,25 @@ class PrintSelectPanel : public PanelBase {
 
     /**
      * @brief Start print of currently selected file
+     *
+     * Checks filament sensor state before starting. If runout sensor is available
+     * and shows no filament, displays a warning dialog allowing user to proceed or cancel.
      */
     void start_print();
+
+    /**
+     * @brief Show filament warning dialog before print
+     *
+     * Called when runout sensor indicates no filament. User can proceed anyway or cancel.
+     */
+    void show_filament_warning();
+
+    /**
+     * @brief Execute the actual print start (after any warnings)
+     *
+     * Called directly when no warning needed, or after user confirms warning dialog.
+     */
+    void execute_print_start();
 
     /**
      * @brief Delete currently selected file
@@ -740,6 +758,8 @@ class PrintSelectPanel : public PanelBase {
     static void on_confirm_delete_static(lv_event_t* e);
     static void on_cancel_delete_static(lv_event_t* e);
     static void on_source_button_clicked_static(lv_event_t* e);
+    static void on_filament_warning_proceed_static(lv_event_t* e);
+    static void on_filament_warning_cancel_static(lv_event_t* e);
 };
 
 // ============================================================================

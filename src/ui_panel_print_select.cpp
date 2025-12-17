@@ -5,6 +5,7 @@
 
 #include "ui_async_callback.h"
 #include "ui_error_reporting.h"
+#include "ui_event_safety.h"
 #include "ui_fonts.h"
 #include "ui_modal.h"
 #include "ui_nav.h"
@@ -15,6 +16,7 @@
 
 #include "app_globals.h"
 #include "config.h"
+#include "filament_sensor_manager.h"
 #include "lvgl/src/xml/lv_xml.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
@@ -104,6 +106,12 @@ PrintSelectPanel::~PrintSelectPanel() {
         if (refresh_timer_) {
             lv_timer_delete(refresh_timer_);
             refresh_timer_ = nullptr;
+        }
+
+        // Clean up filament warning dialog if open
+        if (filament_warning_dialog_) {
+            ui_modal_hide(filament_warning_dialog_);
+            filament_warning_dialog_ = nullptr;
         }
     }
 
@@ -1985,6 +1993,23 @@ void PrintSelectPanel::start_print() {
         return;
     }
 
+    // Check if runout sensor shows no filament (pre-print warning)
+    auto& sensor_mgr = helix::FilamentSensorManager::instance();
+    if (sensor_mgr.is_master_enabled() &&
+        sensor_mgr.is_sensor_available(helix::FilamentSensorRole::RUNOUT) &&
+        !sensor_mgr.is_filament_detected(helix::FilamentSensorRole::RUNOUT)) {
+        // No filament detected - show warning
+        spdlog::info("[{}] Runout sensor shows no filament - showing pre-print warning",
+                     get_name());
+        show_filament_warning();
+        return;
+    }
+
+    // Sensor not available or filament detected - proceed directly
+    execute_print_start();
+}
+
+void PrintSelectPanel::execute_print_start() {
     std::string filename_to_print(selected_filename_buffer_);
     auto* self = this;
 
@@ -2133,6 +2158,48 @@ void PrintSelectPanel::start_print() {
         spdlog::error("[{}] Cannot start print - not connected to printer", get_name());
         NOTIFY_ERROR("Cannot start print: not connected to printer");
     }
+}
+
+void PrintSelectPanel::show_filament_warning() {
+    // Close any existing dialog first
+    if (filament_warning_dialog_) {
+        ui_modal_hide(filament_warning_dialog_);
+        filament_warning_dialog_ = nullptr;
+    }
+
+    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                                .backdrop_opa = 180,
+                                .keyboard = nullptr,
+                                .persistent = false,
+                                .on_close = nullptr};
+
+    const char* attrs[] = {"title", "No Filament Detected", "message",
+                           "The runout sensor indicates no filament is loaded. "
+                           "Start print anyway?",
+                           nullptr};
+
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Start Print", "Cancel");
+    filament_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+
+    if (!filament_warning_dialog_) {
+        spdlog::error("[{}] Failed to create filament warning dialog", get_name());
+        return;
+    }
+
+    // Wire up cancel button
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(filament_warning_dialog_, "btn_secondary");
+    if (cancel_btn) {
+        lv_obj_add_event_cb(cancel_btn, on_filament_warning_cancel_static, LV_EVENT_CLICKED, this);
+    }
+
+    // Wire up proceed button
+    lv_obj_t* proceed_btn = lv_obj_find_by_name(filament_warning_dialog_, "btn_primary");
+    if (proceed_btn) {
+        lv_obj_add_event_cb(proceed_btn, on_filament_warning_proceed_static, LV_EVENT_CLICKED,
+                            this);
+    }
+
+    spdlog::debug("[{}] Pre-print filament warning dialog shown", get_name());
 }
 
 void PrintSelectPanel::delete_file() {
@@ -2713,4 +2780,30 @@ void PrintSelectPanel::on_source_button_clicked_static(lv_event_t* e) {
     } else if (target == self->source_usb_btn_) {
         self->on_source_usb_clicked();
     }
+}
+
+void PrintSelectPanel::on_filament_warning_proceed_static(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[PrintSelectPanel] on_filament_warning_proceed_static");
+    auto* self = static_cast<PrintSelectPanel*>(lv_event_get_user_data(e));
+    if (self) {
+        // Hide dialog first
+        if (self->filament_warning_dialog_) {
+            ui_modal_hide(self->filament_warning_dialog_);
+            self->filament_warning_dialog_ = nullptr;
+        }
+        // Execute print
+        self->execute_print_start();
+    }
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void PrintSelectPanel::on_filament_warning_cancel_static(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[PrintSelectPanel] on_filament_warning_cancel_static");
+    auto* self = static_cast<PrintSelectPanel*>(lv_event_get_user_data(e));
+    if (self && self->filament_warning_dialog_) {
+        ui_modal_hide(self->filament_warning_dialog_);
+        self->filament_warning_dialog_ = nullptr;
+        spdlog::debug("[PrintSelectPanel] Print cancelled by user (no filament warning)");
+    }
+    LVGL_SAFE_EVENT_CB_END();
 }

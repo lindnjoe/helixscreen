@@ -230,6 +230,100 @@ style_flex_cross_place="center"
 | `style_img_recolor` | `style_image_recolor` (full word) |
 | `style_pad_row` + `style_flex_track_place="space_evenly"` | Use one or the other (track_place overrides pad_row) |
 | `<lv_label><lv_label-bind_text subject="x"/></lv_label>` | `<lv_label bind_text="x"/>` (attribute, not child) |
+| `options="A\nB\nC"` (literal `\n`) | `options="A&#10;B&#10;C"` (XML entity for newline) |
+
+---
+
+## Modal Dialog Lifecycle (CRITICAL)
+
+Modals created with `ui_modal_show()` MUST be cleaned up with `ui_modal_hide()`.
+
+### Creating Modals
+
+```cpp
+// Configure modal BEFORE showing
+ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Proceed", "Cancel");
+
+ui_modal_config_t config = {
+    .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+    .backdrop_opa = 180,
+    .keyboard = nullptr,
+    .persistent = false,
+    .on_close = nullptr
+};
+
+const char* attrs[] = {"title", "My Title", "message", "My message", nullptr};
+my_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+```
+
+### Closing Modals
+
+```cpp
+// ALWAYS use ui_modal_hide() - NOT lv_obj_del()!
+if (my_dialog_) {
+    ui_modal_hide(my_dialog_);
+    my_dialog_ = nullptr;
+}
+```
+
+**Why `ui_modal_hide()` not `lv_obj_del()`:**
+- Removes modal from `ModalManager`'s internal stack
+- Cleans up associated keyboard config
+- Uses `lv_obj_is_valid()` for safety
+- Calls `lv_obj_delete_async()` (non-blocking)
+
+### Destructor Cleanup Pattern
+
+**All panels with modal dialogs MUST clean up in destructor:**
+
+```cpp
+MyPanel::~MyPanel() {
+    // CRITICAL: Check if LVGL is still initialized!
+    // During static destruction, LVGL may already be torn down.
+    if (lv_is_initialized()) {
+        if (my_dialog_) {
+            ui_modal_hide(my_dialog_);
+            my_dialog_ = nullptr;
+        }
+    }
+}
+```
+
+**Why the `lv_is_initialized()` guard:**
+- Static destruction order is undefined in C++
+- LVGL may be destroyed before panel destructors run
+- Calling LVGL functions after `lv_deinit()` = crash
+
+### Wiring Modal Button Callbacks
+
+Modal button callbacks are an **exception** to the "no `lv_obj_add_event_cb()`" rule:
+
+```cpp
+// Wire up buttons after creating modal
+lv_obj_t* cancel_btn = lv_obj_find_by_name(my_dialog_, "btn_secondary");
+if (cancel_btn) {
+    lv_obj_add_event_cb(cancel_btn, on_cancel_static, LV_EVENT_CLICKED, this);
+}
+
+lv_obj_t* proceed_btn = lv_obj_find_by_name(my_dialog_, "btn_primary");
+if (proceed_btn) {
+    lv_obj_add_event_cb(proceed_btn, on_proceed_static, LV_EVENT_CLICKED, this);
+}
+```
+
+### Modal Severity Levels
+
+| Severity | Use Case |
+|----------|----------|
+| `UI_MODAL_SEVERITY_INFO` | Informational, no action required |
+| `UI_MODAL_SEVERITY_WARNING` | "Proceed anyway?" confirmations |
+| `UI_MODAL_SEVERITY_ERROR` | Error that blocks action |
+
+### Reference Examples
+
+- **Confirmation dialog:** `ui_panel_controls.cpp` (motors off confirmation)
+- **Warning dialog:** `ui_panel_filament.cpp` (load/unload warnings)
+- **Delete confirmation:** `ui_panel_bed_mesh.cpp`, `ui_panel_print_select.cpp`
 
 ---
 

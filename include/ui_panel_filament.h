@@ -47,7 +47,7 @@ class FilamentPanel : public PanelBase {
      */
     FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api);
 
-    ~FilamentPanel() override = default;
+    ~FilamentPanel() override;
 
     //
     // === PanelBase Implementation ===
@@ -172,6 +172,10 @@ class FilamentPanel : public PanelBase {
     lv_obj_t* status_icon_ = nullptr;
     lv_obj_t* preset_buttons_[4] = {nullptr};
 
+    // Warning dialogs for filament sensor integration
+    lv_obj_t* load_warning_dialog_ = nullptr;
+    lv_obj_t* unload_warning_dialog_ = nullptr;
+
     //
     // === Private Helpers ===
     //
@@ -194,6 +198,12 @@ class FilamentPanel : public PanelBase {
     void handle_unload_button();
     void handle_purge_button();
 
+    // Filament sensor warning helpers
+    void show_load_warning();
+    void show_unload_warning();
+    void execute_load();
+    void execute_unload();
+
     //
     // === Static Trampolines ===
     //
@@ -210,6 +220,12 @@ class FilamentPanel : public PanelBase {
 
     // Keypad callback bridge (different signature - not an LVGL event)
     static void custom_temp_keypad_cb(float value, void* user_data);
+
+    // Filament sensor warning dialog callbacks
+    static void on_load_warning_proceed(lv_event_t* e);
+    static void on_load_warning_cancel(lv_event_t* e);
+    static void on_unload_warning_proceed(lv_event_t* e);
+    static void on_unload_warning_cancel(lv_event_t* e);
 };
 
 // Global instance accessor (needed by main.cpp)

@@ -7,6 +7,7 @@
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_icon.h"
+#include "ui_modal_manager.h"
 #include "ui_nav.h"
 #include "ui_subject_registry.h"
 #include "ui_temperature_utils.h"
@@ -15,6 +16,7 @@
 
 #include "app_constants.h"
 #include "app_globals.h"
+#include "filament_sensor_manager.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
 
@@ -49,6 +51,20 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
     lv_xml_register_event_cb(nullptr, "on_filament_load", on_load_clicked);
     lv_xml_register_event_cb(nullptr, "on_filament_unload", on_unload_clicked);
     lv_xml_register_event_cb(nullptr, "on_filament_purge", on_purge_clicked);
+}
+
+FilamentPanel::~FilamentPanel() {
+    // Clean up warning dialogs if open (prevents memory leak and use-after-free)
+    if (lv_is_initialized()) {
+        if (load_warning_dialog_) {
+            ui_modal_hide(load_warning_dialog_);
+            load_warning_dialog_ = nullptr;
+        }
+        if (unload_warning_dialog_) {
+            ui_modal_hide(unload_warning_dialog_);
+            unload_warning_dialog_ = nullptr;
+        }
+    }
 }
 
 // ============================================================================
@@ -306,15 +322,20 @@ void FilamentPanel::handle_load_button() {
         return;
     }
 
-    spdlog::info("[{}] Loading filament", get_name());
-
-    if (api_) {
-        api_->execute_gcode(
-            "LOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament load started"); },
-            [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Filament load failed: {}", error.user_message());
-            });
+    // Check if toolhead sensor shows filament already present
+    auto& sensor_mgr = helix::FilamentSensorManager::instance();
+    if (sensor_mgr.is_master_enabled() &&
+        sensor_mgr.is_sensor_available(helix::FilamentSensorRole::TOOLHEAD) &&
+        sensor_mgr.is_filament_detected(helix::FilamentSensorRole::TOOLHEAD)) {
+        // Filament appears to already be loaded - show warning
+        spdlog::info("[{}] Toolhead sensor shows filament present - showing load warning",
+                     get_name());
+        show_load_warning();
+        return;
     }
+
+    // No sensor or no filament detected - proceed directly
+    execute_load();
 }
 
 void FilamentPanel::handle_unload_button() {
@@ -324,15 +345,19 @@ void FilamentPanel::handle_unload_button() {
         return;
     }
 
-    spdlog::info("[{}] Unloading filament", get_name());
-
-    if (api_) {
-        api_->execute_gcode(
-            "UNLOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament unload started"); },
-            [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Filament unload failed: {}", error.user_message());
-            });
+    // Check if toolhead sensor shows no filament (nothing to unload)
+    auto& sensor_mgr = helix::FilamentSensorManager::instance();
+    if (sensor_mgr.is_master_enabled() &&
+        sensor_mgr.is_sensor_available(helix::FilamentSensorRole::TOOLHEAD) &&
+        !sensor_mgr.is_filament_detected(helix::FilamentSensorRole::TOOLHEAD)) {
+        // No filament detected - show warning
+        spdlog::info("[{}] Toolhead sensor shows no filament - showing unload warning", get_name());
+        show_unload_warning();
+        return;
     }
+
+    // Sensor not available or filament detected - proceed directly
+    execute_unload();
 }
 
 void FilamentPanel::handle_purge_button() {
@@ -479,6 +504,168 @@ void FilamentPanel::set_limits(int min_temp, int max_temp) {
     nozzle_min_temp_ = min_temp;
     nozzle_max_temp_ = max_temp;
     spdlog::info("[{}] Nozzle temperature limits updated: {}-{}°C", get_name(), min_temp, max_temp);
+}
+
+// ============================================================================
+// FILAMENT SENSOR WARNING HELPERS
+// ============================================================================
+
+void FilamentPanel::execute_load() {
+    spdlog::info("[{}] Loading filament", get_name());
+
+    if (api_) {
+        api_->execute_gcode(
+            "LOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament load started"); },
+            [](const MoonrakerError& error) {
+                NOTIFY_ERROR("Filament load failed: {}", error.user_message());
+            });
+    }
+}
+
+void FilamentPanel::execute_unload() {
+    spdlog::info("[{}] Unloading filament", get_name());
+
+    if (api_) {
+        api_->execute_gcode(
+            "UNLOAD_FILAMENT", []() { NOTIFY_SUCCESS("Filament unload started"); },
+            [](const MoonrakerError& error) {
+                NOTIFY_ERROR("Filament unload failed: {}", error.user_message());
+            });
+    }
+}
+
+void FilamentPanel::show_load_warning() {
+    // Close any existing dialog first
+    if (load_warning_dialog_) {
+        ui_modal_hide(load_warning_dialog_);
+        load_warning_dialog_ = nullptr;
+    }
+
+    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                                .backdrop_opa = 180,
+                                .keyboard = nullptr,
+                                .persistent = false,
+                                .on_close = nullptr};
+
+    const char* attrs[] = {"title", "Filament Detected", "message",
+                           "The toolhead sensor indicates filament is already loaded. "
+                           "Proceed with load anyway?",
+                           nullptr};
+
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Proceed", "Cancel");
+    load_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+
+    if (!load_warning_dialog_) {
+        spdlog::error("[{}] Failed to create load warning dialog", get_name());
+        return;
+    }
+
+    // Wire up cancel button
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(load_warning_dialog_, "btn_secondary");
+    if (cancel_btn) {
+        lv_obj_add_event_cb(cancel_btn, on_load_warning_cancel, LV_EVENT_CLICKED, this);
+    }
+
+    // Wire up proceed button
+    lv_obj_t* proceed_btn = lv_obj_find_by_name(load_warning_dialog_, "btn_primary");
+    if (proceed_btn) {
+        lv_obj_add_event_cb(proceed_btn, on_load_warning_proceed, LV_EVENT_CLICKED, this);
+    }
+
+    spdlog::debug("[{}] Load warning dialog shown", get_name());
+}
+
+void FilamentPanel::show_unload_warning() {
+    // Close any existing dialog first
+    if (unload_warning_dialog_) {
+        ui_modal_hide(unload_warning_dialog_);
+        unload_warning_dialog_ = nullptr;
+    }
+
+    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                                .backdrop_opa = 180,
+                                .keyboard = nullptr,
+                                .persistent = false,
+                                .on_close = nullptr};
+
+    const char* attrs[] = {"title", "No Filament Detected", "message",
+                           "The toolhead sensor indicates no filament is present. "
+                           "Proceed with unload anyway?",
+                           nullptr};
+
+    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Proceed", "Cancel");
+    unload_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+
+    if (!unload_warning_dialog_) {
+        spdlog::error("[{}] Failed to create unload warning dialog", get_name());
+        return;
+    }
+
+    // Wire up cancel button
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(unload_warning_dialog_, "btn_secondary");
+    if (cancel_btn) {
+        lv_obj_add_event_cb(cancel_btn, on_unload_warning_cancel, LV_EVENT_CLICKED, this);
+    }
+
+    // Wire up proceed button
+    lv_obj_t* proceed_btn = lv_obj_find_by_name(unload_warning_dialog_, "btn_primary");
+    if (proceed_btn) {
+        lv_obj_add_event_cb(proceed_btn, on_unload_warning_proceed, LV_EVENT_CLICKED, this);
+    }
+
+    spdlog::debug("[{}] Unload warning dialog shown", get_name());
+}
+
+void FilamentPanel::on_load_warning_proceed(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_load_warning_proceed");
+    auto* self = static_cast<FilamentPanel*>(lv_event_get_user_data(e));
+    if (self) {
+        // Hide dialog first
+        if (self->load_warning_dialog_) {
+            ui_modal_hide(self->load_warning_dialog_);
+            self->load_warning_dialog_ = nullptr;
+        }
+        // Execute load
+        self->execute_load();
+    }
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void FilamentPanel::on_load_warning_cancel(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_load_warning_cancel");
+    auto* self = static_cast<FilamentPanel*>(lv_event_get_user_data(e));
+    if (self && self->load_warning_dialog_) {
+        ui_modal_hide(self->load_warning_dialog_);
+        self->load_warning_dialog_ = nullptr;
+        spdlog::debug("[FilamentPanel] Load cancelled by user");
+    }
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void FilamentPanel::on_unload_warning_proceed(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_unload_warning_proceed");
+    auto* self = static_cast<FilamentPanel*>(lv_event_get_user_data(e));
+    if (self) {
+        // Hide dialog first
+        if (self->unload_warning_dialog_) {
+            ui_modal_hide(self->unload_warning_dialog_);
+            self->unload_warning_dialog_ = nullptr;
+        }
+        // Execute unload
+        self->execute_unload();
+    }
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void FilamentPanel::on_unload_warning_cancel(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_unload_warning_cancel");
+    auto* self = static_cast<FilamentPanel*>(lv_event_get_user_data(e));
+    if (self && self->unload_warning_dialog_) {
+        ui_modal_hide(self->unload_warning_dialog_);
+        self->unload_warning_dialog_ = nullptr;
+        spdlog::debug("[FilamentPanel] Unload cancelled by user");
+    }
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 // ============================================================================

@@ -209,6 +209,29 @@ class PrinterCapabilities {
     }
 
     /**
+     * @brief Check if printer has any filament sensors
+     *
+     * Detects filament_switch_sensor or filament_motion_sensor objects.
+     * Used to show sensor configuration UI and enable sensor-based features.
+     *
+     * @return true if any filament sensor was detected
+     */
+    [[nodiscard]] bool has_filament_sensors() const {
+        return !filament_sensor_names_.empty();
+    }
+
+    /**
+     * @brief Get discovered filament sensor names
+     *
+     * Returns full Klipper object names like "filament_switch_sensor fsensor".
+     *
+     * @return Vector of sensor object names
+     */
+    [[nodiscard]] const std::vector<std::string>& get_filament_sensor_names() const {
+        return filament_sensor_names_;
+    }
+
+    /**
      * @brief Get the detected MMU/AMS/tool changer type
      *
      * Returns the type of multi-tool system detected:
@@ -414,6 +437,10 @@ class PrinterCapabilities {
 
     // Tool changer discovery (from printer.objects.list)
     std::vector<std::string> tool_names_; ///< Tool names from "tool T0", "tool T1", etc.
+
+    // Filament sensor discovery
+    std::vector<std::string>
+        filament_sensor_names_; ///< Full Klipper names like "filament_switch_sensor fsensor"
 
     /**
      * @brief Convert string to uppercase for comparison

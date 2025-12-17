@@ -66,6 +66,7 @@
 #include "cli_args.h"
 #include "config.h"
 #include "display_backend.h"
+#include "filament_sensor_manager.h"
 #include "gcode_file_modifier.h"
 #include "logging_init.h"
 #include "lvgl/lvgl.h"
@@ -439,6 +440,10 @@ static void initialize_subjects() {
     // This is critical for the home panel's AMS indicator visibility binding
     // Note: In mock mode, init_subjects() also creates the mock backend internally
     AmsState::instance().init_subjects(true);
+
+    // Initialize FilamentSensorManager subjects BEFORE panels so XML bindings can work
+    // Actual sensor discovery happens later in on_hardware_discovered callback
+    helix::FilamentSensorManager::instance().init_subjects();
 
     // NOTE: AMS panel is lazily initialized when first accessed via get_global_ams_panel()
 
@@ -1673,9 +1678,10 @@ int main(int argc, char** argv) {
     // In test mode, always connect (uses mock client regardless of wizard state)
     std::string saved_host = config->get<std::string>(config->df() + "moonraker_host", "");
     bool has_cli_url = !args.moonraker_url.empty();
-    bool should_connect = has_cli_url || g_runtime_config.test_mode ||
-                          (!config->is_wizard_required() && !saved_host.empty());
-    if (!args.force_wizard && should_connect) {
+    bool should_connect =
+        has_cli_url || g_runtime_config.test_mode ||
+        (!args.force_wizard && !config->is_wizard_required() && !saved_host.empty());
+    if (should_connect) {
         std::string moonraker_url;
         std::string http_base_url;
 
@@ -1712,6 +1718,17 @@ int main(int argc, char** argv) {
             // from the printer.objects.subscribe response
             AmsState::instance().init_backend_from_capabilities(caps, moonraker_api.get(),
                                                                 moonraker_client.get());
+
+            // Initialize FilamentSensorManager if sensors detected
+            // Must happen EARLY so it's ready to receive initial state from subscription
+            if (caps.has_filament_sensors()) {
+                auto& fsm = helix::FilamentSensorManager::instance();
+                fsm.init_subjects();
+                fsm.discover_sensors(caps.get_filament_sensor_names());
+                fsm.load_config();
+                spdlog::info("[Main] FilamentSensorManager initialized: {} sensors",
+                             caps.get_filament_sensor_names().size());
+            }
         });
 
         // Register LATE discovery callback - fires after subscription response is processed

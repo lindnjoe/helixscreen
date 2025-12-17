@@ -2524,6 +2524,36 @@ See **docs/LV_SIZE_CONTENT_GUIDE.md** for complete technical details.
    - Print status: ui_panel_print_status.cpp:326
    - Step progress: ui_step_progress.cpp:300, 343
 
+#### Dropdown Options: Use `&#10;` XML Entity for Newlines
+
+**CRITICAL:** In XML attributes, `\n` is NOT interpreted as a newline - it's treated as literal backslash + 'n' characters. Use the XML character entity `&#10;` instead.
+
+```xml
+<!-- ✅ CORRECT - Options appear as separate items -->
+<lv_dropdown options="Option 1&#10;Option 2&#10;Option 3"/>
+
+<!-- ❌ WRONG - Options appear as "Option 1\nOption 2\nOption 3" on one line -->
+<lv_dropdown options="Option 1\nOption 2\nOption 3"/>
+```
+
+**Why:** XML attribute values don't process C-style escape sequences. The `\n` sequence is passed verbatim to LVGL, which displays it as literal characters. The XML character entity `&#10;` (decimal 10 = ASCII newline) is decoded by the XML parser into an actual newline character before reaching LVGL.
+
+**Common XML Character Entities:**
+| Entity | Character | Decimal |
+|--------|-----------|---------|
+| `&#10;` | Newline (LF) | 10 |
+| `&#13;` | Carriage Return (CR) | 13 |
+| `&#9;` | Tab | 9 |
+| `&amp;` | & | 38 |
+| `&lt;` | < | 60 |
+| `&gt;` | > | 62 |
+| `&quot;` | " | 34 |
+
+**In C++:** When setting options programmatically, use `\n` normally:
+```cpp
+lv_dropdown_set_options(dropdown, "Option 1\nOption 2\nOption 3");  // ✅ Works in C++
+```
+
 #### Custom-Drawn Widgets in Hidden/Lazy Panels
 
 **Problem:** TinyGL or custom-drawn widgets (bed mesh, G-code viewer) don't render on first view when the panel uses lazy initialization with `lv_xml_create()` → `setup()` → `add_flag(HIDDEN)` → `push_overlay()`.

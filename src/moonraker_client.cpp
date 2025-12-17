@@ -1144,6 +1144,12 @@ void MoonrakerClient::complete_discovery_subscription(std::function<void()> on_c
         subscription_objects[afc_obj] = nullptr;
     }
 
+    // All discovered filament sensors (filament_switch_sensor, filament_motion_sensor)
+    // These provide runout detection and encoder motion data
+    for (const auto& sensor : filament_sensors_) {
+        subscription_objects[sensor] = nullptr;
+    }
+
     json subscribe_params = {{"objects", subscription_objects}};
 
     send_jsonrpc(
@@ -1186,6 +1192,7 @@ void MoonrakerClient::parse_objects(const json& objects) {
     leds_.clear();
     steppers_.clear();
     afc_objects_.clear();
+    filament_sensors_.clear();
     printer_objects_.clear();
 
     for (const auto& obj : objects) {
@@ -1251,12 +1258,18 @@ void MoonrakerClient::parse_objects(const json& objects) {
                  name.rfind("AFC_hub ", 0) == 0 || name.rfind("AFC_extruder ", 0) == 0) {
             afc_objects_.push_back(name);
         }
+        // Filament sensors (switch or motion type)
+        // These provide runout detection and encoder motion data
+        else if (name.rfind("filament_switch_sensor ", 0) == 0 ||
+                 name.rfind("filament_motion_sensor ", 0) == 0) {
+            filament_sensors_.push_back(name);
+        }
     }
 
     spdlog::debug("[Moonraker Client] Discovered: {} heaters, {} sensors, {} fans, {} LEDs, {} "
-                  "steppers, {} AFC objects",
+                  "steppers, {} AFC objects, {} filament sensors",
                   heaters_.size(), sensors_.size(), fans_.size(), leds_.size(), steppers_.size(),
-                  afc_objects_.size());
+                  afc_objects_.size(), filament_sensors_.size());
 
     // Debug output of discovered objects
     if (!heaters_.empty()) {
@@ -1276,6 +1289,9 @@ void MoonrakerClient::parse_objects(const json& objects) {
     }
     if (!afc_objects_.empty()) {
         spdlog::info("[Moonraker Client] AFC objects: {}", json(afc_objects_).dump());
+    }
+    if (!filament_sensors_.empty()) {
+        spdlog::info("[Moonraker Client] Filament sensors: {}", json(filament_sensors_).dump());
     }
 
     // Parse printer capabilities (QGL, Z-tilt, bed mesh, macros)

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!-- Copyright 2025 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+  Filament Sensor Status Indicator
+
+  A small colored dot showing filament sensor status:
+  - Green: Filament detected (subject value = 1)
+  - Red: No filament / runout (subject value = 0)
+  - Hidden: No sensor configured (subject value = -1) or master disabled
+
+  The component binds to filament_runout_detected subject by default.
+  For toolhead/entry sensors, use the toolhead_indicator or entry_indicator variants.
+
+  Subject values:
+    -1 = No sensor assigned to this role
+     0 = Sensor present but no filament detected
+     1 = Filament detected
+-->
+<component>
+  <styles>
+    <!-- Filament detected - green dot -->
+    <style name="dot_detected" bg_color="#success_color" bg_opa="255"/>
+    <!-- No filament - red dot -->
+    <style name="dot_empty" bg_color="#error_color" bg_opa="255"/>
+  </styles>
+  <view extends="lv_obj"
+        name="filament_indicator"
+        width="10" height="10"
+        style_radius="1000"
+        style_border_width="0"
+        style_pad_all="0"
+        style_bg_opa="0"
+        scrollable="false">
+    <!-- Green when detected (value=1) -->
+    <bind_style name="dot_detected" subject="filament_runout_detected" ref_value="1"/>
+    <!-- Red when empty (value=0) -->
+    <bind_style name="dot_empty" subject="filament_runout_detected" ref_value="0"/>
+    <!-- Hidden when no sensor (value=-1) -->
+    <lv_obj-bind_flag_if_eq subject="filament_runout_detected" flag="hidden" ref_value="-1"/>
+    <!-- Also hide when master disabled -->
+    <lv_obj-bind_flag_if_eq subject="filament_master_enabled" flag="hidden" ref_value="0"/>
+  </view>
+</component>

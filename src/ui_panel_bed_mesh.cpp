@@ -61,6 +61,18 @@ BedMeshPanel::BedMeshPanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 BedMeshPanel::~BedMeshPanel() {
+    // CRITICAL: Check if LVGL is still initialized before calling LVGL functions.
+    // During static destruction, LVGL may already be torn down.
+    if (lv_is_initialized()) {
+        // Modal dialogs: use ui_modal_hide() - NOT lv_obj_del()!
+        // See docs/QUICK_REFERENCE.md "Modal Dialog Lifecycle"
+        if (delete_modal_widget_) {
+            ui_modal_hide(delete_modal_widget_);
+            delete_modal_widget_ = nullptr;
+        }
+    }
+
+    // Clear widget pointers (LVGL owns the objects)
     canvas_ = nullptr;
     calibrate_name_input_ = nullptr;
     rename_name_input_ = nullptr;

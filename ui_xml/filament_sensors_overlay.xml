@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<!-- Copyright 2025 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Filament Sensors Settings Overlay -->
+<!-- Configure filament sensor roles and enable/disable individual sensors -->
+<!-- XML-First Design: Layout/styling here; C++ populates sensor list dynamically -->
+<component>
+  <view name="filament_sensors_overlay"
+        extends="lv_obj" width="#overlay_panel_width" height="100%" align="right_mid" style_border_width="0"
+        style_pad_all="0" style_bg_opa="255" style_bg_color="#card_bg" scrollable="false" flex_flow="column">
+    <!-- Header Bar with title and back button -->
+    <header_bar name="overlay_header" title="Filament Sensors"/>
+    <!-- Content Area -->
+    <lv_obj name="overlay_content"
+            width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" scrollable="false"
+            style_border_width="0" flex_flow="column" style_pad_gap="#space_lg">
+      <!-- ================================================================== -->
+      <!-- MASTER ENABLE SECTION -->
+      <!-- ================================================================== -->
+      <lv_obj name="master_enable_card"
+              width="100%" height="content" style_bg_color="#app_bg_color" style_bg_opa="255"
+              style_radius="#border_radius" style_border_width="0" style_pad_all="#space_lg" scrollable="false"
+              flex_flow="column" style_pad_gap="#space_sm">
+        <!-- Header Row: Label + toggle -->
+        <lv_obj width="100%"
+                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+                flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+          <lv_obj width="content"
+                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+                  flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+            <icon src="filament" size="sm" variant="secondary"/>
+            <text_body text="Enable Monitoring" style_text_color="#text_primary"/>
+          </lv_obj>
+          <!-- Master Toggle Switch -->
+          <lv_switch name="master_toggle" width="50" height="28">
+            <lv_obj-bind_state_if_eq subject="filament_master_enabled" state="checked" ref_value="1"/>
+            <event_cb trigger="value_changed" callback="on_filament_master_toggle_changed"/>
+          </lv_switch>
+        </lv_obj>
+        <!-- Description -->
+        <text_small width="100%"
+                    text="When disabled, all filament sensor monitoring is bypassed" style_text_color="#text_secondary"
+                    style_text_align="left"/>
+      </lv_obj>
+      <!-- Divider -->
+      <lv_obj width="100%"
+              height="1" style_bg_color="#card_border" style_bg_opa="100" style_border_width="0" scrollable="false"/>
+      <!-- ================================================================== -->
+      <!-- SENSORS SECTION -->
+      <!-- ================================================================== -->
+      <lv_obj width="100%"
+              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+              flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+        <text_body text="Discovered Sensors" style_text_color="#text_primary"/>
+        <text_small name="sensor_count_label" text="(0)" style_text_color="#text_secondary"/>
+      </lv_obj>
+      <!-- Sensors List Container (scrollable) -->
+      <lv_obj name="sensors_list"
+              width="100%" flex_grow="1" style_bg_color="#app_bg_color" style_bg_opa="255"
+              style_radius="#border_radius" style_border_width="0" style_pad_all="#space_sm" scrollable="true"
+              scroll_dir="VER" scroll_elastic="false" style_clip_corner="true" flex_flow="column"
+              style_pad_gap="#space_sm">
+        <!-- filament_sensor_row components are created here dynamically by C++ -->
+        <!-- Placeholder when no sensors (shouldn't show normally as whole panel is hidden) -->
+        <lv_obj name="no_sensors_placeholder"
+                width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg"
+                scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+                style_flex_track_place="center">
+          <lv_obj-bind_flag_if_not_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
+          <icon src="filament" size="md" variant="secondary"/>
+          <text_small text="No filament sensors detected" style_text_color="#text_secondary" style_margin_top="#space_sm"/>
+        </lv_obj>
+      </lv_obj>
+      <!-- ================================================================== -->
+      <!-- INFO NOTE -->
+      <!-- ================================================================== -->
+      <lv_obj width="100%"
+              height="content" style_bg_opa="0" style_border_width="0" style_pad_left="#space_sm"
+              style_pad_bottom="#space_md" style_pad_top="0" style_pad_right="0" scrollable="false"
+              flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <icon src="info" size="xs" variant="secondary"/>
+        <text_small text="Assign a role to enable sensor monitoring" style_text_color="#text_secondary"/>
+      </lv_obj>
+    </lv_obj>
+  </view>
+</component>

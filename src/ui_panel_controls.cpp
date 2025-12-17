@@ -45,36 +45,54 @@ ControlsPanel::ControlsPanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 ControlsPanel::~ControlsPanel() {
+    // CRITICAL: Check if LVGL is still initialized before calling LVGL functions.
+    // During static destruction, LVGL may already be torn down.
+    if (!lv_is_initialized()) {
+        return;
+    }
+
     // Clean up lazily-created overlay panels to prevent dangling LVGL objects
     if (motion_panel_) {
         lv_obj_del(motion_panel_);
+        motion_panel_ = nullptr;
     }
     if (nozzle_temp_panel_) {
         lv_obj_del(nozzle_temp_panel_);
+        nozzle_temp_panel_ = nullptr;
     }
     if (bed_temp_panel_) {
         lv_obj_del(bed_temp_panel_);
+        bed_temp_panel_ = nullptr;
     }
     if (extrusion_panel_) {
         lv_obj_del(extrusion_panel_);
+        extrusion_panel_ = nullptr;
     }
     if (fan_panel_) {
         lv_obj_del(fan_panel_);
+        fan_panel_ = nullptr;
     }
     if (calibration_modal_) {
         lv_obj_del(calibration_modal_);
+        calibration_modal_ = nullptr;
     }
     if (bed_mesh_panel_) {
         lv_obj_del(bed_mesh_panel_);
+        bed_mesh_panel_ = nullptr;
     }
     if (zoffset_panel_) {
         lv_obj_del(zoffset_panel_);
+        zoffset_panel_ = nullptr;
     }
     if (screws_panel_) {
         lv_obj_del(screws_panel_);
+        screws_panel_ = nullptr;
     }
+    // Modal dialogs: use ui_modal_hide() - NOT lv_obj_del()!
+    // See docs/QUICK_REFERENCE.md "Modal Dialog Lifecycle"
     if (motors_confirmation_dialog_) {
-        lv_obj_del(motors_confirmation_dialog_);
+        ui_modal_hide(motors_confirmation_dialog_);
+        motors_confirmation_dialog_ = nullptr;
     }
 }
 

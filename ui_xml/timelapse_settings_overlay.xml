@@ -62,7 +62,7 @@
           <text_body text="Mode" style_text_color="#text_primary"/>
           <lv_dropdown name="timelapse_mode_dropdown"
                        width="160" height="#input_height" style_radius="#border_radius" style_border_width="0"
-                       options="Layer Macro\nHyperlapse">
+                       options="Layer Macro&#10;Hyperlapse">
             <event_cb trigger="value_changed" callback="on_timelapse_mode_changed"/>
           </lv_dropdown>
         </lv_obj>
@@ -99,7 +99,7 @@
           <text_body text="Framerate" style_text_color="#text_primary"/>
           <lv_dropdown name="timelapse_framerate_dropdown"
                        width="120" height="#input_height" style_radius="#border_radius" style_border_width="0"
-                       options="15 fps\n24 fps\n30 fps\n60 fps">
+                       options="15 fps&#10;24 fps&#10;30 fps&#10;60 fps">
             <event_cb trigger="value_changed" callback="on_timelapse_framerate_changed"/>
           </lv_dropdown>
         </lv_obj>
