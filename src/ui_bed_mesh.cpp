@@ -112,13 +112,14 @@ static void bed_mesh_press_cb(lv_event_t* e) {
     lv_point_t point;
     lv_indev_get_point(indev, &point);
 
-    // Get widget position for local coordinates
-    int obj_x = lv_obj_get_x(obj);
-    int obj_y = lv_obj_get_y(obj);
-    int local_x = point.x - obj_x;
-    int local_y = point.y - obj_y;
-    int width = lv_obj_get_width(obj);
-    int height = lv_obj_get_height(obj);
+    // Get widget's absolute screen coordinates (not relative to parent)
+    // lv_indev_get_point returns screen coordinates, so we need absolute position
+    lv_area_t obj_coords;
+    lv_obj_get_coords(obj, &obj_coords);
+    int local_x = point.x - obj_coords.x1;
+    int local_y = point.y - obj_coords.y1;
+    int width = lv_area_get_width(&obj_coords);
+    int height = lv_area_get_height(&obj_coords);
 
     // In 2D mode: show cell tooltip on touch
     if (bed_mesh_renderer_is_using_2d(data->renderer)) {
@@ -146,11 +147,35 @@ static void bed_mesh_pressing_cb(lv_event_t* e) {
     lv_obj_t* obj = lv_event_get_target_obj(e);
     bed_mesh_widget_data_t* data = (bed_mesh_widget_data_t*)lv_obj_get_user_data(obj);
 
-    if (!data || !data->is_dragging)
+    if (!data || !data->renderer)
         return;
 
     lv_indev_t* indev = lv_indev_active();
     if (!indev)
+        return;
+
+    // In 2D mode: update tooltip as finger drags across cells
+    if (bed_mesh_renderer_is_using_2d(data->renderer)) {
+        lv_point_t point;
+        lv_indev_get_point(indev, &point);
+
+        // Get widget's absolute screen coordinates
+        lv_area_t obj_coords;
+        lv_obj_get_coords(obj, &obj_coords);
+        int local_x = point.x - obj_coords.x1;
+        int local_y = point.y - obj_coords.y1;
+        int width = lv_area_get_width(&obj_coords);
+        int height = lv_area_get_height(&obj_coords);
+
+        // Update touch position - if cell changed, redraw
+        if (bed_mesh_renderer_handle_touch(data->renderer, local_x, local_y, width, height)) {
+            lv_obj_invalidate(obj);
+        }
+        return;
+    }
+
+    // 3D mode: handle rotation drag
+    if (!data->is_dragging)
         return;
 
     // Safety check: verify input device is still pressed
