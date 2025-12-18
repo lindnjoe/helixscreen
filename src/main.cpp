@@ -570,12 +570,27 @@ static void initialize_subjects() {
 
     // Set up USB drive event notifications (after notification system is ready)
     if (usb_manager) {
+        // Track when USB callbacks were set up - suppress toasts for drives detected at startup
+        static auto usb_setup_time = std::chrono::steady_clock::now();
+
         usb_manager->set_drive_callback([](UsbEvent event, const UsbDrive& drive) {
             (void)drive; // Currently not using drive info in messages
-            if (event == UsbEvent::DRIVE_INSERTED) {
-                NOTIFY_SUCCESS("USB drive connected");
 
-                // Show USB tab in PrintSelectPanel
+            // Suppress toast for drives detected within 3 seconds of startup
+            constexpr auto GRACE_PERIOD = std::chrono::seconds(3);
+            auto now = std::chrono::steady_clock::now();
+            bool within_grace_period = (now - usb_setup_time) < GRACE_PERIOD;
+
+            if (event == UsbEvent::DRIVE_INSERTED) {
+                // Only show toast if drive was inserted after startup grace period
+                // (drives present at startup don't need notification)
+                if (!within_grace_period) {
+                    NOTIFY_SUCCESS("USB drive connected");
+                } else {
+                    spdlog::debug("[USB] Suppressing toast for drive present at startup");
+                }
+
+                // Always show USB tab in PrintSelectPanel
                 if (print_select_panel) {
                     print_select_panel->on_usb_drive_inserted();
                 }
@@ -589,8 +604,8 @@ static void initialize_subjects() {
             }
         });
 
-        // In test mode, schedule demo drive insertion after UI is fully ready
-        // This ensures the toast notification is visible to the user
+        // In test mode, schedule demo drive insertion shortly after UI is ready
+        // Insert within grace period to simulate drives already present at startup (no toast)
         if (g_runtime_config.should_mock_usb()) {
             // Use LVGL timer to delay insertion - this runs on the main thread after UI init
             lv_timer_create(
@@ -602,7 +617,7 @@ static void initialize_subjects() {
                     }
                     lv_timer_delete(timer);
                 },
-                3000, // 3 second delay for UI to fully initialize
+                1500, // 1.5s delay - within grace period so no toast (simulates pre-existing drive)
                 nullptr);
         }
     }
