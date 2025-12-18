@@ -26,8 +26,8 @@ static void on_print_state_changed_for_navigation(lv_observer_t* observer, lv_su
                   static_cast<int>(current));
 
     // Check for transition TO printing from a non-printing state
-    bool was_not_printing = (prev_print_state != PrintJobState::PRINTING &&
-                             prev_print_state != PrintJobState::PAUSED);
+    bool was_not_printing =
+        (prev_print_state != PrintJobState::PRINTING && prev_print_state != PrintJobState::PAUSED);
     bool is_now_printing = (current == PrintJobState::PRINTING);
 
     if (was_not_printing && is_now_printing) {
@@ -46,10 +46,12 @@ static void on_print_state_changed_for_navigation(lv_observer_t* observer, lv_su
             if (print_status_widget) {
                 // Make sure it's not already showing
                 if (!nav.is_panel_in_stack(print_status_widget)) {
-                    spdlog::info("[PrintStartNav] Auto-navigating to print status (print started while on home)");
+                    spdlog::info("[PrintStartNav] Auto-navigating to print status (print started "
+                                 "while on home)");
                     nav.push_overlay(print_status_widget);
                 } else {
-                    spdlog::debug("[PrintStartNav] Print status already showing, skipping navigation");
+                    spdlog::debug(
+                        "[PrintStartNav] Print status already showing, skipping navigation");
                 }
             } else {
                 spdlog::warn("[PrintStartNav] Print status panel widget not available");

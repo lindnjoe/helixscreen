@@ -1217,8 +1217,8 @@ void ui_gcode_viewer_evaluate_render_mode(lv_obj_t* obj) {
 
     if (st->has_enough_fps_data()) {
         float avg_fps = st->get_average_fps();
-        spdlog::debug("[GCode Viewer] FPS diagnostic: avg {:.1f} (mode: {})",
-                      avg_fps, st->is_using_2d_mode() ? "2D" : "3D");
+        spdlog::debug("[GCode Viewer] FPS diagnostic: avg {:.1f} (mode: {})", avg_fps,
+                      st->is_using_2d_mode() ? "2D" : "3D");
     }
 }
 

@@ -56,10 +56,10 @@
         <!-- Empty state icon (clock/history icon F0150) -->
         <lv_label name="empty_icon" text="󰅐" style_text_font="mdi_icons_48" style_text_color="#text_secondary"/>
         <!-- Empty state message -->
-        <text_body name="empty_message" bind_text="history_empty_message" style_text_color="#text_secondary"
-                   style_text_align="center"/>
-        <text_small name="empty_hint" bind_text="history_empty_hint" style_text_color="#text_secondary"
-                    style_text_align="center"/>
+        <text_body name="empty_message"
+                   bind_text="history_empty_message" style_text_color="#text_secondary" style_text_align="center"/>
+        <text_small name="empty_hint"
+                    bind_text="history_empty_hint" style_text_color="#text_secondary" style_text_align="center"/>
       </lv_obj>
       <!-- ================================================================== -->
       <!-- STATE: HAS_JOBS (state=2) - List rows container -->

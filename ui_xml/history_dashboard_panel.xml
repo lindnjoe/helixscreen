@@ -92,13 +92,15 @@
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
                    flex_flow="column" style_flex_cross_place="start">
             <text_small text="Total Prints" style_text_color="#text_secondary"/>
-            <text_heading name="stat_total_prints" text="0" style_text_color="#text_primary" bind_text="stat_total_prints"/>
+            <text_heading name="stat_total_prints"
+                          text="0" style_text_color="#text_primary" bind_text="stat_total_prints"/>
           </ui_card>
           <ui_card name="card_success_rate"
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
                    flex_flow="column" style_flex_cross_place="start">
             <text_small text="Success Rate" style_text_color="#text_secondary"/>
-            <text_heading name="stat_success_rate" text="0%" style_text_color="#success_color" bind_text="stat_success_rate"/>
+            <text_heading name="stat_success_rate"
+                          text="0%" style_text_color="#success_color" bind_text="stat_success_rate"/>
           </ui_card>
           <!-- Row 2: Print Time, Filament Used -->
           <ui_card name="card_print_time"

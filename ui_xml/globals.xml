@@ -12,7 +12,6 @@
          DO NOT define them here - LVGL ignores duplicate registrations.
          Values: nav_width = 64/76/102px (small/medium/large breakpoints)
                  overlay_panel_width = screen - nav - space_lg gap -->
-
     <!-- UI dimensions -->
     <px name="nav_padding" value="16"/>
     <px name="nav_button_size" value="70"/>

@@ -11,8 +11,8 @@
         style_radius="0" align="center" clickable="true">
     <!-- Dialog card (centered) -->
     <lv_obj width="400"
-            height="200" align="center" style_radius="#border_radius" style_pad_all="#space_2xl" style_border_width="0" flex_flow="column"
-            style_flex_main_place="space_between">
+            height="200" align="center" style_radius="#border_radius" style_pad_all="#space_2xl" style_border_width="0"
+            flex_flow="column" style_flex_main_place="space_between">
       <!-- Title and message section -->
       <lv_obj width="100%"
               height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
@@ -34,14 +34,15 @@
               style_flex_main_place="space_between" style_pad_gap="#space_lg">
         <!-- Later button -->
         <lv_button name="dialog_later_btn"
-                   width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0" clickable="true">
+                   width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0"
+                   clickable="true">
           <event_cb trigger="clicked" callback="on_restart_later_clicked"/>
           <text_body text="Later" align="center"/>
         </lv_button>
         <!-- Restart Now button (primary action) -->
         <lv_button name="dialog_restart_btn"
-                   width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0" clickable="true"
-                   style_bg_color="#primary_color">
+                   width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0"
+                   clickable="true" style_bg_color="#primary_color">
           <event_cb trigger="clicked" callback="on_restart_now_clicked"/>
           <text_body text="Restart Now" align="center"/>
         </lv_button>

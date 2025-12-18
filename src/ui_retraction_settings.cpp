@@ -43,7 +43,13 @@ RetractionSettingsOverlay::RetractionSettingsOverlay(PrinterState& printer_state
 }
 
 RetractionSettingsOverlay::~RetractionSettingsOverlay() {
-    spdlog::debug("[Retraction Settings] Destructor - cleaning up subjects");
+    // [L010] No spdlog in destructors - may crash during static destruction
+
+    // LVGL may already be destroyed during static destruction
+    if (!lv_is_initialized()) {
+        return;
+    }
+
     lv_subject_deinit(&retract_length_display_);
     lv_subject_deinit(&retract_speed_display_);
     lv_subject_deinit(&unretract_extra_display_);

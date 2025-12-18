@@ -43,23 +43,23 @@
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                 flex_flow="row" flex_main_place="center" style_pad_gap="#space_xs" style_pad_top="#space_sm">
           <lv_button name="btn_home_all"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#card_bg" style_border_width="1"
-                     style_border_color="#text_secondary" style_border_opa="60">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#card_bg"
+                     style_border_width="1" style_border_color="#text_secondary" style_border_opa="60">
             <event_cb trigger="clicked" callback="on_controls_home_all"/>
             <text_small text="All"/>
           </lv_button>
           <lv_button name="btn_home_xy"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#card_bg" style_border_width="1"
-                     style_border_color="#text_secondary" style_border_opa="60">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#card_bg"
+                     style_border_width="1" style_border_color="#text_secondary" style_border_opa="60">
             <event_cb trigger="clicked" callback="on_controls_home_xy"/>
             <text_small text="XY"/>
           </lv_button>
           <lv_button name="btn_home_z"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#card_bg" style_border_width="1"
-                     style_border_color="#text_secondary" style_border_opa="60">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#card_bg"
+                     style_border_width="1" style_border_color="#text_secondary" style_border_opa="60">
             <event_cb trigger="clicked" callback="on_controls_home_z"/>
             <text_small text="Z"/>
           </lv_button>
@@ -70,14 +70,16 @@
                 scrollable="false" flex_flow="row" flex_main_place="center" style_pad_gap="#space_xs"
                 style_pad_top="#space_xs">
           <lv_button name="btn_macro_1"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#accent_color" style_bg_opa="40" style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#accent_color"
+                     style_bg_opa="40" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_macro_1"/>
             <text_small name="macro_1_label" text="Macro 1" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="btn_macro_2"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#accent_color" style_bg_opa="40" style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#accent_color"
+                     style_bg_opa="40" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_macro_2"/>
             <text_small name="macro_2_label" text="Macro 2" style_text_color="#text_primary"/>
           </lv_button>
@@ -146,8 +148,9 @@
                style_radius="#border_radius_large" style_pad_all="#space_sm" scrollable="false" clickable="true">
         <event_cb trigger="clicked" callback="on_controls_filament"/>
         <!-- Icon with sensor indicator -->
-        <lv_obj width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+        <lv_obj width="content"
+                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
+                style_flex_cross_place="center" style_pad_gap="#space_xs">
           <icon src="filament" size="md" variant="secondary"/>
           <filament_sensor_indicator/>
         </lv_obj>
@@ -157,35 +160,37 @@
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                 flex_flow="row" flex_main_place="center" style_pad_gap="#space_xs" style_pad_top="#space_sm">
           <lv_button name="btn_preheat_pla"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#success_color" style_bg_opa="80"
-                     style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#success_color"
+                     style_bg_opa="80" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_preheat_pla"/>
             <text_small text="PLA" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="btn_preheat_petg"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#info_color" style_bg_opa="80" style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#info_color"
+                     style_bg_opa="80" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_preheat_petg"/>
             <text_small text="PETG" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="btn_preheat_abs"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#warning_color" style_bg_opa="80"
-                     style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#warning_color"
+                     style_bg_opa="80" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_preheat_abs"/>
             <text_small text="ABS" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="btn_preheat_asa"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#accent_color" style_bg_opa="80" style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#accent_color"
+                     style_bg_opa="80" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_preheat_asa"/>
             <text_small text="ASA" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="btn_preheat_off"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_sm"
-                     style_pad_right="#space_sm" style_bg_color="#text_secondary" style_bg_opa="40"
-                     style_border_width="0">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_sm" style_pad_right="#space_sm" style_bg_color="#text_secondary"
+                     style_bg_opa="40" style_border_width="0">
             <event_cb trigger="clicked" callback="on_controls_preheat_off"/>
             <text_small text="Off" style_text_color="#text_primary"/>
           </lv_button>
@@ -198,16 +203,16 @@
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                 flex_flow="row" flex_main_place="center" style_pad_gap="#space_sm" style_pad_top="#space_sm">
           <lv_button name="btn_extrude"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_md"
-                     style_pad_right="#space_md" style_bg_color="#card_bg" style_border_width="1"
-                     style_border_color="#text_secondary" style_border_opa="60">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_md" style_pad_right="#space_md" style_bg_color="#card_bg"
+                     style_border_width="1" style_border_color="#text_secondary" style_border_opa="60">
             <event_cb trigger="clicked" callback="on_controls_extrude"/>
             <text_small text="Extrude 10mm"/>
           </lv_button>
           <lv_button name="btn_retract"
-                     width="content" height="#button_height_small" style_radius="#border_radius" style_pad_left="#space_md"
-                     style_pad_right="#space_md" style_bg_color="#card_bg" style_border_width="1"
-                     style_border_color="#text_secondary" style_border_opa="60">
+                     width="content" height="#button_height_small" style_radius="#border_radius"
+                     style_pad_left="#space_md" style_pad_right="#space_md" style_bg_color="#card_bg"
+                     style_border_width="1" style_border_color="#text_secondary" style_border_opa="60">
             <event_cb trigger="clicked" callback="on_controls_retract"/>
             <text_small text="Retract 10mm"/>
           </lv_button>

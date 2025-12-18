@@ -5,9 +5,8 @@
 
 #include "usb_backend.h"
 
-#include <lvgl.h>
-
 #include <functional>
+#include <lvgl.h>
 #include <string>
 #include <vector>
 
@@ -106,7 +105,9 @@ class PrintSelectUsbSource {
     /**
      * @brief Set callback for when USB files are ready
      */
-    void set_on_files_ready(UsbFilesReadyCallback callback) { on_files_ready_ = std::move(callback); }
+    void set_on_files_ready(UsbFilesReadyCallback callback) {
+        on_files_ready_ = std::move(callback);
+    }
 
     /**
      * @brief Set callback for source changes
@@ -134,12 +135,16 @@ class PrintSelectUsbSource {
     /**
      * @brief Get current file source
      */
-    [[nodiscard]] FileSource get_current_source() const { return current_source_; }
+    [[nodiscard]] FileSource get_current_source() const {
+        return current_source_;
+    }
 
     /**
      * @brief Check if USB source is currently active
      */
-    [[nodiscard]] bool is_usb_active() const { return current_source_ == FileSource::USB; }
+    [[nodiscard]] bool is_usb_active() const {
+        return current_source_ == FileSource::USB;
+    }
 
     // === USB Drive Events ===
 
@@ -171,12 +176,18 @@ class PrintSelectUsbSource {
     /**
      * @brief Clear cached USB files
      */
-    void clear_files() { usb_files_.clear(); }
+    void clear_files() {
+        usb_files_.clear();
+    }
 
     // === Button References (for external event handling) ===
 
-    [[nodiscard]] lv_obj_t* get_printer_button() const { return source_printer_btn_; }
-    [[nodiscard]] lv_obj_t* get_usb_button() const { return source_usb_btn_; }
+    [[nodiscard]] lv_obj_t* get_printer_button() const {
+        return source_printer_btn_;
+    }
+    [[nodiscard]] lv_obj_t* get_usb_button() const {
+        return source_usb_btn_;
+    }
 
   private:
     // === Dependencies ===

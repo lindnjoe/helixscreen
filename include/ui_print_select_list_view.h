@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include <lvgl.h>
-
 #include <functional>
+#include <lvgl.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -78,8 +77,8 @@ class PrintSelectListView {
 
     // === Configuration ===
 
-    static constexpr int POOL_SIZE = 40;          ///< Fixed pool of list row widgets
-    static constexpr int BUFFER_ROWS = 2;         ///< Extra rows above/below viewport
+    static constexpr int POOL_SIZE = 40;                 ///< Fixed pool of list row widgets
+    static constexpr int BUFFER_ROWS = 2;                ///< Extra rows above/below viewport
     static constexpr int32_t ENTRANCE_DURATION_MS = 150; ///< Animation duration for row entrance
     static constexpr int32_t STAGGER_DELAY_MS = 40;      ///< Delay between row animations
     static constexpr int32_t SLIDE_OFFSET_Y = 15;        ///< Initial Y offset for slide animation
@@ -133,7 +132,9 @@ class PrintSelectListView {
 
     // === State Queries ===
 
-    [[nodiscard]] bool is_initialized() const { return !list_pool_.empty(); }
+    [[nodiscard]] bool is_initialized() const {
+        return !list_pool_.empty();
+    }
 
     void get_visible_range(int& start, int& end) const {
         start = visible_start_;

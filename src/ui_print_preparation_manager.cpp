@@ -34,8 +34,8 @@ void PrintPreparationManager::set_dependencies(MoonrakerAPI* api, PrinterState* 
 }
 
 void PrintPreparationManager::set_checkboxes(lv_obj_t* bed_leveling, lv_obj_t* qgl,
-                                              lv_obj_t* z_tilt, lv_obj_t* nozzle_clean,
-                                              lv_obj_t* timelapse) {
+                                             lv_obj_t* z_tilt, lv_obj_t* nozzle_clean,
+                                             lv_obj_t* timelapse) {
     bed_leveling_checkbox_ = bed_leveling;
     qgl_checkbox_ = qgl;
     z_tilt_checkbox_ = z_tilt;
@@ -48,7 +48,7 @@ void PrintPreparationManager::set_checkboxes(lv_obj_t* bed_leveling, lv_obj_t* q
 // ============================================================================
 
 void PrintPreparationManager::scan_file_for_operations(const std::string& filename,
-                                                        const std::string& current_path) {
+                                                       const std::string& current_path) {
     // Skip if already cached for this file
     if (cached_scan_filename_ == filename && cached_scan_result_.has_value()) {
         spdlog::debug("[PrintPreparationManager] Using cached scan result for {}", filename);
@@ -126,11 +126,11 @@ PrePrintOptions PrintPreparationManager::read_options_from_checkboxes() const {
 }
 
 void PrintPreparationManager::start_print(const std::string& filename,
-                                           const std::string& current_path,
-                                           NavigateToStatusCallback on_navigate_to_status,
-                                           PreparingCallback on_preparing,
-                                           PreparingProgressCallback on_progress,
-                                           PrintCompletionCallback on_completion) {
+                                          const std::string& current_path,
+                                          NavigateToStatusCallback on_navigate_to_status,
+                                          PreparingCallback on_preparing,
+                                          PreparingProgressCallback on_progress,
+                                          PrintCompletionCallback on_completion) {
     if (!api_) {
         spdlog::error("[PrintPreparationManager] Cannot start print - not connected to printer");
         NOTIFY_ERROR("Cannot start print: not connected to printer");
@@ -141,8 +141,7 @@ void PrintPreparationManager::start_print(const std::string& filename,
     }
 
     // Build full path for print
-    std::string filename_to_print =
-        current_path.empty() ? filename : current_path + "/" + filename;
+    std::string filename_to_print = current_path.empty() ? filename : current_path + "/" + filename;
 
     // Read checkbox states
     PrePrintOptions options = read_options_from_checkboxes();
@@ -374,7 +373,6 @@ void PrintPreparationManager::execute_pre_print_sequence(
     const std::string& filename, const PrePrintOptions& options,
     NavigateToStatusCallback on_navigate_to_status, PreparingCallback on_preparing,
     PreparingProgressCallback on_progress, PrintCompletionCallback on_completion) {
-
     // Create command sequencer for pre-print operations
     pre_print_sequencer_ =
         std::make_unique<gcode::CommandSequencer>(api_->get_client(), *api_, *printer_state_);
@@ -441,7 +439,8 @@ void PrintPreparationManager::execute_pre_print_sequence(
             auto& status_panel = get_global_print_status_panel();
 
             if (success) {
-                spdlog::info("[PrintPreparationManager] Pre-print sequence complete, print started");
+                spdlog::info(
+                    "[PrintPreparationManager] Pre-print sequence complete, print started");
                 // Transition from Preparing → Printing state
                 status_panel.end_preparing(true);
             } else {
@@ -462,8 +461,8 @@ void PrintPreparationManager::execute_pre_print_sequence(
 }
 
 void PrintPreparationManager::start_print_directly(const std::string& filename,
-                                                    NavigateToStatusCallback on_navigate_to_status,
-                                                    PrintCompletionCallback on_completion) {
+                                                   NavigateToStatusCallback on_navigate_to_status,
+                                                   PrintCompletionCallback on_completion) {
     api_->start_print(
         filename,
         // Success callback

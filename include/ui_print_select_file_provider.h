@@ -82,14 +82,18 @@ class PrintSelectFileProvider {
     /**
      * @brief Set MoonrakerAPI dependency
      */
-    void set_api(MoonrakerAPI* api) { api_ = api; }
+    void set_api(MoonrakerAPI* api) {
+        api_ = api;
+    }
 
     // === Callbacks ===
 
     /**
      * @brief Set callback for when file list is ready
      */
-    void set_on_files_ready(FilesReadyCallback callback) { on_files_ready_ = std::move(callback); }
+    void set_on_files_ready(FilesReadyCallback callback) {
+        on_files_ready_ = std::move(callback);
+    }
 
     /**
      * @brief Set callback for metadata updates
@@ -101,7 +105,9 @@ class PrintSelectFileProvider {
     /**
      * @brief Set callback for errors
      */
-    void set_on_error(FileErrorCallback callback) { on_error_ = std::move(callback); }
+    void set_on_error(FileErrorCallback callback) {
+        on_error_ = std::move(callback);
+    }
 
     // === File Operations ===
 
@@ -130,8 +136,8 @@ class PrintSelectFileProvider {
      * @param start Start index (inclusive)
      * @param end End index (exclusive)
      */
-    void fetch_metadata_range(std::vector<PrintFileData>& files, std::vector<bool>& metadata_fetched,
-                              size_t start, size_t end);
+    void fetch_metadata_range(std::vector<PrintFileData>& files,
+                              std::vector<bool>& metadata_fetched, size_t start, size_t end);
 
     /**
      * @brief Check if API is connected and ready

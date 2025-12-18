@@ -181,8 +181,8 @@
               </icon>
               <!-- Notification Count Badge - wrapper provides fixed sizing, label inside uses bind_style -->
               <lv_obj name="notification_badge"
-                      width="18" height="18" align="top_right" x="-#space_xxs" y="#space_xxs" style_radius="9" style_border_width="0"
-                      style_pad_all="0" hidden="true" scrollable="false" clickable="true">
+                      width="18" height="18" align="top_right" x="-#space_xxs" y="#space_xxs" style_radius="9"
+                      style_border_width="0" style_pad_all="0" hidden="true" scrollable="false" clickable="true">
                 <lv_obj-bind_flag_if_eq subject="notification_count" flag="hidden" ref_value="0"/>
                 <event_cb trigger="clicked" callback="status_notification_history_clicked"/>
                 <!-- Background with severity-bound color -->
@@ -286,9 +286,8 @@
           </lv_obj>
           <!-- Filament sensor status (hidden if no sensors) -->
           <lv_obj name="filament_status_container"
-                  height="100%" flex_grow="1" style_bg_opa="0" style_border_width="0"
-                  style_pad_all="0" flex_flow="column" style_flex_main_place="center"
-                  style_flex_cross_place="center">
+                  height="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0"
+                  flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
             <lv_obj-bind_flag_if_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
             <filament_sensor_indicator/>
             <text_body text="Filament" style_text_align="center"/>

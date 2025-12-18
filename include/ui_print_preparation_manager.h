@@ -9,9 +9,8 @@
 #include "moonraker_api.h"
 #include "printer_state.h"
 
-#include <lvgl.h>
-
 #include <functional>
+#include <lvgl.h>
 #include <memory>
 #include <optional>
 #include <string>
@@ -169,7 +168,9 @@ class PrintPreparationManager {
     /**
      * @brief Check if a pre-print sequence is currently running
      */
-    [[nodiscard]] bool is_preparing() const { return pre_print_sequencer_ != nullptr; }
+    [[nodiscard]] bool is_preparing() const {
+        return pre_print_sequencer_ != nullptr;
+    }
 
     /**
      * @brief Cancel any running pre-print sequence

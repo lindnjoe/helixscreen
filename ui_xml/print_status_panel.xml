@@ -56,8 +56,8 @@
                           width="100%" bind_text="preparing_operation" text="Preparing..."
                           style_text_color="#text_primary_dark" style_text_align="center"/>
             <lv_bar name="preparing_progress_bar"
-                    width="80%" height="#space_md" bind_value="preparing_progress" style_bg_opa="255" style_radius="#space_xs"
-                    style_border_width="0"/>
+                    width="80%" height="#space_md" bind_value="preparing_progress" style_bg_opa="255"
+                    style_radius="#space_xs" style_border_width="0"/>
           </lv_obj>
           <!-- PRINT COMPLETE OVERLAY: Shown when print finishes successfully -->
           <lv_obj name="print_complete_overlay"
@@ -69,9 +69,10 @@
             <!-- Green success badge with checkmark (animated on appearance) -->
             <lv_obj name="success_badge"
                     width="content" height="content" style_bg_color="#success_color" style_bg_opa="255"
-                    style_radius="#space_lg" style_pad_left="#space_md" style_pad_right="#space_md" style_pad_top="#space_sm"
-                    style_pad_bottom="#space_sm" flex_flow="row" style_flex_main_place="center"
-                    style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+                    style_radius="#space_lg" style_pad_left="#space_md" style_pad_right="#space_md"
+                    style_pad_top="#space_sm" style_pad_bottom="#space_sm" flex_flow="row"
+                    style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
+                    scrollable="false">
               <icon src="check_circle" size="md" color="#text_primary"/>
               <text_heading text="Print Complete!" style_text_color="#text_primary"/>
             </lv_obj>
@@ -84,12 +85,13 @@
           <!-- Metadata overlay - transparent background -->
           <lv_obj name="metadata_overlay"
                   width="100%" height="128" align="bottom_mid" style_bg_opa="0" style_border_width="0" style_radius="0"
-                  style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_2xl" style_pad_bottom="#space_lg"
-                  style_pad_gap="#space_sm" flex_flow="column" scrollable="false">
+                  style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_2xl"
+                  style_pad_bottom="#space_lg" style_pad_gap="#space_sm" flex_flow="column" scrollable="false">
             <!-- Print Progress Bar -->
             <lv_bar name="print_progress"
-                    width="100%" height="#space_md" style_bg_opa="255" style_bg_color="#card_bg_dark" style_border_width="0"
-                    style_radius="#space_xs" min_value="0" max_value="100" bind_value="print_progress"/>
+                    width="100%" height="#space_md" style_bg_opa="255" style_bg_color="#card_bg_dark"
+                    style_border_width="0" style_radius="#space_xs" min_value="0" max_value="100"
+                    bind_value="print_progress"/>
             <!-- Layer Progress (Layer X / Y) -->
             <text_small name="layer_progress_label"
                         width="100%" text="Layer 0 / 0" bind_text="print_layer_text" style_text_color="#text_secondary"
@@ -140,9 +142,8 @@
         </ui_card>
         <!-- Filament Sensor Status (hidden if no sensors) -->
         <lv_obj name="filament_status_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0"
-                style_pad_left="#space_md" style_pad_top="#space_xs"
-                flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_left="#space_md"
+                style_pad_top="#space_xs" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
           <lv_obj-bind_flag_if_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
           <text_small text="Filament" style_text_color="#text_secondary"/>
           <filament_sensor_indicator/>

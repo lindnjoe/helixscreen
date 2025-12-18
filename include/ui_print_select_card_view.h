@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include <lvgl.h>
-
 #include <functional>
+#include <lvgl.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -102,8 +101,9 @@ class PrintSelectCardView {
     static constexpr const char* FOLDER_ICON = "A:assets/images/folder.png";
 
     // Directory card styling (reduced overlay heights)
-    static constexpr int DIR_METADATA_CLIP_HEIGHT = 40;   ///< Metadata clip height for directories
-    static constexpr int DIR_METADATA_OVERLAY_HEIGHT = 48; ///< Metadata overlay height for directories
+    static constexpr int DIR_METADATA_CLIP_HEIGHT = 40; ///< Metadata clip height for directories
+    static constexpr int DIR_METADATA_OVERLAY_HEIGHT =
+        48; ///< Metadata overlay height for directories
 
     // === Setup ===
 
@@ -158,7 +158,9 @@ class PrintSelectCardView {
     /**
      * @brief Check if pool has been initialized
      */
-    [[nodiscard]] bool is_initialized() const { return !card_pool_.empty(); }
+    [[nodiscard]] bool is_initialized() const {
+        return !card_pool_.empty();
+    }
 
     /**
      * @brief Get current visible row range
@@ -173,7 +175,9 @@ class PrintSelectCardView {
     /**
      * @brief Get cards per row for current layout
      */
-    [[nodiscard]] int get_cards_per_row() const { return cards_per_row_; }
+    [[nodiscard]] int get_cards_per_row() const {
+        return cards_per_row_;
+    }
 
   private:
     // === Widget References ===

@@ -16,7 +16,8 @@
         style_bg_color="#card_bg" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column">
     <!-- Header Bar (uses improved header_bar component) -->
     <header_bar name="overlay_header"
-                title="Heatbed Temperature" action_button_text="Confirm" hide_action_button="false" action_button_callback="on_bed_confirm_clicked"/>
+                title="Heatbed Temperature" action_button_text="Confirm" hide_action_button="false"
+                action_button_callback="on_bed_confirm_clicked"/>
     <!-- Content Area: Two Columns -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" scrollable="false"
