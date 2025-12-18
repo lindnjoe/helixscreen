@@ -3,7 +3,7 @@
 
 #include "filament_sensor_manager.h"
 
-#include "ui_toast_manager.h"
+#include "ui_error_reporting.h"
 
 #include "config.h"
 #include "spdlog/spdlog.h"
@@ -474,11 +474,9 @@ void FilamentSensorManager::update_from_status(const json& status) {
         if (notif.should_toast) {
             std::string role_name = role_to_display_string(notif.role);
             if (notif.new_state.filament_detected) {
-                std::string msg = role_name + ": Filament inserted";
-                ToastManager::instance().show(ToastSeverity::INFO, msg.c_str(), 3000);
+                NOTIFY_INFO("{}: Filament inserted", role_name);
             } else {
-                std::string msg = role_name + ": Filament removed";
-                ToastManager::instance().show(ToastSeverity::WARNING, msg.c_str(), 4000);
+                NOTIFY_WARNING("{}: Filament removed", role_name);
             }
         }
     }
