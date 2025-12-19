@@ -7,7 +7,7 @@ This document tracks the implementation of comprehensive standalone filament sen
 **Branch:** `feat/filament-sensors`
 **Worktree:** `/Users/pbrown/Code/Printing/helixscreen-filament-sensors`
 **Started:** 2025-12-15
-**Status:** Phase 1-3 Complete (wizard step deferred), Phase 4-5 Pending
+**Status:** Phase 1-4 Complete (wizard step deferred), Phase 5.3 Complete
 
 ---
 
@@ -238,15 +238,22 @@ Detect print paused + runout condition and show modal.
 - Verify discovery, subscription, state updates
 - Test wizard flow and settings panel
 
-#### 5.3 Unit Tests
+#### 5.3 Unit Tests ✅ COMPLETE
 **New file:** `tests/unit/test_filament_sensor_manager.cpp`
+**Commit:** Added 2025-12-18
 
-Test cases:
-- Discovery from Klipper objects list
-- Config load/save
-- Role assignment uniqueness
-- State updates and subject notifications
-- Missing sensor handling
+Comprehensive test coverage with 11 test cases and 115 assertions:
+- Type helper tests (role/type string conversion)
+- Sensor discovery (switch, motion, multiple, invalid names)
+- Role assignment (uniqueness enforcement, clearing roles)
+- Enable/disable (per-sensor and master switch)
+- State updates from Moonraker JSON
+- State change callbacks
+- State queries (is_filament_detected, has_any_runout, etc.)
+- Subject value correctness for UI binding
+- Motion sensor specific tests
+- Edge cases (spaces in names, unknown sensors, rapid changes)
+- Thread safety basics (copy semantics)
 
 ---
 
