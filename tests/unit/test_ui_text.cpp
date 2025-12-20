@@ -58,7 +58,9 @@ class TextTest {
         spdlog::set_level(spdlog::level::warn);
     }
 
-    lv_obj_t* get_screen() { return screen_; }
+    lv_obj_t* get_screen() {
+        return screen_;
+    }
 
   private:
     lv_display_t* display_ = nullptr;

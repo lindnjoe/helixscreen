@@ -90,7 +90,8 @@ static void apply_semantic_style(lv_obj_t* label, const char* font_const_name,
  *   <text_body text="Body" stroke_width="1" stroke_color="#000000"/>
  */
 static void apply_stroke_attrs(lv_obj_t* label, const char** attrs) {
-    if (!attrs) return;
+    if (!attrs)
+        return;
 
     const char* stroke_width = lv_xml_get_value_of(attrs, "stroke_width");
     const char* stroke_color = lv_xml_get_value_of(attrs, "stroke_color");

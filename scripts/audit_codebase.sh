@@ -260,6 +260,11 @@ if [ "$FILE_MODE" = true ]; then
         for f in "${cpp_files[@]}"; do
             fname=$(basename "$f")
 
+            # Skip test files - they manage their own LVGL lifecycle without lv_deinit()
+            if [[ "$fname" == test_* ]]; then
+                continue
+            fi
+
             # Check for manual lv_display_delete (lv_deinit iterates and deletes all displays)
             # Exclude comments (lines with //)
             set +e
