@@ -95,3 +95,4 @@ assets/*.gcode
 # ============================================================================
 # Local staging for release binaries (uploaded to GitHub Releases, not committed)
 releases/
+dist/
