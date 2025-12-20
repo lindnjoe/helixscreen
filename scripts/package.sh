@@ -1,0 +1,193 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# HelixScreen Release Packaging Script
+#
+# Creates distributable packages for different platforms.
+#
+# Usage:
+#   ./scripts/package.sh [platform] [--version VERSION]
+#
+# Platforms:
+#   ad5m  - Adventurer 5M (armv7-a, static binary)
+#   pi    - Raspberry Pi (aarch64, dynamic binary)
+#   all   - Package all platforms (default)
+#
+# Options:
+#   --version VERSION  Specify version string (default: git describe)
+#   --output DIR       Output directory (default: dist/)
+#
+# Examples:
+#   ./scripts/package.sh ad5m
+#   ./scripts/package.sh all --version v1.2.0
+#   ./scripts/package.sh pi --output /tmp/releases
+
+set -euo pipefail
+
+# Colors
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'
+    NC='\033[0m'
+else
+    RED='' GREEN='' YELLOW='' CYAN='' NC=''
+fi
+
+log_info() { echo -e "${CYAN}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+
+# Defaults
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VERSION=""
+OUTPUT_DIR="${PROJECT_DIR}/dist"
+PLATFORMS=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        ad5m|pi|all)
+            PLATFORMS="$1"
+            shift
+            ;;
+        --version)
+            VERSION="$2"
+            shift 2
+            ;;
+        --output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        --help|-h)
+            head -30 "$0" | tail -n +2 | sed 's/^# //' | sed 's/^#//'
+            exit 0
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Default to all platforms
+PLATFORMS="${PLATFORMS:-all}"
+
+# Get version from git if not specified
+if [ -z "$VERSION" ]; then
+    cd "$PROJECT_DIR"
+    if VERSION=$(git describe --tags 2>/dev/null); then
+        log_info "Version from git: $VERSION"
+    else
+        VERSION="dev-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+        log_warn "No git tags found, using: $VERSION"
+    fi
+fi
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
+
+# Package a single platform
+package_platform() {
+    local platform=$1
+    local build_dir="${PROJECT_DIR}/build/${platform}"
+    local pkg_name="helixscreen-${platform}-${VERSION}"
+    local pkg_dir="${OUTPUT_DIR}/${pkg_name}"
+    local tarball="${OUTPUT_DIR}/${pkg_name}.tar.gz"
+
+    log_info "Packaging ${platform}..."
+
+    # Check if build exists
+    if [ ! -f "${build_dir}/bin/helix-screen" ]; then
+        log_error "Build not found: ${build_dir}/bin/helix-screen"
+        log_error "Run 'make PLATFORM_TARGET=${platform}' first"
+        return 1
+    fi
+
+    # Clean previous package
+    rm -rf "$pkg_dir"
+    mkdir -p "$pkg_dir/bin"
+    mkdir -p "$pkg_dir/config"
+
+    # Copy binaries
+    cp "${build_dir}/bin/helix-screen" "$pkg_dir/bin/"
+    cp "${build_dir}/bin/helix-splash" "$pkg_dir/bin/" 2>/dev/null || true
+
+    # Copy assets and UI
+    cp -r "${PROJECT_DIR}/ui_xml" "$pkg_dir/"
+    cp -r "${PROJECT_DIR}/assets" "$pkg_dir/"
+
+    # Copy config files
+    cp "${PROJECT_DIR}/config/helixscreen.init" "$pkg_dir/config/"
+    cp "${PROJECT_DIR}/config/helixscreen.service" "$pkg_dir/config/"
+    cp "${PROJECT_DIR}/config/helixconfig.json.template" "$pkg_dir/config/" 2>/dev/null || true
+    cp "${PROJECT_DIR}/config/printer_database.json" "$pkg_dir/config/" 2>/dev/null || true
+    cp "${PROJECT_DIR}/config/printing_tips.json" "$pkg_dir/config/" 2>/dev/null || true
+
+    # Copy install script
+    cp "${PROJECT_DIR}/scripts/install.sh" "$pkg_dir/"
+    chmod +x "$pkg_dir/install.sh"
+
+    # Create version file
+    echo "$VERSION" > "$pkg_dir/VERSION"
+
+    # Create tarball
+    # Use different compression based on platform (BusyBox tar doesn't support some options)
+    cd "$OUTPUT_DIR"
+    tar czf "$tarball" "$(basename "$pkg_dir")"
+
+    # Cleanup extracted directory
+    rm -rf "$pkg_dir"
+
+    # Calculate size and checksum
+    local size=$(ls -lh "$tarball" | awk '{print $5}')
+    local checksum=$(sha256sum "$tarball" 2>/dev/null || shasum -a 256 "$tarball" 2>/dev/null)
+    checksum="${checksum%% *}"
+
+    log_success "Created: $tarball ($size)"
+    echo "  SHA256: $checksum"
+
+    # Write checksum file
+    echo "$checksum  $(basename "$tarball")" >> "${OUTPUT_DIR}/checksums.txt"
+}
+
+# Main
+log_info "HelixScreen Release Packager"
+log_info "Version: $VERSION"
+log_info "Output: $OUTPUT_DIR"
+echo ""
+
+# Clear previous checksums
+rm -f "${OUTPUT_DIR}/checksums.txt"
+
+case "$PLATFORMS" in
+    ad5m)
+        package_platform "ad5m"
+        ;;
+    pi)
+        package_platform "pi"
+        ;;
+    all)
+        # Package all available builds
+        if [ -f "${PROJECT_DIR}/build/ad5m/bin/helix-screen" ]; then
+            package_platform "ad5m"
+        else
+            log_warn "Skipping ad5m (not built)"
+        fi
+        if [ -f "${PROJECT_DIR}/build/pi/bin/helix-screen" ]; then
+            package_platform "pi"
+        else
+            log_warn "Skipping pi (not built)"
+        fi
+        ;;
+esac
+
+echo ""
+log_success "Packaging complete!"
+log_info "Packages in: $OUTPUT_DIR"
+echo ""
+echo "To upload as GitHub release:"
+echo "  gh release create $VERSION ${OUTPUT_DIR}/helixscreen-*.tar.gz"
