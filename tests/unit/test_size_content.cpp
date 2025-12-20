@@ -22,7 +22,7 @@
 // Global LVGL initialization (only once per test run)
 static bool g_lvgl_initialized = false;
 static lv_display_t* g_display = nullptr;
-static lv_color_t g_display_buf[800 * 10];
+alignas(64) static lv_color_t g_display_buf[800 * 10];
 
 static void ensure_lvgl_init() {
     if (!g_lvgl_initialized) {
