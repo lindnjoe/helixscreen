@@ -132,4 +132,5 @@ class Application {
     // State
     bool m_running = false;
     bool m_wizard_active = false;
+    bool m_shutdown_complete = false;
 };

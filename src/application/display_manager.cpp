@@ -112,21 +112,20 @@ void DisplayManager::shutdown() {
 
     spdlog::debug("[DisplayManager] Shutting down");
 
-    // Clean up input group
-    if (m_input_group) {
-        lv_group_delete(m_input_group);
-        m_input_group = nullptr;
-    }
+    // NOTE: We do NOT call lv_group_delete(m_input_group) here because:
+    // 1. Objects in the group may already be freed (panels deleted before display)
+    // 2. lv_deinit() calls lv_group_deinit() which safely clears the group list
+    // 3. lv_group_delete() iterates objects and would crash on dangling pointers
+    m_input_group = nullptr;
 
     // Reset input device pointers (LVGL manages their memory)
     m_keyboard = nullptr;
     m_pointer = nullptr;
 
-    // Delete display (LVGL manages the memory)
-    if (m_display) {
-        lv_display_delete(m_display);
-        m_display = nullptr;
-    }
+    // NOTE: We do NOT call lv_display_delete() here because:
+    // lv_deinit() iterates all displays and deletes them.
+    // Manually deleting first causes double-free crash.
+    m_display = nullptr;
 
     // Release backend
     m_backend.reset();

@@ -995,6 +995,12 @@ void Application::check_timeouts() {
 }
 
 void Application::shutdown() {
+    // Guard against multiple calls (destructor + explicit shutdown)
+    if (m_shutdown_complete) {
+        return;
+    }
+    m_shutdown_complete = true;
+
     spdlog::info("[Application] Shutting down...");
 
     // Clear app_globals references
