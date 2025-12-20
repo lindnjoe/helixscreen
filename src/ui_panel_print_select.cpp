@@ -833,6 +833,11 @@ void PrintSelectPanel::set_api(MoonrakerAPI* api) {
         file_provider_->set_api(api_);
     }
 
+    // Update detail view's dependencies (it was created with nullptr in setup())
+    if (detail_view_) {
+        detail_view_->set_dependencies(api_, &printer_state_);
+    }
+
     // Note: Don't auto-refresh here - WebSocket may not be connected yet.
     // refresh_files() has a connection check that will silently return if not connected.
     // Files will be loaded lazily via on_activate() when user navigates to this panel.
