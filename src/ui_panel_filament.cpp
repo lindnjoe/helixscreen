@@ -9,6 +9,7 @@
 #include "ui_icon.h"
 #include "ui_modal_manager.h"
 #include "ui_nav.h"
+#include "ui_panel_ams.h"
 #include "ui_subject_registry.h"
 #include "ui_temperature_utils.h"
 #include "ui_theme.h"
