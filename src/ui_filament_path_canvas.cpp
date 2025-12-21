@@ -15,6 +15,7 @@
 #include "lvgl/src/xml/parsers/lv_xml_obj_parser.h"
 #include "nozzle_renderer_bambu.h"
 #include "nozzle_renderer_faceted.h"
+#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -237,6 +238,17 @@ static void start_segment_animation(lv_obj_t* obj, FilamentPathData* data, int f
     data->segment_anim_active = true;
     data->anim_progress = 0;
 
+    // Skip animation if disabled - jump to final state
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        data->anim_progress = 100;
+        data->segment_anim_active = false;
+        data->anim_direction = AnimDirection::NONE;
+        data->prev_segment = data->filament_segment;
+        lv_obj_invalidate(obj);
+        spdlog::trace("[FilamentPath] Animations disabled - skipping segment animation");
+        return;
+    }
+
     lv_anim_t anim;
     lv_anim_init(&anim);
     lv_anim_set_var(&anim, obj);
@@ -288,6 +300,13 @@ static void start_error_pulse(lv_obj_t* obj, FilamentPathData* data) {
 
     data->error_pulse_active = true;
     data->error_pulse_opa = ERROR_PULSE_OPA_MAX;
+
+    // Skip animation if disabled - just show static error state
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        lv_obj_invalidate(obj);
+        spdlog::trace("[FilamentPath] Animations disabled - showing static error state");
+        return;
+    }
 
     lv_anim_t anim;
     lv_anim_init(&anim);

@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "keyboard_layout_provider.h"
+#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -847,6 +848,7 @@ void KeyboardManager::show(lv_obj_t* textarea) {
         spdlog::debug("[KeyboardManager] Shifting screen UP by {} px", shift_up);
 
         uint32_t child_count = lv_obj_get_child_count(screen);
+        bool animations_enabled = SettingsManager::instance().get_animations_enabled();
 
         for (uint32_t i = 0; i < child_count; i++) {
             lv_obj_t* child = lv_obj_get_child(screen, static_cast<int32_t>(i));
@@ -855,6 +857,11 @@ void KeyboardManager::show(lv_obj_t* textarea) {
 
             int32_t current_y = lv_obj_get_y(child);
             int32_t target_y = current_y - shift_up;
+
+            if (!animations_enabled) {
+                lv_obj_set_y(child, target_y);
+                continue;
+            }
 
             lv_anim_t a;
             lv_anim_init(&a);
@@ -894,6 +901,7 @@ void KeyboardManager::hide() {
     lv_obj_add_flag(keyboard_, LV_OBJ_FLAG_HIDDEN);
 
     uint32_t child_count = lv_obj_get_child_count(screen);
+    bool animations_enabled = SettingsManager::instance().get_animations_enabled();
 
     spdlog::debug("[KeyboardManager] Restoring screen children to y=0");
 
@@ -904,6 +912,11 @@ void KeyboardManager::hide() {
 
         int32_t current_y = lv_obj_get_y(child);
         if (current_y != 0) {
+            if (!animations_enabled) {
+                lv_obj_set_y(child, 0);
+                continue;
+            }
+
             lv_anim_t a;
             lv_anim_init(&a);
             lv_anim_set_var(&a, child);

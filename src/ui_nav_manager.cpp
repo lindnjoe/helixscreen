@@ -9,6 +9,7 @@
 #include "ui_theme.h"
 
 #include "app_globals.h"
+#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -96,6 +97,14 @@ void NavigationManager::overlay_animate_slide_in(lv_obj_t* panel) {
         panel_width = OVERLAY_SLIDE_OFFSET;
     }
 
+    // Skip animation if disabled - show panel in final state
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        lv_obj_set_style_translate_x(panel, 0, LV_PART_MAIN);
+        lv_obj_set_style_opa(panel, LV_OPA_COVER, LV_PART_MAIN);
+        spdlog::debug("[NavigationManager] Animations disabled - showing overlay instantly");
+        return;
+    }
+
     // Set initial state: off-screen and transparent
     lv_obj_set_style_translate_x(panel, panel_width, LV_PART_MAIN);
     lv_obj_set_style_opa(panel, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -132,6 +141,27 @@ void NavigationManager::overlay_animate_slide_out(lv_obj_t* panel) {
     // Disable clicks immediately to prevent interaction during animation
     lv_obj_remove_flag(panel, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(panel, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    // Skip animation if disabled - hide panel immediately and invoke callback
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
+        // Reset transform and opacity for potential reuse
+        lv_obj_set_style_translate_x(panel, 0, LV_PART_MAIN);
+        lv_obj_set_style_opa(panel, LV_OPA_COVER, LV_PART_MAIN);
+        spdlog::debug("[NavigationManager] Animations disabled - hiding overlay instantly");
+
+        // Invoke close callback if registered
+        auto& mgr = NavigationManager::instance();
+        auto it = mgr.overlay_close_callbacks_.find(panel);
+        if (it != mgr.overlay_close_callbacks_.end()) {
+            spdlog::debug("[NavigationManager] Invoking close callback for overlay {}",
+                          (void*)panel);
+            auto callback = std::move(it->second);
+            mgr.overlay_close_callbacks_.erase(it);
+            callback();
+        }
+        return;
+    }
 
     int32_t panel_width = lv_obj_get_width(panel);
     if (panel_width <= 0) {

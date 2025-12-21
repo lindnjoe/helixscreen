@@ -16,6 +16,7 @@
 #include "app_globals.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
+#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -427,6 +428,12 @@ void ExtrusionPanel::start_extrusion_animation(bool is_extruding) {
         is_extruding ? ui_theme_get_color("success_color") : ui_theme_get_color("warning_color");
     lv_obj_set_style_bg_color(filament_anim_obj_, color, 0);
     lv_obj_set_style_bg_opa(filament_anim_obj_, LV_OPA_COVER, 0);
+
+    // Skip animation if disabled - just show the static indicator
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        spdlog::debug("[{}] Animations disabled - showing static indicator", get_name());
+        return;
+    }
 
     // Create looping animation
     lv_anim_t anim;

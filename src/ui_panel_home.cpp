@@ -23,6 +23,7 @@
 #include "network_settings_overlay.h"
 #include "printer_detector.h"
 #include "printer_state.h"
+#include "settings_manager.h"
 #include "thumbnail_cache.h"
 #include "wifi_manager.h"
 #include "wizard_config_paths.h"
@@ -327,6 +328,17 @@ void HomePanel::start_tip_fade_transition(const PrintingTip& new_tip) {
 
     spdlog::debug("[{}] Starting tip fade transition to: {}", get_name(), new_tip.title);
 
+    // Skip animation if disabled - apply text immediately
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        current_tip_ = pending_tip_;
+        std::snprintf(status_buffer_, sizeof(status_buffer_), "%s", pending_tip_.title.c_str());
+        lv_subject_copy_string(&status_subject_, status_buffer_);
+        lv_obj_set_style_opa(tip_label_, LV_OPA_COVER, LV_PART_MAIN);
+        tip_animating_ = false;
+        spdlog::debug("[{}] Animations disabled - applied tip instantly", get_name());
+        return;
+    }
+
     // Fade out animation
     lv_anim_t anim;
     lv_anim_init(&anim);
@@ -359,6 +371,15 @@ void HomePanel::apply_pending_tip() {
     lv_subject_copy_string(&status_subject_, status_buffer_);
 
     spdlog::debug("[{}] Applied pending tip: {}", get_name(), pending_tip_.title);
+
+    // Skip animation if disabled - show at full opacity immediately
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        if (tip_label_) {
+            lv_obj_set_style_opa(tip_label_, LV_OPA_COVER, LV_PART_MAIN);
+        }
+        tip_animating_ = false;
+        return;
+    }
 
     // Fade in animation
     lv_anim_t anim;
