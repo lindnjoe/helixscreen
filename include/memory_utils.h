@@ -83,4 +83,38 @@ struct GCodeMemoryLimits {
  */
 bool is_gcode_3d_render_safe(size_t file_size_bytes);
 
+/**
+ * @brief Check if G-code 2D streaming rendering is safe for a given file
+ *
+ * 2D streaming mode uses layer-on-demand loading with LRU cache, so memory
+ * requirements are much lower than 3D mode. File is streamed directly to disk
+ * (no memory spike during download). Only needs RAM for:
+ * - Layer index: ~24 bytes per layer (estimate 1 layer per 500 bytes of G-code)
+ * - LRU cache: 1MB fixed budget for parsed layer segments
+ * - Ghost preview buffer: display_width * display_height * 4 bytes (ARGB8888)
+ * - Safety margin: 3MB for other allocations
+ *
+ * This is safe for much larger files than is_gcode_3d_render_safe().
+ * Reads display dimensions from LVGL at runtime.
+ *
+ * @param file_size_bytes Size of the G-code file in bytes
+ * @return true if 2D streaming rendering is safe, false if thumbnail-only recommended
+ */
+bool is_gcode_2d_streaming_safe(size_t file_size_bytes);
+
+/**
+ * @brief Implementation of 2D streaming memory check (for unit testing)
+ *
+ * This is the testable implementation that takes all dependencies as parameters.
+ * The public is_gcode_2d_streaming_safe() calls this with real values.
+ *
+ * @param file_size_bytes Size of the G-code file in bytes
+ * @param available_kb Available system memory in KB
+ * @param display_width Display width in pixels (for ghost buffer calculation)
+ * @param display_height Display height in pixels (for ghost buffer calculation)
+ * @return true if 2D streaming rendering is safe
+ */
+bool is_gcode_2d_streaming_safe_impl(size_t file_size_bytes, size_t available_kb, int display_width,
+                                     int display_height);
+
 } // namespace helix

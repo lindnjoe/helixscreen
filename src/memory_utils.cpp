@@ -2,6 +2,7 @@
 
 #include "memory_utils.h"
 
+#include <lvgl/lvgl.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdlib>
@@ -168,6 +169,62 @@ bool is_gcode_3d_render_safe(size_t file_size_bytes) {
 
     // Check if we have enough headroom (need at least 2x the estimated memory as buffer)
     return mem.available_kb > (estimated_memory_kb * 2);
+}
+
+bool is_gcode_2d_streaming_safe_impl(size_t file_size_bytes, size_t available_kb, int display_width,
+                                     int display_height) {
+    // 2D streaming mode memory requirements:
+    // 1. Layer index: ~24 bytes per layer (estimate 1 layer per 500 bytes of G-code)
+    // 2. LRU layer cache: 1MB fixed budget for parsed layer segments
+    // 3. Ghost buffer: display_width * display_height * 4 bytes (ARGB8888)
+    // 4. Safety margin: 3MB for other allocations
+    //
+    // Note: NO download spike - file streams directly to disk
+
+    size_t estimated_layers = file_size_bytes / 500;
+    size_t layer_index_kb = (estimated_layers * 24) / 1024;
+    constexpr size_t lru_cache_kb = 1024; // 1MB
+    size_t ghost_buffer_kb =
+        (static_cast<size_t>(display_width) * static_cast<size_t>(display_height) * 4) / 1024;
+    constexpr size_t safety_margin_kb = 3 * 1024; // 3MB
+
+    size_t total_needed_kb = layer_index_kb + lru_cache_kb + ghost_buffer_kb + safety_margin_kb;
+
+    spdlog::debug("[memory_utils] 2D streaming: need {}KB (index={}KB, cache={}KB, "
+                  "ghost={}KB@{}x{}, margin={}KB), available={}KB",
+                  total_needed_kb, layer_index_kb, lru_cache_kb, ghost_buffer_kb, display_width,
+                  display_height, safety_margin_kb, available_kb);
+
+    return available_kb > total_needed_kb;
+}
+
+bool is_gcode_2d_streaming_safe(size_t file_size_bytes) {
+    // Environment variable to force memory failure for testing
+    const char* force_fail = std::getenv("HELIX_FORCE_GCODE_MEMORY_FAIL");
+    if (force_fail && force_fail[0] == '1') {
+        spdlog::debug(
+            "[memory_utils] HELIX_FORCE_GCODE_MEMORY_FAIL=1 - forcing memory check failure");
+        return false;
+    }
+
+    MemoryInfo mem = get_system_memory_info();
+
+    if (mem.available_kb == 0) {
+        // Can't read memory - allow files up to 50MB (conservative for streaming)
+        return file_size_bytes < 50 * 1024 * 1024;
+    }
+
+    // Get display dimensions from LVGL at runtime
+    int display_width = 800;  // fallback
+    int display_height = 480; // fallback
+    lv_display_t* disp = lv_display_get_default();
+    if (disp) {
+        display_width = lv_display_get_horizontal_resolution(disp);
+        display_height = lv_display_get_vertical_resolution(disp);
+    }
+
+    return is_gcode_2d_streaming_safe_impl(file_size_bytes, mem.available_kb, display_width,
+                                           display_height);
 }
 
 } // namespace helix
