@@ -6,29 +6,41 @@
 
 /**
  * @file ui_temp_display.h
- * @brief Reusable temperature display widget showing "current / target°C"
+ * @brief Reusable temperature display widget with 4-state color coding
  *
  * The temp_display widget provides a standardized way to show temperature
- * information across all panels. It displays current and target temps
- * in the format "210 / 245°C" with consistent styling.
+ * information across all panels. It displays current temp with optional target
+ * in the format "210 / 245°C" or "210°C" (current only).
+ *
+ * ## Color States (4-state logic)
+ *
+ * The widget automatically colors the current temp based on thermal state:
+ * - **Off** (gray): Heater disabled (target=0)
+ * - **Heating** (red): Actively heating (current < target - 2°C)
+ * - **At-temp** (green): Stable at target (within ±2°C)
+ * - **Cooling** (blue): Cooling toward target (current > target + 2°C)
  *
  * ## XML Usage
  *
- * Basic usage with reactive binding (uses PrinterState subjects):
+ * Current-only display (default - target hidden):
  * @code{.xml}
- * <temp_display name="nozzle_temp" size="lg"
- *               bind_current="extruder_temp"
- *               bind_target="extruder_target"/>
- *
- * <temp_display name="bed_temp" size="lg"
- *               bind_current="bed_temp"
- *               bind_target="bed_target"/>
+ * <temp_display name="chamber_temp" size="sm"
+ *               bind_current="chamber_temp"/>
  * @endcode
  *
- * Current-only display (hide target):
+ * Full display with target (opt-in):
  * @code{.xml}
- * <temp_display name="chamber_temp" size="sm" show_target="false"
- *               bind_current="chamber_temp"/>
+ * <temp_display name="nozzle_temp" size="lg" show_target="true"
+ *               bind_current="extruder_temp"
+ *               bind_target="extruder_target"/>
+ * @endcode
+ *
+ * Clickable temperature display:
+ * @code{.xml}
+ * <temp_display name="nozzle_temp" size="lg" show_target="true"
+ *               bind_current="extruder_temp"
+ *               bind_target="extruder_target"
+ *               event_cb="on_nozzle_temp_clicked"/>
  * @endcode
  *
  * ## XML Properties (API)
@@ -36,9 +48,12 @@
  * | Property       | Type    | Default | Description                                      |
  * |----------------|---------|---------|--------------------------------------------------|
  * | size           | string  | "md"    | Font size: "sm", "md", or "lg"                   |
- * | show_target    | bool    | "true"  | Show "/ target" portion                          |
+ * | show_target    | bool    | "false" | Show "/ target" portion (opt-in)                 |
  * | bind_current   | subject | -       | Subject name for current temp (centidegrees×10) |
  * | bind_target    | subject | -       | Subject name for target temp (centidegrees×10)  |
+ * | event_cb       | string  | ""      | Click callback name (makes widget clickable)     |
+ *
+ * @note When show_target="true" and target=0, displays "--" instead of "0"
  *
  * @note The widget expects temperature subjects in **centidegrees** (value×10),
  *       which matches PrinterState's format. The widget converts internally:
@@ -56,13 +71,10 @@
  * ## Styling
  *
  * The widget uses semantic colors from the theme:
- * - Current temp: **primary_color** when heating (target > 0), text_primary when idle
+ * - Current temp: 4-state color (see Color States above)
  * - Separator (" / "): text_secondary
  * - Target temp: text_primary
  * - Unit ("°C"): text_secondary
- *
- * The heating accent provides immediate visual feedback that a heater is active,
- * making it easy to see at a glance which heaters are currently heating.
  *
  * Standard lv_obj style properties can also be applied (align, width, etc.)
  *

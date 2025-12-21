@@ -11,7 +11,6 @@
 #include "lvgl/src/xml/lv_xml_utils.h"
 #include "lvgl/src/xml/lv_xml_widget.h"
 #include "lvgl/src/xml/parsers/lv_xml_obj_parser.h"
-#include "settings_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -38,7 +37,7 @@ struct TempDisplayData {
     uint32_t magic = TEMP_DISPLAY_MAGIC;
     int current_temp = 0;
     int target_temp = 0;
-    bool show_target = true;
+    bool show_target = false; // Default: hide target (opt-in via prop)
 
     // Child label pointers for efficient updates
     lv_obj_t* current_label = nullptr;
@@ -57,6 +56,9 @@ struct TempDisplayData {
     // Buffers for formatted text
     char current_text_buf[16];
     char target_text_buf[16];
+
+    // Optional click callback name (for XML event_cb prop)
+    char event_cb_name[64] = {0};
 };
 
 // Static registry for safe cleanup
@@ -99,132 +101,56 @@ static const lv_font_t* get_font_for_size(const char* size) {
     return font;
 }
 
+/** Tolerance for "at temperature" state (±degrees) */
+static constexpr int AT_TEMP_TOLERANCE = 2;
+
 /**
- * @brief Update current temp label color based on heating/cooling state
+ * @brief Update current temp label color based on 4-state thermal logic
  *
  * Color indicates thermal state:
- * - Heating (target > 0 AND current < target): primary_color (red)
- * - Cooling to target (target > 0 AND current > target): info_color (blue)
- * - Idle/at target (target == 0 OR current == target): text_primary
+ * - Off (target == 0): text_secondary (gray) - heater disabled
+ * - Heating (current < target - tolerance): primary_color (red) - actively heating
+ * - At-temp (within ±tolerance): success_color (green) - stable at target
+ * - Cooling (current > target + tolerance): info_color (blue) - cooling down
  */
 static void update_heating_color(TempDisplayData* data) {
     if (!data || !data->current_label)
         return;
 
     lv_color_t color;
-    if (data->target_temp > 0 && data->current_temp < data->target_temp) {
-        // Heating up to target - RED
+    if (data->target_temp == 0) {
+        // OFF: Heater is disabled - GRAY
+        color = ui_theme_get_color("text_secondary");
+    } else if (data->current_temp < data->target_temp - AT_TEMP_TOLERANCE) {
+        // HEATING: Actively heating up - RED
         color = ui_theme_get_color("primary_color");
-    } else if (data->target_temp > 0 && data->current_temp > data->target_temp) {
-        // Cooling down to target - BLUE
+    } else if (data->current_temp > data->target_temp + AT_TEMP_TOLERANCE) {
+        // COOLING: Cooling down to target - BLUE
         color = ui_theme_get_color("info_color");
     } else {
-        // Idle or at target - DEFAULT
-        color = ui_theme_get_color("text_primary");
+        // AT_TEMP: Within tolerance of target - GREEN
+        color = ui_theme_get_color("success_color");
     }
     lv_obj_set_style_text_color(data->current_label, color, LV_PART_MAIN);
 }
 
 /**
- * @brief Update visibility of separator and target based on heater state
+ * @brief Format target temp text - shows "--" when heater is off
  *
- * When show_target is true but target temp is 0 (heater off), we hide the
- * separator and target to show just "XX°C" instead of "XX / --°C".
- *
- * Animation: fade + slide when appearing/disappearing.
+ * When show_target is true:
+ * - target=0: Display "--" (heater off)
+ * - target>0: Display actual temperature value
  */
-static void update_target_visibility(TempDisplayData* data) {
+static void format_target_text(TempDisplayData* data) {
     if (!data)
         return;
 
-    // If show_target is false, separator and target are always hidden (set at create time)
-    if (!data->show_target)
-        return;
-
-    // When show_target is true, hide separator/target dynamically if heater is off
-    bool should_show = (data->target_temp > 0);
-
-    // Animation constants for target indicator transition
-    constexpr int32_t APPEAR_DURATION_MS = 200;
-    constexpr int32_t DISAPPEAR_DURATION_MS = 150;
-    constexpr int32_t SLIDE_OFFSET_X = 10;
-
-    // Helper to animate show/hide with fade + slide
-    auto animate_label = [](lv_obj_t* label, bool show) {
-        if (!label)
-            return;
-
-        bool is_currently_visible = !lv_obj_has_flag(label, LV_OBJ_FLAG_HIDDEN);
-        bool animations_enabled = SettingsManager::instance().get_animations_enabled();
-
-        if (show && !is_currently_visible) {
-            // Show label
-            lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
-
-            if (!animations_enabled) {
-                // Instant show - set final state immediately
-                lv_obj_set_style_opa(label, LV_OPA_COVER, LV_PART_MAIN);
-                lv_obj_set_style_translate_x(label, 0, LV_PART_MAIN);
-                return;
-            }
-
-            // Animate: fade-in + slide from right
-            lv_obj_set_style_opa(label, LV_OPA_TRANSP, LV_PART_MAIN);
-            lv_obj_set_style_translate_x(label, SLIDE_OFFSET_X, LV_PART_MAIN);
-
-            // Slide animation
-            lv_anim_t slide_anim;
-            lv_anim_init(&slide_anim);
-            lv_anim_set_var(&slide_anim, label);
-            lv_anim_set_values(&slide_anim, SLIDE_OFFSET_X, 0);
-            lv_anim_set_duration(&slide_anim, APPEAR_DURATION_MS);
-            lv_anim_set_path_cb(&slide_anim, lv_anim_path_ease_out);
-            lv_anim_set_exec_cb(&slide_anim, [](void* obj, int32_t value) {
-                lv_obj_set_style_translate_x(static_cast<lv_obj_t*>(obj), value, LV_PART_MAIN);
-            });
-            lv_anim_start(&slide_anim);
-
-            // Fade in animation
-            lv_anim_t fade_anim;
-            lv_anim_init(&fade_anim);
-            lv_anim_set_var(&fade_anim, label);
-            lv_anim_set_values(&fade_anim, LV_OPA_TRANSP, LV_OPA_COVER);
-            lv_anim_set_duration(&fade_anim, APPEAR_DURATION_MS);
-            lv_anim_set_path_cb(&fade_anim, lv_anim_path_ease_out);
-            lv_anim_set_exec_cb(&fade_anim, [](void* obj, int32_t value) {
-                lv_obj_set_style_opa(static_cast<lv_obj_t*>(obj), static_cast<lv_opa_t>(value),
-                                     LV_PART_MAIN);
-            });
-            lv_anim_start(&fade_anim);
-
-        } else if (!show && is_currently_visible) {
-            if (!animations_enabled) {
-                // Instant hide - no animation
-                lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
-                return;
-            }
-
-            // Animate: fade-out then hide
-            lv_anim_t fade_anim;
-            lv_anim_init(&fade_anim);
-            lv_anim_set_var(&fade_anim, label);
-            lv_anim_set_values(&fade_anim, LV_OPA_COVER, LV_OPA_TRANSP);
-            lv_anim_set_duration(&fade_anim, DISAPPEAR_DURATION_MS);
-            lv_anim_set_path_cb(&fade_anim, lv_anim_path_ease_in);
-            lv_anim_set_exec_cb(&fade_anim, [](void* obj, int32_t value) {
-                lv_obj_set_style_opa(static_cast<lv_obj_t*>(obj), static_cast<lv_opa_t>(value),
-                                     LV_PART_MAIN);
-            });
-            lv_anim_set_completed_cb(&fade_anim, [](lv_anim_t* anim) {
-                lv_obj_add_flag(static_cast<lv_obj_t*>(anim->var), LV_OBJ_FLAG_HIDDEN);
-            });
-            lv_anim_start(&fade_anim);
-        }
-        // If already in the desired state, do nothing
-    };
-
-    animate_label(data->separator_label, should_show);
-    animate_label(data->target_label, should_show);
+    if (data->target_temp == 0) {
+        snprintf(data->target_text_buf, sizeof(data->target_text_buf), "--");
+    } else {
+        snprintf(data->target_text_buf, sizeof(data->target_text_buf), "%d", data->target_temp);
+    }
+    lv_subject_copy_string(&data->target_text_subject, data->target_text_buf);
 }
 
 /** Update the display text based on current values */
@@ -236,28 +162,27 @@ static void update_display(TempDisplayData* data) {
     snprintf(data->current_text_buf, sizeof(data->current_text_buf), "%d", data->current_temp);
     lv_subject_copy_string(&data->current_text_subject, data->current_text_buf);
 
-    // Update target temp via subject
-    snprintf(data->target_text_buf, sizeof(data->target_text_buf), "%d", data->target_temp);
-    lv_subject_copy_string(&data->target_text_subject, data->target_text_buf);
-
-    // Show/hide separator and target based on show_target
-    if (data->separator_label) {
-        if (data->show_target) {
-            lv_obj_remove_flag(data->separator_label, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_add_flag(data->separator_label, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
-    if (data->target_label) {
-        if (data->show_target) {
-            lv_obj_remove_flag(data->target_label, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_add_flag(data->target_label, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
+    // Update target temp via subject (shows "--" when heater off)
+    format_target_text(data);
 
     // Update heating accent color
     update_heating_color(data);
+}
+
+/** Click event handler - invokes registered callback if set */
+static void on_click(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+    auto* data = get_data(obj);
+    if (!data || data->event_cb_name[0] == '\0')
+        return;
+
+    // Look up the registered callback by name
+    lv_event_cb_t cb = lv_xml_get_event_cb(nullptr, data->event_cb_name);
+    if (cb) {
+        cb(e);
+    } else {
+        spdlog::warn("[temp_display] Event callback '{}' not found", data->event_cb_name);
+    }
 }
 
 /** Cleanup callback when widget is deleted */
@@ -331,14 +256,11 @@ static void target_temp_observer_cb(lv_observer_t* observer, lv_subject_t* subje
 
     data->target_temp = temp_deg;
 
-    // Update the text subject (which automatically updates the label via binding)
-    snprintf(data->target_text_buf, sizeof(data->target_text_buf), "%d", temp_deg);
-    lv_subject_copy_string(&data->target_text_subject, data->target_text_buf);
+    // Update target text (shows "--" when heater off, actual value when on)
+    format_target_text(data);
 
-    // Update heating accent: primary_color when target > 0 (heater ON)
+    // Update color based on 4-state logic
     update_heating_color(data);
-    // Hide separator/target when heater is off
-    update_target_visibility(data);
 }
 
 // ============================================================================
@@ -374,10 +296,10 @@ static void* ui_temp_display_create_cb(lv_xml_parser_state_t* state, const char*
     const lv_font_t* font = get_font_for_size(size);
     lv_color_t text_color = ui_theme_get_color("text_primary");
 
-    // Parse show_target attribute
+    // Parse show_target attribute (default is false, opt-in to show)
     const char* show_target_str = lv_xml_get_value_of(attrs, "show_target");
-    if (show_target_str && strcmp(show_target_str, "false") == 0) {
-        data_ptr->show_target = false;
+    if (show_target_str && strcmp(show_target_str, "true") == 0) {
+        data_ptr->show_target = true;
     }
 
     // Create current temp label
@@ -474,18 +396,23 @@ static void ui_temp_display_apply_cb(lv_xml_parser_state_t* state, const char** 
                 // Set initial value (convert centidegrees to degrees)
                 int temp_centi = lv_subject_get_int(subject);
                 data->target_temp = temp_centi / 10;
-                // Set label text via subject
-                snprintf(data->target_text_buf, sizeof(data->target_text_buf), "%d",
-                         data->target_temp);
-                lv_subject_copy_string(&data->target_text_subject, data->target_text_buf);
-                // Apply initial heating color (primary_color if target > 0)
+                // Set label text (shows "--" when heater off)
+                format_target_text(data);
+                // Apply initial heating color
                 update_heating_color(data);
-                // Hide separator/target when heater is off
-                update_target_visibility(data);
                 spdlog::trace("[temp_display] Bound target to subject '{}' ({}°C)", value,
                               data->target_temp);
             } else if (!subject) {
                 spdlog::warn("[temp_display] Subject '{}' not found for bind_target", value);
+            }
+        } else if (strcmp(name, "event_cb") == 0) {
+            // Store callback name and make widget clickable
+            if (data && value && value[0] != '\0') {
+                strncpy(data->event_cb_name, value, sizeof(data->event_cb_name) - 1);
+                data->event_cb_name[sizeof(data->event_cb_name) - 1] = '\0';
+                lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_event_cb(container, on_click, LV_EVENT_CLICKED, nullptr);
+                spdlog::trace("[temp_display] Registered click callback '{}'", value);
             }
         }
     }
