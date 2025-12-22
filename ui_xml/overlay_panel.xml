@@ -3,17 +3,12 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <component>
   <!-- Reusable Overlay Panel Wrapper Component -->
-  <!-- Provides consistent positioning, header, and content area for all overlay panels -->
+  <!-- Provides consistent positioning and header for all overlay panels -->
   <!-- Uses shared backdrop from navigation system (ui_nav.cpp) -->
   <!-- Usage Pattern:
-       - Overlay panels extend this component
-       - Specify title, optional right button text, and width
-       - Add panel-specific content inside the content area
-       - C++ code wires back button and right button (if needed)
-
-       Example:
-       <overlay_panel title="Motion: XYZ" width="#overlay_panel_width_large">
-         <lv_obj name="motion_content">
+       <overlay_panel name="my_panel" title="My Panel">
+         <lv_obj name="overlay_content" width="100%" flex_grow="1" style_bg_opa="0"
+                 style_pad_all="#space_lg" style_border_width="0" flex_flow="column">
            [panel-specific controls]
          </lv_obj>
        </overlay_panel>
@@ -25,17 +20,13 @@
     <prop name="hide_action_button" type="string" default="true"/>
     <prop name="width" type="string" default="#overlay_panel_width"/>
   </api>
-  <!-- Extends overlay_panel_base for consistent outer container styling -->
-  <view extends="overlay_panel_base" width="$width">
-    <!-- Header Bar (integrated, uses improved header_bar component) -->
+  <!-- Outer container with consistent overlay panel styling -->
+  <view extends="lv_obj"
+        width="$width" height="100%" align="right_mid" style_pad_all="0" style_border_width="0" style_bg_opa="255"
+        style_bg_color="#card_bg" scrollable="false" flex_flow="column">
+    <!-- Header Bar -->
     <header_bar name="overlay_header"
                 title="$title" action_button_text="$action_button_text" hide_action_button="$hide_action_button"/>
-    <!-- Content Area (flexible height, fills remaining space) -->
-    <!-- Panel-specific content goes here -->
-    <lv_obj name="overlay_content"
-            width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" style_border_width="0"
-            scrollable="false" flex_flow="column">
-      <!-- Panel-specific content inserted here by child components -->
-    </lv_obj>
+    <!-- Panel-specific overlay_content and children go here -->
   </view>
 </component>
