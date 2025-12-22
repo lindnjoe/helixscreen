@@ -110,6 +110,9 @@ void SubjectInitializer::inject_api(MoonrakerAPI* api) {
     if (m_temp_control_panel) {
         m_temp_control_panel->set_api(api);
     }
+
+    // FilamentPanel uses global accessor pattern
+    get_global_filament_panel().set_api(api);
 }
 
 void SubjectInitializer::init_core_subjects() {
