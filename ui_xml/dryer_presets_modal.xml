@@ -1,21 +1,16 @@
 <?xml version="1.0"?>
 <!-- Copyright 2025 HelixScreen -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- NOTE: Backdrop created programmatically by Modal system -->
 <component>
   <consts>
     <px name="stepper_btn_size" value="44"/>
     <px name="progress_height" value="8"/>
   </consts>
-  <!-- Full-screen backdrop overlay for dryer control -->
+  <!-- Dialog card (backdrop created programmatically) -->
   <view name="dryer_presets_modal"
-        extends="lv_obj" width="100%" height="100%" style_bg_color="0x000000" style_bg_opa="200" style_border_width="0"
-        style_radius="0" style_pad_all="0" align="center" clickable="true">
-    <!-- Reactive visibility binding: hidden when dryer_modal_visible == 0 -->
-    <bind_flag_if_eq subject="dryer_modal_visible" flag="hidden" ref_value="0"/>
-    <!-- Dialog card -->
-    <ui_dialog name="dialog_card"
-               width="320" height="content" align="center" flex_flow="column" style_flex_main_place="start"
-               style_pad_gap="0">
+        extends="ui_dialog" width="320" height="content" align="center" flex_flow="column"
+        style_flex_main_place="start" style_pad_gap="0">
       <!-- Header with title and close button -->
       <lv_obj width="100%"
               height="content" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg"
@@ -189,6 +184,5 @@
           </lv_obj>
         </lv_obj>
       </lv_obj>
-    </ui_dialog>
   </view>
 </component>

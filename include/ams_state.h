@@ -366,14 +366,6 @@ class AmsState {
     }
 
     /**
-     * @brief Get dryer modal visible subject
-     * @return Subject holding 1 if modal is visible, 0 otherwise
-     */
-    lv_subject_t* get_dryer_modal_visible_subject() {
-        return &dryer_modal_visible_;
-    }
-
-    /**
      * @brief Get dryer modal temperature text subject
      * @return Subject holding formatted temp string (e.g., "55°C")
      */
@@ -633,7 +625,6 @@ class AmsState {
     char dryer_target_temp_text_buf_[16];
     lv_subject_t dryer_time_text_;
     char dryer_time_text_buf_[32];
-    lv_subject_t dryer_modal_visible_;
 
     // Dryer modal editing subjects (user-adjustable values)
     lv_subject_t dryer_modal_temp_text_;

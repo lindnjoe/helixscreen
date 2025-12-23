@@ -119,8 +119,7 @@ class ControlsPanel : public PanelBase {
     lv_subject_t preheat_status_subject_{};
     char preheat_status_buf_[48] = {};
 
-    // Calibration modal visibility
-    lv_subject_t calibration_modal_visible_{};
+    // Note: Calibration modal uses ui_modal_show pattern (pointer is calibration_modal_ below)
 
     //
     // === Cached Values (for display update efficiency) ===

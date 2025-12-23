@@ -33,13 +33,12 @@ struct WiFiNetwork;
  * - Static trampolines for LVGL event callbacks
  * - Global singleton getter for backwards compatibility
  *
- * ## Subject Bindings (7 total):
+ * ## Subject Bindings (6 total):
  *
  * - wifi_enabled (int) - 0=off, 1=on
  * - wifi_status (string) - Status message
  * - ethernet_status (string) - Ethernet connection status
  * - wifi_scanning (int) - 0=not scanning, 1=scanning
- * - wifi_password_modal_visible (int) - 0=hidden, 1=visible
  * - wifi_password_modal_ssid (string) - SSID for password modal
  * - wifi_connecting (int) - 0=idle, 1=connecting
  *
@@ -136,13 +135,12 @@ class WizardWifiStep {
     lv_obj_t* password_modal_ = nullptr;
     lv_obj_t* network_list_container_ = nullptr;
 
-    // Subjects (8 total)
+    // Subjects (7 total - visibility controlled by Modal system)
     lv_subject_t wifi_enabled_;
     lv_subject_t wifi_status_;
     lv_subject_t wifi_ip_;
     lv_subject_t ethernet_status_;
     lv_subject_t wifi_scanning_;
-    lv_subject_t wifi_password_modal_visible_;
     lv_subject_t wifi_password_modal_ssid_;
     lv_subject_t wifi_connecting_;
 

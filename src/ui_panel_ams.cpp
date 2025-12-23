@@ -1148,53 +1148,6 @@ void AmsPanel::handle_bypass_toggle() {
     // Switch state updates automatically via bypass_active subject binding
 }
 
-void AmsPanel::handle_dryer_preset(float temp_c, int duration_min, int fan_pct) {
-    spdlog::info("[{}] Dryer preset: {}°C for {}min, fan {}%", get_name(), temp_c, duration_min,
-                 fan_pct);
-
-    AmsBackend* backend = AmsState::instance().get_backend();
-    if (!backend) {
-        NOTIFY_WARNING("AMS not available");
-        return;
-    }
-
-    DryerInfo dryer = backend->get_dryer_info();
-    if (!dryer.supported) {
-        NOTIFY_WARNING("Dryer not available");
-        return;
-    }
-
-    AmsError error = backend->start_drying(temp_c, duration_min, fan_pct);
-    if (error.result == AmsResult::SUCCESS) {
-        NOTIFY_INFO("Drying started: {}°C", static_cast<int>(temp_c));
-        // Sync dryer state to update UI
-        AmsState::instance().sync_dryer_from_backend();
-        // Close the presets modal
-        lv_subject_set_int(AmsState::instance().get_dryer_modal_visible_subject(), 0);
-    } else {
-        NOTIFY_ERROR("Failed to start drying: {}", error.user_msg);
-    }
-}
-
-void AmsPanel::handle_dryer_stop() {
-    spdlog::info("[{}] Dryer stop requested", get_name());
-
-    AmsBackend* backend = AmsState::instance().get_backend();
-    if (!backend) {
-        NOTIFY_WARNING("AMS not available");
-        return;
-    }
-
-    AmsError error = backend->stop_drying();
-    if (error.result == AmsResult::SUCCESS) {
-        NOTIFY_INFO("Drying stopped");
-        // Sync dryer state to update UI
-        AmsState::instance().sync_dryer_from_backend();
-    } else {
-        NOTIFY_ERROR("Failed to stop drying: {}", error.user_msg);
-    }
-}
-
 // ============================================================================
 // Context Menu Management (delegates to helix::ui::AmsContextMenu)
 // ============================================================================

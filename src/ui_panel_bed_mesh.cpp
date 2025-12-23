@@ -68,6 +68,18 @@ BedMeshPanel::~BedMeshPanel() {
     if (lv_is_initialized()) {
         // Modal dialogs: use ui_modal_hide() - NOT lv_obj_del()!
         // See docs/QUICK_REFERENCE.md "Modal Dialog Lifecycle"
+        if (calibrate_modal_widget_) {
+            ui_modal_hide(calibrate_modal_widget_);
+            calibrate_modal_widget_ = nullptr;
+        }
+        if (rename_modal_widget_) {
+            ui_modal_hide(rename_modal_widget_);
+            rename_modal_widget_ = nullptr;
+        }
+        if (save_config_modal_widget_) {
+            ui_modal_hide(save_config_modal_widget_);
+            save_config_modal_widget_ = nullptr;
+        }
         if (delete_modal_widget_) {
             ui_modal_hide(delete_modal_widget_);
             delete_modal_widget_ = nullptr;
@@ -132,17 +144,11 @@ void BedMeshPanel::init_subjects() {
         lv_xml_register_subject(nullptr, active_key.c_str(), &profile_active_subjects_[idx]);
     }
 
-    // Modal visibility subjects
-    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_calibrate_modal_visible_, 0,
-                                     "bed_mesh_calibrate_modal_visible");
+    // Modal state subjects (NOT visibility - internal state only)
     UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_calibrating_, 0, "bed_mesh_calibrating");
-    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_rename_modal_visible_, 0,
-                                     "bed_mesh_rename_modal_visible");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_mesh_rename_old_name_, rename_old_name_buf_, "",
                                         "bed_mesh_rename_old_name");
-    // Note: delete modal uses ui_modal_show() instead of subject-based visibility
-    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_save_config_modal_visible_, 0,
-                                     "bed_mesh_save_config_modal_visible");
+    // Note: All modals now use ui_modal_show() pattern instead of visibility subjects
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized and registered", get_name());
@@ -549,14 +555,18 @@ void BedMeshPanel::start_calibration() {
 
 void BedMeshPanel::show_calibrate_modal() {
     lv_subject_set_int(&bed_mesh_calibrating_, 0);
-    lv_subject_set_int(&bed_mesh_calibrate_modal_visible_, 1);
+
+    ModalConfig config{};
+    calibrate_modal_widget_ = ui_modal_show("bed_mesh_calibrate_modal", &config, nullptr);
     spdlog::debug("[{}] Showing calibrate modal", get_name());
 }
 
 void BedMeshPanel::show_rename_modal(const std::string& profile_name) {
     pending_rename_old_ = profile_name;
     lv_subject_copy_string(&bed_mesh_rename_old_name_, profile_name.c_str());
-    lv_subject_set_int(&bed_mesh_rename_modal_visible_, 1);
+
+    ModalConfig config{};
+    rename_modal_widget_ = ui_modal_show("bed_mesh_rename_modal", &config, nullptr);
     spdlog::debug("[{}] Showing rename modal for: {}", get_name(), profile_name);
 }
 
@@ -564,12 +574,10 @@ void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
     pending_delete_profile_ = profile_name;
 
     // Configure modal (same pattern as print_select)
-    ui_modal_config_t config = {
+    ModalConfig config = {
         .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
         .backdrop_opa = 180,
-        .keyboard = nullptr,
-        .persistent = false,
-        .on_close = nullptr};
+        .keyboard = nullptr};
 
     // Create message with profile name
     char msg_buf[256];
@@ -578,7 +586,7 @@ void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
 
     const char* attrs[] = {"title", "Delete Profile?", "message", msg_buf, NULL};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Delete", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Delete", "Cancel");
     delete_modal_widget_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!delete_modal_widget_) {
@@ -602,17 +610,28 @@ void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
 }
 
 void BedMeshPanel::show_save_config_modal() {
-    lv_subject_set_int(&bed_mesh_save_config_modal_visible_, 1);
+    ModalConfig config{};
+    save_config_modal_widget_ = ui_modal_show("bed_mesh_save_config_modal", &config, nullptr);
     spdlog::debug("[{}] Showing save config modal", get_name());
 }
 
 void BedMeshPanel::hide_all_modals() {
-    lv_subject_set_int(&bed_mesh_calibrate_modal_visible_, 0);
+    // Reset calibrating state
     lv_subject_set_int(&bed_mesh_calibrating_, 0);
-    lv_subject_set_int(&bed_mesh_rename_modal_visible_, 0);
-    lv_subject_set_int(&bed_mesh_save_config_modal_visible_, 0);
 
-    // Hide delete modal (uses ui_modal_hide pattern)
+    // Hide all modals (all use ui_modal_hide pattern now)
+    if (calibrate_modal_widget_) {
+        ui_modal_hide(calibrate_modal_widget_);
+        calibrate_modal_widget_ = nullptr;
+    }
+    if (rename_modal_widget_) {
+        ui_modal_hide(rename_modal_widget_);
+        rename_modal_widget_ = nullptr;
+    }
+    if (save_config_modal_widget_) {
+        ui_modal_hide(save_config_modal_widget_);
+        save_config_modal_widget_ = nullptr;
+    }
     if (delete_modal_widget_) {
         ui_modal_hide(delete_modal_widget_);
         delete_modal_widget_ = nullptr;

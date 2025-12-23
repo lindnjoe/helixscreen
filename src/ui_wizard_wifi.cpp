@@ -129,7 +129,6 @@ WizardWifiStep::~WizardWifiStep() {
         lv_subject_deinit(&wifi_ip_);
         lv_subject_deinit(&ethernet_status_);
         lv_subject_deinit(&wifi_scanning_);
-        lv_subject_deinit(&wifi_password_modal_visible_);
         lv_subject_deinit(&wifi_password_modal_ssid_);
         lv_subject_deinit(&wifi_connecting_);
         subjects_initialized_ = false;
@@ -150,7 +149,6 @@ WizardWifiStep::WizardWifiStep(WizardWifiStep&& other) noexcept
       network_list_container_(other.network_list_container_), wifi_enabled_(other.wifi_enabled_),
       wifi_status_(other.wifi_status_), ethernet_status_(other.ethernet_status_),
       wifi_scanning_(other.wifi_scanning_),
-      wifi_password_modal_visible_(other.wifi_password_modal_visible_),
       wifi_password_modal_ssid_(other.wifi_password_modal_ssid_),
       wifi_connecting_(other.wifi_connecting_), wifi_manager_(std::move(other.wifi_manager_)),
       ethernet_manager_(std::move(other.ethernet_manager_)),
@@ -178,7 +176,6 @@ WizardWifiStep& WizardWifiStep::operator=(WizardWifiStep&& other) noexcept {
         wifi_status_ = other.wifi_status_;
         ethernet_status_ = other.ethernet_status_;
         wifi_scanning_ = other.wifi_scanning_;
-        wifi_password_modal_visible_ = other.wifi_password_modal_visible_;
         wifi_password_modal_ssid_ = other.wifi_password_modal_ssid_;
         wifi_connecting_ = other.wifi_connecting_;
         wifi_manager_ = std::move(other.wifi_manager_);
@@ -729,8 +726,6 @@ void WizardWifiStep::init_subjects() {
 
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_enabled_, 0, "wifi_enabled");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_scanning_, 0, "wifi_scanning");
-    UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_password_modal_visible_, 0,
-                                     "wifi_password_modal_visible");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_connecting_, 0, "wifi_connecting");
 
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wifi_password_modal_ssid_, wifi_password_modal_ssid_buffer_,
@@ -897,15 +892,13 @@ void WizardWifiStep::show_password_modal(const char* ssid) {
 
     spdlog::debug("[{}] Showing password modal for SSID: {}", get_name(), ssid);
 
-    ui_modal_keyboard_config_t kbd_config = {
+    ModalKeyboardConfig kbd_config = {
         .auto_position = true, .alignment = LV_ALIGN_BOTTOM_MID, .x = 0, .y = 0};
 
-    ui_modal_config_t config = {
+    ModalConfig config = {
         .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
         .backdrop_opa = 180,
-        .keyboard = &kbd_config,
-        .persistent = false,
-        .on_close = nullptr};
+        .keyboard = &kbd_config};
 
     const char* attrs[] = {"ssid", ssid, NULL};
     password_modal_ = ui_modal_show("wifi_password_modal", &config, attrs);
@@ -916,7 +909,6 @@ void WizardWifiStep::show_password_modal(const char* ssid) {
     }
 
     lv_subject_copy_string(&wifi_password_modal_ssid_, ssid);
-    lv_subject_set_int(&wifi_password_modal_visible_, 1);
 
     lv_obj_t* password_input = lv_obj_find_by_name(password_modal_, "password_input");
     if (password_input) {
@@ -949,7 +941,6 @@ void WizardWifiStep::hide_password_modal() {
 
     spdlog::debug("[{}] Hiding password modal", get_name());
 
-    lv_subject_set_int(&wifi_password_modal_visible_, 0);
     ui_modal_hide(password_modal_);
     password_modal_ = nullptr;
 }

@@ -103,16 +103,16 @@ class BedMeshPanel : public PanelBase {
     // Profile names stored for operations
     std::array<std::string, BED_MESH_MAX_PROFILES> profile_names_;
 
-    // ========== Modal Visibility Subjects ==========
-    lv_subject_t bed_mesh_calibrate_modal_visible_;
-    lv_subject_t bed_mesh_calibrating_;
-    lv_subject_t bed_mesh_rename_modal_visible_;
-    lv_subject_t bed_mesh_rename_old_name_;
-    lv_subject_t bed_mesh_save_config_modal_visible_;
+    // ========== Modal State Subjects (NOT visibility - internal state) ==========
+    lv_subject_t bed_mesh_calibrating_;  // 0=idle, 1=calibrating (controls form vs spinner)
+    lv_subject_t bed_mesh_rename_old_name_;  // Display the old name in rename modal
 
     char rename_old_name_buf_[64];
 
-    // Delete confirmation modal widget (uses ui_modal_show pattern)
+    // ========== Modal Widget Pointers (uses ui_modal_show pattern) ==========
+    lv_obj_t* calibrate_modal_widget_ = nullptr;
+    lv_obj_t* rename_modal_widget_ = nullptr;
+    lv_obj_t* save_config_modal_widget_ = nullptr;
     lv_obj_t* delete_modal_widget_ = nullptr;
 
     // ========== UI Widget Pointers ==========

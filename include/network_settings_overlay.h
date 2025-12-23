@@ -198,8 +198,7 @@ class NetworkSettingsOverlay {
     lv_obj_t* step_widget_ = nullptr;
     lv_subject_t test_complete_; // Controls close button enabled state
 
-    // Hidden network modal
-    lv_subject_t hidden_network_modal_visible_;
+    // Hidden network modal (visibility controlled by Modal system)
     lv_obj_t* hidden_network_modal_ = nullptr;
 
     // Current network selection for password modal

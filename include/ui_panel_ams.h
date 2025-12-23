@@ -199,8 +199,6 @@ class AmsPanel : public PanelBase {
     void handle_unload();
     void handle_reset();
     void handle_bypass_toggle();
-    void handle_dryer_preset(float temp_c, int duration_min, int fan_pct);
-    void handle_dryer_stop();
 };
 
 /**

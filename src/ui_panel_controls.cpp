@@ -72,8 +72,9 @@ ControlsPanel::~ControlsPanel() {
         lv_obj_del(fan_panel_);
         fan_panel_ = nullptr;
     }
+    // Modal dialogs: use ui_modal_hide() - NOT lv_obj_del()!
     if (calibration_modal_) {
-        lv_obj_del(calibration_modal_);
+        ui_modal_hide(calibration_modal_);
         calibration_modal_ = nullptr;
     }
     if (bed_mesh_panel_) {
@@ -144,8 +145,7 @@ void ControlsPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(z_offset_delta_display_subject_,
                                         z_offset_delta_display_buf_, "", "z_offset_delta_display");
 
-    // Calibration modal visibility
-    UI_SUBJECT_INIT_AND_REGISTER_INT(calibration_modal_visible_, 0, "calibration_modal_visible");
+    // Note: Calibration modal uses ui_modal_show() pattern, no visibility subject needed
 
     // Register calibration modal event callbacks (XML event_cb references)
     lv_xml_register_event_cb(nullptr, "on_calibration_modal_close", on_calibration_modal_close);
@@ -757,7 +757,7 @@ void ControlsPanel::handle_motors_clicked() {
     spdlog::debug("[{}] Motors Disable card clicked - showing confirmation", get_name());
 
     // Create modal config
-    ui_modal_config_t config = {
+    ModalConfig config = {
         .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
         .backdrop_opa = 180,
         .keyboard = nullptr,
@@ -769,7 +769,7 @@ void ControlsPanel::handle_motors_clicked() {
                            "Release all stepper motors. Position will be lost.", nullptr};
 
     // Configure modal_dialog: WARNING severity, confirm/cancel buttons
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Disable", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Disable", "Cancel");
 
     // Show modal using unified modal_dialog component
     motors_confirmation_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
@@ -825,31 +825,27 @@ void ControlsPanel::handle_motors_cancel() {
 void ControlsPanel::handle_calibration_clicked() {
     spdlog::debug("[{}] Calibration & Tools card clicked - showing modal", get_name());
 
-    // Create calibration modal on first access (lazy initialization)
-    if (!calibration_modal_ && parent_screen_) {
-        spdlog::debug("[{}] Creating calibration modal...", get_name());
+    // Show calibration modal via Modal system (creates backdrop programmatically)
+    ModalConfig config{};
+    calibration_modal_ = ui_modal_show("calibration_modal", &config, nullptr);
 
-        calibration_modal_ = static_cast<lv_obj_t*>(
-            lv_xml_create(parent_screen_, "calibration_modal_root", nullptr));
-
-        if (!calibration_modal_) {
-            LOG_ERROR_INTERNAL("Failed to create calibration modal from XML");
-            NOTIFY_ERROR("Failed to load calibration menu");
-            return;
-        }
-
-        spdlog::info("[{}] Calibration modal created", get_name());
+    if (!calibration_modal_) {
+        LOG_ERROR_INTERNAL("Failed to create calibration modal from XML");
+        NOTIFY_ERROR("Failed to load calibration menu");
+        return;
     }
 
-    // Show modal by setting visibility subject (XML bind_flag_if_eq handles actual visibility)
-    lv_subject_set_int(&calibration_modal_visible_, 1);
+    spdlog::debug("[{}] Calibration modal shown", get_name());
 }
 
 void ControlsPanel::handle_calibration_modal_close() {
     spdlog::debug("[{}] Calibration modal close clicked", get_name());
 
-    // Hide modal via visibility subject (XML bind_flag_if_eq handles actual visibility)
-    lv_subject_set_int(&calibration_modal_visible_, 0);
+    // Hide modal via Modal system
+    if (calibration_modal_) {
+        ui_modal_hide(calibration_modal_);
+        calibration_modal_ = nullptr;
+    }
 }
 
 void ControlsPanel::handle_calibration_bed_mesh() {

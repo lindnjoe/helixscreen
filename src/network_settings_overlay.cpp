@@ -3,7 +3,7 @@
 
 #include "network_settings_overlay.h"
 
-#include "ui_modal_manager.h"
+#include "ui_modal.h"
 #include "ui_nav.h"
 #include "ui_step_progress.h"
 #include "ui_subject_registry.h"
@@ -86,6 +86,19 @@ NetworkSettingsOverlay::~NetworkSettingsOverlay() {
     ethernet_manager_.reset();
     network_tester_.reset();
 
+    // Modal dialogs: use ui_modal_hide() - NOT lv_obj_del()!
+    if (lv_is_initialized()) {
+        if (hidden_network_modal_) {
+            ui_modal_hide(hidden_network_modal_);
+            hidden_network_modal_ = nullptr;
+        }
+        if (test_modal_) {
+            ui_modal_hide(test_modal_);
+            test_modal_ = nullptr;
+            step_widget_ = nullptr;
+        }
+    }
+
     // Deinitialize subjects to disconnect observers
     if (subjects_initialized_) {
         lv_subject_deinit(&wifi_enabled_);
@@ -104,7 +117,6 @@ NetworkSettingsOverlay::~NetworkSettingsOverlay() {
         lv_subject_deinit(&test_gateway_status_);
         lv_subject_deinit(&test_internet_status_);
         lv_subject_deinit(&test_complete_);
-        lv_subject_deinit(&hidden_network_modal_visible_);
         subjects_initialized_ = false;
     }
 
@@ -153,10 +165,6 @@ void NetworkSettingsOverlay::init_subjects() {
 
     // Network test modal subject (controls close button enabled state)
     UI_SUBJECT_INIT_AND_REGISTER_INT(test_complete_, 0, "test_complete");
-
-    // Hidden network modal visibility subject
-    UI_SUBJECT_INIT_AND_REGISTER_INT(hidden_network_modal_visible_, 0,
-                                     "hidden_network_modal_visible");
 
     subjects_initialized_ = true;
     spdlog::debug("[NetworkSettingsOverlay] Subjects initialized");
@@ -783,11 +791,9 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
     lv_subject_set_int(&test_complete_, 0);
 
     // Show the network test modal
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                          .backdrop_opa = 180,
+                          .keyboard = nullptr};
 
     test_modal_ = ui_modal_show("network_test_modal", &config, nullptr);
     if (!test_modal_) {
@@ -892,22 +898,15 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
 void NetworkSettingsOverlay::handle_add_other_clicked() {
     spdlog::debug("[NetworkSettingsOverlay] Add Hidden Network clicked");
 
-    // Show the hidden network modal via subject binding
-    lv_subject_set_int(&hidden_network_modal_visible_, 1);
-
     // Create modal if not already created
     if (!hidden_network_modal_) {
-        ui_modal_config_t config = {
-            .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-            .backdrop_opa = 200,
-            .keyboard = nullptr,
-            .persistent = false,
-            .on_close = nullptr};
+        ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                              .backdrop_opa = 200,
+                              .keyboard = nullptr};
 
         hidden_network_modal_ = ui_modal_show("hidden_network_modal", &config, nullptr);
         if (!hidden_network_modal_) {
             spdlog::error("[NetworkSettingsOverlay] Failed to show hidden network modal");
-            lv_subject_set_int(&hidden_network_modal_visible_, 0);
             return;
         }
     }
@@ -937,9 +936,6 @@ void NetworkSettingsOverlay::handle_network_test_close() {
 
 void NetworkSettingsOverlay::handle_hidden_cancel_clicked() {
     spdlog::debug("[NetworkSettingsOverlay] Hidden network cancel clicked");
-
-    // Hide the modal
-    lv_subject_set_int(&hidden_network_modal_visible_, 0);
 
     if (hidden_network_modal_) {
         ui_modal_hide(hidden_network_modal_);

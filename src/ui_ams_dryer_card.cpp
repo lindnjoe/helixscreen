@@ -4,6 +4,7 @@
 #include "ui_ams_dryer_card.h"
 
 #include "ui_error_reporting.h"
+#include "ui_modal.h"
 
 #include "ams_state.h"
 
@@ -98,23 +99,7 @@ bool AmsDryerCard::setup(lv_obj_t* panel) {
         spdlog::debug("[AmsDryerCard] Progress bar observer set up");
     }
 
-    // Create the dryer presets modal on the TOP LAYER (above all overlays)
-    // The modal's visibility is controlled by the dryer_modal_visible subject
-    lv_obj_t* top_layer = lv_layer_top();
-    if (top_layer) {
-        dryer_modal_ =
-            static_cast<lv_obj_t*>(lv_xml_create(top_layer, "dryer_presets_modal", nullptr));
-        if (dryer_modal_) {
-            // Store 'this' in modal's user_data for callback traversal
-            lv_obj_set_user_data(dryer_modal_, this);
-            spdlog::debug("[AmsDryerCard] Dryer presets modal created on top layer");
-        } else {
-            spdlog::warn("[AmsDryerCard] Failed to create dryer presets modal");
-        }
-    } else {
-        spdlog::warn("[AmsDryerCard] No top layer for dryer modal");
-    }
-
+    // Modal is created on-demand via ui_modal_show() in on_open_modal_cb
     // Initial sync of dryer state
     AmsState::instance().sync_dryer_from_backend();
     spdlog::debug("[AmsDryerCard] Setup complete");
@@ -126,11 +111,9 @@ void AmsDryerCard::cleanup() {
     // Remove observer first
     progress_observer_.reset();
 
-    // Delete modal (created on top layer, won't auto-delete with panel)
-    // CRITICAL: Check if LVGL is initialized - may be called from destructor during static
-    // destruction
+    // Hide modal if visible (Modal system handles deletion)
     if (dryer_modal_ && lv_is_initialized()) {
-        lv_obj_delete(dryer_modal_);
+        ui_modal_hide(dryer_modal_);
         dryer_modal_ = nullptr;
     }
 
@@ -165,7 +148,10 @@ void AmsDryerCard::start_drying(float temp_c, int duration_min, int fan_pct) {
         NOTIFY_INFO("Drying started: {}°C", static_cast<int>(temp_c));
         AmsState::instance().sync_dryer_from_backend();
         // Close the presets modal
-        lv_subject_set_int(AmsState::instance().get_dryer_modal_visible_subject(), 0);
+        if (dryer_modal_) {
+            ui_modal_hide(dryer_modal_);
+            dryer_modal_ = nullptr;
+        }
     } else {
         NOTIFY_ERROR("Failed to start drying: {}", error.user_msg);
     }
@@ -247,15 +233,35 @@ AmsDryerCard* AmsDryerCard::get_instance_from_event(lv_event_t* e) {
 }
 
 void AmsDryerCard::on_open_modal_cb(lv_event_t* e) {
-    LV_UNUSED(e);
+    auto* self = get_instance_from_event(e);
+    if (!self) {
+        return;
+    }
+
     spdlog::debug("[AmsDryerCard] Opening dryer modal");
-    lv_subject_set_int(AmsState::instance().get_dryer_modal_visible_subject(), 1);
+
+    // Show modal via Modal system (creates backdrop programmatically)
+    ModalConfig config{};
+    self->dryer_modal_ = ui_modal_show("dryer_presets_modal", &config, nullptr);
+
+    if (self->dryer_modal_) {
+        // Store 'this' in modal's user_data for callback traversal
+        lv_obj_set_user_data(self->dryer_modal_, self);
+    }
 }
 
 void AmsDryerCard::on_close_modal_cb(lv_event_t* e) {
-    LV_UNUSED(e);
+    auto* self = get_instance_from_event(e);
+    if (!self) {
+        return;
+    }
+
     spdlog::debug("[AmsDryerCard] Closing dryer modal");
-    lv_subject_set_int(AmsState::instance().get_dryer_modal_visible_subject(), 0);
+
+    if (self->dryer_modal_) {
+        ui_modal_hide(self->dryer_modal_);
+        self->dryer_modal_ = nullptr;
+    }
 }
 
 void AmsDryerCard::on_preset_pla_cb(lv_event_t* e) {

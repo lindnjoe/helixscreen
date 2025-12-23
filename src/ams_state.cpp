@@ -115,7 +115,6 @@ void AmsState::init_subjects(bool register_xml) {
                            sizeof(dryer_target_temp_text_buf_), "---");
     lv_subject_init_string(&dryer_time_text_, dryer_time_text_buf_, nullptr,
                            sizeof(dryer_time_text_buf_), "");
-    lv_subject_init_int(&dryer_modal_visible_, 0);
 
     // Dryer modal editing subjects
     lv_subject_init_string(&dryer_modal_temp_text_, dryer_modal_temp_text_buf_, nullptr,
@@ -171,7 +170,6 @@ void AmsState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "dryer_current_temp_text", &dryer_current_temp_text_);
         lv_xml_register_subject(NULL, "dryer_target_temp_text", &dryer_target_temp_text_);
         lv_xml_register_subject(NULL, "dryer_time_text", &dryer_time_text_);
-        lv_xml_register_subject(NULL, "dryer_modal_visible", &dryer_modal_visible_);
         lv_xml_register_subject(NULL, "dryer_modal_temp_text", &dryer_modal_temp_text_);
         lv_xml_register_subject(NULL, "dryer_modal_duration_text", &dryer_modal_duration_text_);
 
