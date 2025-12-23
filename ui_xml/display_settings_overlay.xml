@@ -5,8 +5,8 @@
 <!-- Allows adjustment of dark mode, brightness, and display sleep timeout -->
 <!-- Uses setting_* components for consistency with main settings panel -->
 <component>
-  <view extends="overlay_panel" name="display_settings_overlay" title="Display Settings"
-        width="#overlay_panel_width_full" bg_color="#app_bg_color">
+  <view name="display_settings_overlay"
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Display Settings" bg_color="#app_bg_color">
     <!-- Content Area - no padding, rows handle their own -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="0" scrollable="true" scroll_dir="ver"

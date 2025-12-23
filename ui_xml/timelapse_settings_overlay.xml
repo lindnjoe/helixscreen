@@ -4,8 +4,8 @@
 <!-- Timelapse Settings Overlay Panel -->
 <!-- Configure Moonraker-Timelapse plugin settings for recording prints -->
 <component>
-  <view extends="overlay_panel" name="timelapse_settings_overlay" title="Timelapse Settings"
-        width="#overlay_panel_width_full" bg_color="#app_bg_color">
+  <view name="timelapse_settings_overlay"
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Timelapse Settings" bg_color="#app_bg_color">
     <!-- Content Area - no padding, rows handle their own -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="0" scrollable="true" scroll_dir="ver"
@@ -37,8 +37,7 @@
       <!-- FRAMERATE -->
       <!-- ================================================================== -->
       <setting_dropdown_row name="row_timelapse_framerate"
-                            label="Framerate" icon="animation_play"
-                            description="Video playback speed"
+                            label="Framerate" icon="animation_play" description="Video playback speed"
                             callback="on_timelapse_framerate_changed"/>
       <!-- ================================================================== -->
       <!-- AUTO-RENDER -->

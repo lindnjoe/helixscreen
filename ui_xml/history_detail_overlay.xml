@@ -23,7 +23,7 @@
     - history_detail_thumbnail: Path to thumbnail image (may be empty)
     - history_detail_has_timelapse: 1 if timelapse available, 0 otherwise
   -->
-  <view extends="overlay_panel" name="history_detail_overlay" title="Print Details">
+  <view name="history_detail_overlay" extends="overlay_panel" title="Print Details">
     <!-- Content Area - Horizontal split -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_md" scrollable="false"

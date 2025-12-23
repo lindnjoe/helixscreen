@@ -5,8 +5,8 @@
 <!-- Configures G10/G11 retraction parameters (retract length, speed, unretract extra, etc.) -->
 <!-- XML-First Design: All layout/styling here; C++ only provides subjects and callbacks -->
 <component>
-  <view extends="overlay_panel" name="retraction_settings_overlay" title="Retraction Settings"
-        width="#overlay_panel_width_full" bg_color="#app_bg_color">
+  <view name="retraction_settings_overlay"
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Retraction Settings" bg_color="#app_bg_color">
     <!-- Content Area -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" scrollable="true"

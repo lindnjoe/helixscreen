@@ -5,8 +5,8 @@
 <!-- Configure filament sensor roles and enable/disable individual sensors -->
 <!-- XML-First Design: Layout/styling here; C++ populates sensor list dynamically -->
 <component>
-  <view extends="overlay_panel" name="filament_sensors_overlay" title="Filament Sensors"
-        width="#overlay_panel_width_full" bg_color="#app_bg_color">
+  <view name="filament_sensors_overlay"
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Filament Sensors" bg_color="#app_bg_color">
     <!-- Content Area -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" scrollable="false"
