@@ -12,34 +12,6 @@
 // Forward declaration
 class Modal;
 
-// ============================================================================
-// CONFIGURATION TYPES
-// ============================================================================
-
-/**
- * @brief Modal positioning configuration
- *
- * Modals are positioned using LVGL alignment. Default is centered.
- * The x/y offsets are applied relative to the alignment point.
- */
-struct ModalPosition {
-    lv_align_t alignment = LV_ALIGN_CENTER;
-    int32_t x_offset = 0;
-    int32_t y_offset = 0;
-};
-
-/**
- * @brief Complete modal configuration
- *
- * For keyboard support, call ui_modal_register_keyboard(dialog, textarea)
- * after showing the modal.
- */
-struct ModalConfig {
-    ModalPosition position;
-    bool persistent = false; /**< true = hide only, false = delete on close */
-    lv_event_cb_t on_close = nullptr;
-};
-
 /**
  * @brief Severity levels for modal dialogs
  */
@@ -68,8 +40,7 @@ enum class ModalSeverity {
  *
  * ## Usage - Simple Modals (no subclass):
  * @code
- * ModalConfig config{};
- * lv_obj_t* modal = Modal::show("print_cancel_confirm_modal", config);
+ * lv_obj_t* modal = Modal::show("print_cancel_confirm_modal");
  * // ...later...
  * Modal::hide(modal);
  * @endcode
@@ -113,12 +84,10 @@ class Modal {
      * Backdrop is created in C++ and XML content is placed inside it.
      *
      * @param component_name XML component name
-     * @param config Modal configuration
      * @param attrs Optional XML attributes (NULL-terminated)
      * @return Pointer to the modal's dialog object (for button wiring etc.)
      */
-    static lv_obj_t* show(const char* component_name, const ModalConfig& config,
-                          const char** attrs = nullptr);
+    static lv_obj_t* show(const char* component_name, const char** attrs = nullptr);
 
     /**
      * @brief Hide a modal by its dialog pointer
@@ -229,9 +198,6 @@ class Modal {
     lv_obj_t* dialog_ = nullptr;
     lv_obj_t* parent_ = nullptr;
 
-    // Configuration (set before show_instance())
-    ModalConfig config_;
-
     // Helpers
     lv_obj_t* find_widget(const char* name);
     void wire_ok_button(const char* name = "btn_ok");
@@ -263,8 +229,7 @@ class ModalStack {
     static ModalStack& instance();
 
     // Track a modal (called by Modal::create_and_show)
-    void push(lv_obj_t* backdrop, lv_obj_t* dialog, const std::string& component_name,
-              bool persistent = false);
+    void push(lv_obj_t* backdrop, lv_obj_t* dialog, const std::string& component_name);
 
     // Untrack a modal (called by Modal::destroy)
     void remove(lv_obj_t* backdrop);
@@ -283,9 +248,6 @@ class ModalStack {
         return stack_.empty();
     }
 
-    // Check if a modal is persistent (returns false if not found)
-    bool is_persistent(lv_obj_t* backdrop) const;
-
     // Mark a modal as exiting (animation in progress, ignore further hide() calls)
     // Returns true if found and marked, false if not found or already exiting
     bool mark_exiting(lv_obj_t* backdrop);
@@ -295,7 +257,7 @@ class ModalStack {
 
     // Animation helpers
     void animate_entrance(lv_obj_t* dialog);
-    void animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog, bool persistent);
+    void animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog);
 
   private:
     ModalStack() = default;
@@ -304,8 +266,7 @@ class ModalStack {
         lv_obj_t* backdrop;
         lv_obj_t* dialog;
         std::string component_name;
-        bool persistent; /**< true = hide only, false = delete on close */
-        bool exiting;    /**< true = exit animation in progress, ignore hide() calls */
+        bool exiting; /**< true = exit animation in progress, ignore hide() calls */
     };
 
     std::vector<ModalEntry> stack_;
@@ -343,9 +304,8 @@ lv_subject_t* modal_cancel_text_subject();
 // Note: These wrappers provide the old ui_modal_*() function names
 // for backward compatibility with existing code.
 
-inline lv_obj_t* ui_modal_show(const char* name, const ModalConfig* config,
-                               const char** attrs = nullptr) {
-    return Modal::show(name, config ? *config : ModalConfig{}, attrs);
+inline lv_obj_t* ui_modal_show(const char* name, const char** attrs = nullptr) {
+    return Modal::show(name, attrs);
 }
 
 inline void ui_modal_hide(lv_obj_t* dialog) {

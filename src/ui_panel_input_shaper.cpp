@@ -499,12 +499,10 @@ void InputShaperPanel::handle_help_clicked() {
 
         "Lower vibration % is better. Lower smoothing preserves detail.";
 
-    ModalConfig config{};
-
     const char* attrs[] = {"title", "Input Shaper Help", "message", help_message, nullptr};
 
     ui_modal_configure(ModalSeverity::Info, false, "Got It", nullptr);
-    lv_obj_t* help_dialog = ui_modal_show("modal_dialog", &config, attrs);
+    lv_obj_t* help_dialog = ui_modal_show("modal_dialog", attrs);
 
     if (!help_dialog) {
         spdlog::error("[InputShaper] Failed to show help modal");

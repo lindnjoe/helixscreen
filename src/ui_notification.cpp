@@ -114,13 +114,11 @@ static void async_error_callback(void* user_data) {
             }
 
             // Show modal dialog for critical errors
-            ModalConfig config{};
-
             const char* attrs[] = {"title", data->title, "message", data->message, nullptr};
 
             // Configure modal_dialog: ERROR severity, single OK button
             ui_modal_configure(ModalSeverity::Error, false, "OK", nullptr);
-            lv_obj_t* modal = ui_modal_show("modal_dialog", &config, attrs);
+            lv_obj_t* modal = ui_modal_show("modal_dialog", attrs);
 
             if (modal) {
                 lv_obj_t* ok_btn = lv_obj_find_by_name(modal, "btn_primary");
@@ -406,13 +404,11 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
             }
 
             // Show modal dialog for critical errors
-            ModalConfig config{};
-
             const char* attrs[] = {"title", title, "message", message, nullptr};
 
             // Configure modal_dialog: ERROR severity, single OK button
             ui_modal_configure(ModalSeverity::Error, false, "OK", nullptr);
-            lv_obj_t* modal_obj = ui_modal_show("modal_dialog", &config, attrs);
+            lv_obj_t* modal_obj = ui_modal_show("modal_dialog", attrs);
 
             if (modal_obj) {
                 lv_obj_t* ok_btn = lv_obj_find_by_name(modal_obj, "btn_primary");

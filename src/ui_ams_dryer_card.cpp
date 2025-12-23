@@ -241,8 +241,7 @@ void AmsDryerCard::on_open_modal_cb(lv_event_t* e) {
     spdlog::debug("[AmsDryerCard] Opening dryer modal");
 
     // Show modal via Modal system (creates backdrop programmatically)
-    ModalConfig config{};
-    self->dryer_modal_ = ui_modal_show("dryer_presets_modal", &config, nullptr);
+    self->dryer_modal_ = ui_modal_show("dryer_presets_modal");
 
     if (self->dryer_modal_) {
         // Store 'this' in modal's user_data for callback traversal

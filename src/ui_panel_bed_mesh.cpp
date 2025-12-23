@@ -556,8 +556,7 @@ void BedMeshPanel::start_calibration() {
 void BedMeshPanel::show_calibrate_modal() {
     lv_subject_set_int(&bed_mesh_calibrating_, 0);
 
-    ModalConfig config{};
-    calibrate_modal_widget_ = ui_modal_show("bed_mesh_calibrate_modal", &config, nullptr);
+    calibrate_modal_widget_ = ui_modal_show("bed_mesh_calibrate_modal");
     spdlog::debug("[{}] Showing calibrate modal", get_name());
 }
 
@@ -565,15 +564,12 @@ void BedMeshPanel::show_rename_modal(const std::string& profile_name) {
     pending_rename_old_ = profile_name;
     lv_subject_copy_string(&bed_mesh_rename_old_name_, profile_name.c_str());
 
-    ModalConfig config{};
-    rename_modal_widget_ = ui_modal_show("bed_mesh_rename_modal", &config, nullptr);
+    rename_modal_widget_ = ui_modal_show("bed_mesh_rename_modal");
     spdlog::debug("[{}] Showing rename modal for: {}", get_name(), profile_name);
 }
 
 void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
     pending_delete_profile_ = profile_name;
-
-    ModalConfig config{};
 
     // Create message with profile name
     char msg_buf[256];
@@ -583,7 +579,7 @@ void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
     const char* attrs[] = {"title", "Delete Profile?", "message", msg_buf, NULL};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Delete", "Cancel");
-    delete_modal_widget_ = ui_modal_show("modal_dialog", &config, attrs);
+    delete_modal_widget_ = ui_modal_show("modal_dialog", attrs);
 
     if (!delete_modal_widget_) {
         spdlog::error("[{}] Failed to create delete confirmation modal", get_name());
@@ -606,8 +602,7 @@ void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
 }
 
 void BedMeshPanel::show_save_config_modal() {
-    ModalConfig config{};
-    save_config_modal_widget_ = ui_modal_show("bed_mesh_save_config_modal", &config, nullptr);
+    save_config_modal_widget_ = ui_modal_show("bed_mesh_save_config_modal");
     spdlog::debug("[{}] Showing save config modal", get_name());
 }
 

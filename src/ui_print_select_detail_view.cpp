@@ -180,8 +180,6 @@ bool PrintSelectDetailView::is_visible() const {
 // ============================================================================
 
 void PrintSelectDetailView::show_delete_confirmation(const std::string& filename) {
-    ModalConfig config{};
-
     // Create message with current filename
     char msg_buf[256];
     snprintf(msg_buf, sizeof(msg_buf),
@@ -191,7 +189,7 @@ void PrintSelectDetailView::show_delete_confirmation(const std::string& filename
     const char* attrs[] = {"title", "Delete File?", "message", msg_buf, NULL};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Delete", "Cancel");
-    confirmation_dialog_widget_ = ui_modal_show("modal_dialog", &config, attrs);
+    confirmation_dialog_widget_ = ui_modal_show("modal_dialog", attrs);
 
     if (!confirmation_dialog_widget_) {
         spdlog::error("[DetailView] Failed to create confirmation dialog");

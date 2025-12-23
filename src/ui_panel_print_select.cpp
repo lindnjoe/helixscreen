@@ -1594,15 +1594,13 @@ void PrintSelectPanel::show_filament_warning() {
         filament_warning_dialog_ = nullptr;
     }
 
-    ModalConfig config{};
-
     const char* attrs[] = {"title", "No Filament Detected", "message",
                            "The runout sensor indicates no filament is loaded. "
                            "Start print anyway?",
                            nullptr};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Start Print", "Cancel");
-    filament_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    filament_warning_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!filament_warning_dialog_) {
         spdlog::error("[{}] Failed to create filament warning dialog", get_name());
@@ -1846,8 +1844,6 @@ void PrintSelectPanel::show_color_mismatch_warning(const std::vector<int>& missi
     }
     message += "\nLoad the required filaments or start anyway?";
 
-    ModalConfig config{};
-
     // Static buffer for message - must persist during modal lifetime.
     // Safe because we always close any existing dialog first (line 1822-1825),
     // preventing concurrent access to this buffer.
@@ -1857,7 +1853,7 @@ void PrintSelectPanel::show_color_mismatch_warning(const std::vector<int>& missi
     const char* attrs[] = {"title", "Color Mismatch", "message", message_buffer, nullptr};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Start Anyway", "Cancel");
-    color_mismatch_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    color_mismatch_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!color_mismatch_dialog_) {
         spdlog::error("[{}] Failed to create color mismatch warning dialog", get_name());

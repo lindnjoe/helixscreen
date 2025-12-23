@@ -892,10 +892,8 @@ void WizardWifiStep::show_password_modal(const char* ssid) {
 
     spdlog::debug("[{}] Showing password modal for SSID: {}", get_name(), ssid);
 
-    ModalConfig config{};
-
     const char* attrs[] = {"ssid", ssid, NULL};
-    password_modal_ = ui_modal_show("wifi_password_modal", &config, attrs);
+    password_modal_ = ui_modal_show("wifi_password_modal", attrs);
 
     if (!password_modal_) {
         LOG_ERROR_INTERNAL("Failed to create password modal");

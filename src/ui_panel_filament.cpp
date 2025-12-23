@@ -830,15 +830,13 @@ void FilamentPanel::show_load_warning() {
         load_warning_dialog_ = nullptr;
     }
 
-    ModalConfig config{};
-
     const char* attrs[] = {"title", "Filament Detected", "message",
                            "The toolhead sensor indicates filament is already loaded. "
                            "Proceed with load anyway?",
                            nullptr};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Proceed", "Cancel");
-    load_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    load_warning_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!load_warning_dialog_) {
         spdlog::error("[{}] Failed to create load warning dialog", get_name());
@@ -867,15 +865,13 @@ void FilamentPanel::show_unload_warning() {
         unload_warning_dialog_ = nullptr;
     }
 
-    ModalConfig config{};
-
     const char* attrs[] = {"title", "No Filament Detected", "message",
                            "The toolhead sensor indicates no filament is present. "
                            "Proceed with unload anyway?",
                            nullptr};
 
     ui_modal_configure(ModalSeverity::Warning, true, "Proceed", "Cancel");
-    unload_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    unload_warning_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!unload_warning_dialog_) {
         spdlog::error("[{}] Failed to create unload warning dialog", get_name());

@@ -2322,8 +2322,7 @@ void PrintStatusPanel::show_runout_guidance_modal() {
 
     spdlog::info("[{}] Showing runout guidance modal", get_name());
 
-    ModalConfig modal_config{};
-    runout_guidance_modal_ = ui_modal_show("runout_guidance_modal", &modal_config, nullptr);
+    runout_guidance_modal_ = ui_modal_show("runout_guidance_modal");
     if (!runout_guidance_modal_) {
         spdlog::error("[{}] Failed to create runout guidance modal", get_name());
         return;

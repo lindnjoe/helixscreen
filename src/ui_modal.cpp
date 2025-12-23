@@ -52,11 +52,10 @@ ModalStack& ModalStack::instance() {
     return instance;
 }
 
-void ModalStack::push(lv_obj_t* backdrop, lv_obj_t* dialog, const std::string& component_name,
-                      bool persistent) {
-    stack_.push_back({backdrop, dialog, component_name, persistent, false /* exiting */});
-    spdlog::debug("[ModalStack] Pushed modal '{}' (stack depth: {}, persistent={})", component_name,
-                  stack_.size(), persistent);
+void ModalStack::push(lv_obj_t* backdrop, lv_obj_t* dialog, const std::string& component_name) {
+    stack_.push_back({backdrop, dialog, component_name, false /* exiting */});
+    spdlog::debug("[ModalStack] Pushed modal '{}' (stack depth: {})", component_name,
+                  stack_.size());
 }
 
 void ModalStack::remove(lv_obj_t* backdrop) {
@@ -96,15 +95,6 @@ bool ModalStack::empty() const {
         }
     }
     return true;
-}
-
-bool ModalStack::is_persistent(lv_obj_t* backdrop) const {
-    for (const auto& entry : stack_) {
-        if (entry.backdrop == backdrop) {
-            return entry.persistent;
-        }
-    }
-    return false;
 }
 
 bool ModalStack::mark_exiting(lv_obj_t* backdrop) {
@@ -210,32 +200,15 @@ void ModalStack::exit_animation_done(lv_anim_t* anim) {
         return;
     }
 
-    // Get persistent flag from user_data (stored as intptr_t)
-    bool is_persistent = static_cast<bool>(reinterpret_cast<intptr_t>(anim->user_data));
-
-    // Now remove from stack (animation is complete, safe to remove)
+    // Remove from stack (animation is complete, safe to remove)
     ModalStack::instance().remove(backdrop);
 
-    if (is_persistent) {
-        // Persistent modal: just hide, reset styles for next show
-        spdlog::debug("[ModalStack] Exit animation complete - hiding persistent modal");
-        lv_obj_add_flag(backdrop, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_opa(backdrop, LV_OPA_COVER, LV_PART_MAIN);
-
-        // Reset dialog styles (backdrop always has exactly one child - the dialog)
-        lv_obj_t* dialog = lv_obj_get_child(backdrop, 0);
-        if (lv_obj_is_valid(dialog)) {
-            lv_obj_set_style_transform_scale(dialog, MODAL_SCALE_END, LV_PART_MAIN);
-            lv_obj_set_style_opa(dialog, LV_OPA_COVER, LV_PART_MAIN);
-        }
-    } else {
-        // Non-persistent: delete the backdrop
-        spdlog::debug("[ModalStack] Exit animation complete - deleting backdrop");
-        lv_obj_delete_async(backdrop);
-    }
+    // Delete the backdrop
+    spdlog::debug("[ModalStack] Exit animation complete - deleting backdrop");
+    lv_obj_delete_async(backdrop);
 }
 
-void ModalStack::animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog, bool persistent) {
+void ModalStack::animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog) {
     if (!backdrop || !dialog) {
         return;
     }
@@ -244,17 +217,12 @@ void ModalStack::animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog, bool persist
     if (!SettingsManager::instance().get_animations_enabled()) {
         lv_obj_set_style_transform_scale(dialog, MODAL_SCALE_END, LV_PART_MAIN);
         lv_obj_set_style_opa(dialog, LV_OPA_COVER, LV_PART_MAIN);
-        if (persistent) {
-            spdlog::debug("[ModalStack] Animations disabled - hiding persistent modal instantly");
-            lv_obj_add_flag(backdrop, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            spdlog::debug("[ModalStack] Animations disabled - deleting modal instantly");
-            lv_obj_delete_async(backdrop);
-        }
+        spdlog::debug("[ModalStack] Animations disabled - deleting modal instantly");
+        lv_obj_delete_async(backdrop);
         return;
     }
 
-    // Fade out backdrop (triggers deletion/hide on completion)
+    // Fade out backdrop (triggers deletion on completion)
     lv_anim_t backdrop_anim;
     lv_anim_init(&backdrop_anim);
     lv_anim_set_var(&backdrop_anim, backdrop);
@@ -266,9 +234,6 @@ void ModalStack::animate_exit(lv_obj_t* backdrop, lv_obj_t* dialog, bool persist
                              LV_PART_MAIN);
     });
     lv_anim_set_completed_cb(&backdrop_anim, exit_animation_done);
-    // Store persistent flag in user_data
-    lv_anim_set_user_data(&backdrop_anim,
-                          reinterpret_cast<void*>(static_cast<intptr_t>(persistent)));
     lv_anim_start(&backdrop_anim);
 
     // Scale down dialog
@@ -324,8 +289,7 @@ Modal::~Modal() {
 // ============================================================================
 
 Modal::Modal(Modal&& other) noexcept
-    : backdrop_(other.backdrop_), dialog_(other.dialog_), parent_(other.parent_),
-      config_(other.config_) {
+    : backdrop_(other.backdrop_), dialog_(other.dialog_), parent_(other.parent_) {
     other.backdrop_ = nullptr;
     other.dialog_ = nullptr;
     other.parent_ = nullptr;
@@ -346,7 +310,6 @@ Modal& Modal::operator=(Modal&& other) noexcept {
         backdrop_ = other.backdrop_;
         dialog_ = other.dialog_;
         parent_ = other.parent_;
-        config_ = other.config_;
 
         // Clear source
         other.backdrop_ = nullptr;
@@ -360,7 +323,7 @@ Modal& Modal::operator=(Modal&& other) noexcept {
 // MODAL CLASS - STATIC FACTORY API
 // ============================================================================
 
-lv_obj_t* Modal::show(const char* component_name, const ModalConfig& config, const char** attrs) {
+lv_obj_t* Modal::show(const char* component_name, const char** attrs) {
     if (!component_name) {
         spdlog::error("[Modal] show() called with null component_name");
         return nullptr;
@@ -389,9 +352,8 @@ lv_obj_t* Modal::show(const char* component_name, const ModalConfig& config, con
         return nullptr;
     }
 
-    // Position dialog within backdrop
-    lv_obj_align(dialog, config.position.alignment, config.position.x_offset,
-                 config.position.y_offset);
+    // Position dialog centered
+    lv_obj_align(dialog, LV_ALIGN_CENTER, 0, 0);
 
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop, backdrop_click_cb, LV_EVENT_CLICKED, nullptr);
@@ -404,16 +366,11 @@ lv_obj_t* Modal::show(const char* component_name, const ModalConfig& config, con
         lv_group_add_obj(group, backdrop);
     }
 
-    // Register on_close callback if provided
-    if (config.on_close) {
-        lv_obj_add_event_cb(backdrop, config.on_close, LV_EVENT_DELETE, nullptr);
-    }
-
     // Bring to foreground
     lv_obj_move_foreground(backdrop);
 
-    // Add to stack (pass persistent flag for later hide handling)
-    ModalStack::instance().push(backdrop, dialog, component_name, config.persistent);
+    // Add to stack
+    ModalStack::instance().push(backdrop, dialog, component_name);
 
     // Animate entrance
     ModalStack::instance().animate_entrance(dialog);
@@ -453,14 +410,11 @@ void Modal::hide(lv_obj_t* dialog) {
 
     spdlog::info("[Modal] Hiding modal");
 
-    // Get persistent flag BEFORE marking as exiting
-    bool persistent = stack.is_persistent(backdrop);
-
     // Mark as exiting (stays in stack until animation completes)
     stack.mark_exiting(backdrop);
 
     // Animate exit (animation callback will remove from stack when done)
-    stack.animate_exit(backdrop, dialog, persistent);
+    stack.animate_exit(backdrop, dialog);
 
     // If there are more visible (non-exiting) modals, bring the new topmost to foreground
     lv_obj_t* top = stack.top_dialog();
@@ -538,7 +492,7 @@ void Modal::hide() {
     ModalStack::instance().mark_exiting(backdrop);
 
     // Animate exit (animation callback will remove from stack when done)
-    ModalStack::instance().animate_exit(backdrop, dialog, config_.persistent);
+    ModalStack::instance().animate_exit(backdrop, dialog);
 
     spdlog::debug("[{}] Modal hidden", get_name());
 }
@@ -599,9 +553,8 @@ bool Modal::create_and_show(lv_obj_t* parent, const char* comp_name, const char*
         return false;
     }
 
-    // Position dialog
-    lv_obj_align(dialog_, config_.position.alignment, config_.position.x_offset,
-                 config_.position.y_offset);
+    // Position dialog centered
+    lv_obj_align(dialog_, LV_ALIGN_CENTER, 0, 0);
 
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop_, backdrop_click_cb, LV_EVENT_CLICKED, this);
@@ -614,16 +567,11 @@ bool Modal::create_and_show(lv_obj_t* parent, const char* comp_name, const char*
         lv_group_add_obj(group, backdrop_);
     }
 
-    // Register on_close callback if provided
-    if (config_.on_close) {
-        lv_obj_add_event_cb(backdrop_, config_.on_close, LV_EVENT_DELETE, nullptr);
-    }
-
     // Bring to foreground
     lv_obj_move_foreground(backdrop_);
 
-    // Add to stack (pass persistent flag for later hide handling)
-    ModalStack::instance().push(backdrop_, dialog_, comp_name, config_.persistent);
+    // Add to stack
+    ModalStack::instance().push(backdrop_, dialog_, comp_name);
 
     // Animate entrance
     ModalStack::instance().animate_entrance(dialog_);

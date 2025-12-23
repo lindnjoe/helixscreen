@@ -902,8 +902,6 @@ void SettingsPanel::handle_network_clicked() {
 void SettingsPanel::handle_factory_reset_clicked() {
     spdlog::debug("[{}] Factory Reset clicked - showing confirmation dialog", get_name());
 
-    ModalConfig config{};
-
     // Factory reset is a destructive action - use ERROR severity with confirm/cancel
     const char* attrs[] = {"title", "Factory Reset", "message",
                            "This will reset all device and Klipper configurations to defaults. "
@@ -911,7 +909,7 @@ void SettingsPanel::handle_factory_reset_clicked() {
                            nullptr};
 
     ui_modal_configure(ModalSeverity::Error, true, "Reset", "Cancel");
-    factory_reset_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    factory_reset_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!factory_reset_dialog_) {
         spdlog::error("[{}] Failed to create factory reset dialog", get_name());

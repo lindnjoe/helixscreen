@@ -756,8 +756,6 @@ void ControlsPanel::handle_fan_slider_changed(int value) {
 void ControlsPanel::handle_motors_clicked() {
     spdlog::debug("[{}] Motors Disable card clicked - showing confirmation", get_name());
 
-    ModalConfig config{};
-
     // Create attributes for title and message
     const char* attrs[] = {"title", "Disable Motors?", "message",
                            "Release all stepper motors. Position will be lost.", nullptr};
@@ -766,7 +764,7 @@ void ControlsPanel::handle_motors_clicked() {
     ui_modal_configure(ModalSeverity::Warning, true, "Disable", "Cancel");
 
     // Show modal using unified modal_dialog component
-    motors_confirmation_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
+    motors_confirmation_dialog_ = ui_modal_show("modal_dialog", attrs);
 
     if (!motors_confirmation_dialog_) {
         LOG_ERROR_INTERNAL("Failed to create motors confirmation dialog");
@@ -820,8 +818,7 @@ void ControlsPanel::handle_calibration_clicked() {
     spdlog::debug("[{}] Calibration & Tools card clicked - showing modal", get_name());
 
     // Show calibration modal via Modal system (creates backdrop programmatically)
-    ModalConfig config{};
-    calibration_modal_ = ui_modal_show("calibration_modal", &config, nullptr);
+    calibration_modal_ = ui_modal_show("calibration_modal");
 
     if (!calibration_modal_) {
         LOG_ERROR_INTERNAL("Failed to create calibration modal from XML");

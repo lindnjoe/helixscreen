@@ -506,13 +506,11 @@ void HomePanel::handle_tip_text_clicked() {
 
     spdlog::info("[{}] Tip text clicked - showing detail dialog", get_name());
 
-    ModalConfig config{};
-
     const char* attrs[] = {"title", current_tip_.title.c_str(), "message",
                            current_tip_.content.c_str(), nullptr};
 
     ui_modal_configure(ModalSeverity::Info, false, "Ok", nullptr);
-    lv_obj_t* tip_dialog = ui_modal_show("modal_dialog", &config, attrs);
+    lv_obj_t* tip_dialog = ui_modal_show("modal_dialog", attrs);
 
     if (!tip_dialog) {
         spdlog::error("[{}] Failed to show tip detail modal", get_name());

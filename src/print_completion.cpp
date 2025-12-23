@@ -64,8 +64,7 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
 
     // Show modal using unified Modal system
     // Backdrop click-to-close and ESC handling come for free
-    ModalConfig config{};
-    lv_obj_t* dialog = ui_modal_show("print_completion_modal", &config, nullptr);
+    lv_obj_t* dialog = ui_modal_show("print_completion_modal");
 
     if (!dialog) {
         spdlog::error("[PrintComplete] Failed to create print_completion_modal");

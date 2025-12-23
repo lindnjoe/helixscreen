@@ -790,9 +790,7 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
     // Reset test complete flag (disables close button)
     lv_subject_set_int(&test_complete_, 0);
 
-    ModalConfig config{};
-
-    test_modal_ = ui_modal_show("network_test_modal", &config, nullptr);
+    test_modal_ = ui_modal_show("network_test_modal");
     if (!test_modal_) {
         spdlog::error("[NetworkSettingsOverlay] Failed to show network test modal");
         return;
@@ -897,8 +895,7 @@ void NetworkSettingsOverlay::handle_add_other_clicked() {
 
     // Create modal if not already created
     if (!hidden_network_modal_) {
-        ModalConfig config{};
-        hidden_network_modal_ = ui_modal_show("hidden_network_modal", &config, nullptr);
+        hidden_network_modal_ = ui_modal_show("hidden_network_modal");
         if (!hidden_network_modal_) {
             spdlog::error("[NetworkSettingsOverlay] Failed to show hidden network modal");
             return;
