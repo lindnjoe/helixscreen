@@ -9,16 +9,16 @@
 ## Active Lessons
 
 
-### [L001] [*****/-----] Conventional commits format
-- **Uses**: 10 | **Learned**: 2025-12-21 | **Last**: 2025-12-22 | **Category**: pattern
+### [L001] [*****/*****] Conventional commits format
+- **Uses**: 23 | **Learned**: 2025-12-21 | **Last**: 2025-12-23 | **Category**: pattern
 > Use type(scope): description format for commit messages. Types: feat, fix, refactor, docs, test, chore, style, perf, build. Examples: fix(home): auto-configure LED, feat(thumbnails): add dynamic sizing.
 
-### [L002] [**---/-----] Verbose flags required
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
+### [L002] [****-/-----] Verbose flags required
+- **Uses**: 8 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
 > Always use -v or -vv when running helix-screen to see logs. Default shows WARN only which misses all debug info
 
-### [L003] [**---/-----] Component names explicit
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: pattern
+### [L003] [***--/-----] Component names explicit
+- **Uses**: 6 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: pattern
 > Always add name='component_name' on XML component tags. Internal view names don't propagate, causing lv_obj_find_by_name to return NULL
 
 ### [L004] [**---/-----] Subject init before create
@@ -45,20 +45,20 @@
 - **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
 > After adding icon to codepoints.h: add to regen_mdi_fonts.sh, run make regen-fonts, then rebuild. Forgetting any step = missing icon
 
-### [L010] [*****/*----] No spdlog in destructors
-- **Uses**: 12 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
+### [L010] [*****/*****] No spdlog in destructors
+- **Uses**: 24 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
 > Never call spdlog::info/warn/error in destructors. Logger may be destroyed before your object during static destruction, causing crash on exit
 
-### [L011] [**---/-----] No mutex in destructors
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
+### [L011] [****-/-----] No mutex in destructors
+- **Uses**: 8 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
 > Avoid mutex locks in destructors during static destruction phase. Other objects may already be destroyed, causing deadlock or crash on exit
 
-### [L012] [**---/-----] Guard async callbacks
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
+### [L012] [*****/*----] Guard async callbacks
+- **Uses**: 12 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
 > Async WebSocket callbacks can fire after object destruction. Use weak_ptr or flag checks to guard against stale this pointers in async handlers
 
-### [L013] [**+--/-----] Callbacks before XML creation
-- **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: correction
+### [L013] [***+-/-----] Callbacks before XML creation
+- **Uses**: 7 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: correction
 > Register event callbacks with lv_xml_register_event_cb() BEFORE calling lv_xml_create(). XML parser needs callbacks available during creation
 
 ### [L014] [*****/*----] Register all XML components
@@ -85,28 +85,33 @@
 - **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
 > In <styles> blocks use bare names (bg_color). On widgets use style_ prefix (style_bg_color). Mixing them up silently fails
 
-### [L020] [**---/-----] ObserverGuard for cleanup
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: gotcha
+### [L020] [*****/-----] ObserverGuard for cleanup
+- **Uses**: 10 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
 > Use ObserverGuard RAII wrapper for lv_subject observers. Manual observer cleanup is error-prone and causes use-after-free on panel destruction
 
-### [L021] [**---/-----] Centidegrees for temps
-- **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: pattern
+### [L021] [***--/-----] Centidegrees for temps
+- **Uses**: 6 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: pattern
 > Use centidegrees (int) for temperature subjects to preserve 0.1C resolution. Float subjects lose precision in LVGL binding
 
 ### [L022] [***--/-----] Propagate deferred deps
 - **Uses**: 6 | **Learned**: 2025-12-19 | **Last**: 2025-12-22 | **Category**: gotcha
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
-### [L023] [****+/-----] Stage files explicitly
-- **Uses**: 9 | **Learned**: 2025-12-19 | **Last**: 2025-12-22 | **Category**: correction
+### [L023] [*****/*****] Stage files explicitly
+- **Uses**: 23 | **Learned**: 2025-12-19 | **Last**: 2025-12-23 | **Category**: correction
 > When committing, stage only files you actually modified (`git add <file>`) rather than `git add -A` which sweeps up unrelated changes from previous sessions. Creates cleaner atomic commits.
 
 
-### [L024] [*****/+----] WIP file safety
-- **Uses**: 11 | **Learned**: 2025-12-21 | **Last**: 2025-12-22 | **Category**: correction
+### [L024] [*****/****-] WIP file safety
+- **Uses**: 18 | **Learned**: 2025-12-21 | **Last**: 2025-12-22 | **Category**: correction
 > Never modify, stash, restore, or commit files that are part of uncommitted WIP changes without explicit user permission. Focus only on the specific files/changes requested.
 
 ### [L025] [*----/-----] Button content centering
 - **Uses**: 1 | **Learned**: 2025-12-21 | **Last**: 2025-12-21 | **Category**: pattern
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
+
+
+### [L026] [+----/-----] Never delete unknown files
+- **Uses**: 1 | **Learned**: 2025-12-22 | **Last**: 2025-12-22 | **Category**: correction
+> NEVER delete files you don't understand without explicit user permission. If untracked files cause build errors, ASK the user first - they may be important WIP. Ignoring the build error is always safer than deleting files.
 
