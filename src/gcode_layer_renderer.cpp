@@ -388,17 +388,7 @@ bool GCodeLayerRenderer::has_support_detection() const {
 // ============================================================================
 
 void GCodeLayerRenderer::destroy_cache() {
-    if (cache_canvas_) {
-        // Check if LVGL is still initialized and the object is valid
-        // During shutdown, the widget tree may already be destroyed
-        if (lv_is_initialized() && lv_obj_is_valid(cache_canvas_)) {
-            lv_obj_delete(cache_canvas_);
-        }
-        cache_canvas_ = nullptr;
-        // Note: canvas owns the draw_buf when attached, so don't double-free
-        cache_buf_ = nullptr;
-    } else if (cache_buf_) {
-        // Buffer exists without canvas (shouldn't happen, but be safe)
+    if (cache_buf_) {
         if (lv_is_initialized()) {
             lv_draw_buf_destroy(cache_buf_);
         }
@@ -410,7 +400,7 @@ void GCodeLayerRenderer::destroy_cache() {
 }
 
 void GCodeLayerRenderer::invalidate_cache() {
-    // Clear the cache buffer content but keep the canvas/buffer allocated
+    // Clear the cache buffer content but keep the buffer allocated
     if (cache_buf_) {
         lv_draw_buf_clear(cache_buf_, nullptr);
     }
@@ -434,7 +424,8 @@ void GCodeLayerRenderer::ensure_cache(int width, int height) {
     }
 
     if (!cache_buf_) {
-        // Create the draw buffer
+        // Create the draw buffer (no canvas widget - avoids clip area contamination
+        // from overlays/toasts on lv_layer_top())
         cache_buf_ = lv_draw_buf_create(width, height, LV_COLOR_FORMAT_ARGB8888, LV_STRIDE_AUTO);
         if (!cache_buf_) {
             spdlog::error("[GCodeLayerRenderer] Failed to create cache buffer {}x{}", width,
@@ -445,43 +436,34 @@ void GCodeLayerRenderer::ensure_cache(int width, int height) {
         // Clear to transparent
         lv_draw_buf_clear(cache_buf_, nullptr);
 
-        // Create a hidden canvas widget for offscreen rendering
-        // We need a parent - use the top layer which always exists
-        lv_obj_t* parent = lv_layer_top();
-        if (!parent) {
-            parent = lv_screen_active();
-        }
-
-        cache_canvas_ = lv_canvas_create(parent);
-        if (!cache_canvas_) {
-            spdlog::error("[GCodeLayerRenderer] Failed to create cache canvas");
-            lv_draw_buf_destroy(cache_buf_);
-            cache_buf_ = nullptr;
-            return;
-        }
-
-        lv_canvas_set_draw_buf(cache_canvas_, cache_buf_);
-        lv_obj_add_flag(cache_canvas_, LV_OBJ_FLAG_HIDDEN); // Keep it invisible
-
         cached_width_ = width;
         cached_height_ = height;
         cached_up_to_layer_ = -1;
 
-        spdlog::debug("[GCodeLayerRenderer] Created cache canvas: {}x{}", width, height);
+        spdlog::debug("[GCodeLayerRenderer] Created cache buffer: {}x{}", width, height);
     }
 }
 
 void GCodeLayerRenderer::render_layers_to_cache(int from_layer, int to_layer) {
-    if (!cache_canvas_ || !cache_buf_)
+    if (!cache_buf_)
         return;
 
     // Need either gcode file or streaming controller
     if (!gcode_ && !streaming_controller_)
         return;
 
-    // Initialize layer for drawing to the canvas (LVGL 9.4 canvas API)
+    // Manually initialize layer for offscreen rendering (no canvas widget)
+    // This avoids clip area contamination from overlays/toasts on lv_layer_top()
     lv_layer_t cache_layer;
-    lv_canvas_init_layer(cache_canvas_, &cache_layer);
+    lv_memzero(&cache_layer, sizeof(cache_layer));
+    cache_layer.draw_buf = cache_buf_;
+    cache_layer.color_format = LV_COLOR_FORMAT_ARGB8888;
+    cache_layer.buf_area.x1 = 0;
+    cache_layer.buf_area.y1 = 0;
+    cache_layer.buf_area.x2 = cached_width_ - 1;
+    cache_layer.buf_area.y2 = cached_height_ - 1;
+    cache_layer._clip_area = cache_layer.buf_area;  // Full buffer as clip area
+    cache_layer.phy_clip_area = cache_layer.buf_area;
 
     // Temporarily set widget offset to 0 since we're rendering to cache origin
     int saved_offset_x = widget_offset_x_;
@@ -518,8 +500,15 @@ void GCodeLayerRenderer::render_layers_to_cache(int from_layer, int to_layer) {
         }
     }
 
-    // Finish the layer - flushes all pending draw tasks to the buffer
-    lv_canvas_finish_layer(cache_canvas_, &cache_layer);
+    // Dispatch pending draw tasks (equivalent to lv_canvas_finish_layer)
+    // This executes all queued draw operations to the buffer
+    lv_draw_dispatch_wait_for_request();
+    while (cache_layer.draw_task_head) {
+        lv_draw_dispatch_layer(nullptr, &cache_layer);
+        if (cache_layer.draw_task_head) {
+            lv_draw_dispatch_wait_for_request();
+        }
+    }
 
     widget_offset_x_ = saved_offset_x;
     widget_offset_y_ = saved_offset_y;
@@ -547,13 +536,7 @@ void GCodeLayerRenderer::blit_cache(lv_layer_t* target) {
 // ============================================================================
 
 void GCodeLayerRenderer::destroy_ghost_cache() {
-    if (ghost_canvas_) {
-        if (lv_is_initialized() && lv_obj_is_valid(ghost_canvas_)) {
-            lv_obj_delete(ghost_canvas_);
-        }
-        ghost_canvas_ = nullptr;
-        ghost_buf_ = nullptr;
-    } else if (ghost_buf_) {
+    if (ghost_buf_) {
         if (lv_is_initialized()) {
             lv_draw_buf_destroy(ghost_buf_);
         }
@@ -570,6 +553,8 @@ void GCodeLayerRenderer::ensure_ghost_cache(int width, int height) {
     }
 
     if (!ghost_buf_) {
+        // Create the draw buffer (no canvas widget - avoids clip area contamination
+        // from overlays/toasts on lv_layer_top())
         ghost_buf_ = lv_draw_buf_create(width, height, LV_COLOR_FORMAT_ARGB8888, LV_STRIDE_AUTO);
         if (!ghost_buf_) {
             spdlog::error("[GCodeLayerRenderer] Failed to create ghost buffer {}x{}", width,
@@ -579,31 +564,27 @@ void GCodeLayerRenderer::ensure_ghost_cache(int width, int height) {
 
         lv_draw_buf_clear(ghost_buf_, nullptr);
 
-        lv_obj_t* parent = lv_layer_top();
-        if (!parent)
-            parent = lv_screen_active();
-
-        ghost_canvas_ = lv_canvas_create(parent);
-        if (!ghost_canvas_) {
-            lv_draw_buf_destroy(ghost_buf_);
-            ghost_buf_ = nullptr;
-            return;
-        }
-
-        lv_canvas_set_draw_buf(ghost_canvas_, ghost_buf_);
-        lv_obj_add_flag(ghost_canvas_, LV_OBJ_FLAG_HIDDEN);
-
         ghost_cache_valid_ = false;
-        spdlog::debug("[GCodeLayerRenderer] Created ghost cache canvas: {}x{}", width, height);
+        spdlog::debug("[GCodeLayerRenderer] Created ghost cache buffer: {}x{}", width, height);
     }
 }
 
 void GCodeLayerRenderer::render_ghost_layers(int from_layer, int to_layer) {
-    if (!ghost_canvas_ || !ghost_buf_ || !gcode_)
+    if (!ghost_buf_ || !gcode_)
         return;
 
+    // Manually initialize layer for offscreen rendering (no canvas widget)
+    // This avoids clip area contamination from overlays/toasts on lv_layer_top()
     lv_layer_t ghost_layer;
-    lv_canvas_init_layer(ghost_canvas_, &ghost_layer);
+    lv_memzero(&ghost_layer, sizeof(ghost_layer));
+    ghost_layer.draw_buf = ghost_buf_;
+    ghost_layer.color_format = LV_COLOR_FORMAT_ARGB8888;
+    ghost_layer.buf_area.x1 = 0;
+    ghost_layer.buf_area.y1 = 0;
+    ghost_layer.buf_area.x2 = cached_width_ - 1;
+    ghost_layer.buf_area.y2 = cached_height_ - 1;
+    ghost_layer._clip_area = ghost_layer.buf_area;  // Full buffer as clip area
+    ghost_layer.phy_clip_area = ghost_layer.buf_area;
 
     int saved_offset_x = widget_offset_x_;
     int saved_offset_y = widget_offset_y_;
@@ -625,7 +606,14 @@ void GCodeLayerRenderer::render_ghost_layers(int from_layer, int to_layer) {
         }
     }
 
-    lv_canvas_finish_layer(ghost_canvas_, &ghost_layer);
+    // Dispatch pending draw tasks (equivalent to lv_canvas_finish_layer)
+    lv_draw_dispatch_wait_for_request();
+    while (ghost_layer.draw_task_head) {
+        lv_draw_dispatch_layer(nullptr, &ghost_layer);
+        if (ghost_layer.draw_task_head) {
+            lv_draw_dispatch_wait_for_request();
+        }
+    }
 
     widget_offset_x_ = saved_offset_x;
     widget_offset_y_ = saved_offset_y;
@@ -723,7 +711,7 @@ void GCodeLayerRenderer::render(lv_layer_t* layer, const lv_area_t* widget_area)
         // =====================================================================
         // SOLID CACHE: Progressive rendering up to current print layer
         // =====================================================================
-        if (cache_buf_ && cache_canvas_) {
+        if (cache_buf_) {
             // Check if we need to render new layers
             if (target_layer > cached_up_to_layer_) {
                 // Progressive rendering: only render up to layers_per_frame_ at a time

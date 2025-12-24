@@ -451,14 +451,16 @@ class GCodeLayerRenderer {
     size_t last_segment_count_ = 0;
 
     // Incremental render cache - paint new layers on top of previous (SOLID)
-    lv_obj_t* cache_canvas_ = nullptr; // Hidden canvas for offscreen rendering
+    // Note: We only use draw buffers (no canvas widgets) to avoid clip area
+    // contamination from overlays/toasts on lv_layer_top().
     lv_draw_buf_t* cache_buf_ = nullptr;
     int cached_up_to_layer_ = -1; // Highest layer rendered in cache
     int cached_width_ = 0;        // Dimensions cache was built for
     int cached_height_ = 0;
 
     // Ghost cache - all layers rendered once at reduced opacity
-    lv_obj_t* ghost_canvas_ = nullptr;
+    // Note: We only use draw buffers (no canvas widgets) to avoid clip area
+    // contamination from overlays/toasts on lv_layer_top().
     lv_draw_buf_t* ghost_buf_ = nullptr;
     bool ghost_cache_valid_ = false;
     bool ghost_mode_enabled_ = true; // Enable ghost mode by default
