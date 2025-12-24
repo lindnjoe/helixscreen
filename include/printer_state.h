@@ -260,6 +260,19 @@ class PrinterState {
     }
 
     /**
+     * @brief Get print active subject for UI binding
+     *
+     * Integer subject: 1 when PRINTING or PAUSED, 0 otherwise.
+     * Derived from print_state_enum for simpler XML bindings (avoids OR logic).
+     * Use for card visibility that should show during any active print.
+     *
+     * @return Pointer to integer subject (0 or 1)
+     */
+    lv_subject_t* get_print_active_subject() {
+        return &print_active_;
+    }
+
+    /**
      * @brief Get current print job state as enum
      *
      * Convenience method for direct enum access without subject lookup.
@@ -754,6 +767,7 @@ class PrinterState {
     lv_subject_t print_filename_;   // String buffer
     lv_subject_t print_state_;      // String buffer (for UI display binding)
     lv_subject_t print_state_enum_; // Integer: PrintJobState enum (for type-safe logic)
+    lv_subject_t print_active_;     // Integer: 1 when PRINTING/PAUSED, 0 otherwise
 
     // Layer tracking subjects (from Moonraker print_stats.info)
     lv_subject_t print_layer_current_; // Current layer (0-based)
@@ -813,8 +827,8 @@ class PrinterState {
     lv_subject_t printer_has_accelerometer_; // Integer: 0=no, 1=yes (for input shaping)
     lv_subject_t printer_has_spoolman_;      // Integer: 0=no, 1=yes (for filament tracking)
     lv_subject_t printer_has_speaker_;       // Integer: 0=no, 1=yes (for M300 audio feedback)
-    lv_subject_t printer_has_timelapse_; // Integer: 0=no, 1=yes (for Moonraker-Timelapse plugin)
-    lv_subject_t helix_plugin_installed_;    // Integer: 0=no, 1=yes (for HelixPrint plugin)
+    lv_subject_t printer_has_timelapse_;  // Integer: 0=no, 1=yes (for Moonraker-Timelapse plugin)
+    lv_subject_t helix_plugin_installed_; // Integer: 0=no, 1=yes (for HelixPrint plugin)
     lv_subject_t printer_has_firmware_retraction_; // Integer: 0=no, 1=yes (for G10/G11 retraction)
     lv_subject_t printer_bed_moves_; // Integer: 0=no (gantry moves), 1=yes (bed moves on Z)
 

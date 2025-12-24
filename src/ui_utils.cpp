@@ -54,10 +54,12 @@ std::string get_display_filename(const std::string& path) {
 }
 
 std::string resolve_gcode_filename(const std::string& path) {
-    // Pattern: .helix_temp/modified_123456789_OriginalName.gcode
-    // Also handles: /tmp/helixscreen_mod_XXXXXX_filename.gcode
+    // Pattern: .helix_temp/modified_123456789_OriginalName.gcode (Moonraker plugin)
+    // Also handles: */gcode_mod/mod_XXXXXX_filename.gcode (local temp files)
+    // Legacy: /tmp/helixscreen_mod_XXXXXX_filename.gcode
     static const std::string helix_temp_prefix = ".helix_temp/modified_";
-    static const std::string local_temp_prefix = "/tmp/helixscreen_mod_";
+    static const std::string gcode_mod_prefix = "/gcode_mod/mod_";
+    static const std::string legacy_prefix = "/tmp/helixscreen_mod_";
 
     size_t underscore_pos = std::string::npos;
 
@@ -65,9 +67,13 @@ std::string resolve_gcode_filename(const std::string& path) {
         // Extract original: .helix_temp/modified_123456789_OriginalName.gcode -> OriginalName.gcode
         size_t prefix_end = path.find(helix_temp_prefix) + helix_temp_prefix.size();
         underscore_pos = path.find('_', prefix_end);
-    } else if (path.find(local_temp_prefix) != std::string::npos) {
-        // Extract original: /tmp/helixscreen_mod_123456_OriginalName.gcode -> OriginalName.gcode
-        size_t prefix_end = path.find(local_temp_prefix) + local_temp_prefix.size();
+    } else if (path.find(gcode_mod_prefix) != std::string::npos) {
+        // Extract original: */gcode_mod/mod_123456_OriginalName.gcode -> OriginalName.gcode
+        size_t prefix_end = path.find(gcode_mod_prefix) + gcode_mod_prefix.size();
+        underscore_pos = path.find('_', prefix_end);
+    } else if (path.find(legacy_prefix) != std::string::npos) {
+        // Legacy: /tmp/helixscreen_mod_123456_OriginalName.gcode -> OriginalName.gcode
+        size_t prefix_end = path.find(legacy_prefix) + legacy_prefix.size();
         underscore_pos = path.find('_', prefix_end);
     }
 

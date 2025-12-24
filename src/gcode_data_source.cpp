@@ -2,6 +2,8 @@
 
 #include "gcode_data_source.h"
 
+#include "app_globals.h"
+
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -347,9 +349,15 @@ bool MoonrakerDataSource::download_to_temp() {
         return true; // Already downloaded
     }
 
-    // Generate temp file path
-    temp_file_path_ = "/tmp/helix_gcode_" + std::to_string(std::hash<std::string>{}(gcode_path_)) +
-                      "_" + std::to_string(time(nullptr)) + ".gcode";
+    // Generate temp file path (use persistent cache, not RAM-backed /tmp)
+    std::string cache_dir = get_helix_cache_dir("gcode_temp");
+    if (cache_dir.empty()) {
+        spdlog::error("[MoonrakerDataSource] No writable cache directory");
+        return false;
+    }
+    temp_file_path_ = cache_dir + "/gcode_" +
+                      std::to_string(std::hash<std::string>{}(gcode_path_)) + "_" +
+                      std::to_string(time(nullptr)) + ".gcode";
 
     std::string url = get_download_url();
 

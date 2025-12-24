@@ -3,6 +3,8 @@
 
 #include "gcode_file_modifier.h"
 
+#include "app_globals.h"
+
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -575,8 +577,14 @@ bool GCodeFileModifier::add_print_start_skip_params(
 }
 
 std::string GCodeFileModifier::generate_temp_path(const std::filesystem::path& original_path) {
-    // Generate unique temp file path
-    // Format: /tmp/helixscreen_mod_XXXXXX_filename.gcode
+    // Generate unique temp file path in persistent cache directory
+    // Format: <cache_dir>/mod_XXXXXX_filename.gcode
+
+    std::string cache_dir = get_helix_cache_dir("gcode_mod");
+    if (cache_dir.empty()) {
+        spdlog::error("[GCodeFileModifier] No writable cache directory");
+        return "";
+    }
 
     std::string filename = original_path.filename().string();
 
@@ -587,7 +595,7 @@ std::string GCodeFileModifier::generate_temp_path(const std::filesystem::path& o
     int suffix = dis(gen);
 
     std::ostringstream path;
-    path << "/tmp/helixscreen_mod_" << suffix << "_" << filename;
+    path << cache_dir << "/mod_" << suffix << "_" << filename;
 
     return path.str();
 }
@@ -595,16 +603,21 @@ std::string GCodeFileModifier::generate_temp_path(const std::filesystem::path& o
 size_t GCodeFileModifier::cleanup_temp_files(int max_age_seconds) {
     size_t deleted = 0;
 
+    std::string cache_dir = get_helix_cache_dir("gcode_mod");
+    if (cache_dir.empty()) {
+        return 0;
+    }
+
     try {
         auto now = std::chrono::system_clock::now();
 
-        for (const auto& entry : std::filesystem::directory_iterator("/tmp")) {
+        for (const auto& entry : std::filesystem::directory_iterator(cache_dir)) {
             if (!entry.is_regular_file()) {
                 continue;
             }
 
             std::string name = entry.path().filename().string();
-            if (name.rfind("helixscreen_mod_", 0) != 0) {
+            if (name.rfind("mod_", 0) != 0) {
                 continue; // Not our file
             }
 

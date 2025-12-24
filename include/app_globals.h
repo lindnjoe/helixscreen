@@ -5,6 +5,8 @@
 
 #include "lvgl.h"
 
+#include <string>
+
 // Forward declarations
 class MoonrakerClient;
 class MoonrakerAPI;
@@ -128,3 +130,20 @@ void app_request_restart_for_theme();
  * @return true if app_request_quit() or app_request_restart() was called
  */
 bool app_quit_requested();
+
+/**
+ * @brief Get appropriate cache directory for temp files
+ *
+ * Determines best location for cache/temp files with priority:
+ * 1. XDG_CACHE_HOME/helix/<subdir>
+ * 2. $HOME/.cache/helix/<subdir>
+ * 3. /var/tmp/helix_<subdir>
+ * 4. /tmp/helix_<subdir> (last resort)
+ *
+ * Creates directory if needed. On embedded systems, prefers persistent
+ * storage over RAM-backed tmpfs.
+ *
+ * @param subdir Subdirectory name (e.g., "gcode_temp", "thumbs")
+ * @return Full path to cache directory, or empty string on failure
+ */
+std::string get_helix_cache_dir(const std::string& subdir);

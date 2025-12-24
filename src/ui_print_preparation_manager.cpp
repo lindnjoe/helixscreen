@@ -7,6 +7,7 @@
 #include "ui_error_reporting.h"
 #include "ui_panel_print_status.h"
 
+#include "app_globals.h"
 #include "memory_utils.h"
 
 #include <spdlog/fmt/fmt.h>
@@ -389,64 +390,8 @@ void PrintPreparationManager::set_cached_file_size(size_t size) {
 }
 
 std::string PrintPreparationManager::get_temp_directory() const {
-    // Use same logic as ThumbnailCache for consistency
-    // Priority: XDG_CACHE_HOME → ~/.cache/helix → TMPDIR → /var/tmp → /tmp
-
-    // 1. Check XDG_CACHE_HOME
-    const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
-    if (xdg_cache && xdg_cache[0] != '\0') {
-        std::string full_path = std::string(xdg_cache) + "/helix/gcode_temp";
-        std::error_code ec;
-        std::filesystem::create_directories(full_path, ec);
-        if (!ec && std::filesystem::exists(full_path)) {
-            return full_path;
-        }
-    }
-
-    // 2. Try $HOME/.cache/helix
-    const char* home = std::getenv("HOME");
-    if (home && home[0] != '\0') {
-        std::string cache_base = std::string(home) + "/.cache/helix/gcode_temp";
-        std::error_code ec;
-        std::filesystem::create_directories(cache_base, ec);
-        if (!ec && std::filesystem::exists(cache_base)) {
-            return cache_base;
-        }
-    }
-
-    // 3. Check TMPDIR environment variable
-    const char* tmpdir = std::getenv("TMPDIR");
-    if (tmpdir && tmpdir[0] != '\0') {
-        std::string full_path = std::string(tmpdir) + "/helix_gcode_temp";
-        std::error_code ec;
-        std::filesystem::create_directories(full_path, ec);
-        if (!ec && std::filesystem::exists(full_path)) {
-            return full_path;
-        }
-    }
-
-    // 4. Try /var/tmp (persistent, often larger than /tmp on embedded)
-    {
-        std::string var_tmp_path = "/var/tmp/helix_gcode_temp";
-        std::error_code ec;
-        std::filesystem::create_directories(var_tmp_path, ec);
-        if (!ec && std::filesystem::exists(var_tmp_path)) {
-            return var_tmp_path;
-        }
-    }
-
-    // 5. Last resort: /tmp
-    {
-        std::string tmp_path = "/tmp/helix_gcode_temp";
-        std::error_code ec;
-        std::filesystem::create_directories(tmp_path, ec);
-        if (!ec && std::filesystem::exists(tmp_path)) {
-            return tmp_path;
-        }
-    }
-
-    spdlog::warn("[PrintPreparationManager] Could not find usable temp directory");
-    return "";
+    // Delegate to global helper for consistent cache directory selection
+    return get_helix_cache_dir("gcode_temp");
 }
 
 ModificationCapability PrintPreparationManager::check_modification_capability() const {

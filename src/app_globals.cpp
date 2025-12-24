@@ -23,7 +23,9 @@
 #include <spdlog/spdlog.h>
 
 #include <cerrno>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -278,4 +280,54 @@ void app_request_restart_for_theme() {
 
 bool app_quit_requested() {
     return g_quit_requested;
+}
+
+// ============================================================================
+// CACHE DIRECTORY HELPER
+// ============================================================================
+
+static bool try_create_dir(const std::string& path) {
+    std::error_code ec;
+    std::filesystem::create_directories(path, ec);
+    return !ec && std::filesystem::exists(path);
+}
+
+std::string get_helix_cache_dir(const std::string& subdir) {
+    // 1. Check XDG_CACHE_HOME (XDG Base Directory Specification)
+    const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
+    if (xdg_cache && xdg_cache[0] != '\0') {
+        std::string path = std::string(xdg_cache) + "/helix/" + subdir;
+        if (try_create_dir(path)) {
+            return path;
+        }
+    }
+
+    // 2. Try $HOME/.cache/helix (standard Linux location)
+    const char* home = std::getenv("HOME");
+    if (home && home[0] != '\0') {
+        std::string path = std::string(home) + "/.cache/helix/" + subdir;
+        if (try_create_dir(path)) {
+            return path;
+        }
+    }
+
+    // 3. Try /var/tmp (persistent, often larger than /tmp on embedded)
+    {
+        std::string path = "/var/tmp/helix_" + subdir;
+        if (try_create_dir(path)) {
+            return path;
+        }
+    }
+
+    // 4. Last resort: /tmp (may be RAM-backed tmpfs)
+    {
+        std::string path = "/tmp/helix_" + subdir;
+        if (try_create_dir(path)) {
+            spdlog::warn("[App Globals] Using /tmp for cache - may be RAM-backed");
+            return path;
+        }
+    }
+
+    spdlog::error("[App Globals] Failed to create cache directory for '{}'", subdir);
+    return "";
 }

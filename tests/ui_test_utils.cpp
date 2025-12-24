@@ -438,3 +438,28 @@ void ui_status_bar_update_notification_count(size_t /* count */) {
 void ui_text_input_init() {
     // No-op in tests
 }
+
+// Stub for app_request_restart (tests don't restart)
+void app_request_restart() {
+    spdlog::debug("[Test Stub] app_request_restart called - no-op in tests");
+}
+
+// Stub for get_helix_cache_dir (tests use temp directory)
+#include "app_globals.h"
+std::string get_helix_cache_dir(const std::string& subdir) {
+    return "/tmp/helix_test_" + subdir;
+}
+
+// Stub for get_moonraker_manager (tests don't have manager)
+MoonrakerManager* get_moonraker_manager() {
+    return nullptr;
+}
+
+// Stub for MoonrakerManager::macro_analysis (never called since get_moonraker_manager returns null)
+#include "moonraker_manager.h"
+namespace helix {
+class MacroAnalysisManager;
+}
+helix::MacroAnalysisManager* MoonrakerManager::macro_analysis() const {
+    return nullptr;
+}

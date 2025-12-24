@@ -193,6 +193,7 @@ void PrinterState::reset_for_testing() {
     lv_subject_deinit(&print_filename_);
     lv_subject_deinit(&print_state_);
     lv_subject_deinit(&print_state_enum_);
+    lv_subject_deinit(&print_active_);
     lv_subject_deinit(&print_layer_current_);
     lv_subject_deinit(&print_layer_total_);
     lv_subject_deinit(&print_start_phase_);
@@ -261,6 +262,7 @@ void PrinterState::init_subjects(bool register_xml) {
     lv_subject_init_string(&print_state_, print_state_buf_, nullptr, sizeof(print_state_buf_),
                            "standby");
     lv_subject_init_int(&print_state_enum_, static_cast<int>(PrintJobState::STANDBY));
+    lv_subject_init_int(&print_active_, 0); // 0 when idle, 1 when PRINTING/PAUSED
 
     // Layer tracking subjects (from Moonraker print_stats.info)
     lv_subject_init_int(&print_layer_current_, 0);
@@ -352,6 +354,7 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "print_filename", &print_filename_);
         lv_xml_register_subject(NULL, "print_state", &print_state_);
         lv_xml_register_subject(NULL, "print_state_enum", &print_state_enum_);
+        lv_xml_register_subject(NULL, "print_active", &print_active_);
         lv_xml_register_subject(NULL, "print_layer_current", &print_layer_current_);
         lv_xml_register_subject(NULL, "print_layer_total", &print_layer_total_);
         lv_xml_register_subject(NULL, "print_duration", &print_duration_);
@@ -494,6 +497,15 @@ void PrinterState::update_from_status(const json& state) {
             // Update enum subject (for type-safe logic)
             PrintJobState new_state = parse_print_job_state(state_str.c_str());
             lv_subject_set_int(&print_state_enum_, static_cast<int>(new_state));
+
+            // Update print_active (1 when PRINTING/PAUSED, 0 otherwise)
+            // This derived subject simplifies XML bindings for card visibility
+            bool is_active =
+                (new_state == PrintJobState::PRINTING || new_state == PrintJobState::PAUSED);
+            int active_val = is_active ? 1 : 0;
+            if (lv_subject_get_int(&print_active_) != active_val) {
+                lv_subject_set_int(&print_active_, active_val);
+            }
         }
 
         if (stats.contains("filename")) {
