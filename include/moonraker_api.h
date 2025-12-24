@@ -75,9 +75,25 @@ class MoonrakerAPI {
      * @param filename Full path to file (relative to gcodes root)
      * @param on_success Callback with metadata
      * @param on_error Error callback
+     * @param silent If true, don't emit RPC_ERROR events (no toast on failure)
      */
     void get_file_metadata(const std::string& filename, FileMetadataCallback on_success,
-                           ErrorCallback on_error);
+                           ErrorCallback on_error, bool silent = false);
+
+    /**
+     * @brief Trigger metadata scan for a file
+     *
+     * Forces Moonraker to parse and index a file's metadata. Useful when
+     * get_file_metadata returns 404 (file exists but not indexed).
+     * Returns the parsed metadata on success.
+     *
+     * @param filename Full path to file (relative to gcodes root)
+     * @param on_success Callback with metadata
+     * @param on_error Error callback
+     * @param silent If true, don't emit RPC_ERROR events (no toast on failure)
+     */
+    void metascan_file(const std::string& filename, FileMetadataCallback on_success,
+                       ErrorCallback on_error, bool silent = true);
 
     /**
      * @brief Delete a file

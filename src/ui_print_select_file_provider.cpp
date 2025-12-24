@@ -205,143 +205,157 @@ void PrintSelectFileProvider::fetch_metadata_range(std::vector<PrintFileData>& f
 
         const std::string filename = files[i].filename;
 
-        api_->get_file_metadata(
-            filename,
-            // Metadata success callback (runs on background thread)
-            [self, i, filename, on_updated](const FileMetadata& metadata) {
-                // Extract all values on background thread (safe - metadata is const ref)
-                int print_time_minutes = static_cast<int>(metadata.estimated_time / 60.0);
-                float filament_grams = static_cast<float>(metadata.filament_weight_total);
-                std::string filament_type = metadata.filament_type;
-                std::vector<std::string> filament_colors = metadata.filament_colors;
-                std::string thumb_path = metadata.get_largest_thumbnail();
-                uint32_t layer_count = metadata.layer_count;
+        // Define success handler as a named lambda so it can be reused for metascan fallback
+        auto on_metadata_success = [self, i, filename, on_updated](const FileMetadata& metadata) {
+            // Extract all values on background thread (safe - metadata is const ref)
+            int print_time_minutes = static_cast<int>(metadata.estimated_time / 60.0);
+            float filament_grams = static_cast<float>(metadata.filament_weight_total);
+            std::string filament_type = metadata.filament_type;
+            std::vector<std::string> filament_colors = metadata.filament_colors;
+            std::string thumb_path = metadata.get_largest_thumbnail();
+            uint32_t layer_count = metadata.layer_count;
 
-                // Format strings on background thread
-                std::string print_time_str = format_print_time(print_time_minutes);
-                std::string filament_str = format_filament_weight(filament_grams);
-                std::string layer_count_str = layer_count > 0 ? std::to_string(layer_count) : "--";
+            // Format strings on background thread
+            std::string print_time_str = format_print_time(print_time_minutes);
+            std::string filament_str = format_filament_weight(filament_grams);
+            std::string layer_count_str = layer_count > 0 ? std::to_string(layer_count) : "--";
 
-                // Check if thumbnail is a local file
-                bool thumb_is_local = !thumb_path.empty() && std::filesystem::exists(thumb_path);
+            // Check if thumbnail is a local file
+            bool thumb_is_local = !thumb_path.empty() && std::filesystem::exists(thumb_path);
 
-                // Prepare cache path for remote thumbnails
+            // Prepare cache path for remote thumbnails
+            std::string cache_file;
+            if (!thumb_path.empty() && !thumb_is_local) {
+                // Use ThumbnailCache's centralized cache path
+                cache_file = get_thumbnail_cache().get_cache_path(thumb_path);
+            }
+
+            // Dispatch update to callback
+            // NOTE: We capture api directly (not through provider) to avoid use-after-free
+            // if the provider is destroyed while thumbnail download is in flight.
+            // MoonrakerAPI is a long-lived singleton that outlives the provider.
+            struct MetadataUpdate {
+                MoonrakerAPI* api; // Captured directly, not through provider
+                MetadataUpdatedCallback on_updated;
+                size_t index;
+                std::string filename;
+                int print_time_minutes;
+                float filament_grams;
+                std::string filament_type;
+                std::vector<std::string> filament_colors;
+                std::string print_time_str;
+                std::string filament_str;
+                uint32_t layer_count;
+                std::string layer_count_str;
+                std::string thumb_path;
                 std::string cache_file;
-                if (!thumb_path.empty() && !thumb_is_local) {
-                    // Use ThumbnailCache's centralized cache path
-                    cache_file = get_thumbnail_cache().get_cache_path(thumb_path);
-                }
+                bool thumb_is_local;
+            };
 
-                // Dispatch update to callback
-                // NOTE: We capture api directly (not through provider) to avoid use-after-free
-                // if the provider is destroyed while thumbnail download is in flight.
-                // MoonrakerAPI is a long-lived singleton that outlives the provider.
-                struct MetadataUpdate {
-                    MoonrakerAPI* api; // Captured directly, not through provider
-                    MetadataUpdatedCallback on_updated;
-                    size_t index;
-                    std::string filename;
-                    int print_time_minutes;
-                    float filament_grams;
-                    std::string filament_type;
-                    std::vector<std::string> filament_colors;
-                    std::string print_time_str;
-                    std::string filament_str;
-                    uint32_t layer_count;
-                    std::string layer_count_str;
-                    std::string thumb_path;
-                    std::string cache_file;
-                    bool thumb_is_local;
-                };
+            ui_async_call_safe<MetadataUpdate>(
+                std::make_unique<MetadataUpdate>(MetadataUpdate{
+                    self->api_, on_updated, i, filename, print_time_minutes, filament_grams,
+                    filament_type, filament_colors, print_time_str, filament_str, layer_count,
+                    layer_count_str, thumb_path, cache_file, thumb_is_local}),
+                [](MetadataUpdate* d) {
+                    // Create updated file data
+                    PrintFileData updated;
+                    updated.filename = d->filename;
+                    updated.print_time_minutes = d->print_time_minutes;
+                    updated.filament_grams = d->filament_grams;
+                    updated.filament_type = d->filament_type;
+                    updated.filament_colors = d->filament_colors;
+                    updated.print_time_str = d->print_time_str;
+                    updated.filament_str = d->filament_str;
+                    updated.layer_count = d->layer_count;
+                    updated.layer_count_str = d->layer_count_str;
 
-                ui_async_call_safe<MetadataUpdate>(
-                    std::make_unique<MetadataUpdate>(MetadataUpdate{
-                        self->api_, on_updated, i, filename, print_time_minutes, filament_grams,
-                        filament_type, filament_colors, print_time_str, filament_str, layer_count,
-                        layer_count_str, thumb_path, cache_file, thumb_is_local}),
-                    [](MetadataUpdate* d) {
-                        // Create updated file data
-                        PrintFileData updated;
-                        updated.filename = d->filename;
-                        updated.print_time_minutes = d->print_time_minutes;
-                        updated.filament_grams = d->filament_grams;
-                        updated.filament_type = d->filament_type;
-                        updated.filament_colors = d->filament_colors;
-                        updated.print_time_str = d->print_time_str;
-                        updated.filament_str = d->filament_str;
-                        updated.layer_count = d->layer_count;
-                        updated.layer_count_str = d->layer_count_str;
+                    // Handle thumbnail
+                    if (!d->thumb_path.empty()) {
+                        if (d->thumb_is_local) {
+                            // Local file exists - use directly (mock mode)
+                            updated.thumbnail_path = "A:" + d->thumb_path;
+                            spdlog::trace("[FileProvider] Using local thumbnail for {}: {}",
+                                          d->filename, updated.thumbnail_path);
 
-                        // Handle thumbnail
-                        if (!d->thumb_path.empty()) {
-                            if (d->thumb_is_local) {
-                                // Local file exists - use directly (mock mode)
-                                updated.thumbnail_path = "A:" + d->thumb_path;
-                                spdlog::trace("[FileProvider] Using local thumbnail for {}: {}",
-                                              d->filename, updated.thumbnail_path);
-
-                                // Deliver update
-                                if (d->on_updated) {
-                                    d->on_updated(d->index, updated);
-                                }
-                            } else if (d->api) {
-                                // Remote path - download from Moonraker
-                                spdlog::trace(
-                                    "[FileProvider] Downloading thumbnail for {}: {} -> {}",
-                                    d->filename, d->thumb_path, d->cache_file);
-
-                                size_t file_idx = d->index;
-                                std::string filename_copy = d->filename;
-                                auto on_updated_copy = d->on_updated;
-
-                                d->api->download_thumbnail(
-                                    d->thumb_path, d->cache_file,
-                                    // Success callback
-                                    [file_idx, filename_copy,
-                                     on_updated_copy](const std::string& local_path) {
-                                        struct ThumbUpdate {
-                                            size_t index;
-                                            std::string filename;
-                                            std::string local_path;
-                                            MetadataUpdatedCallback on_updated;
-                                        };
-                                        ui_async_call_safe<ThumbUpdate>(
-                                            std::make_unique<ThumbUpdate>(
-                                                ThumbUpdate{file_idx, filename_copy, local_path,
-                                                            on_updated_copy}),
-                                            [](ThumbUpdate* t) {
-                                                PrintFileData thumb_update;
-                                                thumb_update.filename = t->filename;
-                                                thumb_update.thumbnail_path = "A:" + t->local_path;
-                                                spdlog::debug("[FileProvider] Thumbnail cached for "
-                                                              "{}: {}",
-                                                              t->filename,
-                                                              thumb_update.thumbnail_path);
-                                                if (t->on_updated) {
-                                                    t->on_updated(t->index, thumb_update);
-                                                }
-                                            });
-                                    },
-                                    // Error callback
-                                    [filename_copy](const MoonrakerError& error) {
-                                        spdlog::warn("[FileProvider] Failed to download thumbnail "
-                                                     "for {}: {}",
-                                                     filename_copy, error.message);
-                                    });
-                            }
-                        } else {
-                            // No thumbnail, just deliver metadata update
+                            // Deliver update
                             if (d->on_updated) {
                                 d->on_updated(d->index, updated);
                             }
+                        } else if (d->api) {
+                            // Remote path - download from Moonraker
+                            spdlog::trace("[FileProvider] Downloading thumbnail for {}: {} -> {}",
+                                          d->filename, d->thumb_path, d->cache_file);
+
+                            size_t file_idx = d->index;
+                            std::string filename_copy = d->filename;
+                            auto on_updated_copy = d->on_updated;
+
+                            d->api->download_thumbnail(
+                                d->thumb_path, d->cache_file,
+                                // Success callback
+                                [file_idx, filename_copy,
+                                 on_updated_copy](const std::string& local_path) {
+                                    struct ThumbUpdate {
+                                        size_t index;
+                                        std::string filename;
+                                        std::string local_path;
+                                        MetadataUpdatedCallback on_updated;
+                                    };
+                                    ui_async_call_safe<ThumbUpdate>(
+                                        std::make_unique<ThumbUpdate>(ThumbUpdate{
+                                            file_idx, filename_copy, local_path, on_updated_copy}),
+                                        [](ThumbUpdate* t) {
+                                            PrintFileData thumb_update;
+                                            thumb_update.filename = t->filename;
+                                            thumb_update.thumbnail_path = "A:" + t->local_path;
+                                            spdlog::debug("[FileProvider] Thumbnail cached for "
+                                                          "{}: {}",
+                                                          t->filename, thumb_update.thumbnail_path);
+                                            if (t->on_updated) {
+                                                t->on_updated(t->index, thumb_update);
+                                            }
+                                        });
+                                },
+                                // Error callback
+                                [filename_copy](const MoonrakerError& error) {
+                                    spdlog::warn("[FileProvider] Failed to download thumbnail "
+                                                 "for {}: {}",
+                                                 filename_copy, error.message);
+                                });
                         }
-                    });
+                    } else {
+                        // No thumbnail, just deliver metadata update
+                        if (d->on_updated) {
+                            d->on_updated(d->index, updated);
+                        }
+                    }
+                });
+        };
+
+        // Request metadata with silent=true (no toast on error)
+        // On error, fall back to metascan which can parse metadata from the file directly
+        api_->get_file_metadata(
+            filename, on_metadata_success,
+            // Metadata error callback - fallback to metascan
+            [self, filename, on_metadata_success](const MoonrakerError& error) {
+                spdlog::debug("[FileProvider] Metadata not indexed for {} ({}), trying metascan...",
+                              filename, error.message);
+
+                // Metascan can extract metadata directly from the G-code file
+                if (self->api_) {
+                    self->api_->metascan_file(filename, on_metadata_success,
+                                              [filename](const MoonrakerError& scan_error) {
+                                                  // Silent fail - UI will show "--" for missing
+                                                  // metadata
+                                                  spdlog::debug(
+                                                      "[FileProvider] Metascan failed for {}: {}",
+                                                      filename, scan_error.message);
+                                              });
+                }
             },
-            // Metadata error callback
-            [filename](const MoonrakerError& error) {
-                spdlog::warn("[FileProvider] Failed to get metadata for {}: {} ({})", filename,
-                             error.message, error.get_type_string());
-            });
+            true // silent - don't trigger RPC_ERROR event/toast
+        );
     }
 
     if (fetch_count > 0) {

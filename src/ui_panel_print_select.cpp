@@ -850,9 +850,11 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
             },
             // Metadata error callback
             [self, filename](const MoonrakerError& error) {
-                spdlog::warn("[{}] Failed to get metadata for {}: {} ({})", self->get_name(),
-                             filename, error.message, error.get_type_string());
-            });
+                spdlog::debug("[{}] Failed to get metadata for {}: {} ({})", self->get_name(),
+                              filename, error.message, error.get_type_string());
+            },
+            true // silent - don't trigger RPC_ERROR event/toast
+        );
     }
 
     if (fetch_count > 0) {

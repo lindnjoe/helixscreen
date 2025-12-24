@@ -79,10 +79,12 @@ void MoonrakerAPI::list_files(const std::string& root, const std::string& path, 
 }
 
 void MoonrakerAPI::get_file_metadata(const std::string& filename, FileMetadataCallback on_success,
-                                     ErrorCallback on_error) {
+                                     ErrorCallback on_error, bool silent) {
     // Validate filename path
     if (!is_safe_path(filename)) {
-        NOTIFY_ERROR("Invalid filename '{}'. Check the file path format.", filename);
+        if (!silent) {
+            NOTIFY_ERROR("Invalid filename '{}'. Check the file path format.", filename);
+        }
         if (on_error) {
             MoonrakerError err;
             err.type = MoonrakerErrorType::VALIDATION_ERROR;
@@ -109,7 +111,47 @@ void MoonrakerAPI::get_file_metadata(const std::string& filename, FileMetadataCa
                 on_success(empty);
             }
         },
-        on_error);
+        on_error,
+        0,     // timeout_ms: use default
+        silent // silent: suppress RPC_ERROR events
+    );
+}
+
+void MoonrakerAPI::metascan_file(const std::string& filename, FileMetadataCallback on_success,
+                                 ErrorCallback on_error, bool silent) {
+    // Validate filename path
+    if (!is_safe_path(filename)) {
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid filename contains directory traversal or illegal characters";
+            err.method = "metascan_file";
+            on_error(err);
+        }
+        return;
+    }
+
+    json params = {{"filename", filename}};
+
+    spdlog::debug("[Moonraker API] Triggering metascan for file: {}", filename);
+
+    client_.send_jsonrpc(
+        "server.files.metascan", params,
+        [this, on_success, filename](json response) {
+            try {
+                FileMetadata metadata = parse_file_metadata(response);
+                spdlog::debug("[Moonraker API] Metascan successful for: {}", filename);
+                on_success(metadata);
+            } catch (const std::exception& e) {
+                LOG_ERROR_INTERNAL("Failed to parse metascan response: {}", e.what());
+                FileMetadata empty;
+                on_success(empty);
+            }
+        },
+        on_error,
+        0,     // timeout_ms: use default
+        silent // silent: suppress RPC_ERROR events (default true)
+    );
 }
 
 void MoonrakerAPI::delete_file(const std::string& filename, SuccessCallback on_success,

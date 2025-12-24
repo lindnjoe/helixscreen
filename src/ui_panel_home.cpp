@@ -1187,8 +1187,10 @@ void HomePanel::load_current_print_thumbnail() {
                 });
         },
         [this](const MoonrakerError& error) {
-            spdlog::warn("[{}] Failed to get file metadata: {}", get_name(), error.message);
-        });
+            spdlog::debug("[{}] Failed to get file metadata: {}", get_name(), error.message);
+        },
+        true // silent - don't trigger RPC_ERROR event/toast
+    );
 }
 
 static std::unique_ptr<HomePanel> g_home_panel;

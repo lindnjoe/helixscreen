@@ -1794,7 +1794,9 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
         },
         [this](const MoonrakerError& err) {
             spdlog::debug("[{}] Failed to get file metadata: {}", get_name(), err.message);
-        });
+        },
+        true // silent - don't trigger RPC_ERROR event/toast
+    );
 }
 
 // ============================================================================
@@ -1827,8 +1829,15 @@ void PrintStatusPanel::load_gcode_for_viewing(const std::string& filename) {
     }
 
     // Generate temp file path - check if we already have a cached copy
+    // Use persistent cache directory (not /tmp which may be RAM-backed on embedded)
+    std::string cache_dir = get_helix_cache_dir("gcode_temp");
+    if (cache_dir.empty()) {
+        spdlog::warn("[{}] No writable cache directory - skipping G-code preview", get_name());
+        show_gcode_viewer(false);
+        return;
+    }
     std::string temp_path =
-        "/tmp/helix_print_view_" + std::to_string(std::hash<std::string>{}(filename)) + ".gcode";
+        cache_dir + "/print_view_" + std::to_string(std::hash<std::string>{}(filename)) + ".gcode";
 
     // Check if file already exists and is non-empty (cached from previous session)
     std::ifstream cached_file(temp_path, std::ios::binary | std::ios::ate);
@@ -1908,7 +1917,9 @@ void PrintStatusPanel::load_gcode_for_viewing(const std::string& filename) {
                           get_name(), filename, err.message);
             // Revert to thumbnail mode on metadata fetch failure
             show_gcode_viewer(false);
-        });
+        },
+        true // silent - don't trigger RPC_ERROR event/toast
+    );
 }
 
 // ============================================================================
