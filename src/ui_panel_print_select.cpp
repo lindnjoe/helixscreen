@@ -144,7 +144,7 @@ PrintSelectPanel::~PrintSelectPanel() {
     // (API may be null if never set, or if connection failed)
     if (api_ && !filelist_handler_name_.empty()) {
         api_->get_client().unregister_method_callback("notify_filelist_changed",
-                                                       filelist_handler_name_);
+                                                      filelist_handler_name_);
     }
 
     // CRITICAL: During static destruction (app exit), LVGL may already be gone.
@@ -904,11 +904,11 @@ void PrintSelectPanel::set_api(MoonrakerAPI* api) {
     // Register for file list change notifications from Moonraker
     // This handles external uploads (OrcaSlicer, Mainsail, etc.) and file operations
     if (api_) {
-        filelist_handler_name_ = "print_select_filelist_" + std::to_string(reinterpret_cast<uintptr_t>(this));
+        filelist_handler_name_ =
+            "print_select_filelist_" + std::to_string(reinterpret_cast<uintptr_t>(this));
         auto* self = this;
         api_->get_client().register_method_callback(
-            "notify_filelist_changed", filelist_handler_name_,
-            [self](const json& /*msg*/) {
+            "notify_filelist_changed", filelist_handler_name_, [self](const json& /*msg*/) {
                 spdlog::info("[{}] File list changed notification received", self->get_name());
 
                 // Check if we're on the printer source (not USB)
@@ -974,8 +974,9 @@ void PrintSelectPanel::on_activate() {
     // On subsequent activations: refresh to pick up external changes
     bool is_usb_active = usb_source_ && usb_source_->is_usb_active();
 
-    spdlog::debug("[{}] on_activate called (first_activation={}, file_count={}, usb_active={}, api={})",
-                  get_name(), first_activation_, file_list_.size(), is_usb_active, (api_ != nullptr));
+    spdlog::debug(
+        "[{}] on_activate called (first_activation={}, file_count={}, usb_active={}, api={})",
+        get_name(), first_activation_, file_list_.size(), is_usb_active, (api_ != nullptr));
 
     if (!is_usb_active && api_) {
         // Printer (Moonraker) source

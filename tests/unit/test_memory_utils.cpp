@@ -149,17 +149,17 @@ TEST_CASE("2D streaming: zero file size", "[memory][streaming][edge]") {
 TEST_CASE("MemoryInfo: is_constrained threshold", "[memory]") {
     MemoryInfo info;
 
-    // Below 64MB is constrained
+    // Below 64MB available = low memory
     info.available_kb = 63 * 1024;
-    REQUIRE(info.is_constrained());
+    REQUIRE(info.is_low_memory());
 
-    // At 64MB is not constrained
+    // At 64MB available = not low memory
     info.available_kb = 64 * 1024;
-    REQUIRE_FALSE(info.is_constrained());
+    REQUIRE_FALSE(info.is_low_memory());
 
-    // Above 64MB is not constrained
+    // Above 64MB available = not low memory
     info.available_kb = 128 * 1024;
-    REQUIRE_FALSE(info.is_constrained());
+    REQUIRE_FALSE(info.is_low_memory());
 }
 
 TEST_CASE("MemoryInfo: available_mb conversion", "[memory]") {

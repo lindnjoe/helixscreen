@@ -6,6 +6,7 @@
 #include "ui_error_reporting.h"
 
 #include "app_globals.h"
+#include "helix_version.h"
 #include "printer_state.h"
 
 #include <algorithm> // For std::sort in MCU query handling
@@ -915,6 +916,37 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
         last_discovery_complete_ = on_complete;
     }
 
+    // Step 0: Identify ourselves to Moonraker to enable receiving notifications
+    // Without this, we may not receive notify_filelist_changed and other events
+    json identify_params = {{"client_name", "HelixScreen"},
+                            {"version", HELIX_VERSION},
+                            {"type", "display"},
+                            {"url", "https://github.com/helixscreen/helixscreen"}};
+
+    send_jsonrpc(
+        "server.connection.identify", identify_params,
+        [this, on_complete](json identify_response) {
+            if (identify_response.contains("result")) {
+                auto conn_id = identify_response["result"].value("connection_id", 0);
+                spdlog::info("[Moonraker Client] Identified to Moonraker (connection_id: {})",
+                             conn_id);
+            } else if (identify_response.contains("error")) {
+                // Log but continue - older Moonraker versions may not support this
+                spdlog::warn("[Moonraker Client] Failed to identify: {}",
+                             identify_response["error"].dump());
+            }
+
+            // Continue with discovery regardless of identify result
+            continue_discovery(on_complete);
+        },
+        [this, on_complete](const MoonrakerError& err) {
+            // Log but continue - identify is not strictly required
+            spdlog::warn("[Moonraker Client] Identify request failed: {}", err.message);
+            continue_discovery(on_complete);
+        });
+}
+
+void MoonrakerClient::continue_discovery(std::function<void()> on_complete) {
     // Step 1: Query available printer objects (no params required)
     send_jsonrpc("printer.objects.list", json(), [this, on_complete](json response) {
         // Debug: Log raw response

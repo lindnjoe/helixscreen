@@ -201,6 +201,7 @@ int Application::run(int argc, char** argv) {
     helix::MemoryMonitor::instance().start(5000);
 
     // Phase 16: Main loop
+    helix::MemoryMonitor::log_now("before_main_loop");
     int result = main_loop();
 
     // Phase 16: Shutdown
@@ -426,6 +427,7 @@ bool Application::init_display() {
     }
 
     spdlog::debug("[Application] Display initialized");
+    helix::MemoryMonitor::log_now("after_display_init");
     return true;
 }
 
@@ -459,6 +461,7 @@ bool Application::init_theme() {
 bool Application::init_assets() {
     AssetManager::register_all();
     spdlog::debug("[Application] Assets registered");
+    helix::MemoryMonitor::log_now("after_fonts_loaded");
     return true;
 }
 
@@ -510,6 +513,7 @@ bool Application::init_subjects() {
     ui_panel_input_shaper_register_callbacks();
 
     spdlog::debug("[Application] Subjects initialized");
+    helix::MemoryMonitor::log_now("after_subjects_init");
     return true;
 }
 
@@ -577,6 +581,7 @@ bool Application::init_ui() {
     m_panels->init_keypad(m_screen);
 
     spdlog::info("[Application] UI created successfully");
+    helix::MemoryMonitor::log_now("after_ui_created");
     return true;
 }
 
@@ -603,6 +608,7 @@ bool Application::init_moonraker() {
     MemoryStatsOverlay::instance().init(m_screen, m_args.show_memory);
 
     spdlog::debug("[Application] Moonraker initialized");
+    helix::MemoryMonitor::log_now("after_moonraker_init");
     return true;
 }
 

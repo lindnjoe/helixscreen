@@ -10,11 +10,11 @@
 
 
 ### [L001] [*****/*****] Conventional commits format
-- **Uses**: 41 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: pattern
+- **Uses**: 43 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: pattern
 > Use type(scope): description format for commit messages. Types: feat, fix, refactor, docs, test, chore, style, perf, build. Examples: fix(home): auto-configure LED, feat(thumbnails): add dynamic sizing.
 
-### [L002] [****-/-----] Verbose flags required
-- **Uses**: 8 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
+### [L002] [****+/-----] Verbose flags required
+- **Uses**: 9 | **Learned**: 2025-12-14 | **Last**: 2025-12-24 | **Category**: gotcha
 > Always use -v or -vv when running helix-screen to see logs. Default shows WARN only which misses all debug info
 
 ### [L003] [***--/-----] Component names explicit
@@ -46,11 +46,11 @@
 > After adding icon to codepoints.h: add to regen_mdi_fonts.sh, run make regen-fonts, then rebuild. Forgetting any step = missing icon
 
 ### [L010] [*****/*****] No spdlog in destructors
-- **Uses**: 25 | **Learned**: 2025-12-14 | **Last**: 2025-12-24 | **Category**: gotcha
+- **Uses**: 26 | **Learned**: 2025-12-14 | **Last**: 2025-12-24 | **Category**: gotcha
 > Never call spdlog::info/warn/error in destructors. Logger may be destroyed before your object during static destruction, causing crash on exit
 
-### [L011] [****-/-----] No mutex in destructors
-- **Uses**: 8 | **Learned**: 2025-12-14 | **Last**: 2025-12-22 | **Category**: gotcha
+### [L011] [****+/-----] No mutex in destructors
+- **Uses**: 9 | **Learned**: 2025-12-14 | **Last**: 2025-12-24 | **Category**: gotcha
 > Avoid mutex locks in destructors during static destruction phase. Other objects may already be destroyed, causing deadlock or crash on exit
 
 ### [L012] [*****/*----] Guard async callbacks
@@ -98,16 +98,16 @@
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
 ### [L023] [*****/*****] Stage files explicitly
-- **Uses**: 48 | **Learned**: 2025-12-19 | **Last**: 2025-12-24 | **Category**: correction
+- **Uses**: 50 | **Learned**: 2025-12-19 | **Last**: 2025-12-24 | **Category**: correction
 > When committing, stage only files you actually modified (`git add <file>`) rather than `git add -A`. But ALSO verify completeness - check `git status` to ensure no critical feature files are missed. Atomic commits need both precision AND completeness.
 
 
 ### [L024] [*****/*****] WIP file safety
-- **Uses**: 32 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: correction
+- **Uses**: 34 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: correction
 > Never modify, stash, restore, or commit files that are part of uncommitted WIP changes without explicit user permission. Focus only on the specific files/changes requested.
 
 ### [L025] [*----/-----] Button content centering
-- **Uses**: 1 | **Learned**: 2025-12-21 | **Last**: 2025-12-21 | **Category**: pattern
+- **Uses**: 2 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: pattern
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
 
 
@@ -116,12 +116,12 @@
 > NEVER delete files you don't understand without explicit user permission. If untracked files cause build errors, ASK the user first - they may be important WIP. Ignoring the build error is always safer than deleting files.
 
 
-### [L027] [+----/-----] Worktree initialization
-- **Uses**: 1 | **Learned**: 2025-12-24 | **Last**: 2025-12-24 | **Category**: pattern
+### [L027] [*----/-----] Worktree initialization
+- **Uses**: 2 | **Learned**: 2025-12-24 | **Last**: 2025-12-24 | **Category**: pattern
 > When creating a git worktree for a project with submodules or generated files, ALWAYS run the init script (e.g., init-worktree.sh) before building. Worktrees share git history but have separate working directories - generated files like lib/libhv/include/hv/ don't exist until built.
 
 
-### [L028] [+----/-----] Use project venv
-- **Uses**: 1 | **Learned**: 2025-12-24 | **Last**: 2025-12-24 | **Category**: correction
+### [L028] [*----/-----] Use project venv
+- **Uses**: 2 | **Learned**: 2025-12-24 | **Last**: 2025-12-24 | **Category**: correction
 > Always use project's .venv for Python packages (.venv/bin/pip install X), never system pip. Project dependencies should stay isolated in the venv.
 

@@ -87,7 +87,8 @@ void MemoryMonitor::log_now(const char* context) {
     MemoryStats stats = get_current_stats();
 
     if (context) {
-        spdlog::trace(
+        // Context-based logs go to DEBUG so they're visible with -vv
+        spdlog::debug(
             "[MemoryMonitor] [{}] RSS={}kB VmSize={}kB VmData={}kB Swap={}kB (Peak: RSS={}kB "
             "Vm={}kB)",
             context, stats.vm_rss_kb, stats.vm_size_kb, stats.vm_data_kb, stats.vm_swap_kb,

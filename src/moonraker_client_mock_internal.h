@@ -88,4 +88,14 @@ void register_object_handlers(std::unordered_map<std::string, MethodHandler>& re
  */
 void register_history_handlers(std::unordered_map<std::string, MethodHandler>& registry);
 
+/**
+ * @brief Register server method handlers
+ *
+ * Registers handlers for:
+ * - server.connection.identify
+ *
+ * @param registry Map to register handlers into
+ */
+void register_server_handlers(std::unordered_map<std::string, MethodHandler>& registry);
+
 } // namespace mock_internal

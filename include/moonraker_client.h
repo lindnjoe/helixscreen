@@ -647,6 +647,16 @@ class MoonrakerClient : public hv::WebSocketClient {
     void cleanup_pending_requests();
 
     /**
+     * @brief Continue discovery after server.connection.identify
+     *
+     * Called after the identify call completes (success or failure) to begin
+     * the actual printer discovery sequence (objects.list, server.info, etc).
+     *
+     * @param on_complete Callback to invoke when discovery is fully complete
+     */
+    void continue_discovery(std::function<void()> on_complete);
+
+    /**
      * @brief Complete discovery by subscribing to printer objects
      *
      * Called after MCU queries complete (or are skipped) to finish the
