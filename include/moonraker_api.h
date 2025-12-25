@@ -166,26 +166,27 @@ class MoonrakerAPI {
     using ModifiedPrintCallback = std::function<void(const ModifiedPrintResult&)>;
 
     /**
-     * @brief Start printing modified G-code via helix_print plugin
+     * @brief Start printing modified G-code via helix_print plugin (v2.0 API)
      *
-     * Sends modified G-code content to the helix_print Moonraker plugin,
-     * which handles:
-     * - Saving the modified content to a temp file
-     * - Creating a symlink with the original filename
-     * - Starting the print via the symlink
-     * - Patching history to record the original filename
+     * The modified file must already be uploaded to the printer. This method
+     * tells the helix_print plugin where to find it and starts the print.
      *
-     * Falls back to legacy upload+start flow if plugin is not available.
+     * Plugin workflow:
+     * - Validates temp file exists
+     * - Creates a symlink with the original filename (for print_stats)
+     * - Starts the print via the symlink
+     * - Patches history to record the original filename
+     *
      * Use has_helix_plugin() to check availability.
      *
-     * @param original_filename Path to the original G-code file
-     * @param modified_content Complete modified G-code content
+     * @param original_filename Path to the original G-code file (for history)
+     * @param temp_file_path Path to already-uploaded modified file (e.g., ".helix_temp/foo.gcode")
      * @param modifications List of modification identifiers (e.g., "bed_leveling_disabled")
      * @param on_success Callback with print result
      * @param on_error Error callback
      */
     virtual void start_modified_print(const std::string& original_filename,
-                                      const std::string& modified_content,
+                                      const std::string& temp_file_path,
                                       const std::vector<std::string>& modifications,
                                       ModifiedPrintCallback on_success, ErrorCallback on_error);
 
@@ -1092,6 +1093,7 @@ class MoonrakerAPI {
     // HelixPrint plugin detection
     std::atomic<bool> helix_plugin_available_{false};
     std::atomic<bool> helix_plugin_checked_{false};
+    std::string helix_plugin_version_; ///< Plugin version (e.g., "2.0.0")
 
     // Track pending HTTP request threads to ensure clean shutdown
     // IMPORTANT: Prevents use-after-free when threads outlive the API object

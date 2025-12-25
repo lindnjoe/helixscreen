@@ -136,18 +136,24 @@ void MoonrakerAPI::check_helix_plugin(BoolCallback on_result, ErrorCallback on_e
         [this, on_result](json response) {
             // Plugin is available
             bool enabled = true;
-            if (response.contains("result") && response["result"].contains("enabled")) {
-                enabled = response["result"]["enabled"].get<bool>();
+            std::string version = "unknown";
+            if (response.contains("result")) {
+                const auto& r = response["result"];
+                enabled = r.value("enabled", true);
+                version = r.value("version", "1.0.0"); // Old plugins lack version
             }
             helix_plugin_available_ = enabled;
             helix_plugin_checked_ = true;
-            spdlog::info("[Moonraker API] helix_print plugin detected (enabled={})", enabled);
+            helix_plugin_version_ = version;
+            spdlog::info("[Moonraker API] helix_print plugin v{} detected (enabled={})", version,
+                         enabled);
             on_result(enabled);
         },
         [this, on_result, on_error](const MoonrakerError& err) {
             // Plugin not available (404 or method not found)
             helix_plugin_available_ = false;
             helix_plugin_checked_ = true;
+            helix_plugin_version_.clear();
             spdlog::debug("[Moonraker API] helix_print plugin not available: {}", err.message);
             // Don't treat this as an error - just means plugin isn't installed
             on_result(false);
@@ -157,10 +163,10 @@ void MoonrakerAPI::check_helix_plugin(BoolCallback on_result, ErrorCallback on_e
 }
 
 void MoonrakerAPI::start_modified_print(const std::string& original_filename,
-                                        const std::string& modified_content,
+                                        const std::string& temp_file_path,
                                         const std::vector<std::string>& modifications,
                                         ModifiedPrintCallback on_success, ErrorCallback on_error) {
-    // Validate filename path
+    // Validate filename paths
     if (!is_safe_path(original_filename)) {
         NOTIFY_ERROR("Cannot start modified print. File '{}' has invalid path.", original_filename);
         if (on_error) {
@@ -173,19 +179,32 @@ void MoonrakerAPI::start_modified_print(const std::string& original_filename,
         return;
     }
 
+    if (!is_safe_path(temp_file_path)) {
+        NOTIFY_ERROR("Cannot start modified print. Temp path '{}' is invalid.", temp_file_path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid temp path contains directory traversal or illegal characters";
+            err.method = "start_modified_print";
+            on_error(err);
+        }
+        return;
+    }
+
     // Build modifications array
     json mods_array = json::array();
     for (const auto& mod : modifications) {
         mods_array.push_back(mod);
     }
 
+    // v2.0 API: Send path to already-uploaded file, not content
     json params = {{"original_filename", original_filename},
-                   {"modified_content", modified_content},
+                   {"temp_file_path", temp_file_path},
                    {"modifications", mods_array},
                    {"copy_metadata", true}};
 
-    spdlog::info("[Moonraker API] Starting modified print via helix_print plugin: {}",
-                 original_filename);
+    spdlog::info("[Moonraker API] Starting modified print via helix_print plugin: {} (temp: {})",
+                 original_filename, temp_file_path);
 
     client_.send_jsonrpc(
         "server.helix.print_modified", params,

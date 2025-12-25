@@ -54,6 +54,7 @@ See `docs/AMS_IMPLEMENTATION_PLAN.md` for detailed specification.
 - [x] **Memory profiling tools** - Development overlay for memory monitoring
 - [ ] **Structured logging** - Log levels, rotation, remote debugging
 - [ ] **Edge case testing** - Print failures, filesystem errors
+- [ ] **Streaming-first file operations** - Test on AD5M with 50MB+ G-code to verify no TTC errors
 
 ---
 

@@ -795,128 +795,28 @@ void PrintPreparationManager::modify_and_print(
         mod_names.push_back("skip_" + param_name);
     }
 
-    // Check if helix_print plugin is available FIRST (before downloading)
-    // Plugin path uses server-side modification, so memory isn't a concern
-    if (printer_state_ && printer_state_->service_has_helix_plugin()) {
-        spdlog::info("[PrintPreparationManager] Using helix_print plugin for modified print");
-        modify_and_print_via_plugin(file_path, display_filename, ops_to_disable, macro_skip_params,
-                                    mod_names, on_navigate_to_status);
-    } else {
-        // STREAMING PATH: Download to disk, modify file-to-file, upload from disk
-        // This avoids loading the entire G-code file into memory
-        spdlog::info("[PrintPreparationManager] Using streaming fallback (helix_print plugin not "
-                     "available)");
-        modify_and_print_streaming(file_path, display_filename, ops_to_disable, macro_skip_params,
-                                   on_navigate_to_status);
-    }
-}
-
-void PrintPreparationManager::modify_and_print_via_plugin(
-    const std::string& file_path, const std::string& display_filename,
-    const std::vector<gcode::OperationType>& ops_to_disable,
-    const std::vector<std::pair<std::string, std::string>>& macro_skip_params,
-    const std::vector<std::string>& mod_names, NavigateToStatusCallback on_navigate_to_status) {
-    auto* self = this;
-    auto alive = alive_guard_;              // Capture for lifetime checking in async callbacks
-    auto scan_result = cached_scan_result_; // Copy for lambda capture
-
-    // Validate scan_result before proceeding
-    if (!scan_result.has_value()) {
-        NOTIFY_ERROR("Cannot modify G-code: scan result not available");
-        if (printer_state_)
-            printer_state_->set_print_in_progress(false);
-        return;
-    }
-
-    // Download file to memory (acceptable for plugin path since server does the work)
-    api_->download_file(
-        "gcodes", file_path,
-        [self, alive, file_path, display_filename, ops_to_disable, macro_skip_params, mod_names,
-         on_navigate_to_status, scan_result](const std::string& content) {
-            // Check if manager was destroyed before this callback executed
-            if (!alive || !*alive) {
-                spdlog::debug("[PrintPreparationManager] Skipping plugin download callback - "
-                              "manager destroyed");
-                return;
-            }
-            // Apply modifications in memory (safe - no shared state)
-            gcode::GCodeFileModifier modifier;
-
-            // Disable file-embedded operations (comment them out)
-            modifier.disable_operations(*scan_result, ops_to_disable);
-
-            // Add skip parameters to PRINT_START call (if any)
-            if (!macro_skip_params.empty()) {
-                if (modifier.add_print_start_skip_params(*scan_result, macro_skip_params)) {
-                    spdlog::info("[PrintPreparationManager] Added {} skip params to PRINT_START",
-                                 macro_skip_params.size());
-                } else {
-                    spdlog::warn("[PrintPreparationManager] Could not add skip params - "
-                                 "PRINT_START not found in G-code");
-                }
-            }
-
-            std::string modified_content = modifier.apply_to_content(content);
-            if (modified_content.empty()) {
-                NOTIFY_ERROR("Failed to modify G-code file");
-                if (self->printer_state_)
-                    self->printer_state_->set_print_in_progress(false);
-                return;
-            }
-
-            // Use helix_print plugin (single API call, server handles the rest)
-            self->api_->start_modified_print(
-                file_path, modified_content, mod_names,
-                // Success callback - runs on HTTP thread, must defer LVGL ops
-                [self, on_navigate_to_status, display_filename](const ModifiedPrintResult& result) {
-                    spdlog::info("[PrintPreparationManager] Print started via helix_print "
-                                 "plugin: {} -> {}",
-                                 result.original_filename, result.print_filename);
-
-                    // Clear in-progress flag on success
-                    if (self->printer_state_)
-                        self->printer_state_->set_print_in_progress(false);
-
-                    // Defer LVGL operations to main thread
-                    struct PrintStartedData {
-                        std::string filename;
-                        NavigateToStatusCallback navigate_cb;
-                    };
-                    ui_queue_update<PrintStartedData>(
-                        std::make_unique<PrintStartedData>(
-                            PrintStartedData{display_filename, on_navigate_to_status}),
-                        [](PrintStartedData* d) {
-                            get_global_print_status_panel().set_thumbnail_source(d->filename);
-                            if (d->navigate_cb) {
-                                d->navigate_cb();
-                            }
-                        });
-                },
-                [self, file_path](const MoonrakerError& error) {
-                    // NOTIFY_ERROR is already thread-safe
-                    NOTIFY_ERROR("Failed to start modified print: {}", error.message);
-                    LOG_ERROR_INTERNAL(
-                        "[PrintPreparationManager] helix_print plugin error for {}: {}", file_path,
-                        error.message);
-                    if (self->printer_state_)
-                        self->printer_state_->set_print_in_progress(false);
-                });
-        },
-        [self, file_path](const MoonrakerError& error) {
-            // NOTIFY_ERROR is already thread-safe
-            NOTIFY_ERROR("Failed to download G-code for modification: {}", error.message);
-            LOG_ERROR_INTERNAL("[PrintPreparationManager] Download failed for {}: {}", file_path,
-                               error.message);
-            if (self->printer_state_)
-                self->printer_state_->set_print_in_progress(false);
-        });
+    // UNIFIED STREAMING PATH: Always use streaming to avoid memory spikes
+    // 1. Download to disk (streaming)
+    // 2. Modify on disk (file-to-file, minimal memory)
+    // 3. Upload modified file to server
+    // 4. If plugin available: use path-based API for symlink/history patching
+    //    Otherwise: use standard start_print
+    //
+    // This prevents TTC errors on memory-constrained devices like AD5M (512MB RAM)
+    // by never loading the entire G-code file into memory.
+    bool has_plugin = printer_state_ && printer_state_->service_has_helix_plugin();
+    spdlog::info("[PrintPreparationManager] Using unified streaming modification flow (plugin: {})",
+                 has_plugin);
+    modify_and_print_streaming(file_path, display_filename, ops_to_disable, macro_skip_params,
+                               mod_names, on_navigate_to_status, has_plugin);
 }
 
 void PrintPreparationManager::modify_and_print_streaming(
     const std::string& file_path, const std::string& display_filename,
     const std::vector<gcode::OperationType>& ops_to_disable,
     const std::vector<std::pair<std::string, std::string>>& macro_skip_params,
-    NavigateToStatusCallback on_navigate_to_status) {
+    const std::vector<std::string>& mod_names, NavigateToStatusCallback on_navigate_to_status,
+    bool use_plugin) {
     auto* self = this;
     auto alive = alive_guard_;              // Capture for lifetime checking in async callbacks
     auto scan_result = cached_scan_result_; // Copy for lambda capture
@@ -950,9 +850,9 @@ void PrintPreparationManager::modify_and_print_streaming(
     api_->download_file_to_path(
         "gcodes", file_path, local_download_path,
         // Download success - NOTE: runs on HTTP thread
-        [self, alive, file_path, display_filename, ops_to_disable, macro_skip_params, scan_result,
-         local_download_path, remote_temp_path,
-         on_navigate_to_status](const std::string& /*dest_path*/) {
+        [self, alive, file_path, display_filename, ops_to_disable, macro_skip_params, mod_names,
+         scan_result, local_download_path, remote_temp_path, on_navigate_to_status,
+         use_plugin](const std::string& /*dest_path*/) {
             // Check if manager was destroyed before this callback executed
             if (!alive || !*alive) {
                 spdlog::debug("[PrintPreparationManager] Skipping streaming download callback - "
@@ -1008,8 +908,8 @@ void PrintPreparationManager::modify_and_print_streaming(
             self->api_->upload_file_from_path(
                 "gcodes", remote_temp_path, modified_path,
                 // Upload success - NOTE: runs on HTTP thread, defer LVGL ops
-                [self, alive, modified_path, display_filename, remote_temp_path,
-                 on_navigate_to_status]() {
+                [self, alive, modified_path, display_filename, remote_temp_path, file_path,
+                 mod_names, on_navigate_to_status, use_plugin]() {
                     // Clean up local modified file (safe - filesystem op, always do it)
                     std::error_code ec;
                     std::filesystem::remove(modified_path, ec);
@@ -1027,71 +927,93 @@ void PrintPreparationManager::modify_and_print_streaming(
                     }
 
                     spdlog::info("[PrintPreparationManager] Modified file uploaded, starting "
-                                 "print");
+                                 "print (use_plugin={})",
+                                 use_plugin);
 
                     // Step 4: Start print with modified file
-                    self->api_->start_print(
-                        remote_temp_path,
-                        // Print success - defer LVGL ops to main thread
-                        [self, on_navigate_to_status, display_filename]() {
-                            spdlog::info("[PrintPreparationManager] Print started with "
-                                         "modified G-code (streaming, original: {})",
-                                         display_filename);
+                    // If plugin available, use path-based API for symlink/history patching
+                    // Otherwise, use standard start_print
 
-                            // Clear in-progress flag on success
-                            if (self->printer_state_) {
-                                self->printer_state_->set_print_in_progress(false);
-                            }
+                    // Define common callbacks to avoid code duplication
+                    auto on_print_success = [self, on_navigate_to_status, display_filename]() {
+                        spdlog::info("[PrintPreparationManager] Print started with "
+                                     "modified G-code (streaming, original: {})",
+                                     display_filename);
 
-                            // Defer LVGL operations to main thread
-                            struct PrintStartedData {
-                                std::string filename;
-                                NavigateToStatusCallback navigate_cb;
-                            };
-                            ui_queue_update<PrintStartedData>(
-                                std::make_unique<PrintStartedData>(
-                                    PrintStartedData{display_filename, on_navigate_to_status}),
-                                [](PrintStartedData* d) {
-                                    get_global_print_status_panel().set_thumbnail_source(
-                                        d->filename);
-                                    if (d->navigate_cb) {
-                                        d->navigate_cb();
-                                    }
-                                });
-                        },
-                        // Print error - also try to clean up remote temp file
-                        [self, alive, remote_temp_path](const MoonrakerError& error) {
-                            NOTIFY_ERROR("Failed to start print: {}", error.message);
-                            LOG_ERROR_INTERNAL(
-                                "[PrintPreparationManager] Print start failed for {}: {}",
-                                remote_temp_path, error.message);
+                        // Clear in-progress flag on success
+                        if (self->printer_state_) {
+                            self->printer_state_->set_print_in_progress(false);
+                        }
 
-                            // Clear in-progress flag on error
-                            if (self->printer_state_) {
-                                self->printer_state_->set_print_in_progress(false);
-                            }
+                        // Defer LVGL operations to main thread
+                        struct PrintStartedData {
+                            std::string filename;
+                            NavigateToStatusCallback navigate_cb;
+                        };
+                        ui_queue_update<PrintStartedData>(
+                            std::make_unique<PrintStartedData>(
+                                PrintStartedData{display_filename, on_navigate_to_status}),
+                            [](PrintStartedData* d) {
+                                get_global_print_status_panel().set_thumbnail_source(d->filename);
+                                if (d->navigate_cb) {
+                                    d->navigate_cb();
+                                }
+                            });
+                    };
 
-                            // Check if manager still valid before cleanup
-                            if (!alive || !*alive) {
-                                spdlog::debug("[PrintPreparationManager] Skipping remote "
-                                              "cleanup - manager destroyed");
-                                return;
-                            }
+                    auto on_print_error = [self, alive,
+                                           remote_temp_path](const MoonrakerError& error) {
+                        NOTIFY_ERROR("Failed to start print: {}", error.message);
+                        LOG_ERROR_INTERNAL(
+                            "[PrintPreparationManager] Print start failed for {}: {}",
+                            remote_temp_path, error.message);
 
-                            // Clean up remote temp file on failure
-                            // Moonraker's delete_file requires full path including root
-                            std::string full_path = "gcodes/" + remote_temp_path;
-                            self->api_->delete_file(
-                                full_path,
-                                []() {
-                                    spdlog::debug("[PrintPreparationManager] Cleaned up "
-                                                  "remote temp file after print failure");
-                                },
-                                [](const MoonrakerError& /*del_err*/) {
-                                    // Ignore delete errors - file may not exist or cleanup
-                                    // isn't critical
-                                });
-                        });
+                        // Clear in-progress flag on error
+                        if (self->printer_state_) {
+                            self->printer_state_->set_print_in_progress(false);
+                        }
+
+                        // Check if manager still valid before cleanup
+                        if (!alive || !*alive) {
+                            spdlog::debug(
+                                "[PrintPreparationManager] Skipping remote cleanup - manager "
+                                "destroyed");
+                            return;
+                        }
+
+                        // Clean up remote temp file on failure
+                        // Moonraker's delete_file requires full path including root
+                        std::string full_path = "gcodes/" + remote_temp_path;
+                        self->api_->delete_file(
+                            full_path,
+                            []() {
+                                spdlog::debug("[PrintPreparationManager] Cleaned up "
+                                              "remote temp file after print failure");
+                            },
+                            [](const MoonrakerError& /*del_err*/) {
+                                // Ignore delete errors - file may not exist or cleanup
+                                // isn't critical
+                            });
+                    };
+
+                    if (use_plugin) {
+                        // Plugin path: Use path-based API (v2.0)
+                        // The plugin will create symlink, patch history, and start print
+                        self->api_->start_modified_print(
+                            file_path,        // Original filename for history
+                            remote_temp_path, // Path to uploaded modified file
+                            mod_names,
+                            [on_print_success](const ModifiedPrintResult& result) {
+                                spdlog::info("[PrintPreparationManager] Plugin accepted print: "
+                                             "{} -> {}",
+                                             result.original_filename, result.print_filename);
+                                on_print_success();
+                            },
+                            on_print_error);
+                    } else {
+                        // Standard path: Just start print with modified file
+                        self->api_->start_print(remote_temp_path, on_print_success, on_print_error);
+                    }
                 },
                 // Upload error - clean up local file
                 [self, modified_path](const MoonrakerError& error) {

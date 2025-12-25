@@ -119,5 +119,11 @@
     "_disk_critical_mb_comment": "Stop caching when available disk falls below this (MB). Prevents filling filesystem. AD5M default: 5",
     "disk_low_mb": 20,
     "_disk_low_mb_comment": "Evict aggressively when available disk falls below this (MB). Reduces cache to half normal limit. AD5M default: 20"
+  },
+  "streaming": {
+    "threshold_mb": 0,
+    "_threshold_mb_comment": "File size threshold in MB for using streaming (disk-based) operations instead of buffered (in-memory). 0 = auto-detect based on 10% of available RAM. Override with HELIX_FORCE_STREAMING=1 env var to force streaming for all files.",
+    "force_streaming": false,
+    "_force_streaming_comment": "Always use streaming operations regardless of file size. Useful for memory-constrained devices or testing. Can also be set via HELIX_FORCE_STREAMING=1 env var."
   }
 }

@@ -6,7 +6,7 @@
  *
  * Tests cover:
  * 1. Plugin detection (check_helix_plugin)
- * 2. Modified print API (start_modified_print)
+ * 2. Modified print API (start_modified_print) - v2.0 path-based
  * 3. Fallback behavior when plugin unavailable
  * 4. Error handling and validation
  */
@@ -109,16 +109,17 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture,
 }
 
 // ============================================================================
-// Modified Print API Validation Tests
+// Modified Print API Validation Tests (v2.0 - Path-Based)
 // ============================================================================
 
 TEST_CASE_METHOD(HelixPrintAPITestFixture,
-                 "HelixPrint API - start_modified_print validates filename",
+                 "HelixPrint API - start_modified_print validates original filename",
                  "[print][api][security]") {
-    SECTION("Rejects path traversal in filename") {
+    SECTION("Rejects path traversal in original filename") {
         api->start_modified_print(
-            "../../../etc/passwd", // Malicious path
-            "G28\n", {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            "../../../etc/passwd",       // Malicious original path
+            ".helix_temp/mod_123.gcode", // Valid temp path
+            {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
             [this](const MoonrakerError& err) {
                 error_message = err.message;
                 error_called = true;
@@ -133,8 +134,9 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture,
 
     SECTION("Rejects filename with newlines") {
         api->start_modified_print(
-            "test\nfile.gcode", // Newline injection
-            "G28\n", {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            "test\nfile.gcode",          // Newline injection
+            ".helix_temp/mod_123.gcode", // Valid temp path
+            {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
             [this](const MoonrakerError& err) {
                 error_message = err.message;
                 error_called = true;
@@ -149,7 +151,7 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture,
     SECTION("Accepts valid filename") {
         // This will fail due to disconnected client, but should pass validation
         api->start_modified_print(
-            "benchy.gcode", "G28\nG1 X0 Y0\n", {"bed_leveling_disabled"},
+            "benchy.gcode", ".helix_temp/mod_benchy.gcode", {"bed_leveling_disabled"},
             [this](const ModifiedPrintResult& result) {
                 modified_print_result = result;
                 success_called = true;
@@ -172,7 +174,8 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture,
     SECTION("Accepts filename with subdirectory") {
         api->start_modified_print(
             "prints/2024/benchy.gcode", // Valid subdirectory path
-            "G28\n", {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            ".helix_temp/mod_benchy.gcode", {"test_mod"},
+            [this](const ModifiedPrintResult&) { success_called = true; },
             [this](const MoonrakerError& err) {
                 error_message = err.message;
                 error_called = true;
@@ -184,6 +187,43 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture,
         if (error_called) {
             REQUIRE(error_message.find("directory traversal") == std::string::npos);
         }
+    }
+}
+
+TEST_CASE_METHOD(HelixPrintAPITestFixture,
+                 "HelixPrint API - start_modified_print validates temp file path",
+                 "[print][api][security]") {
+    SECTION("Rejects path traversal in temp path") {
+        api->start_modified_print(
+            "benchy.gcode",        // Valid original
+            "../../../etc/passwd", // Malicious temp path
+            {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            [this](const MoonrakerError& err) {
+                error_message = err.message;
+                error_called = true;
+            });
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        REQUIRE(error_called == true);
+        REQUIRE(success_called == false);
+        REQUIRE(error_message.find("directory traversal") != std::string::npos);
+    }
+
+    SECTION("Rejects temp path with newlines") {
+        api->start_modified_print(
+            "benchy.gcode",
+            ".helix_temp/mod\n123.gcode", // Newline injection
+            {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            [this](const MoonrakerError& err) {
+                error_message = err.message;
+                error_called = true;
+            });
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        REQUIRE(error_called == true);
+        REQUIRE(success_called == false);
     }
 }
 
@@ -222,7 +262,7 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture, "HelixPrint API - handles empty modif
                  "[print][api]") {
     // Empty modifications list should be valid
     api->start_modified_print(
-        "benchy.gcode", "G28\n", {}, // Empty modifications
+        "benchy.gcode", ".helix_temp/mod_benchy.gcode", {}, // Empty modifications
         [this](const ModifiedPrintResult&) { success_called = true; },
         [this](const MoonrakerError& err) {
             error_message = err.message;
@@ -243,7 +283,7 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture, "HelixPrint API - handles multiple mo
                                      "nozzle_clean_disabled"};
 
     api->start_modified_print(
-        "benchy.gcode", "G28\n", mods,
+        "benchy.gcode", ".helix_temp/mod_benchy.gcode", mods,
         [this](const ModifiedPrintResult&) { success_called = true; },
         [this](const MoonrakerError& err) {
             error_message = err.message;
@@ -259,31 +299,43 @@ TEST_CASE_METHOD(HelixPrintAPITestFixture, "HelixPrint API - handles multiple mo
 }
 
 // ============================================================================
-// Large Content Tests
+// Path Format Tests (v2.0 API)
 // ============================================================================
 
-TEST_CASE_METHOD(HelixPrintAPITestFixture, "HelixPrint API - handles large G-code content",
+TEST_CASE_METHOD(HelixPrintAPITestFixture, "HelixPrint API - accepts various valid temp paths",
                  "[print][api]") {
-    // Generate large G-code content (simulating a real print file)
-    std::string large_content = "G28\n";
-    for (int i = 0; i < 10000; i++) {
-        large_content += "G1 X" + std::to_string(i % 200) + " Y" + std::to_string(i % 200) + " Z" +
-                         std::to_string(i / 1000.0) + " E0.5 F1200\n";
+    SECTION("Standard .helix_temp path") {
+        api->start_modified_print(
+            "print.gcode", ".helix_temp/mod_12345_print.gcode", {"test_mod"},
+            [this](const ModifiedPrintResult&) { success_called = true; },
+            [this](const MoonrakerError& err) {
+                error_message = err.message;
+                error_called = true;
+            });
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        // Should not fail validation (network error is expected)
+        if (error_called) {
+            REQUIRE(error_message.find("directory traversal") == std::string::npos);
+            REQUIRE(error_message.find("temp path") == std::string::npos);
+        }
     }
 
-    api->start_modified_print(
-        "large_print.gcode", large_content, {"bed_leveling_disabled"},
-        [this](const ModifiedPrintResult&) { success_called = true; },
-        [this](const MoonrakerError& err) {
-            error_message = err.message;
-            error_called = true;
-        });
+    SECTION("Path with special characters in filename") {
+        api->start_modified_print(
+            "my-print_v2.0 (final).gcode", ".helix_temp/mod_my-print_v2.0 (final).gcode",
+            {"test_mod"}, [this](const ModifiedPrintResult&) { success_called = true; },
+            [this](const MoonrakerError& err) {
+                error_message = err.message;
+                error_called = true;
+            });
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-    // Should not crash or fail validation
-    // Will fail network send due to disconnected client
-    if (error_called) {
-        REQUIRE(error_message.find("directory traversal") == std::string::npos);
+        // Should not fail validation
+        if (error_called) {
+            REQUIRE(error_message.find("directory traversal") == std::string::npos);
+        }
     }
 }

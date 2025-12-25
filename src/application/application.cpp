@@ -10,6 +10,7 @@
 #include "display_manager.h"
 #include "moonraker_manager.h"
 #include "panel_factory.h"
+#include "streaming_policy.h"
 #include "subject_initializer.h"
 
 // UI headers
@@ -322,6 +323,10 @@ void Application::auto_configure_mock_state() {
 bool Application::init_config() {
     m_config = Config::get_instance();
     m_config->init("helixconfig.json");
+
+    // Initialize streaming policy from config (auto-detects thresholds from RAM)
+    helix::StreamingPolicy::instance().load_from_config();
+
     return true;
 }
 

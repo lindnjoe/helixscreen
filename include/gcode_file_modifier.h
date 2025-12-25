@@ -17,9 +17,11 @@ namespace gcode {
 /**
  * @brief Maximum file size (in bytes) to load entirely into memory
  *
- * Files larger than this threshold will be processed using streaming mode,
- * which reads and writes line-by-line instead of loading the entire file.
- * This is critical for embedded devices with limited RAM (256MB-512MB).
+ * @deprecated Use StreamingPolicy::should_stream() instead.
+ * This constant is retained for backward compatibility with tests.
+ * The actual streaming decision is now controlled by StreamingPolicy,
+ * which auto-detects based on available RAM or can be configured in
+ * helixconfig.json.
  *
  * Default: 5MB (safe for most embedded targets)
  */

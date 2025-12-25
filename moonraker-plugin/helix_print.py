@@ -6,8 +6,14 @@ This component provides a single API endpoint that handles the complete workflow
 for printing modified G-code while preserving original file attribution in
 Klipper's print_stats and Moonraker's history.
 
+API v2.0: Path-based interface
+- Client uploads modified file first via standard Moonraker file upload
+- Then calls print_modified with path to the already-uploaded file
+- This avoids memory-intensive JSON payloads for large G-code files
+
 Key features:
 - Single API endpoint: POST /server/helix/print_modified
+- Path-based interface (receives file path, not content)
 - Symlink-based filename preservation (Klipper sees original name)
 - Automatic history patching to record original filename
 - Configurable cleanup of temporary files
@@ -18,7 +24,6 @@ Configuration (moonraker.conf):
     temp_dir: .helix_temp
     symlink_dir: .helix_print
     cleanup_delay: 86400
-    max_content_size: 524288000
 """
 
 from __future__ import annotations
@@ -44,8 +49,8 @@ HELIX_TEMP_TABLE = "helix_temp_files"
 # Maximum age for cleaned database records before deletion (30 days)
 DB_RECORD_MAX_AGE = 30 * 86400
 
-# Default maximum content size (500 MB)
-DEFAULT_MAX_CONTENT_SIZE = 500 * 1024 * 1024
+# Plugin version - used for API version detection by clients
+PLUGIN_VERSION = "2.0.0"
 
 
 class PrintInfo:
@@ -88,9 +93,6 @@ class HelixPrint:
         self.symlink_dir = config.get("symlink_dir", ".helix_print")
         self.cleanup_delay = config.getint("cleanup_delay", 86400)  # 24 hours
         self.enabled = config.getboolean("enabled", True)
-        self.max_content_size = config.getint(
-            "max_content_size", DEFAULT_MAX_CONTENT_SIZE
-        )
 
         # Validate directory names don't contain path separators
         if "/" in self.temp_dir:
@@ -129,9 +131,8 @@ class HelixPrint:
         )
 
         logging.info(
-            f"HelixPrint initialized: temp={self.temp_dir}, "
-            f"symlink={self.symlink_dir}, cleanup={self.cleanup_delay}s, "
-            f"max_content={self.max_content_size} bytes"
+            f"HelixPrint v{PLUGIN_VERSION} initialized: temp={self.temp_dir}, "
+            f"symlink={self.symlink_dir}, cleanup={self.cleanup_delay}s"
         )
 
     # =========================================================================
@@ -184,17 +185,6 @@ class HelixPrint:
             )
 
         return resolved
-
-    def _validate_content_size(self, content: str) -> None:
-        """Validate content size is within limits."""
-        # Note: len(str) gives character count, but for ASCII G-code
-        # this closely approximates byte size
-        if len(content) > self.max_content_size:
-            raise self.server.error(
-                f"Content too large: {len(content)} bytes "
-                f"(max {self.max_content_size})",
-                413,
-            )
 
     def _escape_gcode_string(self, s: str) -> str:
         """Escape a string for use in G-code commands."""
@@ -270,30 +260,37 @@ class HelixPrint:
     # =========================================================================
 
     async def _handle_status(self, web_request: WebRequest) -> Dict[str, Any]:
-        """Handle status request - useful for plugin detection."""
+        """Handle status request - useful for plugin detection and version checking."""
         return {
             "enabled": self.enabled,
             "temp_dir": self.temp_dir,
             "symlink_dir": self.symlink_dir,
             "cleanup_delay": self.cleanup_delay,
-            "max_content_size": self.max_content_size,
             "active_prints": len(self.active_prints),
-            "version": "1.1.0",
+            "version": PLUGIN_VERSION,
         }
 
     async def _handle_print_modified(
         self, web_request: WebRequest
     ) -> Dict[str, Any]:
         """
-        Handle the print_modified API request.
+        Handle the print_modified API request (v2.0 - path-based).
 
         This is the main entry point for printing modified G-code files.
-        It handles the complete workflow:
-        1. Validate original file exists
-        2. Save modified content to temp directory
-        3. Copy metadata from original
-        4. Create symlink with original filename
-        5. Start print via symlink
+        The client must upload the modified file first via standard Moonraker
+        file upload, then call this endpoint with the path.
+
+        Workflow:
+        1. Client uploads modified file to .helix_temp/ via /server/files/upload
+        2. Client calls this endpoint with temp_file_path
+        3. Plugin validates paths, copies metadata, creates symlink
+        4. Plugin starts print via symlink
+
+        Parameters:
+            original_filename: Path to the original G-code file (for history)
+            temp_file_path: Path to the already-uploaded modified file
+            modifications: List of modification identifiers for tracking
+            copy_metadata: Whether to copy thumbnails from original (default: True)
         """
         if not self.enabled:
             raise self.server.error("HelixPrint component is disabled", 503)
@@ -303,13 +300,13 @@ class HelixPrint:
 
         # Get and validate parameters
         original_filename = web_request.get_str("original_filename")
-        modified_content = web_request.get_str("modified_content")
+        temp_file_path = web_request.get_str("temp_file_path")
         modifications = web_request.get_list("modifications", [])
         copy_metadata = web_request.get_boolean("copy_metadata", True)
 
         # Security validations
         self._validate_filename(original_filename)
-        self._validate_content_size(modified_content)
+        self._validate_filename(temp_file_path)
 
         # Validate original file exists and is within gcodes
         original_path = self.gc_path / original_filename
@@ -326,32 +323,26 @@ class HelixPrint:
                 "Original file cannot be a symlink", 400
             )
 
-        # Generate temp filename with timestamp
-        timestamp = int(time.time())
-        # Use only the base name to prevent nested paths
-        base_name = Path(original_filename).name
-        self._validate_filename(base_name)  # Re-validate just the base name
+        # Validate temp file exists and is within gcodes
+        temp_path = self.gc_path / temp_file_path
+        temp_resolved = self._validate_path_within_gcodes(temp_path)
 
-        temp_filename = f"{self.temp_dir}/mod_{timestamp}_{base_name}"
-        temp_path = self.gc_path / temp_filename
+        if not temp_resolved.exists():
+            raise self.server.error(
+                f"Temp file not found: {temp_file_path}. "
+                "Upload the modified file first via /server/files/upload", 400
+            )
 
-        # Validate temp path stays within gcodes
-        # (This should always pass given our controlled temp_dir, but defense in depth)
-        self._validate_path_within_gcodes(temp_path.parent)
-
-        # Ensure temp directory exists
-        temp_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write modified content
-        try:
-            temp_path.write_text(modified_content, encoding="utf-8")
-            logging.info(f"HelixPrint: Wrote modified content to {temp_filename}")
-        except Exception as e:
-            raise self.server.error(f"Failed to write temp file: {e}", 500)
+        # Use the provided temp path (client already uploaded it)
+        temp_filename = temp_file_path
+        logging.info(f"HelixPrint: Using uploaded temp file {temp_filename}")
 
         # Copy metadata (thumbnails) from original
         if copy_metadata:
-            await self._copy_metadata(original_resolved, temp_path)
+            await self._copy_metadata(original_resolved, temp_resolved)
+
+        # Extract base name from original for symlink
+        base_name = Path(original_filename).name
 
         # Create symlink with original filename
         symlink_filename = f"{self.symlink_dir}/{base_name}"

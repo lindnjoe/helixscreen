@@ -4,6 +4,7 @@
 #include "ui_error_reporting.h"
 #include "ui_notification.h"
 
+#include "hv/hfile.h"
 #include "hv/hurl.h"
 #include "hv/requests.h"
 #include "memory_monitor.h"
@@ -12,6 +13,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -702,31 +704,258 @@ void MoonrakerAPI::upload_file_from_path(const std::string& root, const std::str
         return;
     }
 
-    // Read file content from disk
-    std::ifstream file(local_path, std::ios::binary);
-    if (!file) {
-        spdlog::error("[Moonraker API] Failed to open local file for upload: {}", local_path);
+    if (http_base_url_.empty()) {
+        spdlog::error(
+            "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
         if (on_error) {
             MoonrakerError err;
-            err.type = MoonrakerErrorType::FILE_NOT_FOUND;
-            err.message = "Failed to open local file: " + local_path;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "HTTP base URL not configured";
             err.method = "upload_file_from_path";
             on_error(err);
         }
         return;
     }
 
-    // Read entire file into string
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string content = buffer.str();
-    file.close();
-    helix::MemoryMonitor::log_now("moonraker_upload_buffered");
+    // Get file size for streaming upload
+    std::error_code ec;
+    auto file_size = std::filesystem::file_size(local_path, ec);
+    if (ec) {
+        spdlog::error("[Moonraker API] Failed to get file size for {}: {}", local_path,
+                      ec.message());
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+            err.message = "Failed to get file size: " + local_path;
+            err.method = "upload_file_from_path";
+            on_error(err);
+        }
+        return;
+    }
 
-    spdlog::debug("[Moonraker API] Read {} bytes from local file {}", content.size(), local_path);
+    // Extract filename from dest_path
+    std::string filename = dest_path;
+    size_t last_slash = dest_path.rfind('/');
+    if (last_slash != std::string::npos) {
+        filename = dest_path.substr(last_slash + 1);
+    }
 
-    // Delegate to existing upload method
-    upload_file_with_name(root, dest_path, dest_path, content, on_success, on_error);
+    // Extract directory from path (if any)
+    std::string directory;
+    if (last_slash != std::string::npos) {
+        directory = dest_path.substr(0, last_slash);
+    }
+
+    std::string url = http_base_url_ + "/server/files/upload";
+
+    spdlog::info("[Moonraker API] Streaming upload {} ({} bytes) to {}/{}", local_path, file_size,
+                 root, dest_path);
+
+    // Run streaming upload in a tracked thread
+    launch_http_thread([url, root, directory, filename, local_path, file_size, on_success,
+                        on_error]() {
+        // Build multipart form data with streaming file content
+        // Boundary for multipart - must be unique
+        static constexpr const char* BOUNDARY = "----HelixScreenUploadBoundary7MA4YWxk";
+
+        // Build the preamble (form fields before file)
+        std::string preamble;
+        preamble += "--";
+        preamble += BOUNDARY;
+        preamble += "\r\n";
+        preamble += "Content-Disposition: form-data; name=\"root\"\r\n\r\n";
+        preamble += root;
+        preamble += "\r\n";
+
+        // Add path field if uploading to subdirectory
+        if (!directory.empty()) {
+            preamble += "--";
+            preamble += BOUNDARY;
+            preamble += "\r\n";
+            preamble += "Content-Disposition: form-data; name=\"path\"\r\n\r\n";
+            preamble += directory;
+            preamble += "\r\n";
+        }
+
+        // File field header
+        preamble += "--";
+        preamble += BOUNDARY;
+        preamble += "\r\n";
+        preamble += "Content-Disposition: form-data; name=\"file\"; filename=\"";
+        preamble += filename;
+        preamble += "\"\r\n";
+        preamble += "Content-Type: application/octet-stream\r\n\r\n";
+
+        // Build the epilogue (after file content)
+        std::string epilogue = "\r\n--";
+        epilogue += BOUNDARY;
+        epilogue += "--\r\n";
+
+        // Calculate total content length
+        size_t total_content_length = preamble.size() + file_size + epilogue.size();
+
+        // Open file for streaming
+        HFile file;
+        if (file.open(local_path.c_str(), "rb") != 0) {
+            spdlog::error("[Moonraker API] Failed to open file for streaming: {}", local_path);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+                err.message = "Failed to open file: " + local_path;
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Create HTTP client and request
+        hv::HttpClient cli;
+        auto req = std::make_shared<HttpRequest>();
+        req->method = HTTP_POST;
+        req->url = url;
+        req->timeout = 600; // 10 minute timeout for large files
+        req->SetHeader("Content-Type", std::string("multipart/form-data; boundary=") + BOUNDARY);
+        req->SetHeader("Content-Length", std::to_string(total_content_length));
+
+        // Parse URL and connect
+        req->ParseUrl();
+        int connfd = cli.connect(req->host.c_str(), req->port, req->IsHttps(), 30);
+        if (connfd < 0) {
+            spdlog::error("[Moonraker API] Failed to connect for streaming upload");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "Failed to connect to server";
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Send HTTP headers
+        int ret = cli.sendHeader(req.get());
+        if (ret != 0) {
+            spdlog::error("[Moonraker API] Failed to send headers for streaming upload");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "Failed to send HTTP headers";
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Send preamble (form fields)
+        ret = cli.sendData(preamble.data(), preamble.size());
+        if (ret != static_cast<int>(preamble.size())) {
+            spdlog::error("[Moonraker API] Failed to send preamble");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "Failed to send form preamble";
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Stream file content in chunks (64KB chunks for efficiency)
+        constexpr size_t CHUNK_SIZE = 65536;
+        char chunk_buf[CHUNK_SIZE];
+        size_t bytes_sent = 0;
+        size_t last_progress_log = 0;
+
+        while (bytes_sent < file_size) {
+            size_t to_read = std::min(CHUNK_SIZE, static_cast<size_t>(file_size - bytes_sent));
+            int nread = file.read(chunk_buf, to_read);
+            if (nread <= 0) {
+                spdlog::error("[Moonraker API] Failed to read file at offset {}", bytes_sent);
+                if (on_error) {
+                    MoonrakerError err;
+                    err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+                    err.message = "Failed to read file during upload";
+                    err.method = "upload_file_from_path";
+                    on_error(err);
+                }
+                return;
+            }
+
+            int nsend = cli.sendData(chunk_buf, nread);
+            if (nsend != nread) {
+                spdlog::error("[Moonraker API] Failed to send chunk at offset {}", bytes_sent);
+                if (on_error) {
+                    MoonrakerError err;
+                    err.type = MoonrakerErrorType::CONNECTION_LOST;
+                    err.message = "Failed to send file chunk";
+                    err.method = "upload_file_from_path";
+                    on_error(err);
+                }
+                return;
+            }
+
+            bytes_sent += static_cast<size_t>(nsend);
+
+            // Log progress every 10MB
+            if (bytes_sent - last_progress_log >= 10 * 1024 * 1024) {
+                spdlog::debug("[Moonraker API] Upload progress: {}/{} bytes ({:.1f}%)", bytes_sent,
+                              file_size, 100.0 * bytes_sent / file_size);
+                last_progress_log = bytes_sent;
+            }
+        }
+
+        // Send epilogue (closing boundary)
+        ret = cli.sendData(epilogue.data(), epilogue.size());
+        if (ret != static_cast<int>(epilogue.size())) {
+            spdlog::error("[Moonraker API] Failed to send epilogue");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "Failed to send form epilogue";
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Receive response
+        auto resp = std::make_shared<HttpResponse>();
+        ret = cli.recvResponse(resp.get());
+        if (ret != 0) {
+            spdlog::error("[Moonraker API] Failed to receive upload response");
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "Failed to receive server response";
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 201 && resp->status_code != 200) {
+            spdlog::error("[Moonraker API] HTTP {} uploading {}: {}",
+                          static_cast<int>(resp->status_code), filename, resp->body);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
+                              resp->status_message();
+                err.method = "upload_file_from_path";
+                on_error(err);
+            }
+            return;
+        }
+
+        spdlog::info("[Moonraker API] Streaming upload complete: {} ({} bytes)", filename,
+                     file_size);
+        helix::MemoryMonitor::log_now("moonraker_upload_streaming_complete");
+
+        if (on_success) {
+            on_success();
+        }
+    });
 }
 
 // ============================================================================

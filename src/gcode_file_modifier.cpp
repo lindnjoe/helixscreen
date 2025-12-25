@@ -4,6 +4,7 @@
 #include "gcode_file_modifier.h"
 
 #include "app_globals.h"
+#include "streaming_policy.h"
 
 #include <spdlog/spdlog.h>
 
@@ -205,11 +206,12 @@ ModificationResult GCodeFileModifier::apply(const std::filesystem::path& filepat
         return result;
     }
 
-    // Use streaming for large files
-    if (file_size > MAX_BUFFERED_FILE_SIZE) {
-        spdlog::info(
-            "[GCodeFileModifier] File {} ({} MB) exceeds buffer threshold, using streaming",
-            filepath.filename().string(), file_size / (1024 * 1024));
+    // Use centralized policy for streaming decisions
+    // This ensures consistent threshold behavior across all file operations
+    if (helix::StreamingPolicy::instance().should_stream(file_size)) {
+        spdlog::info("[GCodeFileModifier] File {} ({} MB) - streaming mode (threshold={}MB)",
+                     filepath.filename().string(), file_size / (1024 * 1024),
+                     helix::StreamingPolicy::instance().get_threshold_bytes() / (1024 * 1024));
         return apply_streaming(filepath);
     }
 
