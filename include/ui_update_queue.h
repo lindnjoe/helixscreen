@@ -180,6 +180,17 @@ class UpdateQueue {
  */
 inline void ui_queue_update(helix::ui::UpdateCallback callback) {
     helix::ui::UpdateQueue::instance().queue(std::move(callback));
+
+    // Trigger a screen refresh so REFR_START fires and processes the queue
+    // Without this, callbacks wait until something else triggers a refresh
+    lv_async_call(
+        [](void*) {
+            lv_obj_t* scr = lv_screen_active();
+            if (scr) {
+                lv_obj_invalidate(scr);
+            }
+        },
+        nullptr);
 }
 
 /**
@@ -223,22 +234,20 @@ inline void ui_update_queue_shutdown() {
 }
 
 /**
- * @brief Drop-in replacement for lv_async_call
+ * @brief Thread-safe async call wrapper
  *
- * Has the EXACT same signature as lv_async_call() but uses the UI update queue
- * to ensure callbacks run BEFORE rendering, not during.
+ * Simply delegates to LVGL's native lv_async_call() which is thread-safe
+ * and executes callbacks during lv_timer_handler() - before rendering.
  *
- * Migration: Simply replace `lv_async_call(` with `ui_async_call(`
+ * Note: We previously used a custom UpdateQueue with LV_EVENT_REFR_START,
+ * but that caused 49-second delays when nothing triggered screen refresh.
+ * LVGL's native mechanism is simpler and works correctly.
  *
  * @param async_xcb Callback function (same signature as lv_async_call)
  * @param user_data User data passed to callback
- * @return LV_RESULT_OK always (queue never fails)
+ * @return Result from lv_async_call
  */
 inline lv_result_t ui_async_call(lv_async_cb_t async_xcb, void* user_data) {
-    ui_queue_update([async_xcb, user_data]() {
-        if (async_xcb) {
-            async_xcb(user_data);
-        }
-    });
-    return LV_RESULT_OK;
+    // Just use LVGL's native async call - it's thread-safe and fires on next timer tick
+    return lv_async_call(async_xcb, user_data);
 }
