@@ -141,8 +141,12 @@ PrintSelectPanel::PrintSelectPanel(PrinterState& printer_state, MoonrakerAPI* ap
 
 PrintSelectPanel::~PrintSelectPanel() {
     // Unregister file list change notification handler
-    // (API may be null if never set, or if connection failed)
-    if (api_ && !filelist_handler_name_.empty()) {
+    // CRITICAL: During static destruction, MoonrakerManager may already be destroyed
+    // causing the api_ pointer to reference a destroyed client. Guard by checking
+    // if the global manager is still valid (it returns nullptr after destruction).
+    // Applying [L010]: No spdlog in destructors - we also can't safely log here.
+    auto* mgr = get_moonraker_manager();
+    if (mgr && api_ && !filelist_handler_name_.empty()) {
         api_->get_client().unregister_method_callback("notify_filelist_changed",
                                                       filelist_handler_name_);
     }
@@ -1578,6 +1582,11 @@ void PrintSelectPanel::handle_file_click(size_t file_index) {
 }
 
 void PrintSelectPanel::start_print() {
+    // OPTIMISTIC UI: Disable button IMMEDIATELY to prevent double-clicks.
+    // This must happen BEFORE any async work or checks that could allow
+    // the user to click again while we're processing.
+    lv_subject_set_int(&can_print_subject_, 0);
+
     // Stage 9: Concurrent Print Prevention
     // Check if a print is already active before allowing a new one to start
     if (!printer_state_.can_start_new_print()) {
@@ -1586,6 +1595,7 @@ void PrintSelectPanel::start_print() {
         NOTIFY_ERROR("Cannot start print: printer is {}", state_str);
         spdlog::warn("[{}] Attempted to start print while printer is in {} state", get_name(),
                      state_str);
+        update_print_button_state(); // Re-enable button on early failure
         return;
     }
 
@@ -1594,7 +1604,8 @@ void PrintSelectPanel::start_print() {
     if (sensor_mgr.is_master_enabled() &&
         sensor_mgr.is_sensor_available(helix::FilamentSensorRole::RUNOUT) &&
         !sensor_mgr.is_filament_detected(helix::FilamentSensorRole::RUNOUT)) {
-        // No filament detected - show warning
+        // No filament detected - show warning dialog
+        // Button stays disabled - dialog will handle continuation or re-enable on cancel
         spdlog::info("[{}] Runout sensor shows no filament - showing pre-print warning",
                      get_name());
         show_filament_warning();
@@ -1604,6 +1615,7 @@ void PrintSelectPanel::start_print() {
     // Check if G-code requires colors not loaded in AMS
     auto missing_tools = check_ams_color_match();
     if (!missing_tools.empty()) {
+        // Button stays disabled - dialog will handle continuation or re-enable on cancel
         spdlog::info("[{}] G-code requires {} tool colors not found in AMS slots", get_name(),
                      missing_tools.size());
         show_color_mismatch_warning(missing_tools);
@@ -1855,6 +1867,8 @@ void PrintSelectPanel::on_filament_warning_cancel_static(lv_event_t* e) {
     if (self && self->filament_warning_dialog_) {
         ui_modal_hide(self->filament_warning_dialog_);
         self->filament_warning_dialog_ = nullptr;
+        // Re-enable print button since user cancelled
+        self->update_print_button_state();
         spdlog::debug("[PrintSelectPanel] Print cancelled by user (no filament warning)");
     }
     LVGL_SAFE_EVENT_CB_END();
@@ -1996,6 +2010,8 @@ void PrintSelectPanel::on_color_mismatch_cancel_static(lv_event_t* e) {
     if (self && self->color_mismatch_dialog_) {
         ui_modal_hide(self->color_mismatch_dialog_);
         self->color_mismatch_dialog_ = nullptr;
+        // Re-enable print button since user cancelled
+        self->update_print_button_state();
         spdlog::debug("[PrintSelectPanel] Print cancelled by user (color mismatch warning)");
     }
     LVGL_SAFE_EVENT_CB_END();

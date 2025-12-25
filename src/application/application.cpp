@@ -1049,7 +1049,9 @@ void Application::shutdown() {
 
     spdlog::info("[Application] Shutting down...");
 
-    // Clear app_globals references
+    // Clear app_globals references BEFORE destroying managers to prevent
+    // destructors (e.g., PrintSelectPanel) from accessing destroyed objects
+    set_moonraker_manager(nullptr);
     set_moonraker_api(nullptr);
     set_moonraker_client(nullptr);
 
