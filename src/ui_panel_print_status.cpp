@@ -1808,6 +1808,15 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
                 return;
             }
 
+            // Set total layer count from file metadata (more reliable than WebSocket updates)
+            // Moonraker's print_stats.info.total_layer only updates when G-code runs
+            // SET_PRINT_STATS_INFO TOTAL_LAYER=X, which some slicers don't include
+            if (metadata.layer_count > 0) {
+                get_printer_state().set_print_layer_total(static_cast<int>(metadata.layer_count));
+                spdlog::debug("[{}] Set total layers from metadata: {}", get_name(),
+                              metadata.layer_count);
+            }
+
             // Get the largest thumbnail available
             std::string thumbnail_rel_path = metadata.get_largest_thumbnail();
             if (thumbnail_rel_path.empty()) {

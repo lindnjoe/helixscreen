@@ -397,6 +397,16 @@ class PrinterState {
         return &print_layer_total_;
     }
 
+    /**
+     * @brief Set total layer count from file metadata
+     *
+     * Called when print starts to initialize total layers from file metadata.
+     * Moonraker notifications may update this later via SET_PRINT_STATS_INFO.
+     */
+    void set_print_layer_total(int total) {
+        lv_subject_set_int(&print_layer_total_, total);
+    }
+
     // Print time tracking subjects (in seconds)
     lv_subject_t* get_print_duration_subject() {
         return &print_duration_;
