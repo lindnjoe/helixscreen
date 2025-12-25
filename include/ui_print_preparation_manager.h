@@ -3,11 +3,12 @@
 
 #pragma once
 
+#include "ui_observer_guard.h"
+
 #include "command_sequencer.h"
 #include "gcode_file_modifier.h"
 #include "gcode_ops_detector.h"
 #include "moonraker_api.h"
-#include "ui_observer_guard.h"
 #include "print_start_analyzer.h"
 #include "printer_state.h"
 

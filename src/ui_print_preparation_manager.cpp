@@ -54,7 +54,8 @@ void PrintPreparationManager::set_dependencies(MoonrakerAPI* api, PrinterState* 
     }
 }
 
-void PrintPreparationManager::on_connection_state_changed(lv_observer_t* observer, lv_subject_t* subject) {
+void PrintPreparationManager::on_connection_state_changed(lv_observer_t* observer,
+                                                          lv_subject_t* subject) {
     auto* self = static_cast<PrintPreparationManager*>(lv_observer_get_user_data(observer));
     if (!self) {
         return;

@@ -109,8 +109,9 @@ void FilamentSensorManager::discover_sensors(const std::vector<std::string>& kli
             }
             if (!runout_already_assigned) {
                 config.role = FilamentSensorRole::RUNOUT;
-                spdlog::info("[FilamentSensorManager] Auto-assigned RUNOUT role to '{}' based on name",
-                             sensor_name);
+                spdlog::info(
+                    "[FilamentSensorManager] Auto-assigned RUNOUT role to '{}' based on name",
+                    sensor_name);
             }
         }
 
