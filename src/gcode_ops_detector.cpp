@@ -197,8 +197,7 @@ void GCodeOpsDetector::init_default_patterns() {
             embedding = OperationEmbedding::DIRECT_COMMAND;
         }
 
-        patterns_.push_back(
-            {to_operation_type(kw.category), pattern, embedding, kw.exact_match});
+        patterns_.push_back({to_operation_type(kw.category), pattern, embedding, kw.exact_match});
     }
 
     spdlog::debug("[GCodeOpsDetector] Initialized {} patterns from shared registry",
@@ -322,8 +321,10 @@ void GCodeOpsDetector::check_line(const std::string& line, size_t line_number, s
         // Always case-insensitive, but exact_match controls exact vs substring
         std::string upper_trimmed = trimmed;
         std::string upper_pattern = pattern.pattern;
-        std::transform(upper_trimmed.begin(), upper_trimmed.end(), upper_trimmed.begin(), ::toupper);
-        std::transform(upper_pattern.begin(), upper_pattern.end(), upper_pattern.begin(), ::toupper);
+        std::transform(upper_trimmed.begin(), upper_trimmed.end(), upper_trimmed.begin(),
+                       ::toupper);
+        std::transform(upper_pattern.begin(), upper_pattern.end(), upper_pattern.begin(),
+                       ::toupper);
 
         if (pattern.exact_match) {
             // G-codes: exact match at start of line (avoid G28 inside FOO_G28_BAR)

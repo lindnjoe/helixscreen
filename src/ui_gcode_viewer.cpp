@@ -1152,10 +1152,11 @@ static void ui_gcode_viewer_load_file_async(lv_obj_t* obj, const char* file_path
                         result->geometry = std::make_unique<helix::gcode::RibbonGeometry>(
                             builder.build(*result->gcode_file, opts));
 
-                        spdlog::info("[GCode Viewer] Built full geometry: {} vertices, {} triangles",
-                                     result->geometry->vertices.size(),
-                                     result->geometry->extrusion_triangle_count +
-                                         result->geometry->travel_triangle_count);
+                        spdlog::info(
+                            "[GCode Viewer] Built full geometry: {} vertices, {} triangles",
+                            result->geometry->vertices.size(),
+                            result->geometry->extrusion_triangle_count +
+                                result->geometry->travel_triangle_count);
                     }
 
                     // Build coarse LOD geometry for interaction
@@ -1180,9 +1181,10 @@ static void ui_gcode_viewer_load_file_async(lv_obj_t* obj, const char* file_path
                         } else {
                             size_t full_tris = result->geometry->extrusion_triangle_count +
                                                result->geometry->travel_triangle_count;
-                            float reduction = full_tris > 0
-                                                  ? 100.0f * (1.0f - float(coarse_tris) / float(full_tris))
-                                                  : 0.0f;
+                            float reduction =
+                                full_tris > 0
+                                    ? 100.0f * (1.0f - float(coarse_tris) / float(full_tris))
+                                    : 0.0f;
                             spdlog::info("[GCode Viewer] Built coarse LOD: {} triangles ({:.0f}% "
                                          "reduction from full)",
                                          coarse_tris, reduction);

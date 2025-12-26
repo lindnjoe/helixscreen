@@ -415,8 +415,7 @@ void ui_toast_show_with_action(ToastSeverity severity, const char* message, cons
 }
 
 void ui_toast_hide() {
-    ui_async_call(
-        [](void*) { ToastManager::instance().hide(); }, nullptr);
+    ui_async_call([](void*) { ToastManager::instance().hide(); }, nullptr);
 }
 
 bool ui_toast_is_visible() {
