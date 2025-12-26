@@ -18,6 +18,9 @@ class MoonrakerAPI;
 class PrinterState;
 class PrintStartCollector;
 
+// Need full enum definition for inline helper function
+#include "printer_state.h"
+
 namespace helix {
 class MacroAnalysisManager;
 }
@@ -128,6 +131,34 @@ class MoonrakerManager {
      * Call after successful connect().
      */
     void init_print_start_collector();
+
+    /**
+     * @brief Determine if print start collector should be started
+     *
+     * Helper function for testing mid-print detection logic.
+     * Returns true if collector should start based on state transition and progress.
+     *
+     * @param prev_state Previous print job state
+     * @param new_state New print job state
+     * @param current_progress Current print progress percentage (0-100)
+     * @return true if collector should start, false otherwise
+     */
+    static inline bool should_start_print_collector(PrintJobState prev_state,
+                                                    PrintJobState new_state, int current_progress) {
+        // Only start on TRANSITION to PRINTING from non-printing state
+        bool was_not_printing =
+            (prev_state != PrintJobState::PRINTING && prev_state != PrintJobState::PAUSED);
+        bool is_now_printing = (new_state == PrintJobState::PRINTING);
+
+        if (!was_not_printing || !is_now_printing) {
+            return false; // Not a transition to printing
+        }
+
+        // Check if we're mid-print (progress > 0).
+        // This catches the case where app starts while a print is in progress.
+        bool is_mid_print = current_progress > 0;
+        return !is_mid_print;
+    }
 
     /**
      * @brief Initialize macro analysis manager

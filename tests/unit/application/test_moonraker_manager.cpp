@@ -92,6 +92,79 @@ TEST_CASE("RuntimeConfig mock_ams_gate_count", "[application][config]") {
 }
 
 // ============================================================================
+// Mid-Print Detection Tests (should_start_print_collector)
+// ============================================================================
+// Tests the logic that prevents "Preparing Print" from showing when the app
+// starts while a print is already in progress.
+
+#include "moonraker_manager.h"
+#include "printer_state.h"
+
+TEST_CASE("should_start_print_collector - fresh print start", "[application][print_start]") {
+    // Transition from STANDBY to PRINTING with 0% progress = fresh print start
+    REQUIRE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                           PrintJobState::PRINTING, 0));
+
+    // Also works from COMPLETE state
+    REQUIRE(MoonrakerManager::should_start_print_collector(PrintJobState::COMPLETE,
+                                                           PrintJobState::PRINTING, 0));
+
+    // And from CANCELLED state
+    REQUIRE(MoonrakerManager::should_start_print_collector(PrintJobState::CANCELLED,
+                                                           PrintJobState::PRINTING, 0));
+
+    // And from ERROR state
+    REQUIRE(MoonrakerManager::should_start_print_collector(PrintJobState::ERROR,
+                                                           PrintJobState::PRINTING, 0));
+}
+
+TEST_CASE("should_start_print_collector - mid-print detection", "[application][print_start]") {
+    // Transition from STANDBY to PRINTING with progress > 0 = mid-print, don't start
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                                 PrintJobState::PRINTING, 1));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                                 PrintJobState::PRINTING, 31));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                                 PrintJobState::PRINTING, 99));
+}
+
+TEST_CASE("should_start_print_collector - already printing", "[application][print_start]") {
+    // If already printing, no transition → don't start
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PRINTING,
+                                                                 PrintJobState::PRINTING, 0));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PRINTING,
+                                                                 PrintJobState::PRINTING, 50));
+}
+
+TEST_CASE("should_start_print_collector - paused states", "[application][print_start]") {
+    // Transition from PAUSED to PRINTING = resume, not fresh start
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PAUSED,
+                                                                 PrintJobState::PRINTING, 0));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PAUSED,
+                                                                 PrintJobState::PRINTING, 50));
+
+    // Transition to PAUSED (not PRINTING) = don't start
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                                 PrintJobState::PAUSED, 0));
+}
+
+TEST_CASE("should_start_print_collector - non-printing transitions", "[application][print_start]") {
+    // Transitions that don't involve PRINTING = don't start
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::STANDBY,
+                                                                 PrintJobState::COMPLETE, 0));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PRINTING,
+                                                                 PrintJobState::COMPLETE, 100));
+
+    REQUIRE_FALSE(MoonrakerManager::should_start_print_collector(PrintJobState::PRINTING,
+                                                                 PrintJobState::CANCELLED, 50));
+}
+
+// ============================================================================
 // MoonrakerManager Design Documentation
 // ============================================================================
 // The following tests document expected behavior. They are marked .integration

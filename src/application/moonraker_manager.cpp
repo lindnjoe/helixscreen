@@ -6,6 +6,7 @@
 #include "ui_emergency_stop.h"
 #include "ui_error_reporting.h"
 #include "ui_modal.h"
+#include "ui_panel_filament.h"
 
 #include "ams_state.h"
 #include "app_globals.h"
@@ -18,7 +19,6 @@
 #include "print_completion.h"
 #include "print_start_collector.h"
 #include "printer_state.h"
-#include "ui_panel_filament.h"
 #include "settings_manager.h"
 #include "sound_manager.h"
 
@@ -141,8 +141,7 @@ int MoonrakerManager::connect(const std::string& websocket_url, const std::strin
                             int max_temp = static_cast<int>(limits.max_temperature_celsius);
                             int min_temp = static_cast<int>(limits.min_temperature_celsius);
 
-                            get_global_filament_panel().set_limits(min_temp, max_temp,
-                                                                   min_extrude);
+                            get_global_filament_panel().set_limits(min_temp, max_temp, min_extrude);
                             spdlog::info("[MoonrakerManager] Safety limits propagated to panels");
                         },
                         [](const MoonrakerError& err) {
@@ -365,11 +364,19 @@ void MoonrakerManager::init_print_start_collector() {
     // Track previous state to detect TRANSITIONS to PRINTING, not just current state.
     // This prevents false triggers when the app starts while a print is already running.
     // (Similar pattern to print_start_navigation.cpp)
+    //
+    // Thread safety: These statics are safe because:
+    // 1. init_print_start_collector() called once on main thread
+    // 2. LVGL subject observers always fire on main thread (synchronous)
     static PrintJobState s_prev_print_state = PrintJobState::STANDBY;
     s_prev_print_state = static_cast<PrintJobState>(
         lv_subject_get_int(get_printer_state().get_print_state_enum_subject()));
     spdlog::debug("[MoonrakerManager] PRINT_START collector observer registered (initial state={})",
                   static_cast<int>(s_prev_print_state));
+
+    // Capture print progress subject for mid-print detection
+    static lv_subject_t* s_progress_subject = nullptr;
+    s_progress_subject = get_printer_state().get_print_progress_subject();
 
     // Observer to start/stop collector based on print state
     m_print_start_observer = ObserverGuard(
@@ -379,29 +386,32 @@ void MoonrakerManager::init_print_start_collector() {
             if (!collector)
                 return;
 
-            auto state = static_cast<PrintJobState>(lv_subject_get_int(subject));
+            auto new_state = static_cast<PrintJobState>(lv_subject_get_int(subject));
+            int current_progress = s_progress_subject ? lv_subject_get_int(s_progress_subject) : 0;
 
-            // Only start collector on TRANSITION to PRINTING from non-printing state.
-            // This prevents showing "Preparing Print" when app starts mid-print.
-            bool was_not_printing = (s_prev_print_state != PrintJobState::PRINTING &&
-                                     s_prev_print_state != PrintJobState::PAUSED);
-            bool is_now_printing = (state == PrintJobState::PRINTING);
-
-            if (was_not_printing && is_now_printing) {
+            // Use helper function for testable decision logic
+            if (should_start_print_collector(s_prev_print_state, new_state, current_progress)) {
                 if (!collector->is_active()) {
                     collector->reset();
                     collector->start();
                     collector->enable_fallbacks();
-                    spdlog::info("[MoonrakerManager] PRINT_START collector started (transition)");
+                    spdlog::info("[MoonrakerManager] PRINT_START collector started");
                 }
-            } else if (state != PrintJobState::PRINTING && state != PrintJobState::PAUSED) {
+            } else if (s_prev_print_state != PrintJobState::PRINTING &&
+                       s_prev_print_state != PrintJobState::PAUSED &&
+                       new_state == PrintJobState::PRINTING && current_progress > 0) {
+                // Log when we skip due to mid-print detection
+                spdlog::info("[MoonrakerManager] Skipping PRINT_START collector - mid-print ({}%)",
+                             current_progress);
+            } else if (new_state != PrintJobState::PRINTING && new_state != PrintJobState::PAUSED) {
+                // No longer printing - stop collector if active
                 if (collector->is_active()) {
                     collector->stop();
                     spdlog::info("[MoonrakerManager] PRINT_START collector stopped");
                 }
             }
 
-            s_prev_print_state = state;
+            s_prev_print_state = new_state;
         },
         nullptr);
 
