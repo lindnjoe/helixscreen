@@ -134,6 +134,12 @@ bool MacroEnhanceWizard::show(lv_obj_t* parent) {
     // XML bindings like bind_text="macro_enhance_step_title" require subjects to exist
     init_subjects();
 
+    // CRITICAL: Set state subject BEFORE Modal::show() creates XML
+    // The bind_flag_if_neq bindings evaluate during XML creation, so the subject
+    // must have the correct value. Otherwise, stale state from previous show()
+    // causes multiple containers to be visible simultaneously.
+    lv_subject_set_int(&state_subject_, static_cast<int>(state_));
+
     // Use Modal base class to show
     if (!Modal::show(parent)) {
         spdlog::error("[MacroEnhanceWizard] Failed to show modal");
