@@ -135,6 +135,21 @@ class MoonrakerAPIMock : public MoonrakerAPI {
                        ErrorCallback on_error) override;
 
     /**
+     * @brief Mock partial file download (first N bytes)
+     *
+     * Reads first max_bytes of a local test file from assets/test_gcodes/
+     * Useful for testing G-code preamble scanning without loading entire files.
+     *
+     * @param root Root directory (ignored in mock)
+     * @param path File path - only the filename is used
+     * @param max_bytes Maximum bytes to return
+     * @param on_success Success callback with partial content
+     * @param on_error Error callback (FILE_NOT_FOUND if file doesn't exist)
+     */
+    void download_file_partial(const std::string& root, const std::string& path, size_t max_bytes,
+                               StringCallback on_success, ErrorCallback on_error) override;
+
+    /**
      * @brief Mock streaming file download to disk
      *
      * Instead of making HTTP request, copies from assets/test_gcodes/{filename}

@@ -104,6 +104,61 @@ void MoonrakerAPIMock::download_file(const std::string& root, const std::string&
     }
 }
 
+void MoonrakerAPIMock::download_file_partial(const std::string& root, const std::string& path,
+                                             size_t max_bytes, StringCallback on_success,
+                                             ErrorCallback on_error) {
+    // Strip any leading directory components to get just the filename
+    std::string filename = path;
+    size_t last_slash = path.rfind('/');
+    if (last_slash != std::string::npos) {
+        filename = path.substr(last_slash + 1);
+    }
+
+    spdlog::debug("[MoonrakerAPIMock] download_file_partial: root='{}', path='{}', max_bytes={}",
+                  root, path, max_bytes);
+
+    // Find the test file using fallback path search
+    std::string local_path = find_test_file(filename);
+
+    if (local_path.empty()) {
+        spdlog::warn("[MoonrakerAPIMock] File not found in test directories: {}", filename);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+            err.message = "Mock file not found: " + filename;
+            err.method = "download_file_partial";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Read up to max_bytes from the local file
+    std::ifstream file(local_path, std::ios::binary);
+    if (file) {
+        std::string content;
+        content.resize(max_bytes);
+        file.read(&content[0], static_cast<std::streamsize>(max_bytes));
+        content.resize(static_cast<size_t>(file.gcount()));
+        file.close();
+
+        spdlog::info("[MoonrakerAPIMock] Partial download {} ({} of {} bytes)", filename,
+                     content.size(), max_bytes);
+
+        if (on_success) {
+            on_success(content);
+        }
+    } else {
+        spdlog::error("[MoonrakerAPIMock] Failed to read file: {}", local_path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+            err.message = "Failed to read test file: " + filename;
+            err.method = "download_file_partial";
+            on_error(err);
+        }
+    }
+}
+
 void MoonrakerAPIMock::download_file_to_path(const std::string& root, const std::string& path,
                                              const std::string& dest_path,
                                              StringCallback on_success, ErrorCallback on_error,

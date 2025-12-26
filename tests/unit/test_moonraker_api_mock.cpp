@@ -130,6 +130,111 @@ TEST_CASE_METHOD(MoonrakerAPIMockTestFixture,
 }
 
 // ============================================================================
+// download_file_partial Tests (Partial/Range Download)
+// ============================================================================
+
+TEST_CASE_METHOD(MoonrakerAPIMockTestFixture,
+                 "MoonrakerAPIMock download_file_partial returns limited content",
+                 "[mock][api][download][partial]") {
+    std::atomic<bool> success_called{false};
+    std::atomic<bool> error_called{false};
+    std::string downloaded_content;
+    constexpr size_t MAX_BYTES = 1000; // Only first 1KB
+
+    api_->download_file_partial(
+        "gcodes", "3DBenchy.gcode", MAX_BYTES,
+        [&](const std::string& content) {
+            downloaded_content = content;
+            success_called.store(true);
+        },
+        [&](const MoonrakerError&) { error_called.store(true); });
+
+    REQUIRE(success_called.load());
+    REQUIRE_FALSE(error_called.load());
+    // Content should be limited to max_bytes
+    REQUIRE(downloaded_content.size() <= MAX_BYTES);
+    // And should have some content
+    REQUIRE(downloaded_content.size() > 0);
+}
+
+TEST_CASE_METHOD(MoonrakerAPIMockTestFixture,
+                 "MoonrakerAPIMock download_file_partial returns full content for small files",
+                 "[mock][api][download][partial]") {
+    std::atomic<bool> success_called{false};
+    std::string downloaded_content;
+    constexpr size_t MAX_BYTES = 10 * 1024 * 1024; // 10MB limit (larger than file)
+
+    // First get full file size
+    std::string full_content;
+    api_->download_file(
+        "gcodes", "3DBenchy.gcode", [&](const std::string& content) { full_content = content; },
+        [](const MoonrakerError&) {});
+
+    REQUIRE(full_content.size() > 0);
+
+    // Now get with large limit - should return full content
+    api_->download_file_partial(
+        "gcodes", "3DBenchy.gcode", MAX_BYTES,
+        [&](const std::string& content) {
+            downloaded_content = content;
+            success_called.store(true);
+        },
+        [](const MoonrakerError&) {});
+
+    REQUIRE(success_called.load());
+    // If file is smaller than limit, we get the whole thing
+    if (full_content.size() < MAX_BYTES) {
+        REQUIRE(downloaded_content == full_content);
+    }
+}
+
+TEST_CASE_METHOD(MoonrakerAPIMockTestFixture,
+                 "MoonrakerAPIMock download_file_partial returns FILE_NOT_FOUND for missing file",
+                 "[mock][api][download][partial]") {
+    std::atomic<bool> success_called{false};
+    std::atomic<bool> error_called{false};
+    MoonrakerError captured_error;
+
+    api_->download_file_partial(
+        "gcodes", "nonexistent_file_xyz123.gcode", 1000,
+        [&](const std::string&) { success_called.store(true); },
+        [&](const MoonrakerError& err) {
+            captured_error = err;
+            error_called.store(true);
+        });
+
+    REQUIRE_FALSE(success_called.load());
+    REQUIRE(error_called.load());
+    REQUIRE(captured_error.type == MoonrakerErrorType::FILE_NOT_FOUND);
+    REQUIRE(captured_error.method == "download_file_partial");
+}
+
+TEST_CASE_METHOD(MoonrakerAPIMockTestFixture,
+                 "MoonrakerAPIMock download_file_partial content matches beginning of full file",
+                 "[mock][api][download][partial]") {
+    std::string full_content;
+    std::string partial_content;
+    constexpr size_t PARTIAL_SIZE = 500;
+
+    // Get full file
+    api_->download_file(
+        "gcodes", "3DBenchy.gcode", [&](const std::string& content) { full_content = content; },
+        [](const MoonrakerError&) {});
+
+    REQUIRE(full_content.size() > PARTIAL_SIZE);
+
+    // Get partial file
+    api_->download_file_partial(
+        "gcodes", "3DBenchy.gcode", PARTIAL_SIZE,
+        [&](const std::string& content) { partial_content = content; },
+        [](const MoonrakerError&) {});
+
+    // Partial should match the beginning of full content
+    REQUIRE(partial_content.size() == PARTIAL_SIZE);
+    REQUIRE(full_content.substr(0, PARTIAL_SIZE) == partial_content);
+}
+
+// ============================================================================
 // upload_file Tests
 // ============================================================================
 

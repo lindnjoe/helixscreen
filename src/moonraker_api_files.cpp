@@ -423,6 +423,106 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
     });
 }
 
+void MoonrakerAPI::download_file_partial(const std::string& root, const std::string& path,
+                                         size_t max_bytes, StringCallback on_success,
+                                         ErrorCallback on_error) {
+    // Validate inputs
+    if (!is_safe_path(path)) {
+        spdlog::error("[Moonraker API] Invalid file path for partial download: {}", path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid file path contains unsafe characters";
+            err.method = "download_file_partial";
+            on_error(err);
+        }
+        return;
+    }
+
+    if (http_base_url_.empty()) {
+        spdlog::error(
+            "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "HTTP base URL not configured";
+            err.method = "download_file_partial";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Build URL: http://host:port/server/files/{root}/{path}
+    std::string encoded_path = HUrl::escape(path, "/.-_");
+    std::string url = http_base_url_ + "/server/files/" + root + "/" + encoded_path;
+
+    spdlog::debug("[Moonraker API] Partial download (first {} bytes): {}", max_bytes, url);
+
+    // Run HTTP request in a tracked thread
+    launch_http_thread([url, path, max_bytes, on_success, on_error]() {
+        // Create request with Range header for partial content
+        auto req = std::make_shared<HttpRequest>();
+        req->method = HTTP_GET;
+        req->url = url;
+        req->timeout = 30; // 30 second timeout
+
+        // HTTP Range header: bytes=0-{max_bytes-1}
+        // Note: Range is inclusive, so bytes=0-99 returns 100 bytes
+        std::string range_header = "bytes=0-" + std::to_string(max_bytes - 1);
+        req->SetHeader("Range", range_header);
+
+        auto resp = requests::request(req);
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP request failed for: {}", url);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP request failed";
+                err.method = "download_file_partial";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code == 404) {
+            spdlog::error("[Moonraker API] File not found: {}", path);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+                err.code = resp->status_code;
+                err.message = "File not found: " + path;
+                err.method = "download_file_partial";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Accept both 200 (full file) and 206 (partial content)
+        if (resp->status_code != 200 && resp->status_code != 206) {
+            spdlog::error("[Moonraker API] HTTP {} downloading {}: {}",
+                          static_cast<int>(resp->status_code), path, resp->status_message());
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
+                              resp->status_message();
+                err.method = "download_file_partial";
+                on_error(err);
+            }
+            return;
+        }
+
+        spdlog::debug("[Moonraker API] Partial download: {} bytes from {} (status {})",
+                      resp->body.size(), path, static_cast<int>(resp->status_code));
+
+        if (on_success) {
+            on_success(resp->body);
+        }
+    });
+}
+
 void MoonrakerAPI::download_file_to_path(const std::string& root, const std::string& path,
                                          const std::string& dest_path, StringCallback on_success,
                                          ErrorCallback on_error, ProgressCallback on_progress) {

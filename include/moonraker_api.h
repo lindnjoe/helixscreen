@@ -574,6 +574,22 @@ class MoonrakerAPI {
                                StringCallback on_success, ErrorCallback on_error);
 
     /**
+     * @brief Download only the first N bytes of a file (for scanning preambles)
+     *
+     * Uses HTTP Range request to fetch only the beginning of a file.
+     * Ideal for scanning G-code files where operations are in the preamble.
+     *
+     * @param root Root directory ("gcodes", "config", etc.)
+     * @param path File path relative to root
+     * @param max_bytes Maximum bytes to download (default 100KB)
+     * @param on_success Callback with partial file content as string
+     * @param on_error Error callback
+     */
+    virtual void download_file_partial(const std::string& root, const std::string& path,
+                                       size_t max_bytes, StringCallback on_success,
+                                       ErrorCallback on_error);
+
+    /**
      * @brief Download a file directly to disk (streaming, low memory)
      *
      * Unlike download_file() which loads entire content into memory,
