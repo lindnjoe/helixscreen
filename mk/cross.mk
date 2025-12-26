@@ -407,9 +407,9 @@ deploy-pi:
 	fi
 	@echo "$(GREEN)✓ Deployed to $(PI_HOST):$(PI_DEPLOY_DIR)$(RESET)"
 	@echo "$(CYAN)Restarting helix-screen on $(PI_HOST)...$(RESET)"
-	ssh $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 0.5; setsid ./config/helix-launcher.sh > /tmp/helix.log 2>&1 < /dev/null &"
+	ssh $(PI_SSH_TARGET) "cd $(PI_DEPLOY_DIR) && killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 0.5; setsid ./config/helix-launcher.sh </dev/null >/dev/null 2>&1 &"
 	@echo "$(GREEN)✓ helix-screen restarted in background$(RESET)"
-	@echo "$(DIM)Logs: ssh $(PI_SSH_TARGET) 'tail -f /tmp/helix.log'$(RESET)"
+	@echo "$(DIM)Logs: ssh $(PI_SSH_TARGET) 'journalctl -t helix-screen -f'$(RESET)"
 
 # Deploy and run in foreground with debug logging (for interactive debugging)
 # Uses --debug for debug-level logging and --log-dest=console for immediate output
@@ -525,9 +525,9 @@ deploy-ad5m:
 	fi
 	@echo "$(GREEN)✓ Deployed to $(AD5M_HOST):$(AD5M_DEPLOY_DIR)$(RESET)"
 	@echo "$(CYAN)Restarting helix-screen on $(AD5M_HOST)...$(RESET)"
-	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh > /tmp/helix.log 2>&1 &"
+	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh >/dev/null 2>&1 &"
 	@echo "$(GREEN)✓ helix-screen restarted in background$(RESET)"
-	@echo "$(DIM)Logs: ssh $(AD5M_SSH_TARGET) 'tail -f /tmp/helix.log'$(RESET)"
+	@echo "$(DIM)Logs: ssh $(AD5M_SSH_TARGET) 'logread -f | grep helix'$(RESET)"
 
 # Legacy deploy using tar/scp (for systems without rsync)
 deploy-ad5m-legacy:
@@ -562,9 +562,9 @@ deploy-ad5m-legacy:
 	fi
 	@echo "$(GREEN)✓ Deployed to $(AD5M_HOST):$(AD5M_DEPLOY_DIR)$(RESET)"
 	@echo "$(CYAN)Restarting helix-screen on $(AD5M_HOST)...$(RESET)"
-	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh > /tmp/helix.log 2>&1 &"
+	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh >/dev/null 2>&1 &"
 	@echo "$(GREEN)✓ helix-screen restarted in background$(RESET)"
-	@echo "$(DIM)Logs: ssh $(AD5M_SSH_TARGET) 'tail -f /tmp/helix.log'$(RESET)"
+	@echo "$(DIM)Logs: ssh $(AD5M_SSH_TARGET) 'logread -f | grep helix'$(RESET)"
 
 # Deploy and run in foreground with verbose logging (for interactive debugging)
 deploy-ad5m-fg:
@@ -607,7 +607,7 @@ deploy-ad5m-bin:
 	@if [ -f build/ad5m/bin/helix-watchdog ]; then scp -O build/ad5m/bin/helix-watchdog $(AD5M_SSH_TARGET):$(AD5M_DEPLOY_DIR)/; fi
 	@echo "$(GREEN)✓ Binaries deployed$(RESET)"
 	@echo "$(CYAN)Restarting helix-screen on $(AD5M_HOST)...$(RESET)"
-	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh > /tmp/helix.log 2>&1 &"
+	ssh $(AD5M_SSH_TARGET) "killall helix-watchdog helix-screen helix-splash 2>/dev/null || true; sleep 1; cd $(AD5M_DEPLOY_DIR) && ./config/helix-launcher.sh >/dev/null 2>&1 &"
 	@echo "$(GREEN)✓ helix-screen restarted$(RESET)"
 
 # Convenience: SSH into the AD5M
