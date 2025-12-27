@@ -569,87 +569,25 @@ std::string PrintPreparationManager::get_temp_directory() const {
 ModificationCapability PrintPreparationManager::check_modification_capability() const {
     ModificationCapability result;
 
-    // Priority 1: If helix_print plugin is available, always safe (server-side modification)
+    // Pre-print modifications require the HelixPrint plugin to keep print history clean.
+    // Without the plugin, modified files show up as ugly temp file names in Moonraker's
+    // job history (e.g., ".helix_temp/modified_1766807545_filename.gcode").
+    // The plugin handles this by creating symlinks and patching history metadata.
     if (printer_state_ && printer_state_->service_has_helix_plugin()) {
         result.can_modify = true;
         result.has_plugin = true;
-        result.has_disk_space = true; // N/A when using plugin
-        result.reason = "Using server-side plugin";
-        spdlog::debug("[PrintPreparationManager] Plugin available - modification always safe");
-        return result;
-    }
-
-    // Priority 2: Check if we have enough disk space for streaming modification
-    std::string temp_dir = get_temp_directory();
-    if (temp_dir.empty()) {
-        result.can_modify = false;
-        result.has_plugin = false;
-        result.has_disk_space = false;
-        result.reason = "No writable temp directory available";
-        spdlog::warn("[PrintPreparationManager] No temp directory - modification disabled");
-        return result;
-    }
-
-    // Check available disk space
-    std::error_code ec;
-    std::filesystem::space_info space = std::filesystem::space(temp_dir, ec);
-    if (ec) {
-        result.can_modify = false;
-        result.has_plugin = false;
-        result.has_disk_space = false;
-        result.reason = "Cannot check disk space";
-        spdlog::warn("[PrintPreparationManager] Failed to check disk space: {}", ec.message());
-        return result;
-    }
-
-    result.available_bytes = space.available;
-
-    // Get file size (required for calculation)
-    size_t file_size = cached_file_size_.value_or(0);
-
-    if (file_size == 0) {
-        // If we don't know file size, assume conservative 10MB (not 100MB)
-        // This is more reasonable for resource-constrained devices
-        file_size = 10 * 1024 * 1024;
-        spdlog::debug("[PrintPreparationManager] Unknown file size, assuming 10MB");
-    }
-
-    // Calculate dynamic safety margin based on available disk space
-    // - Use 10% of available space as margin, with min 2MB and max 20MB
-    // - This scales appropriately: 20MB disk → 2MB margin, 200MB disk → 20MB margin
-    constexpr size_t MIN_MARGIN_BYTES = 2 * 1024 * 1024;  // 2MB minimum
-    constexpr size_t MAX_MARGIN_BYTES = 20 * 1024 * 1024; // 20MB maximum
-    size_t dynamic_margin =
-        std::clamp(static_cast<size_t>(space.available / 10), MIN_MARGIN_BYTES, MAX_MARGIN_BYTES);
-
-    // Required space: 2x file size (download + modified) + dynamic margin
-    result.required_bytes = (file_size * 2) + dynamic_margin;
-
-    spdlog::debug("[PrintPreparationManager] Disk space calculation: file={}MB, margin={}MB, "
-                  "required={}MB",
-                  file_size / (1024 * 1024), dynamic_margin / (1024 * 1024),
-                  result.required_bytes / (1024 * 1024));
-
-    if (result.available_bytes >= result.required_bytes) {
-        result.can_modify = true;
-        result.has_plugin = false;
         result.has_disk_space = true;
-        result.reason = "Streaming modification available";
-        spdlog::debug("[PrintPreparationManager] Sufficient disk space: {:.1f} MB available, "
-                      "{:.1f} MB required",
-                      static_cast<double>(result.available_bytes) / (1024.0 * 1024.0),
-                      static_cast<double>(result.required_bytes) / (1024.0 * 1024.0));
-    } else {
-        result.can_modify = false;
-        result.has_plugin = false;
-        result.has_disk_space = false;
-        result.reason =
-            fmt::format("Insufficient disk space: {:.0f} MB available, {:.0f} MB needed",
-                        static_cast<double>(result.available_bytes) / (1024.0 * 1024.0),
-                        static_cast<double>(result.required_bytes) / (1024.0 * 1024.0));
-        spdlog::warn("[PrintPreparationManager] {}", result.reason);
+        result.reason = "Using server-side plugin";
+        spdlog::debug("[PrintPreparationManager] Plugin available - modifications enabled");
+        return result;
     }
 
+    // No plugin = no modifications. This prevents print history clutter.
+    result.can_modify = false;
+    result.has_plugin = false;
+    result.has_disk_space = false;
+    result.reason = "Requires HelixPrint plugin";
+    spdlog::debug("[PrintPreparationManager] No plugin - modifications disabled");
     return result;
 }
 
