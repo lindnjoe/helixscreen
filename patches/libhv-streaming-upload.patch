@@ -1,6 +1,8 @@
---- /tmp/requests_original.h	2025-12-25 19:19:37
-+++ /Users/pbrown/code/helixscreen/lib/libhv/http/client/requests.h	2025-12-25 19:17:40
-@@ -119,6 +119,32 @@
+diff --git a/http/client/requests.h b/http/client/requests.h
+index 02c26e4..b858945 100644
+--- a/http/client/requests.h
++++ b/http/client/requests.h
+@@ -119,6 +119,32 @@ HV_INLINE Response uploadFormFile(const char* url, const char* name, const char*
  #endif
  
  typedef std::function<void(size_t sended_bytes, size_t total_bytes)>    upload_progress_cb;
@@ -33,7 +35,7 @@
  HV_INLINE Response uploadLargeFile(const char* url, const char* filepath, upload_progress_cb progress_cb = NULL, http_method method = HTTP_POST, const http_headers& headers = DefaultHeaders) {
      // open file
      HFile file;
-@@ -151,35 +177,99 @@
+@@ -151,24 +177,9 @@ HV_INLINE Response uploadLargeFile(const char* url, const char* filepath, upload
          return NULL;
      }
  
@@ -61,14 +63,10 @@
      }
  
      // recv response
-     auto resp = std::make_shared<HttpResponse>();
-     ret = cli.recvResponse(resp.get());
-     if (ret != 0) {
-+        return NULL;
-+    }
-+    return resp;
-+}
-+
+@@ -180,6 +191,85 @@ HV_INLINE Response uploadLargeFile(const char* url, const char* filepath, upload
+     return resp;
+ }
+ 
 +// Streaming multipart form file upload - memory efficient for large files
 +// Overload with explicit upload_filename for when the filename differs from local path
 +#ifndef WITHOUT_HTTP_CONTENT
@@ -118,8 +116,8 @@
 +
 +    req->ParseUrl();
 +    if (cli.connect(req->host.c_str(), req->port, req->IsHttps(), req->connect_timeout) < 0) {
-         return NULL;
-     }
++        return NULL;
++    }
 +    if (cli.sendHeader(req.get()) != 0) return NULL;
 +
 +    // Send preamble
@@ -135,9 +133,9 @@
 +
 +    auto resp = std::make_shared<HttpResponse>();
 +    if (cli.recvResponse(resp.get()) != 0) return NULL;
-     return resp;
- }
- 
++    return resp;
++}
++
 +// Convenience overload - uses basename of filepath as upload filename
 +HV_INLINE Response uploadLargeFormFile(const char* url, const char* name, const char* filepath,
 +    std::map<std::string, std::string>& params = hv::empty_map,
