@@ -100,7 +100,8 @@ static void async_error_callback(void* user_data) {
             // Check if a modal with the same title is already showing
             lv_obj_t* existing_modal = ui_modal_get_top();
             if (existing_modal) {
-                lv_obj_t* title_label = lv_obj_find_by_name(existing_modal, "lbl_title");
+                // The modal_dialog.xml uses "dialog_title" for the title label
+                lv_obj_t* title_label = lv_obj_find_by_name(existing_modal, "dialog_title");
                 if (title_label) {
                     const char* existing_title = lv_label_get_text(title_label);
                     if (existing_title && strcmp(existing_title, data->title) == 0) {
@@ -394,7 +395,8 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
             // This prevents duplicate modals when multiple components report the same error
             lv_obj_t* existing_modal = ui_modal_get_top();
             if (existing_modal) {
-                lv_obj_t* title_label = lv_obj_find_by_name(existing_modal, "lbl_title");
+                // The modal_dialog.xml uses "dialog_title" for the title label
+                lv_obj_t* title_label = lv_obj_find_by_name(existing_modal, "dialog_title");
                 if (title_label) {
                     const char* existing_title = lv_label_get_text(title_label);
                     if (existing_title && strcmp(existing_title, title) == 0) {

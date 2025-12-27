@@ -188,7 +188,8 @@ void MoonrakerManager::process_notifications() {
             if (new_state == static_cast<int>(ConnectionState::CONNECTED)) {
                 lv_obj_t* modal = ui_modal_get_top();
                 if (modal) {
-                    lv_obj_t* title_label = lv_obj_find_by_name(modal, "lbl_title");
+                    // The modal_dialog.xml uses "dialog_title" for the title label
+                    lv_obj_t* title_label = lv_obj_find_by_name(modal, "dialog_title");
                     if (title_label) {
                         const char* title = lv_label_get_text(title_label);
                         // Close modals that were showing connection/disconnection errors
