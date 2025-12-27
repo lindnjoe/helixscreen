@@ -18,12 +18,6 @@
  * This is similar to React's batched state updates - changes are queued and
  * applied together at a safe point.
  *
- * CRITICAL FIX (2025-12-25): When lv_async_call() is called DURING render (e.g.,
- * from a draw callback), LVGL's timer restart behavior causes the async callback
- * to fire IMMEDIATELY - still within the render phase. This triggers cascading
- * lv_inv_area() assertions. The fix: queue such callbacks and drain them AFTER
- * render completes via LV_EVENT_REFR_READY.
- *
  * Usage:
  * @code
  * // From any thread (WebSocket callback, async operation, etc.):
@@ -45,17 +39,13 @@
 #pragma once
 
 #include "lvgl/lvgl.h"
-#include "lvgl/src/display/lv_display_private.h" // For rendering_in_progress
 
 #include <spdlog/spdlog.h>
 
-#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <thread>
-#include <vector>
 
 namespace helix::ui {
 
@@ -85,30 +75,14 @@ class UpdateQueue {
     }
 
     /**
-     * @brief Check if current thread is the main LVGL thread
-     *
-     * This is used by ui_async_call() to determine whether to use the
-     * render-phase check (safe on main thread) or always defer (background thread).
-     *
-     * @return true if called from the main LVGL thread
-     */
-    static bool is_main_thread() {
-        return std::this_thread::get_id() == main_thread_id_;
-    }
-
-    /**
-     * @brief Initialize the update queue (call once at startup FROM MAIN THREAD)
+     * @brief Initialize the update queue (call once at startup)
      *
      * Registers an event handler on the default display that processes
      * pending updates at the START of each refresh cycle, BEFORE rendering.
-     * Also stores the main thread ID for thread-safety checks.
      */
     void init() {
         if (initialized_)
             return;
-
-        // Store main thread ID - init() MUST be called from main thread
-        main_thread_id_ = std::this_thread::get_id();
 
         lv_display_t* disp = lv_display_get_default();
         if (!disp) {
@@ -180,17 +154,9 @@ class UpdateQueue {
         }
 
         // Execute all pending updates - safe because render hasn't started yet
-        // Wrap each callback in try-catch to prevent one bad callback from
-        // blocking others and to avoid exceptions propagating through LVGL's C code
         while (!to_process.empty()) {
             auto& callback = to_process.front();
-            try {
-                callback();
-            } catch (const std::exception& e) {
-                spdlog::error("[UpdateQueue] Callback threw exception: {}", e.what());
-            } catch (...) {
-                spdlog::error("[UpdateQueue] Callback threw unknown exception");
-            }
+            callback();
             to_process.pop();
         }
     }
@@ -199,217 +165,9 @@ class UpdateQueue {
     std::queue<UpdateCallback> pending_;
     lv_display_t* display_ = nullptr;
     bool initialized_ = false;
-
-    // Static thread ID of the main LVGL thread (set in init())
-    static inline std::thread::id main_thread_id_{};
-};
-
-/**
- * @brief Queue for callbacks that must execute AFTER render completes
- *
- * When ui_async_call() is invoked during render phase, using lv_async_call()
- * directly causes the callback to fire immediately (due to LVGL's timer restart
- * behavior). This queue defers such callbacks until LV_EVENT_REFR_READY fires.
- *
- * Key insight: LVGL's lv_timer_handler() restarts from the head of the timer
- * list when a new timer is created. If this happens during _lv_display_refr_timer
- * (the render phase), newly created period-0 timers fire WITHIN render context,
- * causing lv_inv_area() assertions when their callbacks trigger invalidation.
- */
-class DeferredRenderQueue {
-  public:
-    /**
-     * @brief Callback info stored for deferred execution
-     */
-    struct DeferredCallback {
-        lv_async_cb_t callback;
-        void* user_data;
-    };
-
-    static DeferredRenderQueue& instance() {
-        static DeferredRenderQueue instance;
-        return instance;
-    }
-
-    /**
-     * @brief Initialize the deferred queue (call once at startup)
-     *
-     * Registers LV_EVENT_REFR_READY handler to drain the queue after each render.
-     */
-    void init() {
-        if (initialized_)
-            return;
-
-        lv_display_t* disp = lv_display_get_default();
-        if (!disp) {
-            spdlog::warn("[DeferredRenderQueue] init - no default display!");
-            return;
-        }
-
-        // LV_EVENT_REFR_READY fires AFTER rendering completes - perfect drain point
-        lv_display_add_event_cb(disp, refr_ready_cb, LV_EVENT_REFR_READY, this);
-        display_ = disp;
-        initialized_ = true;
-        spdlog::info("[DeferredRenderQueue] Initialized - REFR_READY handler registered");
-    }
-
-    /**
-     * @brief Queue a callback for post-render execution
-     *
-     * Thread-safe. Called when ui_async_call() is invoked during render phase.
-     *
-     * @param cb Callback function
-     * @param user_data User data for callback
-     */
-    void queue(lv_async_cb_t cb, void* user_data) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        deferred_.push_back({cb, user_data});
-    }
-
-    /**
-     * @brief Check if there are deferred callbacks (under lock for thread safety)
-     */
-    bool has_pending() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return !deferred_.empty();
-    }
-
-    void shutdown() {
-        initialized_ = false;
-        display_ = nullptr;
-    }
-
-  private:
-    DeferredRenderQueue() = default;
-    ~DeferredRenderQueue() {
-        shutdown();
-    }
-
-    DeferredRenderQueue(const DeferredRenderQueue&) = delete;
-    DeferredRenderQueue& operator=(const DeferredRenderQueue&) = delete;
-
-    /**
-     * @brief Drain deferred callbacks after render completes
-     */
-    static void refr_ready_cb(lv_event_t* e) {
-        auto* self = static_cast<DeferredRenderQueue*>(lv_event_get_user_data(e));
-        if (self && self->initialized_ && self->has_pending()) {
-            self->drain();
-        }
-    }
-
-    void drain() {
-        // Move to local vector to minimize lock time
-        std::vector<DeferredCallback> to_execute;
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            std::swap(to_execute, deferred_);
-        }
-
-        // Execute all deferred callbacks - now safe because render has finished
-        // Wrap each callback in try-catch to prevent exceptions from propagating
-        // through LVGL's C code (undefined behavior)
-        for (const auto& cb_info : to_execute) {
-            if (cb_info.callback) {
-                try {
-                    cb_info.callback(cb_info.user_data);
-                } catch (const std::exception& e) {
-                    spdlog::error("[DeferredRenderQueue] Callback threw exception: {}", e.what());
-                } catch (...) {
-                    spdlog::error("[DeferredRenderQueue] Callback threw unknown exception");
-                }
-            }
-        }
-    }
-
-    std::mutex mutex_;
-    std::vector<DeferredCallback> deferred_;
-    lv_display_t* display_ = nullptr;
-    bool initialized_ = false;
 };
 
 } // namespace helix::ui
-
-/**
- * @brief Initialize the UI update queue
- *
- * Call this once during application startup, AFTER lv_init() but BEFORE
- * creating any UI elements. This ensures the processing timer has highest
- * priority and runs before other timers.
- */
-inline void ui_update_queue_init() {
-    helix::ui::UpdateQueue::instance().init();
-    helix::ui::DeferredRenderQueue::instance().init();
-}
-
-/**
- * @brief Shutdown the UI update queue
- *
- * Call this during application shutdown, BEFORE lv_deinit().
- */
-inline void ui_update_queue_shutdown() {
-    helix::ui::UpdateQueue::instance().shutdown();
-    helix::ui::DeferredRenderQueue::instance().shutdown();
-}
-
-/**
- * @brief Thread-aware async call with automatic routing
- *
- * This function handles LVGL async calls correctly by:
- * - On main thread: Queue and force immediate render to drain
- * - On background thread: Always defer to next frame
- *
- * **The LVGL Timer Restart Problem (why we can't always use lv_async_call):**
- * - lv_async_call() creates a period-0 timer
- * - LVGL's lv_timer_handler() restarts from the HEAD of the timer list
- *   when a new timer is created mid-iteration
- * - If the refr_timer starts rendering AFTER the async timer was created,
- *   the async callback fires INSIDE the render phase → assertion failure
- *
- * **The TOCTOU Race Problem (2025-12-26):**
- * - Previous "fast path" checked rendering_in_progress then executed callback
- * - Race window: rendering could START between check and execution
- * - This caused SIGSEGV on AD5M due to memory access during render
- * - Fix: ALWAYS queue, then force synchronous render to drain immediately
- *
- * **Solution:**
- * - Main thread + rendering: Defer to DeferredRenderQueue (drains at REFR_READY)
- * - Main thread + not rendering: Queue + lv_refr_now() for immediate execution
- * - Background thread: Queue to UpdateQueue (drains at REFR_START)
- *
- * @param async_xcb Callback function (same signature as lv_async_call)
- * @param user_data User data passed to callback
- * @return LV_RESULT_OK on success
- */
-inline lv_result_t ui_async_call(lv_async_cb_t async_xcb, void* user_data) {
-    if (!async_xcb) {
-        return LV_RESULT_OK;
-    }
-
-    // Check if we're on the main LVGL thread
-    if (helix::ui::UpdateQueue::is_main_thread()) {
-        // On main thread - check if rendering is in progress
-        lv_display_t* disp = lv_display_get_default();
-        if (disp && disp->rendering_in_progress) {
-            // During render - defer to after render completes
-            helix::ui::DeferredRenderQueue::instance().queue(async_xcb, user_data);
-        } else {
-            // Not rendering - queue and force immediate render cycle
-            // This eliminates the TOCTOU race: we queue THEN render (atomic)
-            // The callback executes at REFR_READY, after render completes
-            helix::ui::DeferredRenderQueue::instance().queue(async_xcb, user_data);
-            // Force a synchronous render cycle to drain the queue promptly
-            // lv_refr_now() is synchronous - by return, our callback has executed
-            lv_refr_now(disp);
-        }
-    } else {
-        // Background thread - queue for main thread execution at REFR_START
-        helix::ui::UpdateQueue::instance().queue(
-            [async_xcb, user_data]() { async_xcb(user_data); });
-    }
-
-    return LV_RESULT_OK;
-}
 
 /**
  * @brief Queue a UI update for safe execution
@@ -422,8 +180,6 @@ inline lv_result_t ui_async_call(lv_async_cb_t async_xcb, void* user_data) {
  */
 inline void ui_queue_update(helix::ui::UpdateCallback callback) {
     helix::ui::UpdateQueue::instance().queue(std::move(callback));
-    // Queue is drained at REFR_START - no need to force invalidation
-    // Forcing invalidation here was causing cascading lv_inv_area assertions
 }
 
 /**
@@ -447,33 +203,42 @@ void ui_queue_update(std::unique_ptr<T> data, std::function<void(T*)> callback) 
 }
 
 /**
- * @brief Macro for safe widget modifications from event callbacks
+ * @brief Initialize the UI update queue
  *
- * Use this macro to safely modify LVGL widgets from any callback context.
- * The code block is queued and executed at LV_EVENT_REFR_START, guaranteeing
- * it never runs during the render phase.
- *
- * CRITICAL: You MUST capture all needed variables by VALUE in the capture list.
- * By the time the queued code runs, local variables will be out of scope!
- *
- * Usage:
- * @code
- * void my_button_clicked(lv_event_t* e) {
- *     LVGL_SAFE_EVENT_CB_BEGIN("my_button_clicked");
- *
- *     lv_obj_t* target = lv_event_get_target(e);
- *     auto* panel = get_my_panel();
- *
- *     SAFE_WIDGET_UPDATE([target, panel], {
- *         lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
- *         panel->show_overlay();
- *     });
- *
- *     LVGL_SAFE_EVENT_CB_END();
- * }
- * @endcode
- *
- * @param captures Lambda capture list (e.g., [target, panel] or [=] or [this])
- * @param body Code block to execute safely { ... }
+ * Call this once during application startup, AFTER lv_init() but BEFORE
+ * creating any UI elements. This ensures the processing timer has highest
+ * priority and runs before other timers.
  */
-#define SAFE_WIDGET_UPDATE(captures, body) ui_queue_update(captures() body)
+inline void ui_update_queue_init() {
+    helix::ui::UpdateQueue::instance().init();
+}
+
+/**
+ * @brief Shutdown the UI update queue
+ *
+ * Call this during application shutdown, BEFORE lv_deinit().
+ */
+inline void ui_update_queue_shutdown() {
+    helix::ui::UpdateQueue::instance().shutdown();
+}
+
+/**
+ * @brief Drop-in replacement for lv_async_call
+ *
+ * Has the EXACT same signature as lv_async_call() but uses the UI update queue
+ * to ensure callbacks run BEFORE rendering, not during.
+ *
+ * Migration: Simply replace `lv_async_call(` with `ui_async_call(`
+ *
+ * @param async_xcb Callback function (same signature as lv_async_call)
+ * @param user_data User data passed to callback
+ * @return LV_RESULT_OK always (queue never fails)
+ */
+inline lv_result_t ui_async_call(lv_async_cb_t async_xcb, void* user_data) {
+    ui_queue_update([async_xcb, user_data]() {
+        if (async_xcb) {
+            async_xcb(user_data);
+        }
+    });
+    return LV_RESULT_OK;
+}
