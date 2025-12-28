@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # HelixPrint Moonraker Plugin - Remote Installer
 #
 # One-liner install:
-#   curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/moonraker-plugin/remote-install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/moonraker-plugin/remote-install.sh | sh
 #
 # This script:
 #   1. Clones/updates the helixscreen repo (just the moonraker-plugin folder)
@@ -21,38 +21,38 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-info()  { echo -e "${GREEN}[✓]${NC} $1"; }
-warn()  { echo -e "${YELLOW}[!]${NC} $1"; }
-error() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
-step()  { echo -e "${CYAN}[→]${NC} $1"; }
+info()  { printf "${GREEN}[✓]${NC} %s\n" "$1"; }
+warn()  { printf "${YELLOW}[!]${NC} %s\n" "$1"; }
+error() { printf "${RED}[✗]${NC} %s\n" "$1"; exit 1; }
+step()  { printf "${CYAN}[→]${NC} %s\n" "$1"; }
 
 REPO_URL="https://github.com/prestonbrown/helixscreen.git"
 INSTALL_DIR="$HOME/helix_print"
 BRANCH="main"
 
-echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║     HelixPrint Plugin Installer            ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
-echo ""
+printf '\n'
+printf "${GREEN}╔════════════════════════════════════════════╗${NC}\n"
+printf "${GREEN}║     HelixPrint Plugin Installer            ║${NC}\n"
+printf "${GREEN}╚════════════════════════════════════════════╝${NC}\n"
+printf '\n'
 
 # Step 1: Find Moonraker
 step "Finding Moonraker installation..."
 
 MOONRAKER_PATH=""
 for loc in "$HOME/moonraker" "/home/pi/moonraker" "/home/klipper/moonraker"; do
-    if [[ -d "$loc/moonraker/components" ]]; then
+    if [ -d "$loc/moonraker/components" ]; then
         MOONRAKER_PATH="$loc"
         break
     fi
 done
 
-if [[ -z "$MOONRAKER_PATH" ]]; then
+if [ -z "$MOONRAKER_PATH" ]; then
     # Try pip-installed moonraker
     MOONRAKER_PATH=$(python3 -c "import moonraker; import os; print(os.path.dirname(os.path.dirname(moonraker.__path__[0])))" 2>/dev/null || true)
 fi
 
-[[ -z "$MOONRAKER_PATH" ]] && error "Could not find Moonraker. Is it installed?"
+[ -z "$MOONRAKER_PATH" ] && error "Could not find Moonraker. Is it installed?"
 info "Found Moonraker at: $MOONRAKER_PATH"
 
 # Step 2: Find moonraker.conf
@@ -63,19 +63,19 @@ for loc in "$HOME/printer_data/config/moonraker.conf" \
            "$HOME/klipper_config/moonraker.conf" \
            "/home/pi/printer_data/config/moonraker.conf" \
            "/home/pi/klipper_config/moonraker.conf"; do
-    if [[ -f "$loc" ]]; then
+    if [ -f "$loc" ]; then
         MOONRAKER_CONF="$loc"
         break
     fi
 done
 
-[[ -z "$MOONRAKER_CONF" ]] && error "Could not find moonraker.conf"
+[ -z "$MOONRAKER_CONF" ] && error "Could not find moonraker.conf"
 info "Found config at: $MOONRAKER_CONF"
 
 # Step 3: Clone or update repo
 step "Installing plugin files..."
 
-if [[ -d "$INSTALL_DIR/.git" ]]; then
+if [ -d "$INSTALL_DIR/.git" ]; then
     info "Updating existing installation..."
     cd "$INSTALL_DIR"
     git fetch origin "$BRANCH" --depth=1
@@ -90,7 +90,7 @@ else
 fi
 
 PLUGIN_FILE="$INSTALL_DIR/moonraker-plugin/helix_print.py"
-[[ ! -f "$PLUGIN_FILE" ]] && error "Plugin file not found after clone"
+[ ! -f "$PLUGIN_FILE" ] && error "Plugin file not found after clone"
 info "Plugin files installed to: $INSTALL_DIR"
 
 # Step 4: Create symlink
@@ -99,7 +99,7 @@ step "Creating symlink to Moonraker components..."
 COMPONENTS_DIR="$MOONRAKER_PATH/moonraker/components"
 TARGET="$COMPONENTS_DIR/helix_print.py"
 
-if [[ -L "$TARGET" ]]; then
+if [ -L "$TARGET" ]; then
     rm "$TARGET"
 fi
 ln -sf "$PLUGIN_FILE" "$TARGET"
@@ -141,22 +141,22 @@ fi
 # Step 6: Restart Moonraker
 step "Restarting Moonraker..."
 
-if command -v systemctl &> /dev/null && systemctl is-active --quiet moonraker; then
+if command -v systemctl > /dev/null 2>&1 && systemctl is-active --quiet moonraker 2>/dev/null; then
     sudo systemctl restart moonraker
     info "Moonraker restarted"
 else
     warn "Could not restart Moonraker automatically"
-    echo "    Please run: sudo systemctl restart moonraker"
+    printf '%s\n' "    Please run: sudo systemctl restart moonraker"
 fi
 
 # Done!
-echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║     Installation Complete!                 ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
-echo ""
-echo "Verify installation:"
-echo "  curl http://localhost:7125/server/helix/status"
-echo ""
-echo "The plugin will auto-update via Moonraker's update manager."
-echo ""
+printf '\n'
+printf "${GREEN}╔════════════════════════════════════════════╗${NC}\n"
+printf "${GREEN}║     Installation Complete!                 ║${NC}\n"
+printf "${GREEN}╚════════════════════════════════════════════╝${NC}\n"
+printf '\n'
+printf '%s\n' "Verify installation:"
+printf '%s\n' "  curl http://localhost:7125/server/helix/status"
+printf '\n'
+printf '%s\n' "The plugin will auto-update via Moonraker's update manager."
+printf '\n'
