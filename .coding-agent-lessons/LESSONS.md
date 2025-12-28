@@ -17,8 +17,8 @@
 - **Uses**: 7 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
 > Always add name='component_name' on XML component tags. Internal view names don't propagate, causing lv_obj_find_by_name to return NULL
 
-### [L004] [****+/-----] Subject init before create
-- **Uses**: 9 | **Learned**: 2025-12-14 | **Last**: 2025-12-26 | **Category**: pattern
+### [L004] [*****/*----] Subject init before create
+- **Uses**: 12 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: pattern
 > Initialize and register subjects BEFORE lv_xml_create(). Order: fonts, images, components, init subjects, register subjects, create UI
 
 ### [L005] [**+--/-----] Static buffers for subjects
@@ -37,12 +37,12 @@
 - **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
 > No hardcoded colors or spacing. Use #card_bg, #space_md, text_body etc. Check globals.xml for available tokens
 
-### [L009] [**+--/-----] Icon font sync workflow
-- **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
+### [L009] [***--/-----] Icon font sync workflow
+- **Uses**: 6 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: gotcha
 > After adding icon to codepoints.h: add to regen_mdi_fonts.sh, run make regen-fonts, then rebuild. Forgetting any step = missing icon
 
 ### [L010] [*****/*****] No spdlog in destructors
-- **Uses**: 34 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: gotcha
+- **Uses**: 39 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: gotcha
 > Never call spdlog::info/warn/error in destructors. Logger may be destroyed before your object during static destruction, causing crash on exit
 
 ### [L011] [*****/-----] No mutex in destructors
@@ -50,15 +50,15 @@
 > Avoid mutex locks in destructors during static destruction phase. Other objects may already be destroyed, causing deadlock or crash on exit
 
 ### [L012] [*****/*****] Guard async callbacks
-- **Uses**: 21 | **Learned**: 2025-12-14 | **Last**: 2025-12-26 | **Category**: gotcha
+- **Uses**: 22 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: gotcha
 > Async WebSocket callbacks can fire after object destruction. Use weak_ptr or flag checks to guard against stale this pointers in async handlers
 
 ### [L013] [****-/-----] Callbacks before XML creation
 - **Uses**: 8 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: correction
 > Register event callbacks with lv_xml_register_event_cb() BEFORE calling lv_xml_create(). XML parser needs callbacks available during creation
 
-### [L014] [*****/*+---] Register all XML components
-- **Uses**: 13 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
+### [L014] [*****/**---] Register all XML components
+- **Uses**: 14 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: gotcha
 > When adding new XML components, must add lv_xml_component_register_from_file() call in main.cpp. Forgetting causes silent failures
 
 ### [L015] [**+--/-----] No hardcoded colors in C++
@@ -73,8 +73,8 @@
 - **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: correction
 > Use make -j not make -j4 or -j8. The -j flag without number auto-detects optimal core count
 
-### [L018] [**+--/-----] Find widgets by name
-- **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
+### [L018] [***--/-----] Find widgets by name
+- **Uses**: 6 | **Learned**: 2025-12-14 | **Last**: 2025-12-27 | **Category**: pattern
 > Use lv_obj_find_by_name(parent, name) not lv_obj_get_child(parent, idx). Child indices are fragile and break when layout changes
 
 ### [L019] [**+--/-----] Style prefix rules
@@ -93,8 +93,8 @@
 - **Uses**: 7 | **Learned**: 2025-12-19 | **Last**: 2025-12-25 | **Category**: gotcha
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
-### [L025] [**+--/-----] Button content centering
-- **Uses**: 5 | **Learned**: 2025-12-21 | **Last**: 2025-12-26 | **Category**: pattern
+### [L025] [***--/-----] Button content centering
+- **Uses**: 6 | **Learned**: 2025-12-21 | **Last**: 2025-12-27 | **Category**: pattern
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
 
 
@@ -123,7 +123,8 @@
 > Touchscreen UIs are for physically present users - prioritize tactile controls, at-a-glance info, and real-time tuning. Don't copy features from remote web UIs (cameras, system stats, multi-device views) that assume users aren't standing at the machine.
 
 
-### [L031] [+----/-----] XML no recompile
-- **Uses**: 1 | **Learned**: 2025-12-27 | **Last**: 2025-12-27 | **Category**: gotcha
+### [L031] [*----/-----] XML no recompile
+- **Uses**: 2 | **Learned**: 2025-12-27 | **Last**: 2025-12-27 | **Category**: gotcha
 > XML layout changes (ui_xml/*.xml) don't require recompilation - just restart the app. Only C++ changes need make.
+
 

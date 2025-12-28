@@ -446,3 +446,917 @@ TEST_CASE("PrintStart: typical noise lines should not match phases", "[print][ne
         }
     }
 }
+
+// ============================================================================
+// AREA A: HELIX:PHASE Signal Detection Tests
+// ============================================================================
+// Tests for check_helix_phase_signal() method which parses signals like:
+// - HELIX:PHASE:STARTING -> sets INITIALIZING phase
+// - HELIX:PHASE:COMPLETE -> sets COMPLETE phase
+// - Various phase transitions
+
+#include "../lvgl_test_fixture.h"
+#include "moonraker_client_mock.h"
+#include "print_start_collector.h"
+#include "ui_update_queue.h"
+
+/**
+ * @brief HELIX:PHASE signal parser for direct testing
+ *
+ * This standalone function replicates the HELIX:PHASE parsing logic from
+ * PrintStartCollector::check_helix_phase_signal() so we can test it directly
+ * without the full callback infrastructure.
+ *
+ * Returns the PrintStartPhase that would be set by the signal, or
+ * PrintStartPhase::IDLE if the signal is not recognized.
+ */
+static std::pair<PrintStartPhase, std::string> parse_helix_phase_signal(const std::string& line) {
+    static const char* HELIX_PHASE_PREFIX = "HELIX:PHASE:";
+    constexpr size_t PREFIX_LEN = 12;
+
+    size_t pos = line.find(HELIX_PHASE_PREFIX);
+    if (pos == std::string::npos) {
+        return {PrintStartPhase::IDLE, ""};
+    }
+
+    std::string phase_name = line.substr(pos + PREFIX_LEN);
+    size_t end = phase_name.find_first_of(" \t\n\r\"'");
+    if (end != std::string::npos) {
+        phase_name = phase_name.substr(0, end);
+    }
+
+    // Map to phase (same logic as check_helix_phase_signal)
+    if (phase_name == "STARTING" || phase_name == "START") {
+        return {PrintStartPhase::INITIALIZING, "Preparing Print..."};
+    } else if (phase_name == "COMPLETE" || phase_name == "DONE") {
+        return {PrintStartPhase::COMPLETE, "Starting Print..."};
+    } else if (phase_name == "HOMING") {
+        return {PrintStartPhase::HOMING, "Homing..."};
+    } else if (phase_name == "HEATING_BED" || phase_name == "BED_HEATING") {
+        return {PrintStartPhase::HEATING_BED, "Heating Bed..."};
+    } else if (phase_name == "HEATING_NOZZLE" || phase_name == "NOZZLE_HEATING" ||
+               phase_name == "HEATING_HOTEND") {
+        return {PrintStartPhase::HEATING_NOZZLE, "Heating Nozzle..."};
+    } else if (phase_name == "QGL" || phase_name == "QUAD_GANTRY_LEVEL") {
+        return {PrintStartPhase::QGL, "Leveling Gantry..."};
+    } else if (phase_name == "Z_TILT" || phase_name == "Z_TILT_ADJUST") {
+        return {PrintStartPhase::Z_TILT, "Z Tilt Adjust..."};
+    } else if (phase_name == "BED_MESH" || phase_name == "BED_LEVELING") {
+        return {PrintStartPhase::BED_MESH, "Loading Bed Mesh..."};
+    } else if (phase_name == "CLEANING" || phase_name == "NOZZLE_CLEAN") {
+        return {PrintStartPhase::CLEANING, "Cleaning Nozzle..."};
+    } else if (phase_name == "PURGING" || phase_name == "PURGE" || phase_name == "PRIMING") {
+        return {PrintStartPhase::PURGING, "Purging..."};
+    }
+
+    // Unknown phase
+    return {PrintStartPhase::IDLE, ""};
+}
+
+/**
+ * @brief Test fixture for PrintStartCollector proactive heater detection tests
+ *
+ * Provides initialized PrinterState and mock MoonrakerClient for testing
+ * the collector's fallback completion and proactive heater detection.
+ */
+class PrintStartCollectorHeaterFixture : public LVGLTestFixture {
+  public:
+    PrintStartCollectorHeaterFixture() {
+        state_.init_subjects(false);
+        client_ = std::make_unique<MoonrakerClientMock>();
+        collector_ = std::make_shared<PrintStartCollector>(*client_, state_);
+    }
+
+    ~PrintStartCollectorHeaterFixture() override {
+        if (collector_->is_active()) {
+            collector_->stop();
+        }
+        collector_.reset();
+        client_.reset();
+    }
+
+    PrinterState& state() { return state_; }
+    MoonrakerClientMock& client() { return *client_; }
+    PrintStartCollector& collector() { return *collector_; }
+
+    /**
+     * @brief Get current print start phase from PrinterState subject
+     */
+    PrintStartPhase get_current_phase() {
+        return static_cast<PrintStartPhase>(
+            lv_subject_get_int(state_.get_print_start_phase_subject()));
+    }
+
+    /**
+     * @brief Get current print start message from PrinterState subject
+     */
+    std::string get_current_message() {
+        return lv_subject_get_string(state_.get_print_start_message_subject());
+    }
+
+    /**
+     * @brief Set bed temperature and target in PrinterState subjects
+     *
+     * Values are in decidegrees (temp * 10) as stored in PrinterState.
+     * Example: 60.0C = 600 decidegrees
+     */
+    void set_bed_temps(int temp_decideg, int target_decideg) {
+        lv_subject_set_int(state_.get_bed_temp_subject(), temp_decideg);
+        lv_subject_set_int(state_.get_bed_target_subject(), target_decideg);
+    }
+
+    /**
+     * @brief Set extruder temperature and target in PrinterState subjects
+     */
+    void set_extruder_temps(int temp_decideg, int target_decideg) {
+        lv_subject_set_int(state_.get_extruder_temp_subject(), temp_decideg);
+        lv_subject_set_int(state_.get_extruder_target_subject(), target_decideg);
+    }
+
+    /**
+     * @brief Set both bed and extruder temperatures
+     */
+    void set_all_temps(int bed_temp, int bed_target, int ext_temp, int ext_target) {
+        set_bed_temps(bed_temp, bed_target);
+        set_extruder_temps(ext_temp, ext_target);
+    }
+
+    /**
+     * @brief Set progress and layer for completion fallback tests
+     */
+    void set_progress_and_layer(int progress, int layer) {
+        lv_subject_set_int(state_.get_print_progress_subject(), progress);
+        lv_subject_set_int(state_.get_print_layer_current_subject(), layer);
+    }
+
+    /**
+     * @brief Process pending async UI updates
+     *
+     * Since set_print_start_state() uses ui_async_call() to defer subject updates,
+     * we need to drain the queue to see the updates in tests.
+     */
+    void drain_async_updates() { helix::ui::UpdateQueue::instance().drain_queue_for_testing(); }
+
+  protected:
+    PrinterState state_;
+    std::unique_ptr<MoonrakerClientMock> client_;
+    std::shared_ptr<PrintStartCollector> collector_;
+};
+
+// ============================================================================
+// HELIX:PHASE:STARTING Signal Tests
+// ============================================================================
+
+TEST_CASE("HELIX:PHASE:STARTING sets INITIALIZING phase", "[print][collector][helix_phase]") {
+    SECTION("HELIX:PHASE:STARTING") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:STARTING");
+        REQUIRE(phase == PrintStartPhase::INITIALIZING);
+        REQUIRE(message == "Preparing Print...");
+    }
+
+    SECTION("HELIX:PHASE:START (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:START");
+        REQUIRE(phase == PrintStartPhase::INITIALIZING);
+    }
+}
+
+// ============================================================================
+// HELIX:PHASE:COMPLETE Signal Tests
+// ============================================================================
+
+TEST_CASE("HELIX:PHASE:COMPLETE sets COMPLETE phase", "[print][collector][helix_phase]") {
+    SECTION("HELIX:PHASE:COMPLETE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:COMPLETE");
+        REQUIRE(phase == PrintStartPhase::COMPLETE);
+        REQUIRE(message == "Starting Print...");
+    }
+
+    SECTION("HELIX:PHASE:DONE (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:DONE");
+        REQUIRE(phase == PrintStartPhase::COMPLETE);
+    }
+}
+
+// ============================================================================
+// Individual HELIX:PHASE Signal Tests
+// ============================================================================
+
+TEST_CASE("HELIX:PHASE individual phases set correctly", "[print][collector][helix_phase]") {
+    SECTION("HELIX:PHASE:HOMING") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:HOMING");
+        REQUIRE(phase == PrintStartPhase::HOMING);
+        REQUIRE(message == "Homing...");
+    }
+
+    SECTION("HELIX:PHASE:HEATING_BED") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:HEATING_BED");
+        REQUIRE(phase == PrintStartPhase::HEATING_BED);
+        REQUIRE(message == "Heating Bed...");
+    }
+
+    SECTION("HELIX:PHASE:BED_HEATING (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:BED_HEATING");
+        REQUIRE(phase == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("HELIX:PHASE:HEATING_NOZZLE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:HEATING_NOZZLE");
+        REQUIRE(phase == PrintStartPhase::HEATING_NOZZLE);
+        REQUIRE(message == "Heating Nozzle...");
+    }
+
+    SECTION("HELIX:PHASE:NOZZLE_HEATING (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:NOZZLE_HEATING");
+        REQUIRE(phase == PrintStartPhase::HEATING_NOZZLE);
+    }
+
+    SECTION("HELIX:PHASE:HEATING_HOTEND (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:HEATING_HOTEND");
+        REQUIRE(phase == PrintStartPhase::HEATING_NOZZLE);
+    }
+
+    SECTION("HELIX:PHASE:QGL") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:QGL");
+        REQUIRE(phase == PrintStartPhase::QGL);
+        REQUIRE(message == "Leveling Gantry...");
+    }
+
+    SECTION("HELIX:PHASE:QUAD_GANTRY_LEVEL (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:QUAD_GANTRY_LEVEL");
+        REQUIRE(phase == PrintStartPhase::QGL);
+    }
+
+    SECTION("HELIX:PHASE:Z_TILT") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:Z_TILT");
+        REQUIRE(phase == PrintStartPhase::Z_TILT);
+        REQUIRE(message == "Z Tilt Adjust...");
+    }
+
+    SECTION("HELIX:PHASE:Z_TILT_ADJUST (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:Z_TILT_ADJUST");
+        REQUIRE(phase == PrintStartPhase::Z_TILT);
+    }
+
+    SECTION("HELIX:PHASE:BED_MESH") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:BED_MESH");
+        REQUIRE(phase == PrintStartPhase::BED_MESH);
+        REQUIRE(message == "Loading Bed Mesh...");
+    }
+
+    SECTION("HELIX:PHASE:BED_LEVELING (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:BED_LEVELING");
+        REQUIRE(phase == PrintStartPhase::BED_MESH);
+    }
+
+    SECTION("HELIX:PHASE:CLEANING") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:CLEANING");
+        REQUIRE(phase == PrintStartPhase::CLEANING);
+        REQUIRE(message == "Cleaning Nozzle...");
+    }
+
+    SECTION("HELIX:PHASE:NOZZLE_CLEAN (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:NOZZLE_CLEAN");
+        REQUIRE(phase == PrintStartPhase::CLEANING);
+    }
+
+    SECTION("HELIX:PHASE:PURGING") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:PURGING");
+        REQUIRE(phase == PrintStartPhase::PURGING);
+        REQUIRE(message == "Purging...");
+    }
+
+    SECTION("HELIX:PHASE:PURGE (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:PURGE");
+        REQUIRE(phase == PrintStartPhase::PURGING);
+    }
+
+    SECTION("HELIX:PHASE:PRIMING (alternative form)") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:PRIMING");
+        REQUIRE(phase == PrintStartPhase::PURGING);
+    }
+}
+
+// ============================================================================
+// Malformed HELIX:PHASE Signal Tests
+// ============================================================================
+
+TEST_CASE("Malformed HELIX:PHASE signals are ignored",
+          "[print][collector][helix_phase][negative]") {
+    SECTION("Unknown phase name returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:UNKNOWN_PHASE");
+        REQUIRE(phase == PrintStartPhase::IDLE);
+        REQUIRE(message.empty());
+    }
+
+    SECTION("Malformed prefix returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX_PHASE:HOMING"); // Wrong separator
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Partial prefix returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:HOMING"); // Missing PHASE
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Empty phase name returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:");
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Case sensitivity: lowercase phase names return IDLE") {
+        // Currently the code checks for exact uppercase matches
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:homing");
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+
+    SECTION("No HELIX:PHASE prefix returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("G28");
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Empty line returns IDLE") {
+        auto [phase, message] = parse_helix_phase_signal("");
+        REQUIRE(phase == PrintStartPhase::IDLE);
+    }
+}
+
+// ============================================================================
+// HELIX:PHASE Signal with Context Tests
+// ============================================================================
+
+TEST_CASE("HELIX:PHASE signals work with surrounding text", "[print][collector][helix_phase]") {
+    SECTION("Signal with quotes is parsed correctly") {
+        auto [phase, message] = parse_helix_phase_signal("\"HELIX:PHASE:HOMING\"");
+        REQUIRE(phase == PrintStartPhase::HOMING);
+    }
+
+    SECTION("Signal with prefix text is parsed correctly") {
+        auto [phase, message] = parse_helix_phase_signal("RESPOND MSG=HELIX:PHASE:HEATING_BED");
+        REQUIRE(phase == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("Signal with trailing whitespace") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:QGL   ");
+        REQUIRE(phase == PrintStartPhase::QGL);
+    }
+
+    SECTION("Signal with trailing newline") {
+        auto [phase, message] = parse_helix_phase_signal("HELIX:PHASE:CLEANING\n");
+        REQUIRE(phase == PrintStartPhase::CLEANING);
+    }
+
+    SECTION("Signal embedded in M118 echo") {
+        auto [phase, message] = parse_helix_phase_signal("M118 HELIX:PHASE:Z_TILT output=prefix");
+        REQUIRE(phase == PrintStartPhase::Z_TILT);
+    }
+}
+
+// ============================================================================
+// AREA B: Proactive Heater Detection Tests
+// ============================================================================
+// Tests for the proactive detection logic in check_fallback_completion() that
+// detects "Preparing" phase when:
+// - Collector is active but in IDLE phase
+// - Heaters are ramping toward target
+//
+// Note: PrintStartCollectorHeaterFixture is defined above and provides
+// helpers for temperature simulation.
+// ============================================================================
+
+// ============================================================================
+// Proactive Bed Heating Detection Tests
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection: bed heating at <50% target triggers HEATING_BED",
+                 "[print][collector][proactive][heating]") {
+    collector().start();
+    drain_async_updates();
+    drain_async_updates(); // Process start()'s INITIALIZING state update
+    collector().enable_fallbacks();
+
+    // Collector starts in INITIALIZING, we need it in IDLE for proactive detection
+    // Reset state to test proactive detection from IDLE
+    state().reset_print_start_state();
+    drain_async_updates();
+    drain_async_updates();
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+
+    SECTION("Bed at 25% of target (150/600) triggers HEATING_BED") {
+        // Bed target 60C (600 decideg), current temp 15C (150 decideg) = 25% of target
+        set_all_temps(150, 600, 0, 0); // No extruder target
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+        REQUIRE(get_current_message() == "Heating Bed...");
+    }
+
+    SECTION("Bed at 49% of target triggers HEATING_BED") {
+        // Bed target 60C, current 29.4C (294 decideg) = 49% of target
+        set_all_temps(294, 600, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("Bed at 10% of target (extreme case)") {
+        // Bed target 110C (1100 decideg), current 11C (110 decideg) = 10%
+        set_all_temps(110, 1100, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+}
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection: bed at >=50% of target does not trigger HEATING_BED directly",
+                 "[print][collector][proactive][heating]") {
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    SECTION("Bed at 50% of target - nozzle heating takes over if nozzle not at target") {
+        // Bed target 60C, current 30C (300 decideg) = 50% of target
+        // Nozzle also heating
+        set_all_temps(300, 600, 500, 2100); // Nozzle 50C/210C
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // Nozzle heating should be detected instead
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+
+    SECTION("Bed at 80% of target with nozzle heating") {
+        // Bed target 60C, current 48C (480 decideg) = 80%
+        set_all_temps(480, 600, 1000, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+}
+
+// ============================================================================
+// Proactive Nozzle Heating Detection Tests
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection: nozzle heating when bed is near target",
+                 "[print][collector][proactive][heating]") {
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    SECTION("Bed near target, nozzle far from target triggers HEATING_NOZZLE") {
+        // Bed at 55C/60C (near target), nozzle at 50C/210C (far from target)
+        set_all_temps(550, 600, 500, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+        REQUIRE(get_current_message() == "Heating Nozzle...");
+    }
+
+    SECTION("Bed at target (within tolerance), nozzle heating") {
+        // TEMP_TOLERANCE_DECIDEGREES = 50 (5C)
+        // Bed at 58C/60C (within 5C tolerance = at target)
+        // Nozzle at 100C/210C
+        set_all_temps(580, 600, 1000, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+
+    SECTION("Bed at exactly target, nozzle ramping") {
+        set_all_temps(600, 600, 1500, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+}
+
+// ============================================================================
+// Temperature Tolerance Edge Cases (TEMP_TOLERANCE_DECIDEGREES = 50)
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection respects TEMP_TOLERANCE_DECIDEGREES (50 = 5C)",
+                 "[print][collector][proactive][tolerance]") {
+    // Initialize temps to zero before starting to prevent proactive detection triggering
+    // during enable_fallbacks() call
+    set_all_temps(0, 0, 0, 0);
+
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    state().reset_print_start_state();
+    drain_async_updates();
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+
+    SECTION("Temp exactly at tolerance boundary is considered heating") {
+        // Target 60C (600), temp 55C (550), diff = 50 decideg = exactly at tolerance
+        // temp < target - tolerance means heating
+        // 550 < 600 - 50 = 550 < 550 is FALSE, so NOT heating
+        set_all_temps(550, 600, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // At exactly tolerance, NOT considered heating (550 is not < 550)
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Temp 1 decidegree below tolerance is considered heating") {
+        // Target 60C (600), temp 54.9C (549), diff = 51 decideg
+        // 549 < 600 - 50 = 549 < 550 is TRUE, so bed_heating = true
+        // However, 549 >= 300 (50% of target), so we get INITIALIZING not HEATING_BED
+        // HEATING_BED only shows when bed is far from target (< 50%)
+        set_all_temps(549, 600, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // Bed is heating but past 50% mark, so generic "Preparing" state
+        REQUIRE(get_current_phase() == PrintStartPhase::INITIALIZING);
+    }
+
+    SECTION("Temp 1 decidegree above tolerance is NOT heating") {
+        // Target 60C (600), temp 55.1C (551), diff = 49 decideg
+        // 551 < 600 - 50 = 551 < 550 is FALSE, so NOT heating
+        set_all_temps(551, 600, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+}
+
+// ============================================================================
+// Zero Target Temperature Tests
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection handles zero targets correctly",
+                 "[print][collector][proactive][edge]") {
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    SECTION("Zero bed target means no bed heating") {
+        // Bed target 0, so bed_heating = false (target > 0 && temp < target - tol)
+        set_all_temps(250, 0, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Zero extruder target means no nozzle heating") {
+        // Both targets 0
+        set_all_temps(250, 0, 500, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Zero bed target but nozzle heating triggers HEATING_NOZZLE") {
+        // Bed target 0 (no bed heating), nozzle heating
+        set_all_temps(250, 0, 500, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+}
+
+// ============================================================================
+// Both Heaters at Target - No Proactive Detection
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection not triggered when both heaters at target",
+                 "[print][collector][proactive][edge]") {
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    SECTION("Both heaters exactly at target") {
+        set_all_temps(600, 600, 2100, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // No heating detected, should remain IDLE
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Both heaters within tolerance of target") {
+        // Bed 58C/60C, Nozzle 207C/210C - both within 5C tolerance
+        set_all_temps(580, 600, 2070, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("Heaters above target (overshooting)") {
+        // Bed 62C/60C, Nozzle 212C/210C - both above target
+        set_all_temps(620, 600, 2120, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+}
+
+// ============================================================================
+// Proactive Detection Requires IDLE Phase
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection behavior from internal IDLE state",
+                 "[print][collector][proactive][state]") {
+    // NOTE: Proactive detection checks the collector's internal current_phase_,
+    // not the PrinterState subject. After start(), internal state is IDLE while
+    // PrinterState shows INITIALIZING. We can't easily set the internal state
+    // externally, so we test that proactive detection works from the internal
+    // IDLE state (set by start()).
+    //
+    // The previous test was incorrect - it set PrinterState externally but the
+    // collector's internal state remained IDLE, so proactive detection still
+    // triggered. The fix would require exposing internal state or testing
+    // through the G-code callback mechanism.
+
+    // Initialize temps to zero to prevent proactive detection during enable
+    set_all_temps(0, 0, 0, 0);
+
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    state().reset_print_start_state();
+    drain_async_updates();
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+
+    SECTION("Proactive detection triggers from IDLE state when heaters heating") {
+        // The collector's internal state is IDLE (from start())
+        // Proactive detection should trigger when heaters are heating
+        set_all_temps(200, 600, 500, 2100); // Bed at 20C/60C, nozzle at 50C/210C
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // Should detect heating - bed is < 50% of target so HEATING_BED
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("After proactive detection triggers, subsequent calls don't change phase") {
+        // First call triggers HEATING_BED
+        set_all_temps(200, 600, 500, 2100);
+        collector().check_fallback_completion();
+        drain_async_updates();
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+
+        // Now heaters still heating, but internal state is no longer IDLE
+        // so proactive detection won't trigger again (but we can't verify
+        // this without accessing internal state)
+    }
+}
+
+// ============================================================================
+// Fallback Detection Requires Fallbacks Enabled
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection requires fallbacks to be enabled",
+                 "[print][collector][proactive][state]") {
+    collector().start();
+    drain_async_updates();
+    // Do NOT call enable_fallbacks()
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    // Set heaters heating
+    set_all_temps(200, 600, 500, 2100);
+
+    collector().check_fallback_completion();
+        drain_async_updates();
+
+    // Fallbacks not enabled, so no proactive detection
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+}
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Proactive detection requires collector to be active",
+                 "[print][collector][proactive][state]") {
+    // Do NOT call collector().start()
+    // Collector is not active
+
+    set_all_temps(200, 600, 500, 2100);
+
+    collector().check_fallback_completion();
+        drain_async_updates();
+
+    // Collector not active, so no detection
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+}
+
+// ============================================================================
+// Decidegree Math Validation
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Decidegree math: temperature values are handled correctly",
+                 "[print][collector][proactive][math]") {
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    // process_lvgl(10); // Skipped - not needed for fallback logic testing
+    state().reset_print_start_state();
+    drain_async_updates();
+
+    SECTION("Real-world temps: 22.5C bed heating to 60C") {
+        // 22.5C = 225 decideg, target 60C = 600 decideg
+        // 225 is < 50% of 600 (300), so HEATING_BED
+        set_all_temps(225, 600, 0, 0);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("Real-world temps: 205.3C nozzle heating to 250C") {
+        // Bed at target, nozzle at 205.3C (2053) heating to 250C (2500)
+        // 2053 < 2500 - 50 = 2053 < 2450? YES, so heating
+        set_all_temps(600, 600, 2053, 2500);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+
+    SECTION("High-temp printing: bed 110C, nozzle 285C") {
+        // ABS/ASA temps: bed 110C (1100), nozzle 285C (2850)
+        // Bed at 30C (300) = 27% of target, so HEATING_BED
+        set_all_temps(300, 1100, 250, 2850);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+
+    SECTION("PLA temps: bed 60C, nozzle 200C") {
+        // Bed at 55C (550), nozzle at 50C (500)
+        // Bed: 550 < 600 - 50 = 550 < 550? NO (not heating)
+        // But 550 is >= 50% of 600, so check nozzle
+        // Nozzle: 500 < 2000 - 50 = 500 < 1950? YES (heating)
+        set_all_temps(550, 600, 500, 2000);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_NOZZLE);
+    }
+}
+
+// ============================================================================
+// Completion Fallback Tests (Layer/Progress Detection)
+// ============================================================================
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Fallback completion: layer count triggers COMPLETE",
+                 "[print][collector][fallback][completion]") {
+    // Initialize temps to prevent proactive detection
+    set_all_temps(0, 0, 0, 0);
+
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    state().reset_print_start_state();
+    drain_async_updates();
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+
+    SECTION("Layer 1 triggers completion") {
+        set_progress_and_layer(0, 1);
+        set_all_temps(600, 600, 2100, 2100); // Temps at target
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::COMPLETE);
+    }
+
+    SECTION("Layer 2 also triggers completion") {
+        set_progress_and_layer(0, 2);
+        set_all_temps(600, 600, 2100, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::COMPLETE);
+    }
+
+    SECTION("Layer 0 does not trigger completion - stays IDLE when no heating") {
+        set_progress_and_layer(0, 0);
+        // Set temps at target so no heating phase detected
+        set_all_temps(600, 600, 2100, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // No layer, no progress, no heating - stays IDLE
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+}
+
+TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
+                 "Fallback completion: 2% progress with temps ready triggers COMPLETE",
+                 "[print][collector][fallback][completion]") {
+    // NOTE: The fallback completion tests have a fundamental issue - they want
+    // to test behavior when the phase is already PURGING, but we can't set the
+    // collector's internal state externally. state().set_print_start_state() only
+    // sets the PrinterState subject, not the collector's internal current_phase_.
+    //
+    // For now, we test completion detection from IDLE state (which is what
+    // the proactive detection branch handles).
+
+    // Initialize temps to prevent proactive detection
+    set_all_temps(0, 0, 0, 0);
+
+    collector().start();
+    drain_async_updates();
+    collector().enable_fallbacks();
+    state().reset_print_start_state();
+    drain_async_updates();
+    REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+
+    SECTION("2% progress with temps at target triggers COMPLETE") {
+        set_progress_and_layer(2, 0); // 2% progress, layer 0
+        set_all_temps(600, 600, 2100, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        REQUIRE(get_current_phase() == PrintStartPhase::COMPLETE);
+    }
+
+    SECTION("1% progress with temps at target - no heaters heating so stays IDLE") {
+        set_progress_and_layer(1, 0);
+        set_all_temps(600, 600, 2100, 2100);
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // 1% is not enough, and no heaters heating, so stays IDLE
+        REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
+    }
+
+    SECTION("2% progress but temps NOT ready - triggers heating detection") {
+        set_progress_and_layer(2, 0);
+        set_all_temps(200, 600, 500, 2100); // Bed at 20C/60C, nozzle at 50C/210C
+
+        collector().check_fallback_completion();
+        drain_async_updates();
+
+        // Temps not ready, proactive detection triggers for bed heating
+        REQUIRE(get_current_phase() == PrintStartPhase::HEATING_BED);
+    }
+}

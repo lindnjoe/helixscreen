@@ -265,15 +265,13 @@ void PrintStartCollector::check_fallback_completion() {
             // Determine which heating phase to show
             if (bed_heating && bed_temp < bed_target / 2) {
                 // Bed is far from target - primary heating phase
-                spdlog::info(
-                    "[PrintStartCollector] Proactive: bed heating ({}/{})",
-                    bed_temp / 10, bed_target / 10);
+                spdlog::info("[PrintStartCollector] Proactive: bed heating ({}/{})", bed_temp / 10,
+                             bed_target / 10);
                 update_phase(PrintStartPhase::HEATING_BED, "Heating Bed...");
             } else if (nozzle_heating) {
                 // Nozzle heating (bed may be close or done)
-                spdlog::info(
-                    "[PrintStartCollector] Proactive: nozzle heating ({}/{})",
-                    ext_temp / 10, ext_target / 10);
+                spdlog::info("[PrintStartCollector] Proactive: nozzle heating ({}/{})",
+                             ext_temp / 10, ext_target / 10);
                 update_phase(PrintStartPhase::HEATING_NOZZLE, "Heating Nozzle...");
             } else {
                 // Generic initializing state
