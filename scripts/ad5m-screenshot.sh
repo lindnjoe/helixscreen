@@ -1,15 +1,18 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Take a screenshot from AD5M framebuffer
-# Usage: ./scripts/ad5m-screenshot.sh [output_name]
+#
+# Usage: ./scripts/ad5m-screenshot.sh [output_name] [hostname]
+#        AD5M_HOST=ad5m.local ./scripts/ad5m-screenshot.sh [output_name]
 #
 # The AD5M framebuffer is 800x480 BGRA format
 # Double-buffered, so we only use first half of the data
 
 set -e
 
-HOST="${AD5M_HOST:-ad5m-pc.lan}"
 OUTPUT="${1:-ad5m_screenshot}"
+# Priority: argument > environment variable > default
+HOST="${2:-${AD5M_HOST:-ad5m-pc.lan}}"
 OUTPUT_PATH="/tmp/${OUTPUT}.png"
 
 echo "Capturing framebuffer from ${HOST}..."
