@@ -257,7 +257,7 @@ class PrintPreparationManager {
      * Merges operations detected in the G-code file with operations found in the
      * PRINT_START macro, deduplicates them, and formats as a user-friendly list.
      *
-     * @return Bulleted list like "• Bed leveling\n• Nozzle cleaning (can be skipped)"
+     * @return Bulleted list like "• Bed leveling\n• Nozzle cleaning (optional)"
      *         or empty string if no operations detected
      */
     [[nodiscard]] std::string format_preprint_steps() const;

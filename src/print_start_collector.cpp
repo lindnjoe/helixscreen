@@ -230,14 +230,63 @@ void PrintStartCollector::check_fallback_completion() {
 
     // Check current phase under lock
     std::chrono::steady_clock::time_point start_time;
+    PrintStartPhase current;
+    bool print_start_was_detected;
     {
         std::lock_guard<std::mutex> lock(state_mutex_);
         // Already complete - nothing to do
         if (current_phase_ == PrintStartPhase::COMPLETE) {
             return;
         }
+        current = current_phase_;
+        print_start_was_detected = print_start_detected_;
         start_time = printing_state_start_;
     }
+
+    // Get temperature data for proactive and completion fallback checks
+    int ext_temp = lv_subject_get_int(state_.get_extruder_temp_subject());
+    int ext_target = lv_subject_get_int(state_.get_extruder_target_subject());
+    int bed_temp = lv_subject_get_int(state_.get_bed_temp_subject());
+    int bed_target = lv_subject_get_int(state_.get_bed_target_subject());
+
+    // Temps are in decidegrees (value * 10), targets may be 0 if not set
+    bool bed_heating = bed_target > 0 && bed_temp < bed_target - TEMP_TOLERANCE_DECIDEGREES;
+    bool nozzle_heating = ext_target > 0 && ext_temp < ext_target - TEMP_TOLERANCE_DECIDEGREES;
+    bool temps_ready = !bed_heating && !nozzle_heating;
+
+    // =========================================================================
+    // PROACTIVE DETECTION: Detect PREPARING phase when heaters are ramping
+    // This ensures "Preparing" shows even without HELIX:PHASE signals
+    // =========================================================================
+    if (current == PrintStartPhase::IDLE && !print_start_was_detected) {
+        // We're in IDLE but collector is active - this means print just started
+        // If heaters are ramping, we're definitely in PRINT_START preparation
+        if (bed_heating || nozzle_heating) {
+            // Determine which heating phase to show
+            if (bed_heating && bed_temp < bed_target / 2) {
+                // Bed is far from target - primary heating phase
+                spdlog::info(
+                    "[PrintStartCollector] Proactive: bed heating ({}/{})",
+                    bed_temp / 10, bed_target / 10);
+                update_phase(PrintStartPhase::HEATING_BED, "Heating Bed...");
+            } else if (nozzle_heating) {
+                // Nozzle heating (bed may be close or done)
+                spdlog::info(
+                    "[PrintStartCollector] Proactive: nozzle heating ({}/{})",
+                    ext_temp / 10, ext_target / 10);
+                update_phase(PrintStartPhase::HEATING_NOZZLE, "Heating Nozzle...");
+            } else {
+                // Generic initializing state
+                spdlog::info("[PrintStartCollector] Proactive: initializing (heaters ramping)");
+                update_phase(PrintStartPhase::INITIALIZING, "Preparing Print...");
+            }
+            return;
+        }
+    }
+
+    // =========================================================================
+    // COMPLETION DETECTION: Detect when PRINT_START is done
+    // =========================================================================
 
     // Fallback 1: Layer count (slicer-dependent but reliable when present)
     int layer = lv_subject_get_int(state_.get_print_layer_current_subject());
@@ -246,17 +295,6 @@ void PrintStartCollector::check_fallback_completion() {
         update_phase(PrintStartPhase::COMPLETE, "Starting Print...");
         return;
     }
-
-    // Get temperature data for remaining fallback checks
-    int ext_temp = lv_subject_get_int(state_.get_extruder_temp_subject());
-    int ext_target = lv_subject_get_int(state_.get_extruder_target_subject());
-    int bed_temp = lv_subject_get_int(state_.get_bed_temp_subject());
-    int bed_target = lv_subject_get_int(state_.get_bed_target_subject());
-
-    // Temps are in decidegrees (value * 10), targets may be 0 if not set
-    // TEMP_TOLERANCE_DECIDEGREES = 50 = 5°C
-    bool temps_ready = (ext_target <= 0 || ext_temp >= ext_target - TEMP_TOLERANCE_DECIDEGREES) &&
-                       (bed_target <= 0 || bed_temp >= bed_target - TEMP_TOLERANCE_DECIDEGREES);
 
     // Fallback 2: Progress threshold with temps at target
     // 2% progress means file has advanced past typical preamble/macros
@@ -302,6 +340,11 @@ void PrintStartCollector::on_gcode_response(const json& msg) {
     }
 
     spdlog::trace("[PrintStartCollector] G-code: {}", line);
+
+    // Check for HELIX:PHASE signals (highest priority - definitive signals from plugin/macros)
+    if (check_helix_phase_signal(line)) {
+        return; // Signal handled
+    }
 
     // Check for PRINT_START marker (once per session)
     bool should_set_initializing = false;
@@ -351,6 +394,84 @@ void PrintStartCollector::check_phase_patterns(const std::string& line) {
             return; // Only match first pattern per line
         }
     }
+}
+
+bool PrintStartCollector::check_helix_phase_signal(const std::string& line) {
+    // Check for HELIX:PHASE:* signals (definitive markers from plugin/macros)
+    static const char* HELIX_PHASE_PREFIX = "HELIX:PHASE:";
+    constexpr size_t PREFIX_LEN = 12; // strlen("HELIX:PHASE:")
+
+    // Find the prefix in the line (may have quotes or other wrappers)
+    size_t pos = line.find(HELIX_PHASE_PREFIX);
+    if (pos == std::string::npos) {
+        return false;
+    }
+
+    // Extract the phase name
+    std::string phase_name = line.substr(pos + PREFIX_LEN);
+    // Trim trailing whitespace, quotes, etc.
+    size_t end = phase_name.find_first_of(" \t\n\r\"'");
+    if (end != std::string::npos) {
+        phase_name = phase_name.substr(0, end);
+    }
+
+    spdlog::info("[PrintStartCollector] HELIX:PHASE signal: {}", phase_name);
+
+    // Map phase name to PrintStartPhase
+    if (phase_name == "STARTING" || phase_name == "START") {
+        // Mark print start detected and transition to INITIALIZING
+        {
+            std::lock_guard<std::mutex> lock(state_mutex_);
+            print_start_detected_ = true;
+        }
+        update_phase(PrintStartPhase::INITIALIZING, "Preparing Print...");
+        return true;
+    }
+
+    if (phase_name == "COMPLETE" || phase_name == "DONE") {
+        update_phase(PrintStartPhase::COMPLETE, "Starting Print...");
+        spdlog::info("[PrintStartCollector] Print start complete via HELIX:PHASE signal");
+        return true;
+    }
+
+    // Individual phases
+    if (phase_name == "HOMING") {
+        update_phase(PrintStartPhase::HOMING, "Homing...");
+        return true;
+    }
+    if (phase_name == "HEATING_BED" || phase_name == "BED_HEATING") {
+        update_phase(PrintStartPhase::HEATING_BED, "Heating Bed...");
+        return true;
+    }
+    if (phase_name == "HEATING_NOZZLE" || phase_name == "NOZZLE_HEATING" ||
+        phase_name == "HEATING_HOTEND") {
+        update_phase(PrintStartPhase::HEATING_NOZZLE, "Heating Nozzle...");
+        return true;
+    }
+    if (phase_name == "QGL" || phase_name == "QUAD_GANTRY_LEVEL") {
+        update_phase(PrintStartPhase::QGL, "Leveling Gantry...");
+        return true;
+    }
+    if (phase_name == "Z_TILT" || phase_name == "Z_TILT_ADJUST") {
+        update_phase(PrintStartPhase::Z_TILT, "Z Tilt Adjust...");
+        return true;
+    }
+    if (phase_name == "BED_MESH" || phase_name == "BED_LEVELING") {
+        update_phase(PrintStartPhase::BED_MESH, "Loading Bed Mesh...");
+        return true;
+    }
+    if (phase_name == "CLEANING" || phase_name == "NOZZLE_CLEAN") {
+        update_phase(PrintStartPhase::CLEANING, "Cleaning Nozzle...");
+        return true;
+    }
+    if (phase_name == "PURGING" || phase_name == "PURGE" || phase_name == "PRIMING") {
+        update_phase(PrintStartPhase::PURGING, "Purging...");
+        return true;
+    }
+
+    // Unknown phase - log but don't block
+    spdlog::warn("[PrintStartCollector] Unknown HELIX:PHASE: {}", phase_name);
+    return false;
 }
 
 void PrintStartCollector::update_phase(PrintStartPhase phase, const char* message) {

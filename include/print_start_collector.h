@@ -115,6 +115,16 @@ class PrintStartCollector : public std::enable_shared_from_this<PrintStartCollec
     void check_phase_patterns(const std::string& line);
 
     /**
+     * @brief Check for HELIX:PHASE:* signals from plugin/macros
+     *
+     * These are definitive signals that take priority over regex detection.
+     * Format: "HELIX:PHASE:STARTING", "HELIX:PHASE:HOMING", "HELIX:PHASE:COMPLETE", etc.
+     *
+     * @return true if a HELIX:PHASE signal was detected and handled
+     */
+    bool check_helix_phase_signal(const std::string& line);
+
+    /**
      * @brief Update phase and recalculate progress
      */
     void update_phase(PrintStartPhase phase, const char* message);

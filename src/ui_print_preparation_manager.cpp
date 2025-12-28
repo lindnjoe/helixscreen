@@ -422,6 +422,10 @@ std::string PrintPreparationManager::format_preprint_steps() const {
             return "Z-tilt adjustment";
         case helix::PrintStartOpCategory::NOZZLE_CLEAN:
             return "Nozzle cleaning";
+        case helix::PrintStartOpCategory::PRIMING:
+            return "Nozzle priming";
+        case helix::PrintStartOpCategory::SKEW_CORRECT:
+            return "Skew correction";
         case helix::PrintStartOpCategory::CHAMBER_SOAK:
             return "Chamber heat soak";
         default:
@@ -440,6 +444,10 @@ std::string PrintPreparationManager::format_preprint_steps() const {
             return "z_tilt";
         case helix::PrintStartOpCategory::NOZZLE_CLEAN:
             return "nozzle_clean";
+        case helix::PrintStartOpCategory::PRIMING:
+            return "priming";
+        case helix::PrintStartOpCategory::SKEW_CORRECT:
+            return "skew_correct";
         case helix::PrintStartOpCategory::CHAMBER_SOAK:
             return "chamber_soak";
         default:
@@ -508,8 +516,12 @@ std::string PrintPreparationManager::format_preprint_steps() const {
                 name = "Chamber heat soak";
                 break;
             case gcode::OperationType::PURGE_LINE:
-                key = "purge_line";
-                name = "Purge line";
+                key = "priming";
+                name = "Nozzle priming";
+                break;
+            case gcode::OperationType::SKEW_CORRECT:
+                key = "skew_correct";
+                name = "Skew correction";
                 break;
             default:
                 continue; // Skip homing, start_print, etc.
@@ -526,7 +538,47 @@ std::string PrintPreparationManager::format_preprint_steps() const {
         }
     }
 
-    // 3. Format as bulleted list
+    // 3. Add operations from printer capability database
+    // This ensures operations are shown even if not detected in file/macro
+    Config* config = Config::get_instance();
+    if (config) {
+        std::string printer_type = config->get<std::string>(helix::wizard::PRINTER_TYPE, "");
+        if (!printer_type.empty()) {
+            PrintStartCapabilities caps =
+                PrinterDetector::get_print_start_capabilities(printer_type);
+
+            if (!caps.empty()) {
+                // Map capability keys to friendly names
+                static const std::map<std::string, std::string> cap_friendly_names = {
+                    {"bed_leveling", "Bed leveling"},
+                    {"qgl", "Quad gantry leveling"},
+                    {"z_tilt", "Z-tilt adjustment"},
+                    {"nozzle_clean", "Nozzle cleaning"},
+                    {"priming", "Nozzle priming"},
+                    {"skew_correct", "Skew correction"},
+                    {"chamber_soak", "Chamber heat soak"},
+                };
+
+                for (const auto& [cap_key, cap_info] : caps.params) {
+                    // Only add if not already present from macro/file detection
+                    if (ops.find(cap_key) == ops.end()) {
+                        auto name_it = cap_friendly_names.find(cap_key);
+                        std::string name =
+                            (name_it != cap_friendly_names.end()) ? name_it->second : cap_key;
+
+                        // Capabilities from database are skippable via macro params
+                        ops[cap_key] = UnifiedOp{name, true};
+
+                        spdlog::debug(
+                            "[PrintPreparationManager] From CAPABILITY DB: {} (key={})", name,
+                            cap_key);
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Format as bulleted list
     if (ops.empty()) {
         return "";
     }
@@ -538,7 +590,7 @@ std::string PrintPreparationManager::format_preprint_steps() const {
         }
         result += "• " + op.friendly_name;
         if (op.can_skip) {
-            result += " (can be skipped)";
+            result += " (optional)";
         }
     }
 
