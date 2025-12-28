@@ -119,6 +119,7 @@ HelixScreen is a next-generation printer control interface built from the ground
 
 ### Printer Control
 - **Print Management** - Start, pause, resume, cancel with live progress tracking
+- **Print Phase Tracking** - See exactly what's happening during PRINT_START (heating, mesh, purge)
 - **Motion Controls** - XYZ jog pad, homing, emergency stop with safety confirmation
 - **Temperature Control** - Nozzle/bed presets, custom targets, live graphs, heating animations
 - **Fan Control** - Part fan, hotend fan, controller fan, and auxiliary fans
@@ -144,6 +145,7 @@ HelixScreen is a next-generation printer control interface built from the ground
 - **Firmware Retraction** - Retraction/Z-hop configuration
 
 ### Integrations
+- **HelixPrint Plugin** - Enhanced print phase tracking via Moonraker plugin
 - **Spoolman** - Spool tracking and management
 - **Power Devices** - Smart relay/PSU control
 - **Print History** - Statistics, filtering, job logs

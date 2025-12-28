@@ -787,99 +787,17 @@ Key settings in `lv_conf.h` for XML support:
 
 ## Test Mode Architecture
 
-### Overview
+Test mode (`--test` flag) enables hardware mocking for development without a real printer. Key architectural principle: **production builds NEVER fall back to mocks** - mocks require explicit opt-in.
 
-The test mode system provides a comprehensive mocking infrastructure for development without hardware dependencies while ensuring production builds never accidentally use mock implementations.
-
-### RuntimeConfig Structure
-
+**Factory Pattern:** Backend factories check `RuntimeConfig::should_mock_*()` before creating implementations:
 ```cpp
-// runtime_config.h
-struct RuntimeConfig {
-    bool test_mode = false;           // Master flag (--test)
-    bool use_real_wifi = false;       // Override flag (--real-wifi)
-    bool use_real_ethernet = false;   // Override flag (--real-ethernet)
-    bool use_real_moonraker = false;  // Override flag (--real-moonraker)
-    bool use_real_files = false;      // Override flag (--real-files)
-
-    // Helper methods for clean code
-    bool should_mock_wifi() const {
-        return test_mode && !use_real_wifi;
-    }
-    // ... similar for other components
-};
-```
-
-### Factory Pattern with Test Mode
-
-Backend factories respect test configuration to control mock vs real selection:
-
-```cpp
-std::unique_ptr<WifiBackend> WifiBackend::create() {
-    const auto& config = get_runtime_config();
-
-    // Test mode check FIRST
-    if (config.should_mock_wifi()) {
-        spdlog::info("[TEST MODE] Using MOCK WiFi backend");
-        return std::make_unique<WifiBackendMock>();
-    }
-
-    // Production path - try real, fail if unavailable
-    auto backend = std::make_unique<WifiBackendMacOS>();
-    if (!backend->start()) {
-        spdlog::error("WiFi hardware unavailable");
-        return nullptr;  // NEVER fall back to mock
-    }
-
-    return backend;
+if (config.should_mock_wifi()) {
+    return std::make_unique<WifiBackendMock>();  // Test mode
 }
+return std::make_unique<WifiBackendMacOS>();     // Production
 ```
 
-### Production Safety Rules
-
-1. **No Automatic Fallbacks:** Production mode NEVER falls back to mocks
-2. **Explicit Test Mode:** Mocks require `--test` flag
-3. **Clear Error Messages:** Hardware failures show user-friendly errors
-4. **Visual Indicators:** Test mode displays banner with mock/real status
-
-### Mock Implementation Features
-
-**WiFi Mock Backend:**
-- 10 realistic networks with varied security (WPA2, WEP, Open)
-- Signal strength variation (±5% per scan)
-- Simulated scan delay (2 seconds)
-- 5% authentication failure rate for realism
-- Random IP address generation
-
-**Ethernet Mock Backend:**
-- Always reports interface available
-- Static IP: 192.168.1.150
-- Instant connection (no delays)
-
-**File List Mock:**
-- 8 test G-code files with varied metadata
-- Realistic file sizes (2MB-50MB)
-- Print times from 5 minutes to 8 hours
-- Mix of directories and files
-
-### Command-Line Interface
-
-```bash
-# Production mode (default)
-./helix-screen                    # No mocks, requires hardware
-
-# Test mode variations
-./helix-screen --test              # All mocks
-./helix-screen --test --real-moonraker  # Real printer only
-./helix-screen --test --real-wifi --real-ethernet  # Real network only
-```
-
-### Implementation Files
-
-- **Core:** `runtime_config.h`, `main.cpp:319-439`
-- **WiFi:** `wifi_backend.cpp`, `wifi_backend_mock.cpp`
-- **Ethernet:** `ethernet_backend.cpp`, `ethernet_backend_mock.cpp`
-- **Tests:** `tests/unit/test_test_config.cpp`
+**For usage and CLI flags:** See [DEVELOPMENT.md § Test Mode Development](DEVELOPMENT.md#test-mode-development).
 
 ## Critical Implementation Patterns
 
@@ -979,45 +897,41 @@ if (!ui_nav_go_back()) {
 - **Widget memory** - standard LVGL allocation patterns
 - **Total overhead** - estimated <10KB for XML/Subject systems
 
-## Future Architecture Considerations
+## Extended Systems
 
-### Moonraker Integration
+These systems extend the core architecture for specific features:
 
-The architecture is designed to accommodate real-time printer data:
+### Moonraker Plugin
 
-```cpp
-// WebSocket data updates subjects
-void on_printer_temp_update(float nozzle, float bed) {
-    lv_subject_set_string(nozzle_temp_subject, format_temp(nozzle));
-    lv_subject_set_string(bed_temp_subject, format_temp(bed));
-    // UI updates automatically
-}
-```
+Optional plugin for enhanced print phase tracking. See [moonraker-plugin/README.md](../moonraker-plugin/README.md) for installation and details.
 
-### State Persistence
+- **helix_print.py** - Tracks print phases (heating, mesh, purge, etc.)
+- **PrintStartCollector** - Aggregates phase events from Moonraker
+- **HelixPluginInstaller** - Auto-detects and installs plugin (local) or shows install command (remote)
 
-Subject values can be saved/restored for session persistence:
+### Print History Management
 
-```cpp
-void save_ui_state() {
-    config["target_temp"] = lv_subject_get_int(temp_target_subject);
-    config["panel_mode"] = lv_subject_get_string(nav_current_subject);
-}
+Centralized caching shared between history panels:
 
-void restore_ui_state() {
-    lv_subject_set_int(temp_target_subject, config["target_temp"]);
-    lv_subject_set_string(nav_current_subject, config["panel_mode"]);
-}
-```
+- **PrintHistoryManager** - Single source of truth for job history, avoids duplicate API calls
+- **FileHistoryStatus** - Enum for print status indicators (Completed, Cancelled, Error, etc.)
+- **Observer pattern** - Panels register for change notifications, cleanup on destruction
 
-### Platform Adaptation
+### Active Print Media
 
-The XML/Subject architecture adapts easily to different display sizes:
+Handles async file operations during print selection:
 
-- **Small displays** - Use `style_flex_flow="column"` for vertical layouts
-- **Large displays** - Use `style_flex_flow="row"` for horizontal layouts
-- **Theme scaling** - Adjust font sizes and padding in `globals.xml`
-- **Content adaptation** - Show/hide elements with conditional flag bindings
+- **ActivePrintMediaManager** - Manages file streaming state
+- **StreamingPolicy** - Prevents conflicting async operations
+- **BusyOverlay** - Visual feedback during long-running operations
+
+### Watchdog (Embedded)
+
+Crash recovery for embedded deployments:
+
+- **helix_watchdog** - Separate process, minimal dependencies
+- **Crash dialog** - Renders directly to framebuffer (no LVGL)
+- **Auto-restart** - Monitors heartbeat, restarts on crash/hang
 
 ## Legitimate Exceptions to UI Patterns
 
@@ -1066,6 +980,12 @@ char buf[256];
 snprintf(buf, sizeof(buf), "format...", args);
 ```
 This is safe - truncates rather than overflows. Not a security issue.
+
+### 13. StreamingPolicy State Management
+`StreamingPolicy` uses imperative state (`start()`/`complete()`) to track async operations. Cannot be declarative since it manages operation lifecycle, not UI state.
+
+### 14. BusyOverlay Show/Hide
+`BusyOverlay::show()`/`hide()` are imperative because they provide async feedback during operations. The overlay exists temporarily, not as persistent UI state.
 
 ---
 

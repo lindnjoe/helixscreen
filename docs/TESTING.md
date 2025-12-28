@@ -94,6 +94,61 @@ environments and will hang or fail if run directly. The `make test-run`
 target handles this automatically, but direct binary invocation requires
 the `"~[.]"` filter.
 
+## Sanitizer Support
+
+Memory and thread safety testing with AddressSanitizer and ThreadSanitizer.
+
+### Available Targets
+
+| Target | Purpose |
+|--------|---------|
+| `make test-asan` | Run all tests with AddressSanitizer |
+| `make test-tsan` | Run all tests with ThreadSanitizer |
+| `make test-asan-one TEST="[tag]"` | Run specific test with ASAN |
+| `make test-tsan-one TEST="[tag]"` | Run specific test with TSAN |
+
+### What They Detect
+
+**AddressSanitizer (ASAN):**
+- Memory leaks
+- Use-after-free
+- Buffer overflows (stack and heap)
+- Double-free
+
+**ThreadSanitizer (TSAN):**
+- Data races
+- Deadlocks
+- Thread safety violations
+
+### Example Usage
+
+```bash
+# Run all tests with memory checking
+make test-asan
+
+# Run just streaming tests with thread checking
+make test-tsan-one TEST="[streaming]"
+```
+
+**Note:** Sanitizers add overhead (~2-5x slower). Use for debugging, not regular runs.
+
+## Feature-Based Test Targets
+
+Run tests by feature area for focused debugging:
+
+| Target | Description |
+|--------|-------------|
+| `make test-core` | Critical functionality |
+| `make test-gcode` | G-code parsing/geometry |
+| `make test-moonraker` | Moonraker client & mock |
+| `make test-ui` | Navigation, theme, wizard |
+| `make test-network` | WiFi & Ethernet |
+| `make test-print` | Print workflow |
+| `make test-ams` | AMS/MMU backends |
+| `make test-security` | Security & injection |
+| `make test-calibration` | Calibration features |
+| `make test-filament` | Filament management |
+
 ## Test Organization
 
 ```
@@ -243,52 +298,7 @@ Use tags to organize and filter tests:
 - `[.slow]` - Long-running test (skip in fast runs)
 - `[.disabled]` - Temporarily disabled
 
-Any tag starting with `.` is a **hidden test** in Catch2.
-
-### Running Tests by Tag
-
-```bash
-# Run specific tag
-./build/bin/run_tests "[multicolor]"
-./build/bin/run_tests "[gcode][parser]"
-
-# IMPORTANT: Exclude hidden tests with ~[.]
-./build/bin/run_tests "[application]" "~[.]"
-
-# Run ALL non-hidden tests
-./build/bin/run_tests "~[.]"
-```
-
-### ⚠️ CRITICAL: Always Exclude Hidden Tests
-
-**Hidden tests (marked `.pending`, `.integration`, etc.) may hang or fail!**
-
-When running tests by tag, ALWAYS add `"~[.]"` to exclude hidden tests:
-
-```bash
-# ❌ WRONG - may hang on pending tests
-./build/bin/run_tests "[application]"
-
-# ✅ CORRECT - excludes hidden/pending tests  
-./build/bin/run_tests "[application]" "~[.]"
-```
-
-The `make test-run` target does this automatically, but when running
-`./build/bin/run_tests` directly, you must add the filter yourself.
-
-**Why tests are hidden:**
-- `[.pending]` - Placeholder for future implementation
-- `[.integration]` - Needs full app environment (LVGL display, Moonraker, etc.)
-- `[.slow]` - Takes >5 seconds, skip for quick iteration
-
-**Example hidden test:**
-```cpp
-// This test requires full LVGL initialization - mark as .integration
-TEST_CASE("Full app initialization", "[application][.integration]") {
-    // Requires display, fonts, themes loaded
-    // Skip in normal test runs
-}
-```
+Any tag starting with `.` is a **hidden test** in Catch2. See [Running Tests by Tag](#running-tests-by-tag-direct-binary) for filtering examples.
 
 ## Integration Tests
 
@@ -473,9 +483,49 @@ TEST_CASE("UI - Button click", "[ui]") {
 
 ### Available Mocks
 
-- **MockMoonrakerClient:** Simulates Moonraker API responses
+- **MoonrakerClientMock:** Simulates Moonraker WebSocket connection
 - **MockLVGL:** Minimal LVGL stubs for integration tests
 - **MockPrintFiles:** Simulates filesystem operations
+
+### MoonrakerClientMock API
+
+Simulates WebSocket connection behavior without real network I/O:
+
+```cpp
+#include "tests/mocks/moonraker_client_mock.h"
+
+MoonrakerClientMock client;
+
+// Simulate connection lifecycle
+client.connect(url, on_connected, on_disconnected);
+client.trigger_connected();   // Fire on_connected callback
+client.trigger_disconnected(); // Fire on_disconnected callback
+
+// Verify behavior
+client.get_last_connect_url();  // Returns URL passed to connect()
+client.get_rpc_methods();       // Returns all JSON-RPC methods called
+client.is_connected();          // Connection state
+client.is_identified();         // Whether identify was sent
+
+// Reset for next test
+client.reset();
+```
+
+**Example Test:**
+```cpp
+TEST_CASE("Wizard - Connection test", "[wizard][connection]") {
+    MoonrakerClientMock client;
+    bool connected = false;
+
+    client.connect("ws://printer:7125/websocket",
+                   [&]() { connected = true; },
+                   []() {});
+
+    client.trigger_connected();
+    REQUIRE(connected);
+    REQUIRE(client.get_last_connect_url() == "ws://printer:7125/websocket");
+}
+```
 
 ### Creating New Mocks
 
@@ -570,16 +620,7 @@ TEST_CASE("MultiColor - Backward compatibility", "[multicolor][compatibility]") 
 
 ### ⚠️ Avoiding Test Hangs
 
-If a test run hangs, it's likely hitting a hidden test that requires
-resources not available in the test environment. Always use `"~[.]"`:
-
-```bash
-# This may hang on [.pending] or [.integration] tests:
-./build/bin/run_tests "[application]"  # ❌
-
-# This excludes hidden tests and completes quickly:
-./build/bin/run_tests "[application]" "~[.]"  # ✅
-```
+If tests hang, you're likely hitting hidden tests. See [Running Tests by Tag](#running-tests-by-tag-direct-binary) for the required `"~[.]"` filter.
 
 ### Verbose Output
 ```bash
@@ -635,32 +676,7 @@ REQUIRE(count == 2);  // Fired again on change
 
 ---
 
-## Common Issues
-
-### Build Issues
-
-#### Missing LVGL
-```bash
-# Ensure submodules are initialized
-git submodule update --init --recursive
-```
-
-#### Font Generation Errors
-```bash
-# Skip font generation if not needed for tests
-touch .fonts.stamp
-make test
-```
-
-#### Missing libhv
-```bash
-# Clean and rebuild to ensure libhv is built
-make clean
-make -j
-make test
-```
-
-### Test Code Issues
+## Common Test Issues
 
 ### Issue: "Catch2 header not found"
 **Solution:** Use `#include "../catch_amalgamated.hpp"` not `<catch2/...>`
@@ -674,21 +690,9 @@ make test
 ### Issue: "LVGL functions undefined in integration tests"
 **Solution:** Integration tests should use mocks, not real LVGL. Move to unit tests if LVGL needed.
 
-## Future Enhancements
-
-- [ ] Add performance benchmarks
-- [ ] Integrate coverage reporting
-- [ ] Add mutation testing
-- [ ] Create UI snapshot testing
-- [ ] Add stress tests for large G-code files
-
 ## Related Documentation
 
-- **ARCHITECTURE.md:** System design and component relationships
-- **BUILD_SYSTEM.md:** Build configuration and compilation
-- **CONTRIBUTING.md:** Code standards and contribution workflow
-- **docs/MOCK_INFRASTRUCTURE_SUMMARY.md:** Mock system details
-
----
-
-**Questions?** See `tests/README.md` for additional test examples.
+- **[ARCHITECTURE.md](ARCHITECTURE.md):** System design, thread safety patterns
+- **[BUILD_SYSTEM.md](BUILD_SYSTEM.md):** Build configuration and troubleshooting
+- **[CONTRIBUTING.md](CONTRIBUTING.md):** Code standards and contribution workflow
+- **[tests/README.md](../tests/README.md):** Additional test examples

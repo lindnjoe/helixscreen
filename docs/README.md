@@ -42,6 +42,7 @@ Welcome to the HelixScreen documentation. Choose your path:
 | [**Quick Reference**](QUICK_REFERENCE.md) | Common patterns and code snippets |
 | [**Environment Variables**](ENVIRONMENT_VARIABLES.md) | All runtime and build env vars |
 | [**Moonraker Architecture**](MOONRAKER_ARCHITECTURE.md) | Moonraker integration details |
+| [**HelixPrint Plugin**](../moonraker-plugin/README.md) | Phase tracking Moonraker plugin |
 | [**Logging Guidelines**](LOGGING.md) | Log levels and message format |
 | [**Copyright Headers**](COPYRIGHT_HEADERS.md) | SPDX license requirements |
 
@@ -54,7 +55,7 @@ Welcome to the HelixScreen documentation. Choose your path:
 | Document | Description |
 |----------|-------------|
 | [**Roadmap**](ROADMAP.md) | Feature timeline and milestones |
-| [**AMS Implementation Plan**](AMS_IMPLEMENTATION_PLAN.md) | Multi-material support spec |
+| [**Archive**](archive/) | Historical implementation plans |
 
 ---
 
@@ -99,8 +100,11 @@ docs/
 ├── ROADMAP.md                # Feature timeline
 │
 ├── audits/                   # Security & quality
-├── archive/                  # Historical docs
+├── archive/                  # Historical implementation plans
 └── images/                   # Screenshots
+
+moonraker-plugin/
+└── README.md                 # HelixPrint plugin docs
 ```
 
 ---
