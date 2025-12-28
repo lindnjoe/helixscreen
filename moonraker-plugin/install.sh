@@ -52,6 +52,7 @@ find_moonraker() {
         "$HOME/klipper_config/moonraker" \
         "/home/pi/moonraker" \
         "/home/klipper/moonraker" \
+        "/root/printer_software/moonraker" \
         "$user_path"
     do
         if [ -n "$loc" ] && [ -d "$loc/moonraker/components" ]; then
@@ -77,7 +78,8 @@ find_config_dir() {
         "$HOME/printer_data/config" \
         "$HOME/klipper_config" \
         "/home/pi/printer_data/config" \
-        "/home/pi/klipper_config"
+        "/home/pi/klipper_config" \
+        "/root/printer_data/config"
     do
         if [ -d "$loc" ] && [ -f "$loc/moonraker.conf" ]; then
             printf '%s' "$loc"
