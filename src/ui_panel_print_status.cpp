@@ -425,6 +425,14 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 void PrintStatusPanel::on_activate() {
     spdlog::debug("[{}] on_activate()", get_name());
 
+    // Load deferred G-code if pending (lazy loading optimization)
+    // This avoids downloading large files unless user navigates here
+    if (!pending_gcode_filename_.empty()) {
+        spdlog::info("[{}] Loading deferred G-code: {}", get_name(), pending_gcode_filename_);
+        load_gcode_for_viewing(pending_gcode_filename_);
+        pending_gcode_filename_.clear();
+    }
+
     // Resume G-code viewer rendering if viewer mode is active (not thumbnail)
     if (gcode_viewer_ && lv_subject_get_int(&gcode_viewer_mode_subject_) == 1) {
         ui_gcode_viewer_set_paused(gcode_viewer_, false);
@@ -1248,11 +1256,12 @@ void PrintStatusPanel::on_print_state_changed(PrintJobState job_state) {
              new_state == PrintState::Error || new_state == PrintState::Idle);
         if (print_ended) {
             if (!thumbnail_source_filename_.empty() || !loaded_thumbnail_filename_.empty() ||
-                gcode_loaded_ || !temp_gcode_path_.empty()) {
+                gcode_loaded_ || !temp_gcode_path_.empty() || !pending_gcode_filename_.empty()) {
                 spdlog::debug("[{}] Clearing thumbnail/gcode tracking (print ended)", get_name());
                 thumbnail_source_filename_.clear();
                 loaded_thumbnail_filename_.clear();
                 cached_thumbnail_path_.clear();
+                pending_gcode_filename_.clear();
                 gcode_loaded_ = false;
                 cleanup_temp_gcode();
 
@@ -2200,12 +2209,14 @@ void PrintStatusPanel::set_filename(const char* filename) {
     // Note: Display filename is now handled by ActivePrintMediaManager
     // PrintStatusPanel only needs to load local resources (gcode viewer, local thumbnail)
 
-    // Load thumbnail and G-code ONLY if effective filename changed (makes this function idempotent)
+    // Load thumbnail ONLY if effective filename changed (makes this function idempotent)
     // This prevents redundant loads when observer fires repeatedly with same filename
     if (!effective_filename.empty() && effective_filename != loaded_thumbnail_filename_) {
         spdlog::debug("[{}] Loading thumbnail for: {}", get_name(), effective_filename);
         load_thumbnail_for_file(effective_filename);
-        load_gcode_for_viewing(effective_filename);
+        // G-code loading is deferred until panel is actually visible (on_activate)
+        // This avoids downloading large files if user never navigates to print status
+        pending_gcode_filename_ = effective_filename;
         loaded_thumbnail_filename_ = effective_filename;
     }
 }

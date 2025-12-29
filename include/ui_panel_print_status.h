@@ -436,6 +436,11 @@ class PrintStatusPanel : public PanelBase {
     // Prevents redundant thumbnail loads when observer fires repeatedly with same filename
     std::string loaded_thumbnail_filename_;
 
+    // Deferred G-code loading: filename to load when panel becomes visible
+    // Set in set_filename(), consumed in on_activate() - avoids downloading
+    // large files unless user actually navigates to print status panel
+    std::string pending_gcode_filename_;
+
     // Track whether G-code was successfully loaded into the viewer
     // When false (memory check failed), don't switch to viewer mode on state changes
     bool gcode_loaded_ = false;
