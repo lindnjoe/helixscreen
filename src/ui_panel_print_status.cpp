@@ -1222,7 +1222,7 @@ void PrintStatusPanel::on_print_progress_changed(int progress) {
 void PrintStatusPanel::on_print_state_changed(PrintJobState job_state) {
     // Map PrintJobState (from PrinterState) to PrintState (UI-specific)
     // Note: PrintState has a Preparing state that doesn't exist in PrintJobState -
-    // that's managed locally by set_preparing()/end_preparing()
+    // that's managed locally via end_preparing()
     PrintState new_state = PrintState::Idle;
 
     switch (job_state) {
@@ -2295,65 +2295,6 @@ void PrintStatusPanel::set_state(PrintState state) {
 // ============================================================================
 // PRE-PRINT PREPARATION STATE
 // ============================================================================
-
-void PrintStatusPanel::set_preparing(const std::string& operation_name, int current_step,
-                                     int total_steps) {
-    // Only reset progress data when first entering preparing state (not on subsequent calls)
-    if (current_state_ != PrintState::Preparing) {
-        current_state_ = PrintState::Preparing;
-        printer_state_.reset_for_new_print();
-    }
-
-    // NOTE: Do NOT call show_gcode_viewer(true) here!
-    // The thumbnail should remain visible until G-code successfully loads.
-    // show_gcode_viewer(true) is called in load_gcode_file() callback after successful load.
-    // Calling it prematurely causes a visible "empty viewer" flash on memory-constrained
-    // devices where the async memory check fails and we fall back to thumbnail mode.
-
-    // Update operation name with step info: "Homing (1/3)"
-    snprintf(preparing_operation_buf_, sizeof(preparing_operation_buf_), "%s (%d/%d)",
-             operation_name.c_str(), current_step, total_steps);
-    lv_subject_set_pointer(&preparing_operation_subject_, preparing_operation_buf_);
-
-    // Calculate overall progress based on step position
-    // Each step contributes equally to 100%
-    int progress =
-        (current_step > 0 && total_steps > 0) ? ((current_step - 1) * 100) / total_steps : 0;
-    lv_subject_set_int(&preparing_progress_subject_, progress);
-
-    // Animate bar directly for smooth visual feedback (300ms ease-out) if animations enabled
-    if (preparing_progress_bar_) {
-        lv_anim_enable_t anim_enable =
-            SettingsManager::instance().get_animations_enabled() ? LV_ANIM_ON : LV_ANIM_OFF;
-        lv_bar_set_value(preparing_progress_bar_, progress, anim_enable);
-    }
-
-    // Make preparing UI visible
-    lv_subject_set_int(&preparing_visible_subject_, 1);
-
-    spdlog::info("[{}] Preparing: {} (step {}/{})", get_name(), operation_name, current_step,
-                 total_steps);
-}
-
-void PrintStatusPanel::set_preparing_progress(float progress) {
-    // Clamp to valid range
-    if (progress < 0.0f)
-        progress = 0.0f;
-    if (progress > 1.0f)
-        progress = 1.0f;
-
-    int pct = static_cast<int>(progress * 100.0f);
-    lv_subject_set_int(&preparing_progress_subject_, pct);
-
-    // Animate bar directly for smooth visual feedback (300ms ease-out) if animations enabled
-    if (preparing_progress_bar_) {
-        lv_anim_enable_t anim_enable =
-            SettingsManager::instance().get_animations_enabled() ? LV_ANIM_ON : LV_ANIM_OFF;
-        lv_bar_set_value(preparing_progress_bar_, pct, anim_enable);
-    }
-
-    spdlog::trace("[{}] Preparing progress: {}%", get_name(), pct);
-}
 
 void PrintStatusPanel::end_preparing(bool success) {
     // Hide preparing UI

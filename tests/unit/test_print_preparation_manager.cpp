@@ -168,21 +168,12 @@ TEST_CASE("PrintPreparationManager: read_options_from_checkboxes", "[print_prepa
 // Tests: Lifecycle Management
 // ============================================================================
 
-TEST_CASE("PrintPreparationManager: is_preparing", "[print_preparation][lifecycle]") {
+TEST_CASE("PrintPreparationManager: is_print_in_progress", "[print_preparation][lifecycle]") {
     PrintPreparationManager manager;
 
-    SECTION("Not preparing by default") {
-        REQUIRE(manager.is_preparing() == false);
-    }
-}
-
-TEST_CASE("PrintPreparationManager: cancel_preparation", "[print_preparation][lifecycle]") {
-    PrintPreparationManager manager;
-
-    SECTION("Can be called when not preparing") {
-        // Should not throw or crash
-        manager.cancel_preparation();
-        REQUIRE(manager.is_preparing() == false);
+    SECTION("Not in progress by default (no printer state)") {
+        // Without a PrinterState set, always returns false
+        REQUIRE(manager.is_print_in_progress() == false);
     }
 }
 
@@ -196,10 +187,9 @@ TEST_CASE("PrintPreparationManager: move constructor", "[print_preparation][life
 
     SECTION("Move constructor transfers state") {
         PrintPreparationManager manager2 = std::move(manager1);
-        // manager2 should be usable
-        REQUIRE(manager2.is_preparing() == false);
-        // Can call methods without crash
+        // manager2 should be usable - verify by calling a method
         manager2.clear_scan_cache();
+        REQUIRE(manager2.is_print_in_progress() == false);
     }
 }
 
@@ -211,6 +201,6 @@ TEST_CASE("PrintPreparationManager: move assignment", "[print_preparation][lifec
     SECTION("Move assignment transfers state") {
         manager2 = std::move(manager1);
         // manager2 should be usable
-        REQUIRE(manager2.is_preparing() == false);
+        REQUIRE(manager2.is_print_in_progress() == false);
     }
 }

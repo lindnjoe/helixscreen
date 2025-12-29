@@ -368,30 +368,9 @@ class PrintStatusPanel : public PanelBase {
     //
 
     /**
-     * @brief Set the preparing state with operation details
-     *
-     * Call this when starting a pre-print sequence. The panel will show
-     * "Preparing..." with the current operation name and progress.
-     *
-     * @param operation_name Display name of current operation (e.g., "Homing", "Leveling Bed")
-     * @param current_step Current step number (1-based)
-     * @param total_steps Total number of steps
-     */
-    void set_preparing(const std::string& operation_name, int current_step, int total_steps);
-
-    /**
-     * @brief Update preparing progress
-     *
-     * Lighter-weight update for progress during a single operation.
-     *
-     * @param progress Fractional progress (0.0 to 1.0)
-     */
-    void set_preparing_progress(float progress);
-
-    /**
      * @brief Clear preparing state and transition to Idle or Printing
      *
-     * Call this when the pre-print sequence completes or is cancelled.
+     * Call this when the print start API call completes or fails.
      *
      * @param success If true, transitions to Printing; if false, transitions to Idle
      */

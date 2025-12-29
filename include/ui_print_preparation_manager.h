@@ -85,16 +85,6 @@ struct ModificationCapability {
 using NavigateToStatusCallback = std::function<void()>;
 
 /**
- * @brief Callback for preparing state updates
- */
-using PreparingCallback = std::function<void(const std::string& op_name, int step, int total)>;
-
-/**
- * @brief Callback for preparing progress updates
- */
-using PreparingProgressCallback = std::function<void(float progress)>;
-
-/**
  * @brief Callback for print completion (success or failure)
  */
 using PrintCompletionCallback = std::function<void(bool success, const std::string& error)>;
@@ -320,26 +310,11 @@ class PrintPreparationManager {
      * @param filename File to print
      * @param current_path Current directory path
      * @param on_navigate_to_status Callback to navigate to print status panel
-     * @param on_preparing DEPRECATED: No longer used (was for CommandSequencer)
-     * @param on_progress DEPRECATED: No longer used (was for CommandSequencer)
      * @param on_completion Optional callback for print completion
      */
     void start_print(const std::string& filename, const std::string& current_path,
                      NavigateToStatusCallback on_navigate_to_status,
-                     PreparingCallback on_preparing = nullptr,
-                     PreparingProgressCallback on_progress = nullptr,
                      PrintCompletionCallback on_completion = nullptr);
-
-    /**
-     * @brief Check if a pre-print sequence is currently running
-     *
-     * @note Pre-print sequences via CommandSequencer have been removed.
-     *       This now always returns false. Preparing state is determined
-     *       by monitoring printer state during PRINT_START execution.
-     */
-    [[nodiscard]] bool is_preparing() const {
-        return false;
-    }
 
     /**
      * @brief Check if a print is currently being started
@@ -349,11 +324,6 @@ class PrintPreparationManager {
      * Used to prevent double-tap issues.
      */
     [[nodiscard]] bool is_print_in_progress() const;
-
-    /**
-     * @brief Cancel any running pre-print sequence
-     */
-    void cancel_preparation();
 
   private:
     // === Dependencies ===

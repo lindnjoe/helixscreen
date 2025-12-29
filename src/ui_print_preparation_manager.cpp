@@ -675,8 +675,6 @@ PrePrintOptions PrintPreparationManager::read_options_from_checkboxes() const {
 void PrintPreparationManager::start_print(const std::string& filename,
                                           const std::string& current_path,
                                           NavigateToStatusCallback on_navigate_to_status,
-                                          PreparingCallback on_preparing,
-                                          PreparingProgressCallback on_progress,
                                           PrintCompletionCallback on_completion) {
     if (!api_) {
         spdlog::error("[PrintPreparationManager] Cannot start print - not connected to printer");
@@ -777,12 +775,6 @@ void PrintPreparationManager::start_print(const std::string& filename,
     // UNCHECKED checkboxes = already handled above via file modification or skip params
     // No need for manual G-code execution - just start the print
     start_print_directly(filename_to_print, on_navigate_to_status, wrapped_completion);
-}
-
-void PrintPreparationManager::cancel_preparation() {
-    // Pre-print sequences via CommandSequencer have been removed.
-    // Cancellation is now handled by calling Moonraker's cancel_print API
-    // if a print is in progress, or simply closing the preparing overlay.
 }
 
 bool PrintPreparationManager::is_print_in_progress() const {

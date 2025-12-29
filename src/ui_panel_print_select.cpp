@@ -1906,16 +1906,6 @@ void PrintSelectPanel::execute_print_start() {
             spdlog::debug("[{}] Print start confirmed, thumbnail source set: {}", self->get_name(),
                           filename_to_print);
         },
-        // Preparing callback - update status panel preparing state
-        [](const std::string& op_name, int step, int total) {
-            auto& status_panel = get_global_print_status_panel();
-            status_panel.set_preparing(op_name, step, total);
-        },
-        // Progress callback - update status panel progress
-        [](float progress) {
-            auto& status_panel = get_global_print_status_panel();
-            status_panel.set_preparing_progress(progress);
-        },
         // Completion callback
         [self](bool success, const std::string& error) {
             auto& status_panel = get_global_print_status_panel();
