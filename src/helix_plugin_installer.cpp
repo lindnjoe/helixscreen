@@ -451,6 +451,7 @@ std::string HelixPluginInstaller::get_install_script_path() const {
 
     // Try common locations relative to executable
     std::vector<std::string> search_paths = {
+        exe_dir + "/moonraker-plugin/install.sh",    // Deployed alongside binary
         exe_dir + "/../moonraker-plugin/install.sh", // Development build
         exe_dir + "/../../moonraker-plugin/install.sh",
         exe_dir + "/../share/helix/moonraker-plugin/install.sh", // Installed
