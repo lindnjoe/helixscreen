@@ -184,32 +184,66 @@ git log --format="%cd" --date=format:'%H' --no-merges | sort | uniq -c | sort -k
 # Most productive day
 cut -d'|' -f3 "$TMP_DIR/commits.txt" | sort | uniq -c | sort -rn | head -1 > "$TMP_DIR/best_day.txt"
 
-# Most changed files
-git log --name-only --format="" --no-merges 2>/dev/null | grep -E "\.(cpp|h|xml)$" | grep -v "^lib/" | sort | uniq -c | sort -rn | head -10 > "$TMP_DIR/top_files.txt"
+# Most changed files - excludes lib/, build/, .venv/, and other non-project directories
+git log --name-only --format="" --no-merges 2>/dev/null | \
+    grep -E "\.(cpp|h|xml|py|sh|mk)$|^Makefile$" | \
+    grep -Ev "^(lib|build|\.venv|node_modules|vendor|external|third_party|deps)/" | \
+    sort | uniq -c | sort -rn | head -10 > "$TMP_DIR/top_files.txt"
 
 # Late night and weekend
 LATE_NIGHT=$(git log --format="%cd" --date=format:'%H' --no-merges | awk '$1 >= 0 && $1 < 6 {count++} END {print count+0}')
 WEEKEND=$(git log --format="%cd" --date=format:'%u' --no-merges | awk '$1 == 6 || $1 == 7 {count++} END {print count+0}')
 
-# Source code stats (adjust paths as needed)
-CPP_LOC=0; H_LOC=0; XML_LOC=0
-CPP_COUNT=0; H_COUNT=0; XML_COUNT=0
+# Source code stats - EXCLUDES lib/ and other external/vendor directories
+# Only counts project-specific code, not libraries/submodules
+CPP_LOC=0; H_LOC=0; XML_LOC=0; PY_LOC=0; SH_LOC=0; MK_LOC=0; TEST_LOC=0
+CPP_COUNT=0; H_COUNT=0; XML_COUNT=0; PY_COUNT=0; SH_COUNT=0; MK_COUNT=0; TEST_COUNT=0
 
+# Directories to EXCLUDE from all stats (libraries, submodules, build artifacts)
+EXCLUDE_DIRS="lib|build|node_modules|vendor|external|third_party|deps|.git"
+
+# C++ source files (src/ only, not lib/)
 if [[ -d "$REPO_ROOT/src" ]]; then
     CPP_COUNT=$(find "$REPO_ROOT/src" -name "*.cpp" 2>/dev/null | wc -l | tr -d ' ')
     CPP_LOC=$(find "$REPO_ROOT/src" -name "*.cpp" -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
 fi
+# C++ headers (include/ only, not lib/)
 if [[ -d "$REPO_ROOT/include" ]]; then
     H_COUNT=$(find "$REPO_ROOT/include" -name "*.h" 2>/dev/null | wc -l | tr -d ' ')
     H_LOC=$(find "$REPO_ROOT/include" -name "*.h" -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
 fi
+# XML layouts
 if [[ -d "$REPO_ROOT/ui_xml" ]]; then
     XML_COUNT=$(find "$REPO_ROOT/ui_xml" -name "*.xml" 2>/dev/null | wc -l | tr -d ' ')
     XML_LOC=$(find "$REPO_ROOT/ui_xml" -name "*.xml" -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
 fi
+# Python scripts (moonraker-plugin/, scripts/, but NOT .venv or lib/)
+PY_FILES=$(find "$REPO_ROOT" -name "*.py" -type f 2>/dev/null | grep -Ev "/(${EXCLUDE_DIRS}|\.venv|__pycache__)/")
+PY_COUNT=$(echo "$PY_FILES" | grep -c . 2>/dev/null || echo 0)
+PY_LOC=0
+if [[ -n "$PY_FILES" ]]; then
+    PY_LOC=$(echo "$PY_FILES" | xargs cat 2>/dev/null | wc -l | tr -d ' ')
+fi
+# Shell scripts (scripts/, but NOT lib/)
+if [[ -d "$REPO_ROOT/scripts" ]]; then
+    SH_COUNT=$(find "$REPO_ROOT/scripts" -name "*.sh" 2>/dev/null | wc -l | tr -d ' ')
+    SH_LOC=$(find "$REPO_ROOT/scripts" -name "*.sh" -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
+fi
+# Makefiles and .mk files (project build config)
+MK_FILES=$(find "$REPO_ROOT" -maxdepth 2 \( -name "Makefile" -o -name "*.mk" \) -type f 2>/dev/null | grep -Ev "/(${EXCLUDE_DIRS})/")
+MK_COUNT=$(echo "$MK_FILES" | grep -c . 2>/dev/null || echo 0)
+MK_LOC=0
+if [[ -n "$MK_FILES" ]]; then
+    MK_LOC=$(echo "$MK_FILES" | xargs cat 2>/dev/null | wc -l | tr -d ' ')
+fi
+# Test files (tests/ directory)
+if [[ -d "$REPO_ROOT/tests" ]]; then
+    TEST_COUNT=$(find "$REPO_ROOT/tests" \( -name "*.cpp" -o -name "*.h" -o -name "*.py" \) 2>/dev/null | wc -l | tr -d ' ')
+    TEST_LOC=$(find "$REPO_ROOT/tests" \( -name "*.cpp" -o -name "*.h" -o -name "*.py" \) -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
+fi
 
-TOTAL_LOC=$((CPP_LOC + H_LOC + XML_LOC))
-TOTAL_FILES=$((CPP_COUNT + H_COUNT + XML_COUNT))
+TOTAL_LOC=$((CPP_LOC + H_LOC + XML_LOC + PY_LOC + SH_LOC + MK_LOC + TEST_LOC))
+TOTAL_FILES=$((CPP_COUNT + H_COUNT + XML_COUNT + PY_COUNT + SH_COUNT + MK_COUNT + TEST_COUNT))
 
 # Commit message word frequency
 cut -d'|' -f5 "$TMP_DIR/commits.txt" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alpha:]' '\n' | grep -v "^$" | sort | uniq -c | sort -rn | head -10 > "$TMP_DIR/words.txt"
@@ -276,13 +310,19 @@ if $USE_TWO_COLS && [[ $TOTAL_LOC -gt 0 ]]; then
     } > "$TMP_DIR/left_col.txt"
 
     # Build right column: Codebase Composition (compact format)
+    # NOTE: Excludes lib/, build/, .venv/, and other non-project directories
     {
         echo "${CYAN}${BOLD}📁 Codebase Composition${NC}"
         [[ $CPP_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "C++ Source:" "$CPP_COUNT" "$CPP_LOC"
         [[ $H_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "C++ Headers:" "$H_COUNT" "$H_LOC"
         [[ $XML_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "XML Layouts:" "$XML_COUNT" "$XML_LOC"
+        [[ $TEST_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "Tests:" "$TEST_COUNT" "$TEST_LOC"
+        [[ $PY_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "Python:" "$PY_COUNT" "$PY_LOC"
+        [[ $SH_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "Shell:" "$SH_COUNT" "$SH_LOC"
+        [[ $MK_LOC -gt 0 ]] && printf "   %-16s %4d files  %6d lines\n" "Makefiles:" "$MK_COUNT" "$MK_LOC"
         echo "   ────────────────────────────────────"
         printf "   ${BOLD}%-16s %4d files  %6d lines${NC}\n" "TOTAL:" "$TOTAL_FILES" "$TOTAL_LOC"
+        echo "   ${DIM}(excludes lib/, build/, .venv/)${NC}"
     } > "$TMP_DIR/right_col.txt"
 
     print_two_columns_files "$TMP_DIR/left_col.txt" "$TMP_DIR/right_col.txt"
@@ -303,6 +343,7 @@ else
     echo ""
 
     # Single column: Codebase composition table
+    # NOTE: Excludes lib/, build/, .venv/, and other non-project directories
     if [[ $TOTAL_LOC -gt 0 ]]; then
         echo "${CYAN}${BOLD}📁 Codebase Composition${NC}"
         echo "   ┌────────────────────────┬───────────────┬───────────────┐"
@@ -311,9 +352,14 @@ else
         [[ $CPP_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "C++ Source (.cpp)" "$CPP_COUNT" "$CPP_LOC"
         [[ $H_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "C++ Headers (.h)" "$H_COUNT" "$H_LOC"
         [[ $XML_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "XML Layouts (.xml)" "$XML_COUNT" "$XML_LOC"
+        [[ $TEST_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "Tests" "$TEST_COUNT" "$TEST_LOC"
+        [[ $PY_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "Python (.py)" "$PY_COUNT" "$PY_LOC"
+        [[ $SH_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "Shell (.sh)" "$SH_COUNT" "$SH_LOC"
+        [[ $MK_LOC -gt 0 ]] && printf "   │ %-22s │ %13s │ %13s │\n" "Makefiles" "$MK_COUNT" "$MK_LOC"
         echo "   ├────────────────────────┼───────────────┼───────────────┤"
         printf "   │ ${BOLD}%-22s${NC} │ ${BOLD}%13s${NC} │ ${BOLD}%13s${NC} │\n" "TOTAL" "$TOTAL_FILES" "$TOTAL_LOC"
         echo "   └────────────────────────┴───────────────┴───────────────┘"
+        echo "   ${DIM}(excludes lib/, build/, .venv/)${NC}"
         echo ""
     fi
 fi
