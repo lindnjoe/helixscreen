@@ -129,8 +129,7 @@ class SettingsPanel : public PanelBase {
     lv_obj_t* bed_mesh_panel_ = nullptr;
     // Note: Z-Offset calibration panel managed by get_global_zoffset_cal_panel()
     // Note: PID calibration panel managed by get_global_pid_cal_panel()
-    lv_obj_t* factory_reset_dialog_ = nullptr;
-    lv_obj_t* theme_restart_dialog_ = nullptr;
+    // Note: factory_reset_dialog_ and theme_restart_dialog_ are public (for static callbacks)
 
     //
     // === Setup Helpers ===
@@ -166,6 +165,15 @@ class SettingsPanel : public PanelBase {
     void populate_sensor_list();
     void populate_macro_dropdowns();
 
+  public:
+    // Called by static modal callbacks - performs actual reset after confirmation
+    void perform_factory_reset();
+
+    // Dialog pointers accessible to static callbacks
+    lv_obj_t* theme_restart_dialog_ = nullptr;
+    lv_obj_t* factory_reset_dialog_ = nullptr;
+
+  private:
     //
     // === Static Trampolines ===
     //
@@ -187,10 +195,7 @@ class SettingsPanel : public PanelBase {
     static void on_network_clicked(lv_event_t* e);
     static void on_factory_reset_clicked(lv_event_t* e);
 
-    // Static callbacks for modal dialogs and overlays
-    static void on_modal_primary_clicked(lv_event_t* e);
-    static void on_modal_secondary_clicked(lv_event_t* e);
-    static void on_modal_backdrop_clicked(lv_event_t* e);
+    // Static callbacks for overlays
     static void on_restart_later_clicked(lv_event_t* e);
     static void on_restart_now_clicked(lv_event_t* e);
     static void on_header_back_clicked(lv_event_t* e);

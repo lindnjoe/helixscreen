@@ -48,6 +48,8 @@ void PluginInstallModal::register_callbacks() {
     }
     lv_xml_register_event_cb(nullptr, "on_plugin_install_clicked", install_clicked_cb);
     lv_xml_register_event_cb(nullptr, "on_plugin_copy_clicked", copy_clicked_cb);
+    lv_xml_register_event_cb(nullptr, "on_plugin_install_cancel", cancel_clicked_cb);
+    lv_xml_register_event_cb(nullptr, "on_plugin_install_ok", ok_clicked_cb);
     callbacks_registered_ = true;
     spdlog::debug("[PluginInstallModal] Event callbacks registered");
 }
@@ -331,6 +333,30 @@ void PluginInstallModal::copy_clicked_cb(lv_event_t* e) {
     auto* self = static_cast<PluginInstallModal*>(lv_obj_get_user_data(btn));
     if (self) {
         self->on_copy_clicked();
+    }
+
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void PluginInstallModal::cancel_clicked_cb(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[PluginInstallModal] cancel_clicked_cb");
+
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<PluginInstallModal*>(lv_obj_get_user_data(btn));
+    if (self) {
+        self->on_cancel();
+    }
+
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void PluginInstallModal::ok_clicked_cb(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[PluginInstallModal] ok_clicked_cb");
+
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<PluginInstallModal*>(lv_obj_get_user_data(btn));
+    if (self) {
+        self->on_ok();
     }
 
     LVGL_SAFE_EVENT_CB_END();

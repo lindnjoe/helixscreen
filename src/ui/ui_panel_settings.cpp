@@ -249,6 +249,45 @@ static void on_heat_soak_changed(lv_event_t* e) {
     handle_standard_macro_changed(StandardMacroSlot::HeatSoak, e);
 }
 
+// ============================================================================
+// MODAL DIALOG STATIC CALLBACKS (XML event_cb)
+// ============================================================================
+
+static void on_theme_restart_confirm(lv_event_t* e) {
+    (void)e;
+    spdlog::info("[SettingsPanel] User confirmed theme restart");
+    app_request_restart_for_theme();
+}
+
+static void on_theme_restart_dismiss(lv_event_t* e) {
+    (void)e;
+    spdlog::info("[SettingsPanel] User dismissed theme restart");
+    auto& panel = get_global_settings_panel();
+    if (panel.theme_restart_dialog_) {
+        ui_nav_go_back(); // Pop the modal
+        lv_obj_delete(panel.theme_restart_dialog_);
+        panel.theme_restart_dialog_ = nullptr;
+    }
+}
+
+static void on_factory_reset_confirm(lv_event_t* e) {
+    (void)e;
+    spdlog::info("[SettingsPanel] User confirmed factory reset");
+    auto& panel = get_global_settings_panel();
+    panel.perform_factory_reset();
+}
+
+static void on_factory_reset_cancel(lv_event_t* e) {
+    (void)e;
+    spdlog::info("[SettingsPanel] User cancelled factory reset");
+    auto& panel = get_global_settings_panel();
+    if (panel.factory_reset_dialog_) {
+        ui_nav_go_back(); // Pop the modal
+        lv_obj_delete(panel.factory_reset_dialog_);
+        panel.factory_reset_dialog_ = nullptr;
+    }
+}
+
 void SettingsPanel::init_subjects() {
     if (subjects_initialized_) {
         spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
@@ -318,12 +357,15 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_network_clicked", on_network_clicked);
     lv_xml_register_event_cb(nullptr, "on_factory_reset_clicked", on_factory_reset_clicked);
 
-    // Register XML event callbacks for modal dialogs and overlays
-    lv_xml_register_event_cb(nullptr, "on_modal_primary_clicked", on_modal_primary_clicked);
-    lv_xml_register_event_cb(nullptr, "on_modal_secondary_clicked", on_modal_secondary_clicked);
-    lv_xml_register_event_cb(nullptr, "on_modal_backdrop_clicked", on_modal_backdrop_clicked);
+    // Register XML event callbacks for overlays
     lv_xml_register_event_cb(nullptr, "on_restart_later_clicked", on_restart_later_clicked);
     lv_xml_register_event_cb(nullptr, "on_restart_now_clicked", on_restart_now_clicked);
+
+    // Register modal dialog callbacks (self-contained XML components)
+    lv_xml_register_event_cb(nullptr, "on_theme_restart_confirm", on_theme_restart_confirm);
+    lv_xml_register_event_cb(nullptr, "on_theme_restart_dismiss", on_theme_restart_dismiss);
+    lv_xml_register_event_cb(nullptr, "on_factory_reset_confirm", on_factory_reset_confirm);
+    lv_xml_register_event_cb(nullptr, "on_factory_reset_cancel", on_factory_reset_cancel);
     lv_xml_register_event_cb(nullptr, "on_header_back_clicked", on_header_back_clicked);
     lv_xml_register_event_cb(nullptr, "on_brightness_changed", on_brightness_changed);
 
@@ -574,29 +616,12 @@ void SettingsPanel::show_theme_restart_dialog() {
     if (!theme_restart_dialog_ && parent_screen_) {
         spdlog::debug("[{}] Creating theme restart dialog...", get_name());
 
-        // Configure modal_dialog subjects BEFORE creation
-        // INFO severity (0) = blue info icon, show both buttons
-        // "Later" = dismiss (restart later), "Restart" = restart now
-        ui_modal_configure(ModalSeverity::Info, true, "Restart", "Later");
-
-        // Create modal_dialog with title/message props
-        const char* attrs[] = {"title", "Theme Changed", "message",
-                               "Restart the app to apply the new theme.", nullptr};
+        // Create self-contained theme_restart_modal component
+        // Callbacks are already wired via XML event_cb elements
         theme_restart_dialog_ =
-            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "modal_dialog", attrs));
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "theme_restart_modal", nullptr));
 
         if (theme_restart_dialog_) {
-            // Set user_data on buttons so callbacks can identify which dialog this is
-            lv_obj_t* restart_btn = lv_obj_find_by_name(theme_restart_dialog_, "btn_primary");
-            if (restart_btn) {
-                lv_obj_set_user_data(restart_btn, theme_restart_dialog_);
-            }
-
-            lv_obj_t* ok_btn = lv_obj_find_by_name(theme_restart_dialog_, "btn_secondary");
-            if (ok_btn) {
-                lv_obj_set_user_data(ok_btn, theme_restart_dialog_);
-            }
-
             // Start hidden
             lv_obj_add_flag(theme_restart_dialog_, LV_OBJ_FLAG_HIDDEN);
             spdlog::info("[{}] Theme restart dialog created", get_name());
@@ -606,10 +631,9 @@ void SettingsPanel::show_theme_restart_dialog() {
         }
     }
 
-    // Show the dialog
+    // Show the dialog via navigation stack
     if (theme_restart_dialog_) {
-        lv_obj_remove_flag(theme_restart_dialog_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_move_foreground(theme_restart_dialog_);
+        ui_nav_push_overlay(theme_restart_dialog_);
     }
 }
 
@@ -1182,33 +1206,55 @@ void SettingsPanel::handle_network_clicked() {
 void SettingsPanel::handle_factory_reset_clicked() {
     spdlog::debug("[{}] Factory Reset clicked - showing confirmation dialog", get_name());
 
-    // Factory reset is a destructive action - use ERROR severity with confirm/cancel
-    const char* attrs[] = {"title", "Factory Reset", "message",
-                           "This will reset all device and Klipper configurations to defaults. "
-                           "This action cannot be undone.",
-                           nullptr};
+    // Create dialog on first use (lazy initialization)
+    if (!factory_reset_dialog_ && parent_screen_) {
+        spdlog::debug("[{}] Creating factory reset dialog...", get_name());
 
-    ui_modal_configure(ModalSeverity::Error, true, "Reset", "Cancel");
-    factory_reset_dialog_ = ui_modal_show("modal_dialog", attrs);
+        // Create self-contained factory_reset_modal component
+        // Callbacks are already wired via XML event_cb elements
+        factory_reset_dialog_ =
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "factory_reset_modal", nullptr));
 
-    if (!factory_reset_dialog_) {
-        spdlog::error("[{}] Failed to create factory reset dialog", get_name());
-        return;
+        if (factory_reset_dialog_) {
+            // Start hidden
+            lv_obj_add_flag(factory_reset_dialog_, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[{}] Factory reset dialog created", get_name());
+        } else {
+            spdlog::error("[{}] Failed to create factory reset dialog", get_name());
+            return;
+        }
     }
 
-    // Set user_data on buttons so callbacks can identify which dialog this is
-    lv_obj_t* cancel_btn = lv_obj_find_by_name(factory_reset_dialog_, "btn_secondary");
-    if (cancel_btn) {
-        lv_obj_set_user_data(cancel_btn, factory_reset_dialog_);
+    // Show the dialog via navigation stack
+    if (factory_reset_dialog_) {
+        ui_nav_push_overlay(factory_reset_dialog_);
+    }
+}
+
+void SettingsPanel::perform_factory_reset() {
+    spdlog::warn("[{}] Performing factory reset - resetting config!", get_name());
+
+    // Get config instance and reset
+    Config* config = Config::get_instance();
+    if (config) {
+        config->reset_to_defaults();
+        config->save();
+        spdlog::info("[{}] Config reset to defaults", get_name());
     }
 
-    lv_obj_t* reset_btn = lv_obj_find_by_name(factory_reset_dialog_, "btn_primary");
-    if (reset_btn) {
-        lv_obj_set_user_data(reset_btn, factory_reset_dialog_);
+    // Hide the dialog
+    if (factory_reset_dialog_) {
+        ui_nav_go_back(); // Pop the modal
+        lv_obj_delete(factory_reset_dialog_);
+        factory_reset_dialog_ = nullptr;
     }
-    // Event handlers already wired via modal_dialog XML event_cb elements
 
-    spdlog::info("[{}] Factory reset dialog shown", get_name());
+    // Show confirmation toast
+    ui_toast_show(ToastSeverity::SUCCESS, "Settings reset to defaults", 2000);
+
+    // TODO: In production, this would restart the application
+    // or transition to the setup wizard. For now, just log.
+    spdlog::info("[{}] Device should restart or show wizard now", get_name());
 }
 
 // ============================================================================
@@ -1320,85 +1366,8 @@ void SettingsPanel::on_factory_reset_clicked(lv_event_t* /*e*/) {
 }
 
 // ============================================================================
-// STATIC TRAMPOLINES - MODAL DIALOGS AND OVERLAYS
+// STATIC TRAMPOLINES - OVERLAYS
 // ============================================================================
-
-// Generic modal dialog callbacks - these are registered globally and can be used
-// by any modal_dialog instance. The specific action is determined by which dialog
-// created the button and what user_data was attached to it.
-void SettingsPanel::on_modal_primary_clicked(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_modal_primary_clicked");
-    auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-    auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
-
-    // Check if this is the theme restart dialog
-    auto& panel = get_global_settings_panel();
-    if (dialog == panel.theme_restart_dialog_) {
-        spdlog::info("[SettingsPanel] User requested app restart for theme change");
-        // Fork new process with modified args: removes --dark/--light,
-        // forces -p settings. Theme is read from saved config.
-        app_request_restart_for_theme();
-    }
-    // Check if this is the factory reset dialog
-    else if (dialog == panel.factory_reset_dialog_) {
-        spdlog::warn("[SettingsPanel] Factory reset confirmed - resetting config!");
-
-        // Get config instance and reset
-        Config* config = Config::get_instance();
-        if (config) {
-            config->reset_to_defaults();
-            config->save();
-            spdlog::info("[SettingsPanel] Config reset to defaults");
-        }
-
-        // Hide the dialog
-        if (dialog) {
-            ui_modal_hide(dialog);
-        }
-
-        // TODO: In production, this would restart the application
-        // or transition to the setup wizard. For now, just log.
-        spdlog::info("[SettingsPanel] Device should restart or show wizard now");
-    }
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void SettingsPanel::on_modal_secondary_clicked(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_modal_secondary_clicked");
-    auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-    auto* dialog = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
-
-    // Check if this is the theme restart dialog
-    auto& panel = get_global_settings_panel();
-    if (dialog == panel.theme_restart_dialog_) {
-        if (dialog) {
-            lv_obj_add_flag(dialog, LV_OBJ_FLAG_HIDDEN);
-        }
-        spdlog::debug("[SettingsPanel] Theme restart dialog dismissed (will restart later)");
-    }
-    // Check if this is the factory reset dialog
-    else if (dialog == panel.factory_reset_dialog_) {
-        if (dialog) {
-            ui_modal_hide(dialog);
-        }
-        spdlog::debug("[SettingsPanel] Factory reset cancelled");
-    }
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void SettingsPanel::on_modal_backdrop_clicked(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_modal_backdrop_clicked");
-    auto* target = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-    auto* original = static_cast<lv_obj_t*>(lv_event_get_target(e));
-
-    // Only dismiss if clicking the backdrop itself (not a child element)
-    auto& panel = get_global_settings_panel();
-    if (target == original && target == panel.theme_restart_dialog_) {
-        lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
-        spdlog::debug("[SettingsPanel] Theme restart dialog dismissed (backdrop)");
-    }
-    LVGL_SAFE_EVENT_CB_END();
-}
 
 void SettingsPanel::on_restart_later_clicked(lv_event_t* /* e */) {
     LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_restart_later_clicked");

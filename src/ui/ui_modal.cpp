@@ -473,6 +473,17 @@ bool Modal::show(lv_obj_t* parent, const char** attrs) {
     lv_xml_register_event_cb(nullptr, "on_modal_cancel_clicked", cancel_button_cb);
     lv_xml_register_event_cb(nullptr, "on_modal_tertiary_clicked", tertiary_button_cb);
 
+    // Register unique callback aliases for specific modals (same handlers, unique names)
+    lv_xml_register_event_cb(nullptr, "on_print_cancel_confirm", ok_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_print_cancel_dismiss", cancel_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_z_offset_save", ok_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_z_offset_cancel", cancel_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_exclude_object_confirm", ok_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_exclude_object_cancel", cancel_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_runout_load_filament", ok_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_runout_resume", cancel_button_cb);
+    lv_xml_register_event_cb(nullptr, "on_runout_cancel_print", tertiary_button_cb);
+
     // Use internal create method
     if (!create_and_show(parent_, component_name(), attrs)) {
         return false;
@@ -727,6 +738,16 @@ void Modal::tertiary_button_cb(lv_event_t* e) {
 // MODAL DIALOG SUBJECTS
 // ============================================================================
 
+// Static callback for modals using the static Modal::show() API
+// Closes the topmost modal when clicked
+static void static_modal_close_cb(lv_event_t* e) {
+    (void)e;
+    lv_obj_t* top = Modal::get_top();
+    if (top) {
+        Modal::hide(top);
+    }
+}
+
 void modal_init_subjects() {
     if (g_subjects_initialized) {
         spdlog::warn("[Modal] Subjects already initialized - skipping");
@@ -748,6 +769,10 @@ void modal_init_subjects() {
     lv_xml_register_subject(nullptr, "dialog_show_cancel", &g_dialog_show_cancel);
     lv_xml_register_subject(nullptr, "dialog_primary_text", &g_dialog_primary_text);
     lv_xml_register_subject(nullptr, "dialog_cancel_text", &g_dialog_cancel_text);
+
+    // Register event callbacks for modals using static Modal::show() API
+    // These modals need unique callback names to avoid conflicts
+    lv_xml_register_event_cb(nullptr, "on_print_complete_ok", static_modal_close_cb);
 
     g_subjects_initialized = true;
     spdlog::debug("[Modal] Modal dialog subjects registered");

@@ -752,8 +752,8 @@ void WizardWifiStep::register_callbacks() {
 
     lv_xml_register_event_cb(nullptr, "on_wifi_toggle_changed", on_wifi_toggle_changed_static);
     lv_xml_register_event_cb(nullptr, "on_network_item_clicked", on_network_item_clicked_static);
-    lv_xml_register_event_cb(nullptr, "on_modal_cancel_clicked", on_modal_cancel_clicked_static);
-    lv_xml_register_event_cb(nullptr, "on_modal_connect_clicked", on_modal_connect_clicked_static);
+    lv_xml_register_event_cb(nullptr, "on_wifi_password_cancel", on_modal_cancel_clicked_static);
+    lv_xml_register_event_cb(nullptr, "on_wifi_password_connect", on_modal_connect_clicked_static);
 
     spdlog::debug("[{}] Event callbacks registered", get_name());
 }

@@ -83,8 +83,8 @@ class WizardWifiStep {
      * Registers callbacks:
      * - on_wifi_toggle_changed
      * - on_network_item_clicked
-     * - on_modal_cancel_clicked
-     * - on_modal_connect_clicked
+     * - on_wifi_password_cancel
+     * - on_wifi_password_connect
      */
     void register_callbacks();
 

@@ -53,11 +53,11 @@
     <lv_obj width="100%"
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="0"
             flex_flow="row">
-      <!-- OK button (Modal wires this via on_modal_ok_clicked callback) -->
+      <!-- OK button -->
       <lv_button name="btn_ok"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <event_cb trigger="clicked" callback="on_modal_ok_clicked"/>
+        <event_cb trigger="clicked" callback="on_print_complete_ok"/>
         <text_body text="OK" align="center"/>
       </lv_button>
     </lv_obj>

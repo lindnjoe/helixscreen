@@ -50,7 +50,7 @@
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  hidden="true" clickable="true">
         <lv_obj-bind_flag_if_eq subject="dialog_show_cancel" flag="hidden" ref_value="0"/>
-        <event_cb trigger="clicked" callback="on_modal_secondary_clicked"/>
+        <!-- NOTE: Callbacks wired programmatically per-instance, not via XML -->
         <text_body name="btn_secondary_label" align="center" bind_text="dialog_cancel_text"/>
       </lv_button>
       <!-- Vertical divider between buttons (only when cancel is visible) -->
@@ -63,7 +63,7 @@
       <lv_button name="btn_primary"
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <event_cb trigger="clicked" callback="on_modal_primary_clicked"/>
+        <!-- NOTE: Callbacks wired programmatically per-instance, not via XML -->
         <text_body name="btn_primary_label" align="center" bind_text="dialog_primary_text"/>
       </lv_button>
     </lv_obj>

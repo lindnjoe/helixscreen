@@ -97,6 +97,8 @@ class PluginInstallModal : public Modal {
     // Static event handlers for XML callbacks
     static void install_clicked_cb(lv_event_t* e);
     static void copy_clicked_cb(lv_event_t* e);
+    static void cancel_clicked_cb(lv_event_t* e);
+    static void ok_clicked_cb(lv_event_t* e);
 
     // Register XML event callbacks (called once in constructor)
     static void register_callbacks();

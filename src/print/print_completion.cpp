@@ -146,7 +146,7 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
         lv_obj_add_flag(filament_stat, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // Note: OK button dismissal is wired via XML event_cb="on_modal_ok_clicked"
+    // Note: OK button dismissal is wired via XML event_cb="on_print_complete_ok"
     // Backdrop click-to-close and ESC handling are automatic via Modal system
 
     spdlog::info("[PrintComplete] Showing rich completion modal: {} ({})", title, filename);

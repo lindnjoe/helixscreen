@@ -91,7 +91,7 @@
       <lv_button name="btn_cancel"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <event_cb trigger="clicked" callback="on_modal_cancel_clicked"/>
+        <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
         <text_body text="Not Now" align="center"/>
       </lv_button>
       <!-- Vertical divider -->
@@ -115,7 +115,7 @@
       <lv_button name="btn_done"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <event_cb trigger="clicked" callback="on_modal_cancel_clicked"/>
+        <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
         <text_body text="Done" align="center"/>
       </lv_button>
       <!-- Vertical divider -->
@@ -138,7 +138,7 @@
       <lv_button name="btn_ok"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <event_cb trigger="clicked" callback="on_modal_ok_clicked"/>
+        <event_cb trigger="clicked" callback="on_plugin_install_ok"/>
         <text_body text="OK" align="center"/>
       </lv_button>
     </lv_obj>

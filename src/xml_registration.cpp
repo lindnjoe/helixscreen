@@ -216,6 +216,8 @@ void register_xml_components() {
     lv_xml_register_component_from_file("A:ui_xml/setting_slider_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/settings_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/restart_prompt_dialog.xml");
+    lv_xml_register_component_from_file("A:ui_xml/theme_restart_modal.xml");
+    lv_xml_register_component_from_file("A:ui_xml/factory_reset_modal.xml");
 
     // Calibration panels (overlays launched from settings)
     lv_xml_register_component_from_file("A:ui_xml/calibration_zoffset_panel.xml");
