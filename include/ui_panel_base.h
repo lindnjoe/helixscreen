@@ -14,6 +14,7 @@
 #pragma once
 
 #include "lvgl/lvgl.h"
+#include "panel_lifecycle.h"
 
 #include <string>
 #include <vector>
@@ -30,6 +31,8 @@ class MoonrakerAPI;
  * - RAII observer management (automatic cleanup in destructor)
  * - Move semantics support for std::unique_ptr ownership
  * - Two-phase initialization (init_subjects -> XML creation -> setup)
+ *
+ * @implements IPanelLifecycle for NavigationManager dispatch
  *
  * ## Usage Pattern:
  *
@@ -64,7 +67,7 @@ class MoonrakerAPI;
  *
  * @see TempControlPanel for a complete implementation example
  */
-class PanelBase {
+class PanelBase : public IPanelLifecycle {
   public:
     /**
      * @brief Construct panel with injected dependencies
@@ -119,7 +122,7 @@ class PanelBase {
      *
      * @return Panel name (e.g., "Motion Panel", "Home Panel")
      */
-    virtual const char* get_name() const = 0;
+    const char* get_name() const override = 0;
 
     /**
      * @brief Get XML component name for lv_xml_create()
@@ -140,7 +143,7 @@ class PanelBase {
      * Override to start animations, refresh data, or resume timers.
      * Default implementation does nothing.
      */
-    virtual void on_activate() {}
+    void on_activate() override {}
 
     /**
      * @brief Called when panel is hidden
@@ -148,7 +151,7 @@ class PanelBase {
      * Override to pause animations, stop timers, or cleanup temporary state.
      * Default implementation does nothing.
      */
-    virtual void on_deactivate() {}
+    void on_deactivate() override {}
 
     //
     // === Public API ===

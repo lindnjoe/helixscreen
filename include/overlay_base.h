@@ -65,6 +65,7 @@
 #pragma once
 
 #include "lvgl/lvgl.h"
+#include "panel_lifecycle.h"
 
 /**
  * @class OverlayBase
@@ -74,8 +75,10 @@
  * - Lifecycle hooks (on_activate/on_deactivate) called by NavigationManager
  * - Two-phase initialization (init_subjects -> create -> register_callbacks)
  * - Async-safe cleanup pattern
+ *
+ * @implements IPanelLifecycle for NavigationManager dispatch
  */
-class OverlayBase {
+class OverlayBase : public IPanelLifecycle {
   public:
     /**
      * @brief Virtual destructor for proper cleanup
@@ -115,7 +118,7 @@ class OverlayBase {
      *
      * @return Overlay name (e.g., "Network Settings")
      */
-    virtual const char* get_name() const = 0;
+    const char* get_name() const override = 0;
 
     //
     // === Optional Hooks (override as needed) ===
@@ -136,7 +139,7 @@ class OverlayBase {
      * Called by NavigationManager after slide-in animation starts.
      * Default implementation sets visible_ = true.
      */
-    virtual void on_activate();
+    void on_activate() override;
 
     /**
      * @brief Called when overlay is being hidden
@@ -145,7 +148,7 @@ class OverlayBase {
      * Called by NavigationManager before slide-out animation starts.
      * Default implementation sets visible_ = false.
      */
-    virtual void on_deactivate();
+    void on_deactivate() override;
 
     /**
      * @brief Clean up resources for async-safe destruction
