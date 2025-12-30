@@ -567,10 +567,6 @@ void PrintStatusPanel::load_gcode_file(const char* file_path) {
             // Reset camera to fit model to new viewport dimensions
             ui_gcode_viewer_reset_camera(viewer);
 
-            // Shift render up to account for metadata overlay at bottom (-10% of canvas height)
-            // This prevents the model from being obscured by the progress bar and filename
-            ui_gcode_viewer_set_content_offset_y(viewer, -0.10f);
-
             // Set print progress to current layer (not 0!) when joining a print in progress.
             // Read directly from PrinterState subjects to get the latest values.
             int viewer_max_layer = ui_gcode_viewer_get_max_layer(viewer);

@@ -1258,7 +1258,13 @@ void PrinterState::set_print_start_state(PrintStartPhase phase, const char* mess
     // This is called from WebSocket callbacks (background thread).
     std::string msg = message ? message : "";
     int clamped_progress = std::clamp(progress, 0, 100);
-    helix::async::invoke([this, phase, msg, clamped_progress]() {
+    int old_phase = lv_subject_get_int(&print_start_phase_);
+    helix::async::invoke([this, phase, old_phase, msg, clamped_progress]() {
+        // Reset print progress when transitioning from IDLE to a preparing phase
+        if (old_phase == static_cast<int>(PrintStartPhase::IDLE) &&
+            phase != PrintStartPhase::IDLE) {
+            reset_for_new_print();
+        }
         lv_subject_set_int(&print_start_phase_, static_cast<int>(phase));
         if (!msg.empty()) {
             lv_subject_copy_string(&print_start_message_, msg.c_str());
