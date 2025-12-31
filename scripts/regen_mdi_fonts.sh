@@ -29,79 +29,15 @@ if [ ! -f "$FONT" ]; then
     exit 1
 fi
 
-# Icon mapping: FA name -> MDI codepoint
+# Icon categories and their MDI codepoints
 # All codepoints verified from https://pictogrammers.com/library/mdi/
 #
-# Navigation & Structure
-# ----------------------
-# home           F02DC  (was FA F015)
-# cog            F0493  (was FA F013) - settings
-# tune-variant   F08E9  (was FA F1DE) - controls/sliders
-# dots-vertical  F01D9  (was FA F142) - advanced/more
-# folder-open    F0770  (was FA F07C)
-#
-# Status & Network
-# ----------------
-# thermometer    F050F  (was FA F2C7)
-# wifi           F05A9  (was FA F1EB)
-# wifi-strength-1 F091F (was FA F6AC)
-# wifi-strength-2 F0922 (was FA F6AA)
-# wifi-strength-3 F0925 (was FA F6AB)
-# wifi-off       F05AA  (was FA F127) - wifi-slash
-# ethernet       F0200  (was FA F796)
-# lightbulb      F0335  (was FA F0EB)
-# usb            F05E0  (was missing in FA Solid!)
-# bluetooth      F00AF  (was missing in FA Solid!)
-#
-# Media Controls
-# --------------
-# play           F040A  (was FA F04B)
-# pause          F03E4  (was FA F04C)
-# stop           F04DB  (was FA F04D)
-#
-# UI Elements
-# -----------
-# check          F012C  (was FA F00C)
-# close          F0156  (was FA F00D) - xmark
-# check-circle   F05E0  (was FA F058) -- NOTE: using check-circle-outline F05E1 instead
-# close-circle   F0159  (was FA F057) - xmark-circle
-# information    F02FC  (was FA F05A) - info-circle
-# help-circle    F02D7  (was FA F059) - question-circle
-# alert          F0026  (was FA F071) - triangle-exclamation
-#
-# Arrows & Chevrons
-# -----------------
-# chevron-left   F0141  (was FA F053)
-# chevron-right  F0142  (was FA F054)
-# chevron-up     F0143  (was FA F077)
-# chevron-down   F0140  (was FA F078)
-# arrow-all      F0026  (was FA F0B2) - arrows-all
-# arrow-up-bold  F0737  (alternative to arrow-up-from-line)
-# arrow-down-bold F072E (alternative to arrow-down-to-line)
-#
-# Actions
-# -------
-# delete         F01B4  (was FA F1F8) - trash
-# pencil         F03EB  (was FA F044) - edit
-# backspace      F00AC  (was FA F55A)
-# lock           F033E  (was FA F023)
-#
-# Objects
-# -------
-# clock-outline  F0150  (was FA F017)
-# cube-outline   F1A2F  (was FA F1B2) - cube
-# water          F058C  (was FA F043) - droplet
-# fire           F0238  (was FA F06D)
-# leaf           F0436  (was FA F06C)
-# fan            F0210  (was FA F863)
-# power          F0425  (was FA F011) - power-off
-# bell           F009A  (was FA F0F3) - notifications
-#
-# List/Grid
-# ---------
-# format-list-bulleted F0279 (was FA F03A) - list
-# view-grid      F0588  (was FA F009) - th-large
-# film           F097A  (was FA F008) - filament (spool icon doesn't exist, use film/reel)
+# Common icon categories used in this project:
+# - Navigation: home, cog, chevron-*, back
+# - Status: thermometer, wifi-*, alert, check, close
+# - Actions: play, pause, stop, delete, pencil
+# - Motion: arrow-*, axis-*-arrow, cursor-move
+# - Hardware: fan, printer-3d, engine, power
 
 # MDI icon codepoints (0xF0000 range)
 # All icons we need, sorted by codepoint for lv_font_conv efficiency
@@ -124,7 +60,7 @@ MDI_ICONS+=",0xF00AF"    # bluetooth
 MDI_ICONS+=",0xF0B5C"    # backspace-outline
 
 # Check/Close/UI
-MDI_ICONS+=",0xF0120"    # tray-arrow-up (unload)
+MDI_ICONS+=",0xF011D"    # tray-arrow-up (unload)
 MDI_ICONS+=",0xF012A"    # chart-line
 MDI_ICONS+=",0xF012C"    # check
 MDI_ICONS+=",0xF0140"    # chevron-down
@@ -136,7 +72,7 @@ MDI_ICONS+=",0xF0156"    # close (xmark)
 MDI_ICONS+=",0xF0159"    # close-circle (xmark-circle)
 MDI_ICONS+=",0xF0169"    # code-braces
 MDI_ICONS+=",0xF0174"    # code-tags
-MDI_ICONS+=",0xF018D"    # console/terminal
+MDI_ICONS+=",0xF018D"    # console
 MDI_ICONS+=",0xF01B4"    # delete (trash)
 MDI_ICONS+=",0xF01D9"    # dots-vertical (advanced)
 MDI_ICONS+=",0xF01DA"    # download
@@ -161,7 +97,7 @@ MDI_ICONS+=",0xF0328"    # layers
 MDI_ICONS+=",0xF0335"    # lightbulb
 MDI_ICONS+=",0xF033E"    # lock
 MDI_ICONS+=",0xF0374"    # minus
-MDI_ICONS+=",0xF040D"    # play-outline (optional)
+MDI_ICONS+=",0xF0F1B"    # play-outline
 MDI_ICONS+=",0xF0415"    # plus
 MDI_ICONS+=",0xF046D"    # ruler (print height)
 MDI_ICONS+=",0xF03D6"    # package-variant (inventory)
@@ -172,7 +108,7 @@ MDI_ICONS+=",0xF040C"    # play-circle (resume)
 MDI_ICONS+=",0xF0425"    # power (power-off)
 MDI_ICONS+=",0xF042A"    # printer
 MDI_ICONS+=",0xF042B"    # printer-3d
-MDI_ICONS+=",0xF0436"    # leaf
+MDI_ICONS+=",0xF032A"    # leaf
 MDI_ICONS+=",0xF0438"    # radiator (heater alternative)
 MDI_ICONS+=",0xF044E"    # redo (clockwise arrow - for tighten)
 MDI_ICONS+=",0xF0450"    # refresh
@@ -200,7 +136,7 @@ MDI_ICONS+=",0xF058C"    # water (droplet)
 MDI_ICONS+=",0xF05A1"    # weight
 MDI_ICONS+=",0xF05A9"    # wifi
 MDI_ICONS+=",0xF05AA"    # wifi-off (wifi-slash)
-MDI_ICONS+=",0xF05E0"    # usb
+MDI_ICONS+=",0xF0553"    # usb
 MDI_ICONS+=",0xF05E1"    # check-circle-outline (check-circle)
 MDI_ICONS+=",0xF062C"    # source-branch (bypass)
 
@@ -220,11 +156,11 @@ MDI_ICONS+=",0xF0770"    # folder-open
 MDI_ICONS+=",0xF0792"    # arrow-collapse-down (flow-down)
 MDI_ICONS+=",0xF0CE1"    # arrow-up-circle (load/activate)
 MDI_ICONS+=",0xF0907"    # rabbit (Happy Hare logo)
-MDI_ICONS+=",0xF0793"    # arrow-expand-down (bed drops - CoreXY Z closer)
+MDI_ICONS+=",0xF0796"    # arrow-expand-down (bed drops - CoreXY Z closer)
 MDI_ICONS+=",0xF0795"    # arrow-collapse-up (flow-up)
-MDI_ICONS+=",0xF0796"    # arrow-expand-up (bed rises - CoreXY Z farther)
+MDI_ICONS+=",0xF0799"    # arrow-expand-up (bed rises - CoreXY Z farther)
 MDI_ICONS+=",0xF081D"    # fan-off
-MDI_ICONS+=",0xF08E9"    # tune-variant (controls)
+MDI_ICONS+=",0xF1542"    # tune-variant (controls)
 MDI_ICONS+=",0xF1543"    # tune-vertical-variant (scroll momentum)
 
 # WiFi strength icons
@@ -244,7 +180,7 @@ MDI_ICONS+=",0xF0A46"    # engine-off (motor-off)
 MDI_ICONS+=",0xF0A66"    # puzzle-outline (plugin)
 MDI_ICONS+=",0xF0A7A"    # trash-can-outline (delete)
 MDI_ICONS+=",0xF0BC2"    # script-text (macro buttons)
-MDI_ICONS+=",0xF0D17"    # tortoise (AFC/Box Turtle logo)
+MDI_ICONS+=",0xF0D3B"    # tortoise (AFC/Box Turtle logo)
 MDI_ICONS+=",0xF0D49"    # axis-arrow (all 3 axes)
 MDI_ICONS+=",0xF0D4C"    # axis-x-arrow
 MDI_ICONS+=",0xF0D51"    # axis-y-arrow
@@ -275,26 +211,28 @@ MDI_ICONS+=",0xF16BD"    # wifi-check
 MDI_ICONS+=",0xF16BF"    # wifi-lock
 MDI_ICONS+=",0xF18B8"    # printer-3d-nozzle-heat (heater)
 MDI_ICONS+=",0xF02EE"    # image-broken-variant (missing/broken image fallback)
-MDI_ICONS+=",0xF1A2F"    # cube-outline
+MDI_ICONS+=",0xF01A7"    # cube-outline
 MDI_ICONS+=",0xF1A45"    # heat-wave (for heated bed icon)
 MDI_ICONS+=",0xF1B35"    # train-car-flatbed (print bed base)
 
 # Custom icons
 MDI_ICONS+=",0xF01BE"    # cursor-move (4-way movement cross)
 MDI_ICONS+=",0xF004C"    # arrow-expand-all (expand_all/move)
-MDI_ICONS+=",0xF03D4"    # hourglass (timer/loading)
+MDI_ICONS+=",0xF051F"    # timer-sand (hourglass)
 
 # Arrow icons for motion control (using MDI arrows)
 MDI_ICONS+=",0xF005D"    # arrow-up
 MDI_ICONS+=",0xF0045"    # arrow-down
 MDI_ICONS+=",0xF004D"    # arrow-left
 MDI_ICONS+=",0xF0054"    # arrow-right
-MDI_ICONS+=",0xF0041"    # arrow-bottom-left
+MDI_ICONS+=",0xF0042"    # arrow-bottom-left
 MDI_ICONS+=",0xF0043"    # arrow-bottom-right
-MDI_ICONS+=",0xF005C"    # arrow-top-left
-MDI_ICONS+=",0xF005E"    # arrow-top-right
-MDI_ICONS+=",0xF004E"    # arrow-left-right (arrows-all horizontal)
-MDI_ICONS+=",0xF005F"    # arrow-up-down (arrows-all vertical)
+MDI_ICONS+=",0xF005B"    # arrow-top-left
+MDI_ICONS+=",0xF005C"    # arrow-top-right
+MDI_ICONS+=",0xF004E"    # arrow-left-thick
+MDI_ICONS+=",0xF005F"    # arrow-up-bold-circle
+MDI_ICONS+=",0xF0E73"    # arrow-left-right (bidirectional horizontal)
+MDI_ICONS+=",0xF0E79"    # arrow-up-down (bidirectional vertical)
 
 # Keyboard icons (for on-screen keyboard special keys)
 MDI_ICONS+=",0xF030F"    # keyboard-close (dismiss keyboard)

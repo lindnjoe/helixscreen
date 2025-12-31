@@ -310,6 +310,31 @@ fi
 echo ""
 
 # ====================================================================
+# MDI Codepoint Label Verification
+# ====================================================================
+echo "🔤 Verifying MDI codepoint labels..."
+
+if [ -f "scripts/verify_mdi_codepoints.py" ]; then
+  python3 scripts/verify_mdi_codepoints.py 2>/dev/null
+  RESULT=$?
+  if [ $RESULT -eq 0 ]; then
+    echo "✅ All MDI codepoint labels verified"
+  elif [ $RESULT -eq 1 ]; then
+    echo "❌ MDI codepoint verification failed!"
+    echo "   Some icon codepoints don't match their labels."
+    echo "   Run: python3 scripts/verify_mdi_codepoints.py"
+    EXIT_CODE=1
+  elif [ $RESULT -eq 2 ]; then
+    echo "⚠️  MDI metadata cache missing"
+    echo "   Run: make update-mdi-cache"
+  fi
+else
+  echo "⚠️  verify_mdi_codepoints.py not found - skipping"
+fi
+
+echo ""
+
+# ====================================================================
 # Code Style Check
 # ====================================================================
 echo "🔍 Checking for TODO/FIXME markers..."

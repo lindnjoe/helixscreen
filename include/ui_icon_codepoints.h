@@ -39,15 +39,19 @@ static const IconMapping ICON_MAP[] = {
 
     // Arrow icons
     {"arrow_down",         "\xF3\xB0\x81\x85"},  // F0045 arrow-down (head descends)
-    {"arrow_expand_down",  "\xF3\xB0\x9E\x93"},  // F0793 arrow-expand-down (bed drops - CoreXY)
-    {"arrow_expand_up",    "\xF3\xB0\x9E\x96"},  // F0796 arrow-expand-up (bed rises - CoreXY)
+    {"arrow_expand_down",  "\xF3\xB0\x9E\x96"},  // F0796 arrow-expand-down (bed drops - CoreXY)
+    {"arrow_expand_up",    "\xF3\xB0\x9E\x99"},  // F0799 arrow-expand-up (bed rises - CoreXY)
     {"arrow_left",         "\xF3\xB0\x81\x8D"},  // F004D arrow-left
     {"arrow_left_bold",    "\xF3\xB0\x9C\xB1"},  // F0731 arrow-left-bold
+    {"arrow_left_right",   "\xF3\xB0\xB9\xB3"},  // F0E73 arrow-left-right (bidirectional)
+    {"arrow_left_thick",   "\xF3\xB0\x81\x8E"},  // F004E arrow-left-thick
     {"arrow_right",        "\xF3\xB0\x81\x94"},  // F0054 arrow-right
     {"arrow_right_bold",   "\xF3\xB0\x9C\xB4"},  // F0734 arrow-right-bold
-    {"arrow_up",           "\xF3\xB0\x81\x9D"},  // F005D arrow-up (head ascends)
-    {"arrow_up_circle",    "\xF3\xB0\xB3\xA1"},  // F0CE1 arrow-up-circle (load/activate)
-    {"arrow_up_right",     "\xF3\xB1\x9E\xBF"},  // F17BF arrow-up-right (retraction)
+    {"arrow_up",             "\xF3\xB0\x81\x9D"},  // F005D arrow-up (head ascends)
+    {"arrow_up_bold_circle", "\xF3\xB0\x81\x9F"},  // F005F arrow-up-bold-circle
+    {"arrow_up_circle",      "\xF3\xB0\xB3\xA1"},  // F0CE1 arrow-up-circle (load/activate)
+    {"arrow_up_down",        "\xF3\xB0\xB9\xB9"},  // F0E79 arrow-up-down (bidirectional)
+    {"arrow_up_right",       "\xF3\xB1\x9E\xBF"},  // F17BF arrow-up-right (retraction)
     {"axis_arrow",         "\xF3\xB0\xB5\x89"},  // F0D49 axis-arrow (all 3 axes)
     {"axis_x_arrow",       "\xF3\xB0\xB5\x8C"},  // F0D4C axis-x-arrow
     {"axis_y_arrow",       "\xF3\xB0\xB5\x91"},  // F0D51 axis-y-arrow
@@ -76,7 +80,7 @@ static const IconMapping ICON_MAP[] = {
     {"cog",                "\xF3\xB0\x92\x93"},  // F0493 cog/settings
     {"console",            "\xF3\xB0\x86\x8D"},  // F018D console/terminal
     {"cooldown",           "\xF3\xB0\x9C\x97"},  // F0717 snowflake
-    {"cube",               "\xF3\xB1\xA8\xAF"},  // F1A2F cube-outline
+    {"cube",               "\xF3\xB0\x86\xA7"},  // F01A7 cube-outline
     {"cursor_move",        "\xF3\xB0\x86\xBE"},  // F01BE cursor-move (4-way arrows)
 
     // Dashboard
@@ -111,7 +115,7 @@ static const IconMapping ICON_MAP[] = {
     {"help_circle",        "\xF3\xB0\x8B\x97"},  // F02D7 help-circle/question
     {"home",               "\xF3\xB0\x8B\x9C"},  // F02DC home
     {"home_import",        "\xF3\xB0\xBE\x9C"},  // F0F9C home-import-outline (home-z)
-    {"hourglass",          "\xF3\xB0\x8F\x94"},  // F03D4 hourglass (approx, need exact)
+    {"hourglass",          "\xF3\xB0\x94\x9F"},  // F051F timer-sand (hourglass)
 
     // Info/Image
     {"image_broken_variant", "\xF3\xB0\x8B\xAE"}, // F02EE image-broken-variant (fallback)
@@ -123,7 +127,7 @@ static const IconMapping ICON_MAP[] = {
     // LAN/Network
     {"lan",                "\xF3\xB0\x8C\x97"},  // F0317 lan
     {"layers",             "\xF3\xB0\x8C\xA8"},  // F0328 layers
-    {"leaf",               "\xF3\xB0\x90\xB6"},  // F0436 leaf
+    {"leaf",               "\xF3\xB0\x8C\xAA"},  // F032A leaf
     {"light",              "\xF3\xB0\x8C\xB5"},  // F0335 lightbulb
     {"light_off",          "\xF3\xB0\xB9\x8F"},  // F0E4F lightbulb-off
     {"lightbulb_on",       "\xF3\xB0\x9B\xA8"},  // F06E8 lightbulb-on (100%)
@@ -191,13 +195,13 @@ static const IconMapping ICON_MAP[] = {
     {"thermometer",        "\xF3\xB0\x94\x8F"},  // F050F thermometer
     {"thermometer_minus",  "\xF3\xB0\xB8\x84"},  // F0E04 thermometer-minus
     {"thermometer_plus",   "\xF3\xB0\xB8\x85"},  // F0E05 thermometer-plus
-    {"tortoise",           "\xF3\xB0\xB4\x97"},  // F0D17 tortoise (AFC/Box Turtle logo)
+    {"tortoise",           "\xF3\xB0\xB4\xBB"},  // F0D3B tortoise (AFC/Box Turtle logo)
     {"train_flatbed",      "\xF3\xB1\xAC\xB5"},  // F1B35 train-car-flatbed (print bed base)
     {"trash_can_outline",  "\xF3\xB0\xA9\xBA"},  // F0A7A trash-can-outline (delete)
-    {"tray_arrow_up",      "\xF3\xB0\x84\xA0"},  // F0120 tray-arrow-up (unload/eject)
+    {"tray_arrow_up",      "\xF3\xB0\x84\x9D"},  // F011D tray-arrow-up (unload/eject)
     {"tune",               "\xF3\xB0\x98\xAE"},  // F062E tune
     {"undo",               "\xF3\xB0\x95\x8C"},  // F054C undo (counter-clockwise arrow - loosen)
-    {"tune_variant",       "\xF3\xB0\xA3\xA9"},  // F08E9 tune-variant
+    {"tune_variant",       "\xF3\xB1\x95\x82"},  // F1542 tune-variant
     {"tune_vertical_variant", "\xF3\xB1\x95\x83"},  // F1543 tune-vertical-variant
 
     // Update
