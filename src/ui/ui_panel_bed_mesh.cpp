@@ -76,6 +76,8 @@ BedMeshPanel::BedMeshPanel() {
 }
 
 BedMeshPanel::~BedMeshPanel() {
+    deinit_subjects();
+
     // Signal to async callbacks that this panel is being destroyed [L012]
     // Must happen BEFORE any cleanup that callbacks might reference
     alive_->store(false);
@@ -169,6 +171,39 @@ void BedMeshPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized and registered", get_name());
+}
+
+void BedMeshPanel::deinit_subjects() {
+    if (!subjects_initialized_)
+        return;
+
+    // Current mesh stats subjects
+    lv_subject_deinit(&bed_mesh_available_);
+    lv_subject_deinit(&bed_mesh_profile_name_);
+    lv_subject_deinit(&bed_mesh_dimensions_);
+    lv_subject_deinit(&bed_mesh_max_label_);
+    lv_subject_deinit(&bed_mesh_max_value_);
+    lv_subject_deinit(&bed_mesh_min_label_);
+    lv_subject_deinit(&bed_mesh_min_value_);
+    lv_subject_deinit(&bed_mesh_variance_);
+
+    // Profile count
+    lv_subject_deinit(&bed_mesh_profile_count_);
+
+    // Profile list subjects (5 profiles)
+    for (int i = 0; i < BED_MESH_MAX_PROFILES; i++) {
+        auto idx = static_cast<size_t>(i);
+        lv_subject_deinit(&profile_name_subjects_[idx]);
+        lv_subject_deinit(&profile_range_subjects_[idx]);
+        lv_subject_deinit(&profile_active_subjects_[idx]);
+    }
+
+    // Modal state subjects
+    lv_subject_deinit(&bed_mesh_calibrating_);
+    lv_subject_deinit(&bed_mesh_rename_old_name_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 // ============================================================================

@@ -81,6 +81,11 @@ PowerPanel::PowerPanel(PrinterState& printer_state, MoonrakerAPI* api)
     std::snprintf(status_buf_, sizeof(status_buf_), "Loading devices...");
 }
 
+PowerPanel::~PowerPanel() {
+    deinit_subjects();
+    spdlog::debug("[PowerPanel] Destroyed");
+}
+
 void PowerPanel::init_subjects() {
     if (subjects_initialized_) {
         spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
@@ -92,6 +97,15 @@ void PowerPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: power_status", get_name());
+}
+
+void PowerPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&status_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[PowerPanel] Subjects deinitialized");
 }
 
 void PowerPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {

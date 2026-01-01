@@ -29,6 +29,10 @@ NotificationHistoryPanel::NotificationHistoryPanel(PrinterState& printer_state, 
     // Dependencies stored for use in refresh()
 }
 
+NotificationHistoryPanel::~NotificationHistoryPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // PANELBASE IMPLEMENTATION
 // ============================================================================
@@ -44,6 +48,15 @@ void NotificationHistoryPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized (1 subject)", get_name());
+}
+
+void NotificationHistoryPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&has_entries_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 void NotificationHistoryPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {

@@ -88,6 +88,10 @@ TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* ap
     spdlog::debug("[TempPanel] Constructed - subscribed to PrinterState temperature subjects");
 }
 
+TempControlPanel::~TempControlPanel() {
+    deinit_subjects();
+}
+
 void TempControlPanel::nozzle_temp_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
     auto* self = static_cast<TempControlPanel*>(lv_observer_get_user_data(observer));
     if (self) {
@@ -460,6 +464,27 @@ void TempControlPanel::init_subjects() {
     subjects_initialized_ = true;
     spdlog::debug("[TempPanel] Subjects initialized: nozzle={}/{}°C, bed={}/{}°C", nozzle_current_,
                   nozzle_target_, bed_current_, bed_target_);
+}
+
+void TempControlPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinitialize all 10 subjects
+    lv_subject_deinit(&nozzle_current_subject_);
+    lv_subject_deinit(&nozzle_target_subject_);
+    lv_subject_deinit(&bed_current_subject_);
+    lv_subject_deinit(&bed_target_subject_);
+    lv_subject_deinit(&nozzle_display_subject_);
+    lv_subject_deinit(&bed_display_subject_);
+    lv_subject_deinit(&nozzle_status_subject_);
+    lv_subject_deinit(&bed_status_subject_);
+    lv_subject_deinit(&nozzle_heating_subject_);
+    lv_subject_deinit(&bed_heating_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[TempPanel] Subjects deinitialized");
 }
 
 ui_temp_graph_t* TempControlPanel::create_temp_graph(lv_obj_t* chart_area,

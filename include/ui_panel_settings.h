@@ -10,14 +10,13 @@
  * @brief Settings panel - Scrolling list of app and printer settings
  *
  * A comprehensive settings panel with sections for Appearance, Printer,
- * Notifications, Calibration, System, and About information.
+ * Notifications, System, and About information.
  *
  * ## Key Features:
  * - Dark mode toggle with immediate theme switching
  * - Display sleep timeout configuration
  * - LED light control (via Moonraker)
  * - Sound and notification settings (placeholder)
- * - Calibration launchers (Bed Mesh, Z-Offset, PID Tuning)
  * - System info display (version, printer, Klipper)
  *
  * ## Architecture:
@@ -49,6 +48,15 @@ class SettingsPanel : public PanelBase {
      * Must be called BEFORE XML creation to enable data binding.
      */
     void init_subjects() override;
+
+    /**
+     * @brief Deinitialize subjects for clean shutdown
+     *
+     * Calls lv_subject_deinit() on all local lv_subject_t members.
+     * Must be called before lv_deinit() to prevent dangling observers.
+     * Follows [L041] pattern for subject init/deinit symmetry.
+     */
+    void deinit_subjects();
 
     /**
      * @brief Setup the settings panel with event handlers and bindings
@@ -90,9 +98,6 @@ class SettingsPanel : public PanelBase {
     // Action rows (clickable)
     lv_obj_t* display_settings_row_ = nullptr;
     lv_obj_t* filament_sensors_row_ = nullptr;
-    lv_obj_t* bed_mesh_row_ = nullptr;
-    lv_obj_t* z_offset_row_ = nullptr;
-    lv_obj_t* pid_tuning_row_ = nullptr;
     lv_obj_t* network_row_ = nullptr;
     lv_obj_t* factory_reset_row_ = nullptr;
 
@@ -156,9 +161,7 @@ class SettingsPanel : public PanelBase {
     void handle_display_settings_clicked();
     void handle_filament_sensors_clicked();
     void handle_macro_buttons_clicked();
-    void handle_bed_mesh_clicked();
-    void handle_z_offset_clicked();
-    void handle_pid_tuning_clicked();
+    void handle_machine_limits_clicked();
     void handle_network_clicked();
     void handle_factory_reset_clicked();
     void show_theme_restart_dialog();
@@ -189,9 +192,7 @@ class SettingsPanel : public PanelBase {
     static void on_display_settings_clicked(lv_event_t* e);
     static void on_filament_sensors_clicked(lv_event_t* e);
     static void on_macro_buttons_clicked(lv_event_t* e);
-    static void on_bed_mesh_clicked(lv_event_t* e);
-    static void on_z_offset_clicked(lv_event_t* e);
-    static void on_pid_tuning_clicked(lv_event_t* e);
+    static void on_machine_limits_clicked(lv_event_t* e);
     static void on_network_clicked(lv_event_t* e);
     static void on_factory_reset_clicked(lv_event_t* e);
 

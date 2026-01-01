@@ -157,6 +157,8 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 FilamentPanel::~FilamentPanel() {
+    deinit_subjects();
+
     // Clean up warning dialogs if open (prevents memory leak and use-after-free)
     if (lv_is_initialized()) {
         if (load_warning_dialog_) {
@@ -218,6 +220,31 @@ void FilamentPanel::init_subjects() {
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: temp={}/{}°C, material={}", get_name(),
                   nozzle_current_, nozzle_target_, selected_material_);
+}
+
+void FilamentPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinitialize all subjects in reverse order of initialization
+    lv_subject_deinit(&operation_in_progress_subject_);
+    lv_subject_deinit(&bed_target_subject_);
+    lv_subject_deinit(&bed_current_subject_);
+    lv_subject_deinit(&nozzle_target_subject_);
+    lv_subject_deinit(&nozzle_current_subject_);
+    lv_subject_deinit(&material_bed_temp_subject_);
+    lv_subject_deinit(&material_nozzle_temp_subject_);
+    lv_subject_deinit(&safety_warning_text_subject_);
+    lv_subject_deinit(&warning_temps_subject_);
+    lv_subject_deinit(&safety_warning_visible_subject_);
+    lv_subject_deinit(&extrusion_allowed_subject_);
+    lv_subject_deinit(&material_selected_subject_);
+    lv_subject_deinit(&status_subject_);
+    lv_subject_deinit(&temp_display_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 void FilamentPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -694,8 +721,18 @@ void FilamentPanel::handle_purge_button() {
 void FilamentPanel::on_manage_slots_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_manage_slots_clicked");
     LV_UNUSED(e);
-    // TODO: Navigate to AMS panel when implemented
-    NOTIFY_INFO("AMS slot management coming soon");
+
+    spdlog::info("[FilamentPanel] Opening AMS panel overlay");
+
+    auto& ams_panel = get_global_ams_panel();
+    if (!ams_panel.are_subjects_initialized()) {
+        ams_panel.init_subjects();
+    }
+    lv_obj_t* panel_obj = ams_panel.get_panel();
+    if (panel_obj) {
+        ui_nav_push_overlay(panel_obj);
+    }
+
     LVGL_SAFE_EVENT_CB_END();
 }
 

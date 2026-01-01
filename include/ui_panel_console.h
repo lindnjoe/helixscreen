@@ -39,10 +39,11 @@
 class ConsolePanel : public OverlayBase {
   public:
     ConsolePanel();
-    ~ConsolePanel() override = default;
+    ~ConsolePanel() override;
 
     // === OverlayBase interface ===
     void init_subjects() override;
+    void deinit_subjects();
     void register_callbacks() override;
     lv_obj_t* create(lv_obj_t* parent) override;
     [[nodiscard]] const char* get_name() const override {

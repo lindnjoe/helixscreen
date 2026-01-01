@@ -48,6 +48,10 @@ ConsolePanel::ConsolePanel() {
     std::memset(status_buf_, 0, sizeof(status_buf_));
 }
 
+ConsolePanel::~ConsolePanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -66,6 +70,15 @@ void ConsolePanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: console_status", get_name());
+}
+
+void ConsolePanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&status_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 // ============================================================================

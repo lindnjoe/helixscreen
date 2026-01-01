@@ -179,6 +179,29 @@ void ScrewsTiltPanel::init_subjects() {
     spdlog::debug("[ScrewsTilt] Subjects initialized and registered");
 }
 
+void ScrewsTiltPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinit file-static state machine subject
+    lv_subject_deinit(&s_screws_tilt_state);
+
+    // Deinit screw array subjects
+    for (size_t i = 0; i < MAX_SCREWS; i++) {
+        lv_subject_deinit(&screw_visible_subjects_[i]);
+        lv_subject_deinit(&screw_name_subjects_[i]);
+        lv_subject_deinit(&screw_adjustment_subjects_[i]);
+    }
+
+    // Deinit status label subjects
+    lv_subject_deinit(&probe_count_subject_);
+    lv_subject_deinit(&error_message_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[ScrewsTiltPanel] Subjects deinitialized");
+}
+
 // ============================================================================
 // DESTRUCTOR
 // ============================================================================
@@ -192,17 +215,7 @@ ScrewsTiltPanel::~ScrewsTiltPanel() {
     }
 
     // Deinitialize subjects to disconnect observers before we're destroyed
-    if (subjects_initialized_) {
-        lv_subject_deinit(&s_screws_tilt_state); // File-static state machine subject
-        for (size_t i = 0; i < MAX_SCREWS; i++) {
-            lv_subject_deinit(&screw_visible_subjects_[i]);
-            lv_subject_deinit(&screw_name_subjects_[i]);
-            lv_subject_deinit(&screw_adjustment_subjects_[i]);
-        }
-        lv_subject_deinit(&probe_count_subject_);
-        lv_subject_deinit(&error_message_subject_);
-        subjects_initialized_ = false;
-    }
+    deinit_subjects();
 
     spdlog::debug("[ScrewsTilt] Destroyed");
 }

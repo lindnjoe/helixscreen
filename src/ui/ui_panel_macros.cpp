@@ -61,6 +61,10 @@ MacrosPanel::MacrosPanel() {
     spdlog::debug("[MacrosPanel] Instance created");
 }
 
+MacrosPanel::~MacrosPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -78,6 +82,15 @@ void MacrosPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: macros_status", get_name());
+}
+
+void MacrosPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&status_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 // ============================================================================

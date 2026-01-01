@@ -148,6 +148,8 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
 }
 
 PrintStatusPanel::~PrintStatusPanel() {
+    deinit_subjects();
+
     // Signal async callbacks to abort - must be first! [L012]
     m_alive->store(false);
 
@@ -283,6 +285,35 @@ void PrintStatusPanel::init_subjects() {
     }
 
     spdlog::debug("[{}] Subjects initialized (17 subjects)", get_name());
+}
+
+void PrintStatusPanel::deinit_subjects() {
+    if (!subjects_initialized_)
+        return;
+
+    lv_subject_deinit(&progress_text_subject_);
+    lv_subject_deinit(&layer_text_subject_);
+    lv_subject_deinit(&elapsed_subject_);
+    lv_subject_deinit(&remaining_subject_);
+    lv_subject_deinit(&nozzle_temp_subject_);
+    lv_subject_deinit(&bed_temp_subject_);
+    lv_subject_deinit(&speed_subject_);
+    lv_subject_deinit(&flow_subject_);
+    lv_subject_deinit(&pause_button_subject_);
+    lv_subject_deinit(&pause_label_subject_);
+    lv_subject_deinit(&timelapse_button_subject_);
+    lv_subject_deinit(&timelapse_label_subject_);
+    lv_subject_deinit(&light_button_subject_);
+    lv_subject_deinit(&preparing_visible_subject_);
+    lv_subject_deinit(&preparing_operation_subject_);
+    lv_subject_deinit(&preparing_progress_subject_);
+    lv_subject_deinit(&gcode_viewer_mode_subject_);
+    lv_subject_deinit(&tune_speed_subject_);
+    lv_subject_deinit(&tune_flow_subject_);
+    lv_subject_deinit(&tune_z_offset_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[PrintStatusPanel] Subjects deinitialized");
 }
 
 lv_obj_t* PrintStatusPanel::create(lv_obj_t* parent) {
@@ -2104,11 +2135,10 @@ void PrintStatusPanel::load_thumbnail_for_file(const std::string& filename) {
             // causes a race condition where Print Status deletes thumbnails that
             // Print Select just cached, resulting in placeholder thumbnails.
 
-            // Use centralized ThumbnailCache for download and LVGL path handling
-            // Use fetch_optimized() for pre-scaled .bin files (faster on embedded hardware)
-            helix::ThumbnailTarget target = helix::ThumbnailProcessor::get_target_for_display();
-            get_thumbnail_cache().fetch_optimized(
-                api_, thumbnail_rel_path, target,
+            // Use fetch() to get full-resolution PNG for better display quality
+            // (pre-scaled .bin files are too small for the large detail view area)
+            get_thumbnail_cache().fetch(
+                api_, thumbnail_rel_path,
                 [this, alive, current_gen](const std::string& lvgl_path) {
                     // Abort if panel was destroyed during async operation [L012]
                     if (!alive->load()) {

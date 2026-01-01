@@ -50,6 +50,10 @@ FanPanel::FanPanel() {
     spdlog::debug("[FanPanel] Instance created");
 }
 
+FanPanel::~FanPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -74,6 +78,16 @@ void FanPanel::init_subjects() {
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: fan_part_speed_display, fan_hotend_speed_display",
                   get_name());
+}
+
+void FanPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&part_speed_display_subject_);
+    lv_subject_deinit(&hotend_speed_display_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[FanPanel] Subjects deinitialized");
 }
 
 // ============================================================================

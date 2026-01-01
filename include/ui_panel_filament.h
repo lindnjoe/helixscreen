@@ -69,6 +69,14 @@ class FilamentPanel : public PanelBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize all subjects for clean shutdown
+     *
+     * Called by StaticPanelRegistry during application teardown.
+     * Must be called BEFORE lv_deinit() to avoid dangling observer references.
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Setup button handlers and initial visual state
      *
      * - Wires preset buttons (PLA, PETG, ABS, Custom)

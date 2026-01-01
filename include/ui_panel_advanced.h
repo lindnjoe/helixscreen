@@ -17,7 +17,6 @@
  * - Bed Leveling (auto mesh, manual screws, QGL, Z-tilt)
  * - Input Shaping (resonance testing, Klippain Shake&Tune)
  * - Spoolman (filament tracking and inventory)
- * - Machine Limits (velocity/acceleration configuration)
  * - Z-Offset Calibration
  * - Macro Browser (execute printer macros)
  * - Diagnostics (console, restart options)
@@ -96,12 +95,12 @@ class AdvancedPanel : public PanelBase {
     // === Navigation Handlers ===
     //
 
-    void handle_machine_limits_clicked();
     void handle_spoolman_clicked();
     void handle_macros_clicked();
     void handle_console_clicked();
     void handle_history_clicked();
     void handle_configure_print_start_clicked();
+    void handle_pid_tuning_clicked();
     void handle_helix_plugin_install_clicked();
     void handle_helix_plugin_uninstall_clicked();
     void handle_phase_tracking_changed(bool enabled);
@@ -111,12 +110,12 @@ class AdvancedPanel : public PanelBase {
     // === Static Event Callbacks (registered via lv_xml_register_event_cb) ===
     //
 
-    static void on_machine_limits_clicked(lv_event_t* e);
     static void on_spoolman_clicked(lv_event_t* e);
     static void on_macros_clicked(lv_event_t* e);
     static void on_console_clicked(lv_event_t* e);
     static void on_history_clicked(lv_event_t* e);
     static void on_configure_print_start_clicked(lv_event_t* e);
+    static void on_pid_tuning_clicked(lv_event_t* e);
     static void on_helix_plugin_install_clicked(lv_event_t* e);
     static void on_helix_plugin_uninstall_clicked(lv_event_t* e);
     static void on_phase_tracking_changed(lv_event_t* e);

@@ -65,6 +65,15 @@ class PIDCalibrationPanel : public OverlayBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize LVGL subjects for clean shutdown
+     *
+     * Disconnects all observers and deinitializes subjects.
+     * Called automatically by destructor, but can be called earlier
+     * for explicit cleanup before LVGL deinit.
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Create overlay UI from XML
      *
      * @param parent Parent screen widget to attach overlay to

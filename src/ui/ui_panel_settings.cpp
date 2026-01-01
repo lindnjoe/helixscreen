@@ -9,9 +9,6 @@
 #include "ui_nav.h"
 #include "ui_nav_manager.h"
 #include "ui_overlay_network_settings.h"
-#include "ui_panel_bed_mesh.h"
-#include "ui_panel_calibration_pid.h"
-#include "ui_panel_calibration_zoffset.h"
 #include "ui_panel_memory_stats.h"
 #include "ui_toast.h"
 
@@ -31,13 +28,6 @@
 #include <algorithm>
 #include <memory>
 
-// Forward declarations for class-based API
-class BedMeshPanel;
-BedMeshPanel& get_global_bed_mesh_panel();
-ZOffsetCalibrationPanel& get_global_zoffset_cal_panel();
-PIDCalibrationPanel& get_global_pid_cal_panel();
-MoonrakerClient* get_moonraker_client();
-
 // ============================================================================
 // CONSTRUCTOR
 // ============================================================================
@@ -48,6 +38,9 @@ SettingsPanel::SettingsPanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 SettingsPanel::~SettingsPanel() {
+    // Applying [L041]: deinit_subjects() as first line in destructor
+    deinit_subjects();
+
     // Remove observers BEFORE labels are destroyed to prevent use-after-free
     // The subjects (in PrinterState) outlive this panel, so observers must be
     // explicitly removed or LVGL will try to update destroyed labels
@@ -353,9 +346,7 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_clean_nozzle_changed", on_clean_nozzle_changed);
     lv_xml_register_event_cb(nullptr, "on_heat_soak_changed", on_heat_soak_changed);
 
-    lv_xml_register_event_cb(nullptr, "on_bed_mesh_clicked", on_bed_mesh_clicked);
-    lv_xml_register_event_cb(nullptr, "on_z_offset_clicked", on_z_offset_clicked);
-    lv_xml_register_event_cb(nullptr, "on_pid_tuning_clicked", on_pid_tuning_clicked);
+    lv_xml_register_event_cb(nullptr, "on_machine_limits_clicked", on_machine_limits_clicked);
     lv_xml_register_event_cb(nullptr, "on_network_clicked", on_network_clicked);
     lv_xml_register_event_cb(nullptr, "on_factory_reset_clicked", on_factory_reset_clicked);
 
@@ -375,6 +366,22 @@ void SettingsPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
+}
+
+void SettingsPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    spdlog::debug("[{}] Deinitializing subjects", get_name());
+
+    // Deinit local subjects (3 string subjects)
+    lv_subject_deinit(&brightness_value_subject_);
+    lv_subject_deinit(&version_value_subject_);
+    lv_subject_deinit(&printer_value_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 void SettingsPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -464,9 +471,10 @@ void SettingsPanel::setup_toggle_handlers() {
     // Event handler wired via XML <event_cb>, just set initial value here
     lv_obj_t* completion_row = lv_obj_find_by_name(panel_, "row_completion_alert");
     if (completion_row) {
-        completion_alert_dropdown_ =
-            lv_obj_find_by_name(completion_row, "completion_alert_dropdown");
+        completion_alert_dropdown_ = lv_obj_find_by_name(completion_row, "dropdown");
         if (completion_alert_dropdown_) {
+            // Set dropdown options (component doesn't support passing via XML attribute)
+            lv_dropdown_set_options(completion_alert_dropdown_, "Off\nNotification\nAlert");
             auto mode = settings.get_completion_alert_mode();
             lv_dropdown_set_selected(completion_alert_dropdown_, static_cast<uint32_t>(mode));
             spdlog::debug("[{}]   ✓ Completion alert dropdown (mode={})", get_name(),
@@ -502,24 +510,6 @@ void SettingsPanel::setup_action_handlers() {
     filament_sensors_row_ = lv_obj_find_by_name(panel_, "row_filament_sensors");
     if (filament_sensors_row_) {
         spdlog::debug("[{}]   ✓ Filament sensors action row", get_name());
-    }
-
-    // === Bed Mesh Row ===
-    bed_mesh_row_ = lv_obj_find_by_name(panel_, "row_bed_mesh");
-    if (bed_mesh_row_) {
-        spdlog::debug("[{}]   ✓ Bed mesh action row", get_name());
-    }
-
-    // === Z-Offset Row ===
-    z_offset_row_ = lv_obj_find_by_name(panel_, "row_z_offset");
-    if (z_offset_row_) {
-        spdlog::debug("[{}]   ✓ Z-offset action row", get_name());
-    }
-
-    // === PID Tuning Row ===
-    pid_tuning_row_ = lv_obj_find_by_name(panel_, "row_pid_tuning");
-    if (pid_tuning_row_) {
-        spdlog::debug("[{}]   ✓ PID tuning action row", get_name());
     }
 
     // === Network Row ===
@@ -1134,66 +1124,9 @@ void SettingsPanel::populate_sensor_list() {
     }
 }
 
-void SettingsPanel::handle_bed_mesh_clicked() {
-    spdlog::debug("[{}] Bed Mesh clicked - opening visualization", get_name());
-
-    auto& overlay = get_global_bed_mesh_panel();
-
-    // Create bed mesh panel on first access (lazy initialization)
-    if (!overlay.get_root() && parent_screen_) {
-        spdlog::debug("[{}] Creating bed mesh visualization panel...", get_name());
-
-        // Initialize subjects and callbacks if not already done
-        if (!overlay.are_subjects_initialized()) {
-            overlay.init_subjects();
-        }
-        overlay.register_callbacks();
-
-        // Create overlay UI
-        lv_obj_t* root = overlay.create(parent_screen_);
-        if (!root) {
-            spdlog::error("[{}] Failed to create bed mesh panel", get_name());
-            return;
-        }
-
-        // Register with NavigationManager for lifecycle callbacks
-        NavigationManager::instance().register_overlay_instance(root, &overlay);
-        spdlog::info("[{}] Bed mesh visualization panel created", get_name());
-    }
-
-    // Push bed mesh panel onto navigation history and show it
-    lv_obj_t* root = overlay.get_root();
-    if (root) {
-        ui_nav_push_overlay(root);
-    }
-}
-
-void SettingsPanel::handle_z_offset_clicked() {
-    spdlog::debug("[{}] Z-Offset clicked - opening calibration panel", get_name());
-
-    auto& overlay = get_global_zoffset_cal_panel();
-
-    if (!overlay.get_root()) {
-        overlay.init_subjects();
-        overlay.set_client(get_moonraker_client());
-        overlay.create(parent_screen_);
-    }
-
-    overlay.show();
-}
-
-void SettingsPanel::handle_pid_tuning_clicked() {
-    spdlog::debug("[{}] PID Tuning clicked - opening calibration panel", get_name());
-
-    auto& overlay = get_global_pid_cal_panel();
-
-    if (!overlay.get_root()) {
-        overlay.init_subjects();
-        overlay.set_client(get_moonraker_client());
-        overlay.create(parent_screen_);
-    }
-
-    overlay.show();
+void SettingsPanel::handle_machine_limits_clicked() {
+    spdlog::debug("[{}] Machine Limits clicked", get_name());
+    ui_toast_show(ToastSeverity::INFO, "Machine Limits: Coming soon", 2000);
 }
 
 void SettingsPanel::handle_network_clicked() {
@@ -1342,21 +1275,9 @@ void SettingsPanel::on_macro_buttons_clicked(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
-void SettingsPanel::on_bed_mesh_clicked(lv_event_t* /*e*/) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_bed_mesh_clicked");
-    get_global_settings_panel().handle_bed_mesh_clicked();
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void SettingsPanel::on_z_offset_clicked(lv_event_t* /*e*/) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_z_offset_clicked");
-    get_global_settings_panel().handle_z_offset_clicked();
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void SettingsPanel::on_pid_tuning_clicked(lv_event_t* /*e*/) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_pid_tuning_clicked");
-    get_global_settings_panel().handle_pid_tuning_clicked();
+void SettingsPanel::on_machine_limits_clicked(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_machine_limits_clicked");
+    get_global_settings_panel().handle_machine_limits_clicked();
     LVGL_SAFE_EVENT_CB_END();
 }
 

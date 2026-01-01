@@ -66,6 +66,14 @@ class HistoryDashboardPanel : public OverlayBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize all subjects
+     *
+     * Calls lv_subject_deinit() on all subjects. Must be called
+     * before destructor to avoid dangling observers.
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Register XML event callbacks
      */
     void register_callbacks() override;

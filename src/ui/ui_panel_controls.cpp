@@ -57,6 +57,8 @@ ControlsPanel::ControlsPanel(PrinterState& printer_state, MoonrakerAPI* api)
 }
 
 ControlsPanel::~ControlsPanel() {
+    deinit_subjects();
+
     // CRITICAL: Check if LVGL is still initialized before calling LVGL functions.
     // During static destruction, LVGL may already be torn down.
     if (!lv_is_initialized()) {
@@ -231,6 +233,62 @@ void ControlsPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Dashboard subjects initialized", get_name());
+}
+
+void ControlsPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinitialize all local lv_subject_t members (27 total)
+
+    // Nozzle temperature display
+    lv_subject_deinit(&nozzle_temp_subject_);
+    lv_subject_deinit(&nozzle_pct_subject_);
+    lv_subject_deinit(&nozzle_status_subject_);
+
+    // Bed temperature display
+    lv_subject_deinit(&bed_temp_subject_);
+    lv_subject_deinit(&bed_pct_subject_);
+    lv_subject_deinit(&bed_status_subject_);
+
+    // Fan speed display
+    lv_subject_deinit(&fan_speed_subject_);
+    lv_subject_deinit(&fan_pct_subject_);
+
+    // Macro button visibility and names
+    lv_subject_deinit(&macro_1_visible_);
+    lv_subject_deinit(&macro_2_visible_);
+    lv_subject_deinit(&macro_1_name_);
+    lv_subject_deinit(&macro_2_name_);
+
+    // Z-Offset delta display
+    lv_subject_deinit(&z_offset_delta_display_subject_);
+
+    // Homing status subjects
+    lv_subject_deinit(&x_homed_);
+    lv_subject_deinit(&y_homed_);
+    lv_subject_deinit(&xy_homed_);
+    lv_subject_deinit(&z_homed_);
+    lv_subject_deinit(&all_homed_);
+
+    // Position display subjects
+    lv_subject_deinit(&controls_pos_x_subject_);
+    lv_subject_deinit(&controls_pos_y_subject_);
+    lv_subject_deinit(&controls_pos_z_subject_);
+
+    // Speed/Flow override display subjects
+    lv_subject_deinit(&speed_override_subject_);
+    lv_subject_deinit(&flow_override_subject_);
+
+    // Macro buttons 3 & 4 visibility and names
+    lv_subject_deinit(&macro_3_visible_);
+    lv_subject_deinit(&macro_4_visible_);
+    lv_subject_deinit(&macro_3_name_);
+    lv_subject_deinit(&macro_4_name_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[Controls Panel] Subjects deinitialized");
 }
 
 void ControlsPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
@@ -561,7 +619,9 @@ void ControlsPanel::populate_secondary_fans() {
         lv_obj_set_style_border_width(row, 0, 0);
         lv_obj_set_style_pad_all(row, 0, 0);
         lv_obj_set_style_pad_row(row, 0, 0);
+        // Pass clicks through to parent container
         lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(row, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);
@@ -578,7 +638,9 @@ void ControlsPanel::populate_secondary_fans() {
         lv_obj_set_style_bg_opa(right_container, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(right_container, 0, 0);
         lv_obj_set_style_pad_all(right_container, 0, 0);
+        // Pass clicks through to parent container
         lv_obj_remove_flag(right_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(right_container, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_flex_flow(right_container, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(right_container, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER,
                               LV_FLEX_ALIGN_CENTER);

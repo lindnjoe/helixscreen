@@ -31,6 +31,9 @@ AmsEditModal::AmsEditModal() {
 }
 
 AmsEditModal::~AmsEditModal() {
+    // Deinitialize subjects first to disconnect observers [L041]
+    deinit_subjects();
+
     // Modal destructor will call hide() if visible
     spdlog::debug("[AmsEditModal] Destroyed");
 }
@@ -234,6 +237,24 @@ void AmsEditModal::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[AmsEditModal] Subjects initialized");
+}
+
+void AmsEditModal::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Applying [L041]: Subject init/deinit symmetry
+    // Disconnect all observers before subject memory becomes invalid
+    lv_subject_deinit(&slot_indicator_subject_);
+    lv_subject_deinit(&color_name_subject_);
+    lv_subject_deinit(&temp_nozzle_subject_);
+    lv_subject_deinit(&temp_bed_subject_);
+    lv_subject_deinit(&remaining_pct_subject_);
+    lv_subject_deinit(&remaining_mode_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[AmsEditModal] Subjects deinitialized");
 }
 
 // ============================================================================

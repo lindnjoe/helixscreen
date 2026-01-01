@@ -58,6 +58,10 @@ ExtrusionPanel::ExtrusionPanel() {
     spdlog::debug("[ExtrusionPanel] Instance created");
 }
 
+ExtrusionPanel::~ExtrusionPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -83,6 +87,22 @@ void ExtrusionPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
+}
+
+void ExtrusionPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    spdlog::debug("[{}] Deinitializing subjects", get_name());
+
+    // Deinitialize all local lv_subject_t members (4 total)
+    lv_subject_deinit(&temp_status_subject_);
+    lv_subject_deinit(&warning_temps_subject_);
+    lv_subject_deinit(&safety_warning_visible_subject_);
+    lv_subject_deinit(&speed_display_subject_);
+
+    subjects_initialized_ = false;
 }
 
 // ============================================================================

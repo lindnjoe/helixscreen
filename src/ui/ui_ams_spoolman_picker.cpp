@@ -24,6 +24,7 @@ AmsSpoolmanPicker::AmsSpoolmanPicker() {
 
 AmsSpoolmanPicker::~AmsSpoolmanPicker() {
     hide();
+    deinit_subjects();
     spdlog::debug("[AmsSpoolmanPicker] Destroyed");
 }
 
@@ -189,6 +190,16 @@ void AmsSpoolmanPicker::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[AmsSpoolmanPicker] Subjects initialized");
+}
+
+void AmsSpoolmanPicker::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&slot_indicator_subject_);
+    lv_subject_deinit(&picker_state_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[AmsSpoolmanPicker] Subjects deinitialized");
 }
 
 // ============================================================================

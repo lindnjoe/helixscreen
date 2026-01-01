@@ -6,6 +6,7 @@
 #include "ui_nav.h"
 #include "ui_nav_manager.h"
 #include "ui_overlay_timelapse_settings.h"
+#include "ui_panel_calibration_pid.h"
 #include "ui_panel_console.h"
 #include "ui_panel_macros.h"
 #include "ui_panel_spoolman.h"
@@ -57,7 +58,6 @@ AdvancedPanel::AdvancedPanel(PrinterState& printer_state, MoonrakerAPI* api)
 
 void AdvancedPanel::init_subjects() {
     // Register XML event callbacks (must be done BEFORE XML is created)
-    lv_xml_register_event_cb(nullptr, "on_advanced_machine_limits", on_machine_limits_clicked);
     lv_xml_register_event_cb(nullptr, "on_advanced_spoolman", on_spoolman_clicked);
     lv_xml_register_event_cb(nullptr, "on_advanced_macros", on_macros_clicked);
     lv_xml_register_event_cb(nullptr, "on_console_row_clicked", on_console_clicked);
@@ -69,6 +69,7 @@ void AdvancedPanel::init_subjects() {
                              on_helix_plugin_uninstall_clicked);
     lv_xml_register_event_cb(nullptr, "on_phase_tracking_changed", on_phase_tracking_changed);
     lv_xml_register_event_cb(nullptr, "on_restart_helix_clicked", on_restart_helix_clicked);
+    lv_xml_register_event_cb(nullptr, "on_pid_tuning_clicked", on_pid_tuning_clicked);
 
     // Note: Input shaping uses on_input_shaper_row_clicked registered by InputShaperPanel
     // Note: Restart row doesn't exist - restart buttons have their own callbacks in
@@ -120,11 +121,6 @@ void AdvancedPanel::on_activate() {
 // ============================================================================
 // NAVIGATION HANDLERS
 // ============================================================================
-
-void AdvancedPanel::handle_machine_limits_clicked() {
-    spdlog::debug("[{}] Machine Limits clicked", get_name());
-    ui_toast_show(ToastSeverity::INFO, "Machine Limits: Coming soon", 2000);
-}
 
 void AdvancedPanel::handle_spoolman_clicked() {
     spdlog::debug("[{}] Spoolman clicked - opening panel", get_name());
@@ -275,13 +271,23 @@ void AdvancedPanel::handle_configure_print_start_clicked() {
     macro_mgr->analyze_and_launch_wizard();
 }
 
+void AdvancedPanel::handle_pid_tuning_clicked() {
+    spdlog::debug("[{}] PID Tuning clicked - opening calibration panel", get_name());
+
+    auto& overlay = get_global_pid_cal_panel();
+
+    if (!overlay.get_root()) {
+        overlay.init_subjects();
+        overlay.set_client(get_moonraker_client());
+        overlay.create(parent_screen_);
+    }
+
+    overlay.show();
+}
+
 // ============================================================================
 // STATIC EVENT CALLBACKS (registered via lv_xml_register_event_cb)
 // ============================================================================
-
-void AdvancedPanel::on_machine_limits_clicked(lv_event_t* /*e*/) {
-    get_global_advanced_panel().handle_machine_limits_clicked();
-}
 
 void AdvancedPanel::on_spoolman_clicked(lv_event_t* /*e*/) {
     get_global_advanced_panel().handle_spoolman_clicked();
@@ -320,6 +326,10 @@ void AdvancedPanel::on_phase_tracking_changed(lv_event_t* e) {
 
 void AdvancedPanel::on_restart_helix_clicked(lv_event_t* /*e*/) {
     get_global_advanced_panel().handle_restart_helix_clicked();
+}
+
+void AdvancedPanel::on_pid_tuning_clicked(lv_event_t* /*e*/) {
+    get_global_advanced_panel().handle_pid_tuning_clicked();
 }
 
 // ============================================================================

@@ -115,6 +115,7 @@ class AmsSpoolmanPicker {
 
     // === Internal Methods ===
     void init_subjects();
+    void deinit_subjects();
     void populate_spools();
 
     // === Event Handlers ===

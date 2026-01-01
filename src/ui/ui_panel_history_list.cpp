@@ -55,10 +55,11 @@ HistoryListPanel::HistoryListPanel() : history_manager_(get_print_history_manage
 
 // Destructor - remove observer from history manager
 HistoryListPanel::~HistoryListPanel() {
+    deinit_subjects();
     if (history_manager_ && history_observer_) {
         history_manager_->remove_observer(&history_observer_);
     }
-    spdlog::debug("[HistoryList] Destroyed");
+    spdlog::debug("[HistoryListPanel] Destroyed");
 }
 
 // ============================================================================
@@ -92,6 +93,40 @@ void HistoryListPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
+}
+
+void HistoryListPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Panel state subjects
+    lv_subject_deinit(&subject_panel_state_);
+    lv_subject_deinit(&subject_empty_message_);
+    lv_subject_deinit(&subject_empty_hint_);
+
+    // Detail overlay subjects - string subjects
+    lv_subject_deinit(&detail_filename_);
+    lv_subject_deinit(&detail_status_);
+    lv_subject_deinit(&detail_status_icon_);
+    lv_subject_deinit(&detail_status_variant_);
+    lv_subject_deinit(&detail_start_time_);
+    lv_subject_deinit(&detail_end_time_);
+    lv_subject_deinit(&detail_duration_);
+    lv_subject_deinit(&detail_layers_);
+    lv_subject_deinit(&detail_layer_height_);
+    lv_subject_deinit(&detail_nozzle_temp_);
+    lv_subject_deinit(&detail_bed_temp_);
+    lv_subject_deinit(&detail_filament_);
+    lv_subject_deinit(&detail_filament_type_);
+
+    // Detail overlay subjects - int subjects
+    lv_subject_deinit(&detail_can_reprint_);
+    lv_subject_deinit(&detail_status_code_);
+    lv_subject_deinit(&detail_has_timelapse_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[HistoryListPanel] Subjects deinitialized");
 }
 
 // ============================================================================

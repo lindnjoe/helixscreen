@@ -47,8 +47,9 @@ HistoryDashboardPanel::HistoryDashboardPanel() : history_manager_(get_print_hist
     spdlog::trace("[{}] Constructor", get_name());
 }
 
-// Destructor - remove observer from history manager
+// Destructor - cleanup subjects and observers
 HistoryDashboardPanel::~HistoryDashboardPanel() {
+    deinit_subjects();
     if (history_manager_ && history_observer_) {
         history_manager_->remove_observer(&history_observer_);
     }
@@ -100,6 +101,26 @@ void HistoryDashboardPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
+}
+
+void HistoryDashboardPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Integer subjects for state binding
+    lv_subject_deinit(&history_has_jobs_subject_);
+    lv_subject_deinit(&history_filter_subject_);
+
+    // String subjects for stat labels
+    lv_subject_deinit(&stat_total_prints_subject_);
+    lv_subject_deinit(&stat_print_time_subject_);
+    lv_subject_deinit(&stat_filament_subject_);
+    lv_subject_deinit(&stat_success_rate_subject_);
+    lv_subject_deinit(&trend_period_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 // ============================================================================

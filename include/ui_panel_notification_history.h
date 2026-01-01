@@ -47,16 +47,21 @@ class NotificationHistoryPanel : public PanelBase {
     NotificationHistoryPanel(PrinterState& printer_state, MoonrakerAPI* api,
                              NotificationHistory& history = NotificationHistory::instance());
 
-    ~NotificationHistoryPanel() override = default;
+    ~NotificationHistoryPanel() override;
 
     //
     // === PanelBase Implementation ===
     //
 
     /**
-     * @brief No subjects to initialize for this panel
+     * @brief Initialize subjects for reactive bindings
      */
     void init_subjects() override;
+
+    /**
+     * @brief Deinitialize subjects to prevent dangling references
+     */
+    void deinit_subjects();
 
     /**
      * @brief Setup the notification history panel

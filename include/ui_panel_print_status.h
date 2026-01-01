@@ -262,6 +262,13 @@ class PrintStatusPanel : public OverlayBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize subjects for clean shutdown
+     *
+     * Calls lv_subject_deinit() on all local lv_subject_t members.
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Create overlay UI from XML
      *
      * @param parent Parent widget to attach overlay to (usually screen)

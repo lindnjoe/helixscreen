@@ -126,6 +126,13 @@ class AmsEditModal : public Modal {
 
     // === Internal Methods ===
     void init_subjects();
+
+    /**
+     * @brief Deinitialize all subjects (call before destruction)
+     *
+     * Follows [L041] pattern for safe subject cleanup.
+     */
+    void deinit_subjects();
     void update_ui();
     void update_temp_display();
     bool is_dirty() const;

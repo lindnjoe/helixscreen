@@ -49,6 +49,7 @@ AmsColorPicker::AmsColorPicker() {
 
 AmsColorPicker::~AmsColorPicker() {
     // Modal destructor will call hide() if visible
+    deinit_subjects();
     spdlog::debug("[AmsColorPicker] Destroyed");
 }
 
@@ -180,6 +181,16 @@ void AmsColorPicker::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[AmsColorPicker] Subjects initialized");
+}
+
+void AmsColorPicker::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&hex_subject_);
+    lv_subject_deinit(&name_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[AmsColorPicker] Subjects deinitialized");
 }
 
 // ============================================================================

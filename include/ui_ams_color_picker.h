@@ -107,6 +107,7 @@ class AmsColorPicker : public Modal {
 
     // === Internal Methods ===
     void init_subjects();
+    void deinit_subjects();
     void update_preview(uint32_t color_rgb, bool from_hsv_picker = false);
 
     // === Event Handlers (called by static callbacks) ===

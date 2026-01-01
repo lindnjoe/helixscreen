@@ -72,6 +72,14 @@ class ControlsPanel : public PanelBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize subjects for clean shutdown
+     *
+     * Calls lv_subject_deinit() on all local lv_subject_t members.
+     * Must be called before lv_deinit() to prevent dangling observers.
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Setup the controls panel with card navigation handlers
      *
      * Wires up card background click handlers for navigation to full panels.

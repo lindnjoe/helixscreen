@@ -153,6 +153,9 @@ PrintSelectPanel::PrintSelectPanel(PrinterState& printer_state, MoonrakerAPI* ap
 }
 
 PrintSelectPanel::~PrintSelectPanel() {
+    // Deinitialize subjects first to disconnect observers [L041]
+    deinit_subjects();
+
     // Signal destruction to async callbacks [L012]
     alive_->store(false);
 
@@ -306,6 +309,32 @@ void PrintSelectPanel::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
+}
+
+void PrintSelectPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinitialize all 15 subjects in reverse order of initialization
+    lv_subject_deinit(&can_print_subject_);
+    lv_subject_deinit(&view_mode_subject_);
+    lv_subject_deinit(&detail_view_visible_subject_);
+    lv_subject_deinit(&selected_preprint_steps_visible_subject_);
+    lv_subject_deinit(&selected_preprint_steps_subject_);
+    lv_subject_deinit(&selected_filament_type_subject_);
+    lv_subject_deinit(&selected_layer_height_subject_);
+    lv_subject_deinit(&selected_print_height_subject_);
+    lv_subject_deinit(&selected_layer_count_subject_);
+    lv_subject_deinit(&selected_filament_weight_subject_);
+    lv_subject_deinit(&selected_print_time_subject_);
+    lv_subject_deinit(&selected_detail_thumbnail_subject_);
+    lv_subject_deinit(&selected_thumbnail_subject_);
+    lv_subject_deinit(&selected_display_filename_subject_);
+    lv_subject_deinit(&selected_filename_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[PrintSelectPanel] Subjects deinitialized");
 }
 
 void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {

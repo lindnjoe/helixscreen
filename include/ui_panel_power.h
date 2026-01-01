@@ -22,9 +22,10 @@
 class PowerPanel : public PanelBase {
   public:
     PowerPanel(PrinterState& printer_state, MoonrakerAPI* api);
-    ~PowerPanel() override = default;
+    ~PowerPanel() override;
 
     void init_subjects() override;
+    void deinit_subjects();
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
 
     const char* get_name() const override {

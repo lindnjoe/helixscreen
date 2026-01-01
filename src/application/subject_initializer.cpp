@@ -178,8 +178,16 @@ void SubjectInitializer::init_panel_subjects() {
         "HomePanelSubjects", []() { get_global_home_panel().deinit_subjects(); });
 
     get_global_controls_panel().init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "ControlsPanelSubjects", []() { get_global_controls_panel().deinit_subjects(); });
+
     get_global_filament_panel().init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "FilamentPanelSubjects", []() { get_global_filament_panel().deinit_subjects(); });
+
     get_global_settings_panel().init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "SettingsPanelSubjects", []() { get_global_settings_panel().deinit_subjects(); });
 
     // SettingsManager subjects are initialized by settings_panel.init_subjects() above
     // Register cleanup here (StaticSubjectRegistry - core state singleton)
@@ -233,26 +241,45 @@ void SubjectInitializer::init_panel_subjects() {
     // Panels that need deferred API injection
     m_print_select_panel = get_print_select_panel(get_printer_state(), nullptr);
     m_print_select_panel->init_subjects();
+    StaticSubjectRegistry::instance().register_deinit("PrintSelectPanelSubjects", []() {
+        auto* panel = get_print_select_panel(get_printer_state(), nullptr);
+        if (panel) {
+            panel->deinit_subjects();
+        }
+    });
 
     m_print_status_panel = &get_global_print_status_panel();
     m_print_status_panel->init_subjects();
+    StaticPanelRegistry::instance().register_destroy(
+        "PrintStatusPanelSubjects", []() { get_global_print_status_panel().deinit_subjects(); });
 
     m_motion_panel = &get_global_motion_panel();
     m_motion_panel->init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "MotionPanelSubjects", []() { get_global_motion_panel().deinit_subjects(); });
 
     m_extrusion_panel = &get_global_extrusion_panel();
     m_extrusion_panel->init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "ExtrusionPanelSubjects", []() { get_global_extrusion_panel().deinit_subjects(); });
 
     m_bed_mesh_panel = &get_global_bed_mesh_panel();
     m_bed_mesh_panel->init_subjects();
+    StaticPanelRegistry::instance().register_destroy(
+        "BedMeshPanelSubjects", []() { get_global_bed_mesh_panel().deinit_subjects(); });
 
     // Panel initialization via global instances
     get_global_pid_cal_panel().init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "PIDCalibrationPanelSubjects", []() { get_global_pid_cal_panel().deinit_subjects(); });
+
     get_global_zoffset_cal_panel().init_subjects();
 
     // TempControlPanel (owned by SubjectInitializer)
     m_temp_control_panel = std::make_unique<TempControlPanel>(get_printer_state(), nullptr);
     m_temp_control_panel->init_subjects();
+    StaticSubjectRegistry::instance().register_deinit(
+        "TempControlPanelSubjects", [this]() { m_temp_control_panel->deinit_subjects(); });
 
     // Inject TempControlPanel into dependent panels
     get_global_controls_panel().set_temp_control_panel(m_temp_control_panel.get());

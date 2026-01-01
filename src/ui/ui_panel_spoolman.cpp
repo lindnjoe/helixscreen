@@ -47,6 +47,10 @@ SpoolmanPanel::SpoolmanPanel() {
     std::memset(spool_count_buf_, 0, sizeof(spool_count_buf_));
 }
 
+SpoolmanPanel::~SpoolmanPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -71,6 +75,16 @@ void SpoolmanPanel::init_subjects() {
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: spoolman_panel_state, spoolman_spool_count",
                   get_name());
+}
+
+void SpoolmanPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+    lv_subject_deinit(&panel_state_subject_);
+    lv_subject_deinit(&spool_count_subject_);
+    subjects_initialized_ = false;
+    spdlog::debug("[SpoolmanPanel] Subjects deinitialized");
 }
 
 // ============================================================================

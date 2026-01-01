@@ -59,6 +59,10 @@ MotionPanel::MotionPanel() {
     spdlog::debug("[MotionPanel] Instance created");
 }
 
+MotionPanel::~MotionPanel() {
+    deinit_subjects();
+}
+
 // ============================================================================
 // Subject Initialization
 // ============================================================================
@@ -86,6 +90,23 @@ void MotionPanel::init_subjects() {
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: X/Y/Z position + Z-axis label + observers",
                   get_name());
+}
+
+void MotionPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    spdlog::debug("[{}] Deinitializing subjects", get_name());
+
+    // Deinitialize all local lv_subject_t members (4 total)
+    lv_subject_deinit(&pos_x_subject_);
+    lv_subject_deinit(&pos_y_subject_);
+    lv_subject_deinit(&pos_z_subject_);
+    lv_subject_deinit(&z_axis_label_subject_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[{}] Subjects deinitialized", get_name());
 }
 
 // ============================================================================

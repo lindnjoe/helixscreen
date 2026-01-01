@@ -120,9 +120,16 @@ class PrintSelectPanel : public PanelBase {
     //
 
     /**
-     * @brief Initialize 5 reactive subjects for file selection state
+     * @brief Initialize 15 reactive subjects for file selection state
      */
     void init_subjects() override;
+
+    /**
+     * @brief Deinitialize all subjects (call before destruction)
+     *
+     * Follows [L041] pattern for safe subject cleanup.
+     */
+    void deinit_subjects();
 
     /**
      * @brief Setup the print select panel

@@ -66,6 +66,11 @@ class ScrewsTiltPanel : public OverlayBase {
     void init_subjects() override;
 
     /**
+     * @brief Deinitialize subjects to disconnect observers before destruction
+     */
+    void deinit_subjects();
+
+    /**
      * @brief Create overlay UI from XML
      *
      * @param parent Parent screen widget to attach overlay to

@@ -46,23 +46,11 @@ PIDCalibrationPanel::PIDCalibrationPanel() {
 
 PIDCalibrationPanel::~PIDCalibrationPanel() {
     // Applying [L011]: No mutex in destructors
+    // Applying [L041]: deinit_subjects() as first line in destructor
+    deinit_subjects();
 
     // Cancel any pending timers before destruction
     cancel_pending_timers();
-
-    // Deinitialize subjects to disconnect observers
-    if (subjects_initialized_) {
-        lv_subject_deinit(&s_pid_cal_state); // File-static state machine subject
-        lv_subject_deinit(&subj_temp_display_);
-        lv_subject_deinit(&subj_temp_hint_);
-        lv_subject_deinit(&subj_current_temp_display_);
-        lv_subject_deinit(&subj_calibrating_heater_);
-        lv_subject_deinit(&subj_pid_kp_);
-        lv_subject_deinit(&subj_pid_ki_);
-        lv_subject_deinit(&subj_pid_kd_);
-        lv_subject_deinit(&subj_error_message_);
-        subjects_initialized_ = false;
-    }
 
     // Clear widget pointers (owned by LVGL)
     overlay_root_ = nullptr;
@@ -135,6 +123,26 @@ void PIDCalibrationPanel::init_subjects() {
     }
 
     spdlog::debug("[PIDCal] Subjects and callbacks registered");
+}
+
+void PIDCalibrationPanel::deinit_subjects() {
+    if (!subjects_initialized_) {
+        return;
+    }
+
+    // Deinitialize subjects to disconnect observers (Applying [L041])
+    lv_subject_deinit(&s_pid_cal_state); // File-static state machine subject
+    lv_subject_deinit(&subj_temp_display_);
+    lv_subject_deinit(&subj_temp_hint_);
+    lv_subject_deinit(&subj_current_temp_display_);
+    lv_subject_deinit(&subj_calibrating_heater_);
+    lv_subject_deinit(&subj_pid_kp_);
+    lv_subject_deinit(&subj_pid_ki_);
+    lv_subject_deinit(&subj_pid_kd_);
+    lv_subject_deinit(&subj_error_message_);
+
+    subjects_initialized_ = false;
+    spdlog::debug("[PIDCal] Subjects deinitialized");
 }
 
 // ============================================================================
