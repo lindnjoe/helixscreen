@@ -1,0 +1,419 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2025 HelixScreen
+
+/**
+ * @file test_hardware_validator.cpp
+ * @brief Unit tests for HardwareValidator hardware validation system
+ *
+ * Tests the HardwareValidator class which validates config expectations
+ * against Moonraker hardware discovery:
+ * - HardwareSnapshot serialization/comparison
+ * - HardwareValidationResult aggregation
+ * - Critical hardware detection
+ * - Configured vs discovered hardware validation
+ * - Optional hardware marking
+ */
+
+#include "hardware_validator.h"
+#include "moonraker_client_mock.h"
+#include "printer_capabilities.h"
+
+#include <string>
+#include <vector>
+
+#include "../catch_amalgamated.hpp"
+
+using json = nlohmann::json;
+
+// ============================================================================
+// HardwareSnapshot Tests
+// ============================================================================
+
+TEST_CASE("HardwareSnapshot - JSON serialization", "[hardware][validator]") {
+    SECTION("Serializes to JSON correctly") {
+        HardwareSnapshot snapshot;
+        snapshot.timestamp = "2025-01-01T12:00:00Z";
+        snapshot.heaters = {"extruder", "heater_bed"};
+        snapshot.sensors = {"temperature_sensor chamber"};
+        snapshot.fans = {"fan", "heater_fan hotend_fan"};
+        snapshot.leds = {"neopixel chamber_light"};
+        snapshot.filament_sensors = {"filament_switch_sensor fsensor"};
+
+        json j = snapshot.to_json();
+
+        REQUIRE(j["timestamp"] == "2025-01-01T12:00:00Z");
+        REQUIRE(j["heaters"].size() == 2);
+        REQUIRE(j["heaters"][0] == "extruder");
+        REQUIRE(j["heaters"][1] == "heater_bed");
+        REQUIRE(j["sensors"].size() == 1);
+        REQUIRE(j["fans"].size() == 2);
+        REQUIRE(j["leds"].size() == 1);
+        REQUIRE(j["filament_sensors"].size() == 1);
+    }
+
+    SECTION("Deserializes from JSON correctly") {
+        json j = {{"timestamp", "2025-01-01T12:00:00Z"},
+                  {"heaters", {"extruder", "heater_bed"}},
+                  {"sensors", {"temperature_sensor chamber"}},
+                  {"fans", {"fan"}},
+                  {"leds", {"neopixel test"}},
+                  {"filament_sensors", {"filament_switch_sensor fs"}}};
+
+        HardwareSnapshot snapshot = HardwareSnapshot::from_json(j);
+
+        REQUIRE(snapshot.timestamp == "2025-01-01T12:00:00Z");
+        REQUIRE(snapshot.heaters.size() == 2);
+        REQUIRE(snapshot.sensors.size() == 1);
+        REQUIRE(snapshot.fans.size() == 1);
+        REQUIRE(snapshot.leds.size() == 1);
+        REQUIRE(snapshot.filament_sensors.size() == 1);
+    }
+
+    SECTION("Handles missing fields gracefully") {
+        json j = {{"timestamp", "2025-01-01T12:00:00Z"}, {"heaters", {"extruder"}}};
+
+        HardwareSnapshot snapshot = HardwareSnapshot::from_json(j);
+
+        REQUIRE(snapshot.timestamp == "2025-01-01T12:00:00Z");
+        REQUIRE(snapshot.heaters.size() == 1);
+        REQUIRE(snapshot.sensors.empty());
+        REQUIRE(snapshot.fans.empty());
+        REQUIRE(snapshot.leds.empty());
+        REQUIRE(snapshot.filament_sensors.empty());
+    }
+
+    SECTION("Returns empty snapshot on invalid JSON") {
+        json j = "not an object";
+
+        HardwareSnapshot snapshot = HardwareSnapshot::from_json(j);
+
+        REQUIRE(snapshot.is_empty());
+    }
+}
+
+TEST_CASE("HardwareSnapshot - Comparison", "[hardware][validator]") {
+    SECTION("get_removed finds items in old but not in current") {
+        HardwareSnapshot old_snapshot;
+        old_snapshot.heaters = {"extruder", "heater_bed"};
+        old_snapshot.fans = {"fan", "heater_fan hotend_fan"};
+        old_snapshot.leds = {"neopixel chamber_light"};
+
+        HardwareSnapshot current;
+        current.heaters = {"extruder", "heater_bed"};
+        current.fans = {"fan"}; // hotend_fan removed
+        current.leds = {};      // LED removed
+
+        auto removed = old_snapshot.get_removed(current);
+
+        REQUIRE(removed.size() == 2);
+        REQUIRE(std::find(removed.begin(), removed.end(), "heater_fan hotend_fan") !=
+                removed.end());
+        REQUIRE(std::find(removed.begin(), removed.end(), "neopixel chamber_light") !=
+                removed.end());
+    }
+
+    SECTION("get_added finds items in current but not in old") {
+        HardwareSnapshot old_snapshot;
+        old_snapshot.heaters = {"extruder"};
+        old_snapshot.fans = {"fan"};
+
+        HardwareSnapshot current;
+        current.heaters = {"extruder", "heater_bed"}; // bed added
+        current.fans = {"fan", "controller_fan mcu"}; // controller fan added
+        current.leds = {"neopixel strip"};            // LED added
+
+        auto added = old_snapshot.get_added(current);
+
+        REQUIRE(added.size() == 3);
+        REQUIRE(std::find(added.begin(), added.end(), "heater_bed") != added.end());
+        REQUIRE(std::find(added.begin(), added.end(), "controller_fan mcu") != added.end());
+        REQUIRE(std::find(added.begin(), added.end(), "neopixel strip") != added.end());
+    }
+
+    SECTION("Returns empty when snapshots are identical") {
+        HardwareSnapshot snapshot;
+        snapshot.heaters = {"extruder", "heater_bed"};
+        snapshot.fans = {"fan"};
+
+        REQUIRE(snapshot.get_removed(snapshot).empty());
+        REQUIRE(snapshot.get_added(snapshot).empty());
+    }
+}
+
+TEST_CASE("HardwareSnapshot - is_empty", "[hardware][validator]") {
+    SECTION("Returns true for default-constructed snapshot") {
+        HardwareSnapshot snapshot;
+        REQUIRE(snapshot.is_empty());
+    }
+
+    SECTION("Returns false when any list has items") {
+        HardwareSnapshot snapshot;
+
+        snapshot.heaters = {"extruder"};
+        REQUIRE_FALSE(snapshot.is_empty());
+
+        snapshot.heaters.clear();
+        snapshot.fans = {"fan"};
+        REQUIRE_FALSE(snapshot.is_empty());
+    }
+}
+
+// ============================================================================
+// HardwareIssue Factory Tests
+// ============================================================================
+
+TEST_CASE("HardwareIssue - Factory methods", "[hardware][validator]") {
+    SECTION("critical() creates CRITICAL severity issue") {
+        auto issue = HardwareIssue::critical("extruder", HardwareType::HEATER, "Missing extruder");
+
+        REQUIRE(issue.hardware_name == "extruder");
+        REQUIRE(issue.hardware_type == HardwareType::HEATER);
+        REQUIRE(issue.severity == HardwareIssueSeverity::CRITICAL);
+        REQUIRE(issue.message == "Missing extruder");
+        REQUIRE_FALSE(issue.is_optional);
+    }
+
+    SECTION("warning() creates WARNING severity issue") {
+        auto issue =
+            HardwareIssue::warning("neopixel test", HardwareType::LED, "LED not found", true);
+
+        REQUIRE(issue.hardware_name == "neopixel test");
+        REQUIRE(issue.hardware_type == HardwareType::LED);
+        REQUIRE(issue.severity == HardwareIssueSeverity::WARNING);
+        REQUIRE(issue.is_optional == true);
+    }
+
+    SECTION("info() creates INFO severity issue") {
+        auto issue = HardwareIssue::info("filament_switch_sensor fs", HardwareType::FILAMENT_SENSOR,
+                                         "New sensor discovered");
+
+        REQUIRE(issue.severity == HardwareIssueSeverity::INFO);
+        REQUIRE_FALSE(issue.is_optional);
+    }
+}
+
+// ============================================================================
+// HardwareValidationResult Tests
+// ============================================================================
+
+TEST_CASE("HardwareValidationResult - Aggregation", "[hardware][validator]") {
+    SECTION("has_issues returns false when empty") {
+        HardwareValidationResult result;
+        REQUIRE_FALSE(result.has_issues());
+    }
+
+    SECTION("has_issues returns true with any issues") {
+        HardwareValidationResult result;
+        result.newly_discovered.push_back(
+            HardwareIssue::info("neopixel test", HardwareType::LED, "New LED"));
+
+        REQUIRE(result.has_issues());
+    }
+
+    SECTION("has_critical returns true only for critical issues") {
+        HardwareValidationResult result;
+
+        // Add warning - not critical
+        result.expected_missing.push_back(
+            HardwareIssue::warning("fan", HardwareType::FAN, "Missing"));
+        REQUIRE_FALSE(result.has_critical());
+
+        // Add critical - now critical
+        result.critical_missing.push_back(
+            HardwareIssue::critical("extruder", HardwareType::HEATER, "Missing"));
+        REQUIRE(result.has_critical());
+    }
+
+    SECTION("total_issue_count sums all categories") {
+        HardwareValidationResult result;
+        result.critical_missing.push_back(
+            HardwareIssue::critical("extruder", HardwareType::HEATER, "Missing"));
+        result.expected_missing.push_back(
+            HardwareIssue::warning("fan", HardwareType::FAN, "Missing"));
+        result.expected_missing.push_back(
+            HardwareIssue::warning("led", HardwareType::LED, "Missing"));
+        result.newly_discovered.push_back(
+            HardwareIssue::info("sensor", HardwareType::SENSOR, "New"));
+
+        REQUIRE(result.total_issue_count() == 4);
+    }
+
+    SECTION("max_severity returns highest severity") {
+        HardwareValidationResult result;
+
+        // Empty = INFO (default)
+        REQUIRE(result.max_severity() == HardwareIssueSeverity::INFO);
+
+        // Add info
+        result.newly_discovered.push_back(HardwareIssue::info("led", HardwareType::LED, "New"));
+        REQUIRE(result.max_severity() == HardwareIssueSeverity::INFO);
+
+        // Add warning - now WARNING
+        result.expected_missing.push_back(
+            HardwareIssue::warning("fan", HardwareType::FAN, "Missing"));
+        REQUIRE(result.max_severity() == HardwareIssueSeverity::WARNING);
+
+        // Add critical - now CRITICAL
+        result.critical_missing.push_back(
+            HardwareIssue::critical("extruder", HardwareType::HEATER, "Missing"));
+        REQUIRE(result.max_severity() == HardwareIssueSeverity::CRITICAL);
+    }
+}
+
+// ============================================================================
+// HardwareValidator Tests
+// ============================================================================
+
+TEST_CASE("HardwareValidator - Critical hardware detection", "[hardware][validator]") {
+    MoonrakerClientMock client;
+    PrinterCapabilities caps;
+
+    SECTION("Detects missing extruder as critical") {
+        // Mock client with no extruder
+        client.set_heaters({"heater_bed"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(nullptr, &client, caps);
+
+        REQUIRE(result.has_critical());
+        REQUIRE(result.critical_missing.size() == 1);
+        REQUIRE(result.critical_missing[0].hardware_name == "extruder");
+    }
+
+    SECTION("No critical issue when extruder exists") {
+        client.set_heaters({"extruder", "heater_bed"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(nullptr, &client, caps);
+
+        REQUIRE_FALSE(result.has_critical());
+    }
+
+    SECTION("Detects extruder with numbered variant") {
+        client.set_heaters({"extruder0", "heater_bed"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(nullptr, &client, caps);
+
+        REQUIRE_FALSE(result.has_critical());
+    }
+}
+
+TEST_CASE("HardwareValidator - New hardware discovery", "[hardware][validator]") {
+    MoonrakerClientMock client;
+    PrinterCapabilities caps;
+
+    SECTION("Suggests LED when discovered but not configured") {
+        client.set_heaters({"extruder", "heater_bed"});
+        client.set_leds({"neopixel chamber_light"});
+
+        HardwareValidator validator;
+        // Pass nullptr for config = no configured LED
+        auto result = validator.validate(nullptr, &client, caps);
+
+        // Should suggest the LED
+        bool found_led = false;
+        for (const auto& issue : result.newly_discovered) {
+            if (issue.hardware_type == HardwareType::LED) {
+                found_led = true;
+                break;
+            }
+        }
+        REQUIRE(found_led);
+    }
+}
+
+TEST_CASE("HardwareValidator - Session changes", "[hardware][validator]") {
+    MoonrakerClientMock client;
+    PrinterCapabilities caps;
+
+    SECTION("Detects hardware removed since last session") {
+        // Create a "previous" snapshot with LED
+        HardwareSnapshot previous;
+        previous.heaters = {"extruder", "heater_bed"};
+        previous.leds = {"neopixel chamber_light"};
+
+        // Current discovery has no LED
+        HardwareSnapshot current;
+        current.heaters = {"extruder", "heater_bed"};
+        current.leds = {};
+
+        auto removed = previous.get_removed(current);
+
+        REQUIRE(removed.size() == 1);
+        REQUIRE(removed[0] == "neopixel chamber_light");
+    }
+}
+
+TEST_CASE("HardwareValidator - Helper functions", "[hardware][validator]") {
+    SECTION("hardware_type_to_string returns correct strings") {
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::HEATER)) == "heater");
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::SENSOR)) == "sensor");
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::FAN)) == "fan");
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::LED)) == "led");
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::FILAMENT_SENSOR)) ==
+                "filament_sensor");
+        REQUIRE(std::string(hardware_type_to_string(HardwareType::OTHER)) == "hardware");
+    }
+}
+
+// ============================================================================
+// Integration-style Tests
+// ============================================================================
+
+TEST_CASE("HardwareValidator - Full validation scenario", "[hardware][validator]") {
+    MoonrakerClientMock client;
+    PrinterCapabilities caps;
+
+    SECTION("Healthy printer with all expected hardware") {
+        client.set_heaters({"extruder", "heater_bed"});
+        client.set_fans({"fan", "heater_fan hotend_fan"});
+        client.set_leds({"neopixel chamber_light"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(nullptr, &client, caps);
+
+        // No critical issues (extruder present)
+        REQUIRE_FALSE(result.has_critical());
+
+        // May have info about new hardware (LED not configured)
+        // but no expected_missing since config is null
+        REQUIRE(result.expected_missing.empty());
+    }
+
+    SECTION("Printer missing extruder reports critical") {
+        client.set_heaters({"heater_bed"}); // No extruder!
+        client.set_fans({"fan"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(nullptr, &client, caps);
+
+        REQUIRE(result.has_critical());
+        REQUIRE(result.has_issues());
+        REQUIRE(result.max_severity() == HardwareIssueSeverity::CRITICAL);
+    }
+}
+
+TEST_CASE("HardwareValidator - Snapshot roundtrip", "[hardware][validator]") {
+    SECTION("Snapshot survives JSON roundtrip") {
+        HardwareSnapshot original;
+        original.timestamp = "2025-01-01T12:00:00Z";
+        original.heaters = {"extruder", "heater_bed", "heater_generic chamber"};
+        original.sensors = {"temperature_sensor raspberry_pi", "temperature_sensor chamber"};
+        original.fans = {"fan", "heater_fan hotend_fan", "controller_fan electronics"};
+        original.leds = {"neopixel chamber_light", "led status"};
+        original.filament_sensors = {"filament_switch_sensor fsensor"};
+
+        // Serialize and deserialize
+        json j = original.to_json();
+        HardwareSnapshot restored = HardwareSnapshot::from_json(j);
+
+        // Verify all fields match
+        REQUIRE(restored.timestamp == original.timestamp);
+        REQUIRE(restored.heaters == original.heaters);
+        REQUIRE(restored.sensors == original.sensors);
+        REQUIRE(restored.fans == original.fans);
+        REQUIRE(restored.leds == original.leds);
+        REQUIRE(restored.filament_sensors == original.filament_sensors);
+    }
+}

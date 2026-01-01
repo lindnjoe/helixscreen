@@ -15,6 +15,9 @@
 
 using json = nlohmann::json;
 
+// Forward declarations
+struct HardwareValidationResult;
+
 /**
  * @brief Network connection status states
  */
@@ -945,6 +948,66 @@ class PrinterState {
         return lv_subject_get_int(&printer_has_probe_) != 0;
     }
 
+    // ========================================================================
+    // HARDWARE VALIDATION API
+    // ========================================================================
+
+    /**
+     * @brief Set hardware validation result and update subjects
+     *
+     * Updates all hardware validation subjects based on the validation result.
+     * Call after HardwareValidator::validate() completes.
+     *
+     * @param result Validation result from HardwareValidator
+     */
+    void set_hardware_validation_result(const HardwareValidationResult& result);
+
+    /**
+     * @brief Get hardware has issues subject for UI binding
+     *
+     * Integer subject: 0=no issues, 1=has issues.
+     * Use with bind_flag_if_eq to show/hide Hardware Health section.
+     */
+    lv_subject_t* get_hardware_has_issues_subject() {
+        return &hardware_has_issues_;
+    }
+
+    /**
+     * @brief Get hardware issue count subject for UI binding
+     *
+     * Integer subject with total number of validation issues.
+     */
+    lv_subject_t* get_hardware_issue_count_subject() {
+        return &hardware_issue_count_;
+    }
+
+    /**
+     * @brief Get hardware max severity subject for UI binding
+     *
+     * Integer subject: 0=info, 1=warning, 2=critical.
+     * Use for styling (color) based on severity.
+     */
+    lv_subject_t* get_hardware_max_severity_subject() {
+        return &hardware_max_severity_;
+    }
+
+    /**
+     * @brief Get hardware validation version subject
+     *
+     * Integer subject incremented when validation changes.
+     * UI should observe to refresh dynamic lists.
+     */
+    lv_subject_t* get_hardware_validation_version_subject() {
+        return &hardware_validation_version_;
+    }
+
+    /**
+     * @brief Check if hardware validation has any issues
+     */
+    bool has_hardware_issues() {
+        return lv_subject_get_int(&hardware_has_issues_) != 0;
+    }
+
   private:
     // Temperature subjects
     lv_subject_t extruder_temp_;
@@ -1063,6 +1126,12 @@ class PrinterState {
     // Version subjects (for About section)
     lv_subject_t klipper_version_;
     lv_subject_t moonraker_version_;
+
+    // Hardware validation subjects (for Hardware Health section in Settings)
+    lv_subject_t hardware_has_issues_;         // Integer: 0=no issues, 1=has issues
+    lv_subject_t hardware_issue_count_;        // Integer: total number of issues
+    lv_subject_t hardware_max_severity_;       // Integer: 0=info, 1=warning, 2=critical
+    lv_subject_t hardware_validation_version_; // Integer: incremented on validation change
 
     // Tracked LED name (e.g., "neopixel chamber_light")
     std::string tracked_led_name_;

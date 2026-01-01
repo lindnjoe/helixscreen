@@ -357,6 +357,46 @@ class MoonrakerClientMock : public MoonrakerClient {
      */
     void dispatch_method_callback(const std::string& method, const json& msg);
 
+    /**
+     * @brief Set heaters list for testing
+     * @param heaters List of heater names (e.g., "extruder", "heater_bed")
+     */
+    void set_heaters(std::vector<std::string> heaters) {
+        heaters_ = std::move(heaters);
+    }
+
+    /**
+     * @brief Set fans list for testing
+     * @param fans List of fan names (e.g., "fan", "heater_fan hotend_fan")
+     */
+    void set_fans(std::vector<std::string> fans) {
+        fans_ = std::move(fans);
+    }
+
+    /**
+     * @brief Set LEDs list for testing
+     * @param leds List of LED names (e.g., "neopixel chamber_light")
+     */
+    void set_leds(std::vector<std::string> leds) {
+        leds_ = std::move(leds);
+    }
+
+    /**
+     * @brief Set sensors list for testing
+     * @param sensors List of sensor names (e.g., "temperature_sensor chamber")
+     */
+    void set_sensors(std::vector<std::string> sensors) {
+        sensors_ = std::move(sensors);
+    }
+
+    /**
+     * @brief Set filament sensors list for testing
+     * @param sensors List of filament sensor names (e.g., "filament_switch_sensor fsensor")
+     */
+    void set_filament_sensors(std::vector<std::string> sensors) {
+        filament_sensors_ = std::move(sensors);
+    }
+
     // ========== Internal API (for use by method handler modules) ==========
 
     /**

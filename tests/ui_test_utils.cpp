@@ -335,17 +335,32 @@ void ui_notification_info(const char* message) {
     spdlog::debug("[Test Stub] ui_notification_info: {}", message ? message : "(null)");
 }
 
+void ui_notification_info(const char* title, const char* message) {
+    spdlog::debug("[Test Stub] ui_notification_info: {} - {}", title ? title : "(null)",
+                  message ? message : "(null)");
+}
+
 void ui_notification_success(const char* message) {
     spdlog::debug("[Test Stub] ui_notification_success: {}", message ? message : "(null)");
+}
+
+void ui_notification_success(const char* title, const char* message) {
+    spdlog::debug("[Test Stub] ui_notification_success: {} - {}", title ? title : "(null)",
+                  message ? message : "(null)");
 }
 
 void ui_notification_warning(const char* message) {
     spdlog::debug("[Test Stub] ui_notification_warning: {}", message ? message : "(null)");
 }
 
-void ui_notification_error(const char* message, const char* title, bool modal) {
-    spdlog::debug("[Test Stub] ui_notification_error: {} (title={}, modal={})",
-                  message ? message : "(null)", title ? title : "(null)", modal);
+void ui_notification_warning(const char* title, const char* message) {
+    spdlog::debug("[Test Stub] ui_notification_warning: {} - {}", title ? title : "(null)",
+                  message ? message : "(null)");
+}
+
+void ui_notification_error(const char* title, const char* message, bool modal) {
+    spdlog::debug("[Test Stub] ui_notification_error: {} - {} (modal={})", title ? title : "(null)",
+                  message ? message : "(null)", modal);
 }
 
 // Stub implementations for toast functions (tests don't display UI)

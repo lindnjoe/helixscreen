@@ -18,6 +18,7 @@
 #include "async_helpers.h"
 #include "capability_overrides.h"
 #include "filament_sensor_manager.h"
+#include "hardware_validator.h"
 #include "lvgl.h"
 #include "lvgl/src/display/lv_display_private.h" // For rendering_in_progress check
 #include "lvgl_debug_invalidate.h"
@@ -294,6 +295,12 @@ void PrinterState::init_subjects(bool register_xml) {
     lv_subject_init_int(&can_show_z_tilt_, 0);
     lv_subject_init_int(&can_show_nozzle_clean_, 0);
 
+    // Hardware validation subjects (for Hardware Health section in Settings)
+    lv_subject_init_int(&hardware_has_issues_, 0);
+    lv_subject_init_int(&hardware_issue_count_, 0);
+    lv_subject_init_int(&hardware_max_severity_, 0);
+    lv_subject_init_int(&hardware_validation_version_, 0);
+
     // Firmware retraction settings (defaults: disabled)
     lv_subject_init_int(&retract_length_, 0);         // 0 = disabled
     lv_subject_init_int(&retract_speed_, 20);         // 20 mm/s default
@@ -375,6 +382,10 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "can_show_qgl", &can_show_qgl_);
         lv_xml_register_subject(NULL, "can_show_z_tilt", &can_show_z_tilt_);
         lv_xml_register_subject(NULL, "can_show_nozzle_clean", &can_show_nozzle_clean_);
+        lv_xml_register_subject(NULL, "hardware_has_issues", &hardware_has_issues_);
+        lv_xml_register_subject(NULL, "hardware_issue_count", &hardware_issue_count_);
+        lv_xml_register_subject(NULL, "hardware_max_severity", &hardware_max_severity_);
+        lv_xml_register_subject(NULL, "hardware_validation_version", &hardware_validation_version_);
         lv_xml_register_subject(NULL, "retract_length", &retract_length_);
         lv_xml_register_subject(NULL, "retract_speed", &retract_speed_);
         lv_xml_register_subject(NULL, "unretract_extra_length", &unretract_extra_length_);
@@ -1333,4 +1344,22 @@ void PrinterState::set_print_display_filename(const std::string& name) {
     // Display filename is set from PrintStatusPanel's main-thread callback.
     spdlog::debug("[PrinterState] Setting print display filename: {}", name);
     lv_subject_copy_string(&print_display_filename_, name.c_str());
+}
+
+// ============================================================================
+// HARDWARE VALIDATION
+// ============================================================================
+
+void PrinterState::set_hardware_validation_result(const HardwareValidationResult& result) {
+    // Update hardware validation subjects
+    lv_subject_set_int(&hardware_has_issues_, result.has_issues() ? 1 : 0);
+    lv_subject_set_int(&hardware_issue_count_, static_cast<int>(result.total_issue_count()));
+    lv_subject_set_int(&hardware_max_severity_, static_cast<int>(result.max_severity()));
+
+    // Increment version to notify UI observers
+    int version = lv_subject_get_int(&hardware_validation_version_);
+    lv_subject_set_int(&hardware_validation_version_, version + 1);
+
+    spdlog::debug("[PrinterState] Hardware validation updated: {} issues, max_severity={}",
+                  result.total_issue_count(), static_cast<int>(result.max_severity()));
 }
