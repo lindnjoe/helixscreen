@@ -16,84 +16,80 @@
     <!-- Content Area (two columns: viewer left, controls right) -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg"
-            style_pad_right="#space_lg" style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="row"
+            style_pad_right="#space_lg" style_pad_top="0" style_pad_bottom="#space_md" flex_flow="row"
             style_pad_gap="#space_md" scrollable="false">
       <!-- ================================================================== -->
-      <!-- LEFT SECTION: G-code Viewer / Thumbnail (5/9 width via flex_grow) -->
+      <!-- LEFT SECTION: G-code Viewer / Thumbnail (4/9 width via flex_grow) -->
       <!-- ================================================================== -->
       <ui_card name="thumbnail_section"
-               height="100%" flex_grow="5" style_pad_all="0" style_radius="#border_radius" style_clip_corner="true"
-               flex_flow="column">
-        <!-- Viewer area container - single flex child that grows to fill remaining space -->
-        <lv_obj name="viewer_area"
-                width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false">
-          <!-- All children use absolute positioning (width/height 100%) -->
-          <!-- Pre-rendered gradient background (shown in thumbnail[0] and 2D[2] modes, hidden in 3D[1]) -->
-          <lv_image name="gradient_background"
-                    width="100%" height="100%" src="A:assets/images/gradient-panel-medium.bin">
-            <lv_obj-bind_flag_if_eq subject="gcode_viewer_mode" flag="hidden" ref_value="1"/>
-          </lv_image>
-          <!-- G-code Viewer (shown in 3D[1] and 2D[2] modes, hidden in thumbnail[0]) -->
-          <gcode_viewer name="print_gcode_viewer" width="100%" height="100%">
-            <lv_obj-bind_flag_if_eq subject="gcode_viewer_mode" flag="hidden" ref_value="0"/>
-          </gcode_viewer>
-          <!-- Thumbnail image (shown in thumbnail[0] mode only, hidden in 3D[1] and 2D[2]) -->
-          <!-- Image source set programmatically via lv_image_set_src() when thumbnail available -->
-          <lv_image name="print_thumbnail"
-                    width="100%" height="100%" style_bg_opa="0" align="center" inner_align="contain">
-            <lv_obj-bind_flag_if_gt subject="gcode_viewer_mode" flag="hidden" ref_value="0"/>
-          </lv_image>
-          <!-- Rotate hint icon (shown in 3D[1] mode only, hidden in thumbnail[0] and 2D[2]) -->
-          <lv_label name="rotate_hint"
-                    text="#icon_rotate_3d" style_text_font="mdi_icons_24" style_text_color="#text_secondary"
-                    style_text_opa="180" align="top_right" style_translate_x="-#space_md" style_translate_y="#space_md">
-            <lv_obj-bind_flag_if_not_eq subject="gcode_viewer_mode" flag="hidden" ref_value="1"/>
-          </lv_label>
-          <!-- PREPARING OVERLAY: Shown during pre-print operations (homing, etc) -->
-          <lv_obj name="preparing_overlay"
-                  width="100%" height="100%" align="center" style_bg_color="#card_bg_dark" style_bg_opa="220"
-                  style_border_width="0" style_radius="0" style_pad_all="#space_lg" flex_flow="column"
-                  style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md"
+               height="100%" flex_grow="4" style_pad_all="0" style_radius="#border_radius" style_clip_corner="true">
+        <!-- All children overlap as direct children of the card (matching print_file_detail pattern) -->
+        <!-- Pre-rendered gradient background (shown in thumbnail[0] and 2D[2] modes, hidden in 3D[1]) -->
+        <lv_image name="gradient_background"
+                  width="100%" height="100%" src="A:assets/images/gradient-panel-medium.bin">
+          <lv_obj-bind_flag_if_eq subject="gcode_viewer_mode" flag="hidden" ref_value="1"/>
+        </lv_image>
+        <!-- G-code Viewer (shown in 3D[1] and 2D[2] modes, hidden in thumbnail[0]) -->
+        <gcode_viewer name="print_gcode_viewer" width="100%" height="100%">
+          <lv_obj-bind_flag_if_eq subject="gcode_viewer_mode" flag="hidden" ref_value="0"/>
+        </gcode_viewer>
+        <!-- Thumbnail image (shown in thumbnail[0] mode only, hidden in 3D[1] and 2D[2]) -->
+        <!-- Image source set programmatically via lv_image_set_src() when thumbnail available -->
+        <lv_image name="print_thumbnail"
+                  width="100%" height="100%" style_bg_opa="0" align="center" inner_align="contain"
+                  style_translate_y="#preview_offset_y">
+          <lv_obj-bind_flag_if_gt subject="gcode_viewer_mode" flag="hidden" ref_value="0"/>
+        </lv_image>
+        <!-- Rotate hint icon (shown in 3D[1] mode only, hidden in thumbnail[0] and 2D[2]) -->
+        <lv_label name="rotate_hint"
+                  text="#icon_rotate_3d" style_text_font="mdi_icons_24" style_text_color="#text_secondary"
+                  style_text_opa="180" align="top_right" style_translate_x="-#space_md" style_translate_y="#space_md">
+          <lv_obj-bind_flag_if_not_eq subject="gcode_viewer_mode" flag="hidden" ref_value="1"/>
+        </lv_label>
+        <!-- PREPARING OVERLAY: Shown during pre-print operations (homing, etc) -->
+        <lv_obj name="preparing_overlay"
+                width="100%" height="100%" align="center" style_bg_color="#card_bg_dark" style_bg_opa="220"
+                style_border_width="0" style_radius="0" style_pad_all="#space_lg" flex_flow="column"
+                style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md"
+                scrollable="false">
+          <lv_obj-bind_flag_if_eq subject="preparing_visible" flag="hidden" ref_value="0"/>
+          <spinner name="preparing_spinner" size="lg"/>
+          <text_heading name="preparing_operation_label"
+                        width="100%" bind_text="preparing_operation" text="Preparing..."
+                        style_text_color="#text_primary_dark" style_text_align="center"/>
+          <lv_bar name="preparing_progress_bar"
+                  width="80%" height="#space_md" bind_value="preparing_progress" style_bg_opa="255"
+                  style_radius="#space_xs" style_border_width="0"/>
+        </lv_obj>
+        <!-- PRINT COMPLETE OVERLAY: Shown when print finishes successfully -->
+        <!-- Hidden by default. Binding removes hidden ONLY when state == COMPLETE (3) -->
+        <lv_obj name="print_complete_overlay"
+                width="100%" height="100%" align="center" style_bg_opa="0" style_border_width="0" style_radius="0"
+                style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center"
+                style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm"
+                scrollable="false" hidden="true">
+          <lv_obj-bind_flag_if_not_eq subject="print_state_enum" flag="hidden" ref_value="3"/>
+          <!-- Green success badge with checkmark (animated on appearance) -->
+          <lv_obj name="success_badge"
+                  width="content" height="content" style_bg_color="#success_color" style_bg_opa="255"
+                  style_radius="#space_lg" style_pad_left="#space_md" style_pad_right="#space_md"
+                  style_pad_top="#space_sm" style_pad_bottom="#space_sm" flex_flow="row"
+                  style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
                   scrollable="false">
-            <lv_obj-bind_flag_if_eq subject="preparing_visible" flag="hidden" ref_value="0"/>
-            <spinner name="preparing_spinner" size="lg"/>
-            <text_heading name="preparing_operation_label"
-                          width="100%" bind_text="preparing_operation" text="Preparing..."
-                          style_text_color="#text_primary_dark" style_text_align="center"/>
-            <lv_bar name="preparing_progress_bar"
-                    width="80%" height="#space_md" bind_value="preparing_progress" style_bg_opa="255"
-                    style_radius="#space_xs" style_border_width="0"/>
-          </lv_obj>
-          <!-- PRINT COMPLETE OVERLAY: Shown when print finishes successfully -->
-          <!-- Hidden by default. Binding removes hidden ONLY when state == COMPLETE (3) -->
-          <!-- Note: Removed preparing_visible binding - it was conflicting and removing hidden incorrectly -->
-          <lv_obj name="print_complete_overlay"
-                  width="100%" height="100%" align="center" style_bg_opa="0" style_border_width="0" style_radius="0"
-                  style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center"
-                  style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm"
-                  scrollable="false" hidden="true">
-            <lv_obj-bind_flag_if_not_eq subject="print_state_enum" flag="hidden" ref_value="3"/>
-            <!-- Green success badge with checkmark (animated on appearance) -->
-            <lv_obj name="success_badge"
-                    width="content" height="content" style_bg_color="#success_color" style_bg_opa="255"
-                    style_radius="#space_lg" style_pad_left="#space_md" style_pad_right="#space_md"
-                    style_pad_top="#space_sm" style_pad_bottom="#space_sm" flex_flow="row"
-                    style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
-                    scrollable="false">
-              <icon src="check_circle" size="md" color="#text_primary"/>
-              <text_heading text="Print Complete!" style_text_color="#text_primary"/>
-            </lv_obj>
+            <icon src="check_circle" size="md" color="#text_primary"/>
+            <text_heading text="Print Complete!" style_text_color="#text_primary"/>
           </lv_obj>
         </lv_obj>
-        <!-- Metadata container - fixed height at bottom of flex column -->
+        <!-- Metadata container - fixed height at bottom, overlaying thumbnail -->
         <lv_obj name="metadata_clip"
-                width="100%" height="128" style_bg_opa="0" style_border_width="0" style_radius="0" style_pad_all="0"
-                scrollable="false" style_clip_corner="true">
-          <!-- Metadata overlay - transparent background (height must match parent to avoid scrollbars) -->
+                width="100%" height="93" style_bg_opa="0" style_border_width="0" style_radius="0" style_pad_all="0"
+                align="bottom_mid" scrollable="false">
+          <!-- Inner overlay with semi-transparent background and rounded corners -->
           <lv_obj name="metadata_overlay"
-                  width="100%" height="128" align="bottom_mid" style_bg_opa="0" style_border_width="0" style_radius="0"
-                  style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_2xl"
-                  style_pad_bottom="#space_lg" style_pad_gap="#space_sm" flex_flow="column" scrollable="false">
+                  width="100%" height="99" align="bottom_mid" style_bg_opa="160" style_border_width="0"
+                  style_radius="#border_radius" style_pad_left="#space_sm" style_pad_right="#space_sm"
+                  style_pad_top="#space_md" style_pad_bottom="#space_sm" style_pad_gap="#space_xs"
+                  flex_flow="column" scrollable="false">
             <!-- Print Progress Bar -->
             <lv_bar name="print_progress"
                     width="100%" height="#space_md" style_bg_opa="255" style_bg_color="#card_bg_dark"
@@ -124,10 +120,10 @@
         </lv_obj>
       </ui_card>
       <!-- ================================================================== -->
-      <!-- RIGHT SECTION: Controls (4/9 width via flex_grow, matches print_file_detail) -->
+      <!-- RIGHT SECTION: Controls (5/9 width via flex_grow) -->
       <!-- ================================================================== -->
       <lv_obj name="controls_section"
-              height="100%" flex_grow="4" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
+              height="100%" flex_grow="5" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
               flex_flow="column" style_pad_gap="#space_lg">
         <!-- Nozzle Temperature Card -->
         <ui_card name="nozzle_temp_card"
@@ -182,7 +178,7 @@
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <lv_button name="btn_light"
-                       height="#button_height_small" flex_grow="1" style_border_width="0" flex_flow="row"
+                       height="#button_height" flex_grow="1" style_border_width="0" flex_flow="row"
                        style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
                        style_pad_gap="#space_xs">
               <event_cb trigger="clicked" callback="on_print_status_light"/>
@@ -191,7 +187,7 @@
             </lv_button>
             <!-- Timelapse button: only visible when Moonraker-Timelapse plugin installed -->
             <lv_button name="btn_timelapse"
-                       height="#button_height_small" flex_grow="1" style_border_width="0" flex_flow="row"
+                       height="#button_height" flex_grow="1" style_border_width="0" flex_flow="row"
                        style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
                        style_pad_gap="#space_xs">
               <event_cb trigger="clicked" callback="on_print_status_timelapse"/>
@@ -201,7 +197,7 @@
               <text_body name="timelapse_label" bind_text="timelapse_button_label"/>
             </lv_button>
             <lv_button name="btn_pause"
-                       height="#button_height_small" flex_grow="1" style_border_width="0" flex_flow="row"
+                       height="#button_height" flex_grow="1" style_border_width="0" flex_flow="row"
                        style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
                        style_pad_gap="#space_xs">
               <event_cb trigger="clicked" callback="on_print_status_pause"/>
@@ -215,7 +211,7 @@
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <lv_button name="btn_tune"
-                       height="#button_height_small" flex_grow="1" style_border_width="0" flex_flow="row"
+                       height="#button_height" flex_grow="1" style_border_width="0" flex_flow="row"
                        style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
                        style_pad_gap="#space_xs">
               <event_cb trigger="clicked" callback="on_print_status_tune"/>
@@ -223,7 +219,7 @@
               <text_body text="Tune"/>
             </lv_button>
             <lv_button name="btn_cancel"
-                       height="#button_height_small" flex_grow="1" style_border_width="0" style_bg_color="#error_color"
+                       height="#button_height" flex_grow="1" style_border_width="0" style_bg_color="#error_color"
                        flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                        style_flex_track_place="center" style_pad_gap="#space_xs">
               <event_cb trigger="clicked" callback="on_print_status_cancel"/>
