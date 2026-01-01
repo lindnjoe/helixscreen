@@ -131,6 +131,7 @@ class SettingsPanel : public PanelBase {
     lv_obj_t* display_settings_overlay_ = nullptr;
     lv_obj_t* filament_sensors_overlay_ = nullptr;
     lv_obj_t* macro_buttons_overlay_ = nullptr;
+    lv_obj_t* hardware_health_overlay_ = nullptr;
     // Note: Bed mesh panel managed by get_global_bed_mesh_panel()
     // Note: Z-Offset calibration panel managed by get_global_zoffset_cal_panel()
     // Note: PID calibration panel managed by get_global_pid_cal_panel()
@@ -167,34 +168,43 @@ class SettingsPanel : public PanelBase {
     void show_theme_restart_dialog();
     void populate_sensor_list();
     void populate_macro_dropdowns();
+    void populate_hardware_issues();
 
   public:
     // Called by static modal callbacks - performs actual reset after confirmation
     void perform_factory_reset();
 
+    // Called by toast action to navigate and open overlay
+    void handle_hardware_health_clicked();
+
     // Dialog pointers accessible to static callbacks
     lv_obj_t* theme_restart_dialog_ = nullptr;
     lv_obj_t* factory_reset_dialog_ = nullptr;
 
-  private:
+  public:
     //
-    // === Static Trampolines ===
+    // === XML Callbacks (public for global registration) ===
+    // These are registered before settings_panel.xml is parsed [L013]
     //
-
-    static void on_dark_mode_changed(lv_event_t* e);
     static void on_animations_changed(lv_event_t* e);
     static void on_gcode_3d_changed(lv_event_t* e);
-    static void on_display_sleep_changed(lv_event_t* e);
     static void on_led_light_changed(lv_event_t* e);
     static void on_sounds_changed(lv_event_t* e);
     static void on_estop_confirm_changed(lv_event_t* e);
-
     static void on_display_settings_clicked(lv_event_t* e);
     static void on_filament_sensors_clicked(lv_event_t* e);
     static void on_macro_buttons_clicked(lv_event_t* e);
     static void on_machine_limits_clicked(lv_event_t* e);
     static void on_network_clicked(lv_event_t* e);
     static void on_factory_reset_clicked(lv_event_t* e);
+    static void on_hardware_health_clicked(lv_event_t* e);
+
+  private:
+    //
+    // === Static Trampolines (private - only used internally) ===
+    //
+    static void on_dark_mode_changed(lv_event_t* e);
+    static void on_display_sleep_changed(lv_event_t* e);
 
     // Static callbacks for overlays
     static void on_restart_later_clicked(lv_event_t* e);
@@ -205,3 +215,7 @@ class SettingsPanel : public PanelBase {
 
 // Global instance accessor (needed by main.cpp)
 SettingsPanel& get_global_settings_panel();
+
+// Register SettingsPanel callbacks for XML parsing (call before settings_panel.xml registration)
+// This ensures callbacks exist when LVGL parses the XML component [L013]
+void register_settings_panel_callbacks();

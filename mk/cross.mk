@@ -517,7 +517,7 @@ deploy-ad5m:
 	@if [ -f build/ad5m/bin/helix-watchdog ]; then rsync -avz build/ad5m/bin/helix-watchdog $(AD5M_SSH_TARGET):$(AD5M_DEPLOY_DIR)/; fi
 	@# Sync assets (excluding test files and macOS junk)
 	@# Use --checksum to skip files with same content (avoids re-transferring regenerated assets)
-	rsync -avz --checksum --exclude='test_gcodes' --exclude='gcode' --exclude='.DS_Store' --exclude='*.pyc' \
+	rsync -avz --checksum --exclude='test_gcodes' --exclude='gcode' --exclude='.DS_Store' --exclude='*.pyc' --exclude='helixconfig.json' \
 		ui_xml assets config moonraker-plugin $(AD5M_SSH_TARGET):$(AD5M_DEPLOY_DIR)/
 	@# Sync pre-rendered images if they exist
 	@if [ -d build/assets/images/prerendered ]; then \

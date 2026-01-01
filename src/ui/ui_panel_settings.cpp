@@ -10,11 +10,13 @@
 #include "ui_nav_manager.h"
 #include "ui_overlay_network_settings.h"
 #include "ui_panel_memory_stats.h"
+#include "ui_theme.h"
 #include "ui_toast.h"
 
 #include "app_globals.h"
 #include "config.h"
 #include "filament_sensor_manager.h"
+#include "hardware_validator.h"
 #include "helix_version.h"
 #include "moonraker_client.h"
 #include "printer_state.h"
@@ -349,6 +351,7 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_machine_limits_clicked", on_machine_limits_clicked);
     lv_xml_register_event_cb(nullptr, "on_network_clicked", on_network_clicked);
     lv_xml_register_event_cb(nullptr, "on_factory_reset_clicked", on_factory_reset_clicked);
+    lv_xml_register_event_cb(nullptr, "on_hardware_health_clicked", on_hardware_health_clicked);
 
     // Register XML event callbacks for overlays
     lv_xml_register_event_cb(nullptr, "on_restart_later_clicked", on_restart_later_clicked);
@@ -1197,6 +1200,126 @@ void SettingsPanel::perform_factory_reset() {
     spdlog::info("[{}] Device should restart or show wizard now", get_name());
 }
 
+void SettingsPanel::handle_hardware_health_clicked() {
+    spdlog::debug("[{}] Hardware Health clicked - opening overlay", get_name());
+
+    // Create overlay on first access (lazy initialization)
+    if (!hardware_health_overlay_ && parent_screen_) {
+        spdlog::debug("[{}] Creating hardware health overlay...", get_name());
+
+        hardware_health_overlay_ = static_cast<lv_obj_t*>(
+            lv_xml_create(parent_screen_, "hardware_health_overlay", nullptr));
+
+        if (hardware_health_overlay_) {
+            lv_obj_add_flag(hardware_health_overlay_, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[{}] Hardware health overlay created", get_name());
+        } else {
+            spdlog::error("[{}] Failed to create hardware health overlay", get_name());
+            return;
+        }
+    }
+
+    // Populate the issues lists before showing
+    populate_hardware_issues();
+
+    // Push overlay onto navigation history and show it
+    if (hardware_health_overlay_) {
+        ui_nav_push_overlay(hardware_health_overlay_);
+    }
+}
+
+void SettingsPanel::populate_hardware_issues() {
+    if (!hardware_health_overlay_) {
+        return;
+    }
+
+    const auto& result = printer_state_.get_hardware_validation_result();
+
+    // Helper to get severity color
+    auto get_severity_color = [](HardwareIssueSeverity sev) -> lv_color_t {
+        switch (sev) {
+        case HardwareIssueSeverity::CRITICAL:
+            return ui_theme_get_color("error_color");
+        case HardwareIssueSeverity::WARNING:
+            return ui_theme_get_color("warning_color");
+        case HardwareIssueSeverity::INFO:
+        default:
+            return ui_theme_get_color("info_color");
+        }
+    };
+
+    // Helper to get icon name for hardware type
+    auto get_hardware_icon = [](HardwareType type) -> const char* {
+        switch (type) {
+        case HardwareType::HEATER:
+            return "thermometer";
+        case HardwareType::SENSOR:
+            return "thermometer";
+        case HardwareType::FAN:
+            return "fan";
+        case HardwareType::LED:
+            return "lightbulb";
+        case HardwareType::FILAMENT_SENSOR:
+            return "printer_3d_nozzle";
+        case HardwareType::OTHER:
+        default:
+            return "settings";
+        }
+    };
+
+    // Helper to populate a list with issues
+    auto populate_list = [&](const char* list_name, const std::vector<HardwareIssue>& issues) {
+        lv_obj_t* list = lv_obj_find_by_name(hardware_health_overlay_, list_name);
+        if (!list) {
+            spdlog::warn("[{}] Could not find list: {}", get_name(), list_name);
+            return;
+        }
+
+        // Clear existing children
+        lv_obj_clean(list);
+
+        // Add issue rows
+        for (const auto& issue : issues) {
+            lv_obj_t* row =
+                static_cast<lv_obj_t*>(lv_xml_create(list, "hardware_issue_row", nullptr));
+            if (!row) {
+                continue;
+            }
+
+            // Set severity indicator color
+            lv_obj_t* indicator = lv_obj_find_by_name(row, "severity_indicator");
+            if (indicator) {
+                lv_obj_set_style_bg_color(indicator, get_severity_color(issue.severity), 0);
+            }
+
+            // Set hardware name
+            lv_obj_t* name_label = lv_obj_find_by_name(row, "hardware_name");
+            if (name_label) {
+                lv_label_set_text(name_label, issue.hardware_name.c_str());
+            }
+
+            // Set issue message
+            lv_obj_t* message_label = lv_obj_find_by_name(row, "issue_message");
+            if (message_label) {
+                lv_label_set_text(message_label, issue.message.c_str());
+            }
+
+            // Note: Icon setting requires special handling - leaving default for now
+            (void)get_hardware_icon; // Suppress unused warning
+        }
+    };
+
+    // Populate each section
+    populate_list("critical_issues_list", result.critical_missing);
+    populate_list("warning_issues_list", result.expected_missing);
+    populate_list("info_issues_list", result.newly_discovered);
+    populate_list("session_issues_list", result.changed_from_last_session);
+
+    spdlog::debug("[{}] Populated hardware issues: {} critical, {} warning, {} info, {} session",
+                  get_name(), result.critical_missing.size(), result.expected_missing.size(),
+                  result.newly_discovered.size(), result.changed_from_last_session.size());
+}
+
 // ============================================================================
 // STATIC TRAMPOLINES (XML event_cb pattern - use global singleton)
 // ============================================================================
@@ -1293,6 +1416,12 @@ void SettingsPanel::on_factory_reset_clicked(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
+void SettingsPanel::on_hardware_health_clicked(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_hardware_health_clicked");
+    get_global_settings_panel().handle_hardware_health_clicked();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
 // ============================================================================
 // STATIC TRAMPOLINES - OVERLAYS
 // ============================================================================
@@ -1348,4 +1477,33 @@ SettingsPanel& get_global_settings_panel() {
                                                          []() { g_settings_panel.reset(); });
     }
     return *g_settings_panel;
+}
+
+// Register callbacks BEFORE settings_panel.xml registration per [L013]
+void register_settings_panel_callbacks() {
+    spdlog::debug("[SettingsPanel] Registering XML callbacks for settings_panel.xml");
+
+    // Toggle callbacks used in settings_panel.xml
+    lv_xml_register_event_cb(nullptr, "on_animations_changed",
+                             SettingsPanel::on_animations_changed);
+    lv_xml_register_event_cb(nullptr, "on_gcode_3d_changed", SettingsPanel::on_gcode_3d_changed);
+    lv_xml_register_event_cb(nullptr, "on_led_light_changed", SettingsPanel::on_led_light_changed);
+    lv_xml_register_event_cb(nullptr, "on_sounds_changed", SettingsPanel::on_sounds_changed);
+    lv_xml_register_event_cb(nullptr, "on_estop_confirm_changed",
+                             SettingsPanel::on_estop_confirm_changed);
+
+    // Action row callbacks used in settings_panel.xml
+    lv_xml_register_event_cb(nullptr, "on_display_settings_clicked",
+                             SettingsPanel::on_display_settings_clicked);
+    lv_xml_register_event_cb(nullptr, "on_filament_sensors_clicked",
+                             SettingsPanel::on_filament_sensors_clicked);
+    lv_xml_register_event_cb(nullptr, "on_macro_buttons_clicked",
+                             SettingsPanel::on_macro_buttons_clicked);
+    lv_xml_register_event_cb(nullptr, "on_machine_limits_clicked",
+                             SettingsPanel::on_machine_limits_clicked);
+    lv_xml_register_event_cb(nullptr, "on_network_clicked", SettingsPanel::on_network_clicked);
+    lv_xml_register_event_cb(nullptr, "on_factory_reset_clicked",
+                             SettingsPanel::on_factory_reset_clicked);
+    lv_xml_register_event_cb(nullptr, "on_hardware_health_clicked",
+                             SettingsPanel::on_hardware_health_clicked);
 }
