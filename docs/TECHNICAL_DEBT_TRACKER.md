@@ -1,7 +1,7 @@
 # HelixScreen Technical Debt Tracker
 
 **Created:** 2024-12-16
-**Last Updated:** 2025-12-18
+**Last Updated:** 2026-01-02
 **Status:** IN PROGRESS
 **Overall Progress:** ~45%
 
@@ -321,6 +321,28 @@ kill $PID 2>/dev/null
 - [ ] No crashes during panel transitions
 - [ ] No "timer" errors in logs with `-vv`
 - [ ] Discovery shows all timers accounted for
+
+### 3.4 Missing XML Component Registrations
+
+**Found:** 2026-01-02 during dead code audit
+
+**Issue:** These XML components are used in C++ code but never registered with `lv_xml_register_component_from_file()`. This could cause runtime errors when trying to create these modals.
+
+| File | Used In | Issue |
+|------|---------|-------|
+| `ui_xml/exclude_object_modal.xml` | `src/ui/ui_modal.cpp`, `src/ui/ui_panel_print_status.cpp` | Not registered |
+| `ui_xml/settings_plugins_overlay.xml` | `src/ui/ui_settings_plugins.cpp` | Not registered |
+
+**Fix:** Add registrations in `src/xml_registration.cpp`:
+
+```cpp
+lv_xml_register_component_from_file("A:ui_xml/exclude_object_modal.xml");
+lv_xml_register_component_from_file("A:ui_xml/settings_plugins_overlay.xml");
+```
+
+- [ ] Add missing registrations
+- [ ] Test exclude object modal opens correctly
+- [ ] Test plugins overlay opens correctly
 
 ---
 

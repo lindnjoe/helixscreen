@@ -669,7 +669,3 @@ void InputShaperPanel::handle_help_clicked() {
             LV_EVENT_CLICKED, nullptr);
     }
 }
-
-void InputShaperPanel::process_pending_responses() {
-    // Not used - API collector handles response processing
-}

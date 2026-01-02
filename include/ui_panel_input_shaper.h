@@ -182,7 +182,6 @@ class InputShaperPanel : public OverlayBase {
     void populate_results();
     void clear_results();
     void update_status_label(const std::string& text);
-    void process_pending_responses(); // Unused - for interface compatibility
 
     // Widget/client references (overlay_root_ inherited from OverlayBase)
     lv_obj_t* parent_screen_ = nullptr;
