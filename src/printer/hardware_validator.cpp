@@ -207,7 +207,7 @@ void HardwareValidator::save_session_snapshot(Config* config, const MoonrakerCli
 
     // Save to config
     try {
-        config->set<json>("/hardware_session/last_snapshot", snapshot.to_json());
+        config->set<json>(config->df() + "hardware/last_snapshot", snapshot.to_json());
         config->save();
         spdlog::debug(
             "[HardwareValidator] Saved session snapshot with {} heaters, {} fans, {} leds",
@@ -240,7 +240,7 @@ std::optional<HardwareSnapshot> HardwareValidator::load_session_snapshot(Config*
     }
 
     try {
-        json& snapshot_json = config->get_json("/hardware_session/last_snapshot");
+        json& snapshot_json = config->get_json(config->df() + "hardware/last_snapshot");
         if (snapshot_json.is_null() || snapshot_json.empty()) {
             spdlog::debug("[HardwareValidator] No previous session snapshot found");
             return std::nullopt;
@@ -266,7 +266,7 @@ bool HardwareValidator::is_hardware_optional(Config* config, const std::string& 
     }
 
     try {
-        json& optional_list = config->get_json("/hardware/optional");
+        json& optional_list = config->get_json(config->df() + "hardware/optional");
         if (optional_list.is_null() || !optional_list.is_array()) {
             return false;
         }
@@ -291,10 +291,10 @@ void HardwareValidator::set_hardware_optional(Config* config, const std::string&
 
     try {
         // Ensure the hardware/optional array exists
-        json& optional_list = config->get_json("/hardware/optional");
+        json& optional_list = config->get_json(config->df() + "hardware/optional");
         if (optional_list.is_null() || !optional_list.is_array()) {
-            config->set<json>("/hardware/optional", json::array());
-            optional_list = config->get_json("/hardware/optional");
+            config->set<json>(config->df() + "hardware/optional", json::array());
+            optional_list = config->get_json(config->df() + "hardware/optional");
         }
 
         // Find if already in list
@@ -325,10 +325,10 @@ void HardwareValidator::add_expected_hardware(Config* config, const std::string&
 
     try {
         // Ensure the hardware/expected array exists
-        json& expected_list = config->get_json("/hardware/expected");
+        json& expected_list = config->get_json(config->df() + "hardware/expected");
         if (expected_list.is_null() || !expected_list.is_array()) {
-            config->set<json>("/hardware/expected", json::array());
-            expected_list = config->get_json("/hardware/expected");
+            config->set<json>(config->df() + "hardware/expected", json::array());
+            expected_list = config->get_json(config->df() + "hardware/expected");
         }
 
         // Check if already in list
@@ -390,7 +390,7 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
 
     // Check configured heater (bed)
     try {
-        std::string bed_name = config->get<std::string>(config->df() + "heater/bed", "heater_bed");
+        std::string bed_name = config->get<std::string>(config->df() + "heaters/bed", "heater_bed");
         if (!bed_name.empty() && !contains_name(heaters, bed_name)) {
             bool is_optional = is_hardware_optional(config, bed_name);
             result.expected_missing.push_back(HardwareIssue::warning(
@@ -403,7 +403,7 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
     // Check configured heater (hotend)
     try {
         std::string hotend_name =
-            config->get<std::string>(config->df() + "heater/hotend", "extruder");
+            config->get<std::string>(config->df() + "heaters/hotend", "extruder");
         if (!hotend_name.empty() && !contains_name(heaters, hotend_name)) {
             bool is_optional = is_hardware_optional(config, hotend_name);
             result.expected_missing.push_back(
@@ -415,7 +415,7 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
 
     // Check configured fan (part cooling)
     try {
-        std::string part_fan = config->get<std::string>(config->df() + "fan/part", "fan");
+        std::string part_fan = config->get<std::string>(config->df() + "fans/part", "fan");
         if (!part_fan.empty() && !contains_name(fans, part_fan)) {
             bool is_optional = is_hardware_optional(config, part_fan);
             result.expected_missing.push_back(HardwareIssue::warning(
@@ -426,7 +426,7 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
 
     // Check configured fan (hotend)
     try {
-        std::string hotend_fan = config->get<std::string>(config->df() + "fan/hotend", "");
+        std::string hotend_fan = config->get<std::string>(config->df() + "fans/hotend", "");
         if (!hotend_fan.empty() && !contains_name(fans, hotend_fan)) {
             bool is_optional = is_hardware_optional(config, hotend_fan);
             result.expected_missing.push_back(HardwareIssue::warning(
@@ -437,7 +437,7 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
 
     // Check configured LED strip
     try {
-        std::string led_strip = config->get<std::string>(config->df() + "led/strip", "");
+        std::string led_strip = config->get<std::string>(config->df() + "leds/strip", "");
         if (!led_strip.empty() && !contains_name(leds, led_strip)) {
             bool is_optional = is_hardware_optional(config, led_strip);
             result.expected_missing.push_back(HardwareIssue::warning(
@@ -476,7 +476,7 @@ void HardwareValidator::validate_new_hardware(Config* config, const MoonrakerCli
     std::string configured_led;
     if (config) {
         try {
-            configured_led = config->get<std::string>(config->df() + "led/strip", "");
+            configured_led = config->get<std::string>(config->df() + "leds/strip", "");
         } catch (...) {
         }
     }
