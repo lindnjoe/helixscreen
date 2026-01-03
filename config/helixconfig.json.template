@@ -2,7 +2,6 @@
   "config_path": "helixconfig.json",
   "animations_enabled": true,
   "dark_mode": false,
-  "default_printer": "default_printer",
   "display_rotate": 0,
   "display_sleep_sec": 1800,
   "_display_sleep_sec_comment": "Seconds of inactivity before display turns OFF (0 = never). Default: 1800 (30 minutes).",
@@ -18,69 +17,69 @@
   "_log_path_comment": "Log file path when using file destination. Empty = auto (/var/log or ~/.local/share)",
   "log_level": "warn",
   "_log_level_comment": "Log verbosity: warn (quiet), info, debug, trace. CLI -v flags override this.",
-  "printers": {
-    "default_printer": {
-      "default_macros": {
-        "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
-        "load_filament": { "label": "Load", "gcode": "LOAD_FILAMENT" },
-        "unload_filament": { "label": "Unload", "gcode": "UNLOAD_FILAMENT" },
-        "macro_1": { "label": "Clean Nozzle", "gcode": "HELIX_CLEAN_NOZZLE" },
-        "macro_2": { "label": "Bed Level", "gcode": "HELIX_BED_LEVEL_IF_NEEDED" }
-      },
-      "fans": [],
-      "monitored_sensors": [],
-      "moonraker_api_key": false,
-      "moonraker_connection_timeout_ms": 10000,
-      "moonraker_host": "192.168.1.112",
-      "moonraker_keepalive_interval_ms": 10000,
-      "moonraker_port": 7125,
-      "moonraker_reconnect_max_delay_ms": 2000,
-      "moonraker_reconnect_min_delay_ms": 200,
-      "moonraker_request_timeout_ms": 30000,
-      "moonraker_timeout_check_interval_ms": 2000,
-      "safety_limits": {
-        "max_temperature_celsius": 400.0,
-        "min_temperature_celsius": 0.0,
-        "max_fan_speed_percent": 100.0,
-        "min_fan_speed_percent": 0.0,
-        "max_feedrate_mm_min": 50000.0,
-        "min_feedrate_mm_min": 0.0,
-        "max_relative_distance_mm": 1000.0,
-        "min_relative_distance_mm": -1000.0,
-        "max_absolute_position_mm": 1000.0,
-        "min_absolute_position_mm": 0.0,
-        "_comment": "Safety limits for G-code generation. Explicit values override Moonraker auto-detection. Defaults are conservative for most FDM printers. High-temp printers may need max_temperature_celsius > 400. Leave unset to auto-detect from printer.cfg via Moonraker."
-      },
-      "capability_overrides": {
-        "bed_mesh": "auto",
-        "qgl": "auto",
-        "z_tilt": "auto",
-        "nozzle_clean": "auto",
-        "heat_soak": "auto",
-        "chamber": "auto",
-        "_comment": "Override auto-detected printer capabilities. Values: 'auto' (use detection), 'enable' (force on), 'disable' (force off). Use 'enable' for features that work but weren't detected (e.g., heat_soak without chamber heater)."
-      }
+  "printer": {
+    "name": "Unnamed Printer",
+    "type": "Unknown",
+    "moonraker_host": "192.168.1.112",
+    "moonraker_port": 7125,
+    "moonraker_api_key": false,
+    "moonraker_connection_timeout_ms": 10000,
+    "moonraker_keepalive_interval_ms": 10000,
+    "moonraker_reconnect_max_delay_ms": 2000,
+    "moonraker_reconnect_min_delay_ms": 200,
+    "moonraker_request_timeout_ms": 30000,
+    "moonraker_timeout_check_interval_ms": 2000,
+    "heater": {
+      "bed": "heater_bed",
+      "hotend": "extruder"
+    },
+    "sensor": {
+      "bed": "temperature_sensor bed",
+      "hotend": "temperature_sensor extruder"
+    },
+    "fan": {
+      "hotend": "heater_fan hotend_fan",
+      "part": "fan"
+    },
+    "led": {
+      "strip": "None"
+    },
+    "fans": [],
+    "monitored_sensors": [],
+    "default_macros": {
+      "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
+      "load_filament": { "label": "Load", "gcode": "LOAD_FILAMENT" },
+      "unload_filament": { "label": "Unload", "gcode": "UNLOAD_FILAMENT" },
+      "macro_1": { "label": "Clean Nozzle", "gcode": "HELIX_CLEAN_NOZZLE" },
+      "macro_2": { "label": "Bed Level", "gcode": "HELIX_BED_LEVEL_IF_NEEDED" }
+    },
+    "safety_limits": {
+      "max_temperature_celsius": 400.0,
+      "min_temperature_celsius": 0.0,
+      "max_fan_speed_percent": 100.0,
+      "min_fan_speed_percent": 0.0,
+      "max_feedrate_mm_min": 50000.0,
+      "min_feedrate_mm_min": 0.0,
+      "max_relative_distance_mm": 1000.0,
+      "min_relative_distance_mm": -1000.0,
+      "max_absolute_position_mm": 1000.0,
+      "min_absolute_position_mm": 0.0,
+      "_comment": "Safety limits for G-code generation. Explicit values override Moonraker auto-detection. Defaults are conservative for most FDM printers. High-temp printers may need max_temperature_celsius > 400. Leave unset to auto-detect from printer.cfg via Moonraker."
+    },
+    "capability_overrides": {
+      "bed_mesh": "auto",
+      "qgl": "auto",
+      "z_tilt": "auto",
+      "nozzle_clean": "auto",
+      "heat_soak": "auto",
+      "chamber": "auto",
+      "_comment": "Override auto-detected printer capabilities. Values: 'auto' (use detection), 'enable' (force on), 'disable' (force off). Use 'enable' for features that work but weren't detected (e.g., heat_soak without chamber heater)."
     }
   },
   "network": {
     "connection_type": "None",
     "wifi_ssid": "",
     "eth_ip": ""
-  },
-  "moonraker": {
-    "host": "",
-    "port": 7125
-  },
-  "printer": {
-    "bed_heater": "heater_bed",
-    "bed_sensor": "temperature_sensor bed",
-    "hotend_fan": "heater_fan hotend_fan",
-    "hotend_heater": "extruder",
-    "hotend_sensor": "temperature_sensor extruder",
-    "led_strip": "None",
-    "name": "Unnamed Printer",
-    "part_fan": "fan",
-    "type": "Unknown"
   },
   "gcode_viewer": {
     "shading_model": "smooth",

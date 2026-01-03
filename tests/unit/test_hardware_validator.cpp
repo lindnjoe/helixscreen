@@ -430,34 +430,22 @@ class HardwareValidatorConfigFixture {
     Config config;
 
     void setup_empty_hardware_config() {
-        config.data = {
-            {"default_printer", "test_printer"},
-            {"printers",
-             {{"test_printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}}}},
-            {"hardware", {{"optional", json::array()}, {"expected", json::array()}}}};
-        config.default_printer = "/printers/test_printer/";
+        config.data = {{"printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}},
+                       {"hardware", {{"optional", json::array()}, {"expected", json::array()}}}};
     }
 
     void setup_hardware_with_optional() {
-        config.data = {
-            {"default_printer", "test_printer"},
-            {"printers",
-             {{"test_printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}}}},
-            {"hardware",
-             {{"optional", {"neopixel chamber_light", "fan exhaust"}},
-              {"expected", json::array()}}}};
-        config.default_printer = "/printers/test_printer/";
+        config.data = {{"printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}},
+                       {"hardware",
+                        {{"optional", {"neopixel chamber_light", "fan exhaust"}},
+                         {"expected", json::array()}}}};
     }
 
     void setup_hardware_with_expected() {
-        config.data = {
-            {"default_printer", "test_printer"},
-            {"printers",
-             {{"test_printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}}}},
-            {"hardware",
-             {{"optional", json::array()},
-              {"expected", {"temperature_sensor chamber", "neopixel status"}}}}};
-        config.default_printer = "/printers/test_printer/";
+        config.data = {{"printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}},
+                       {"hardware",
+                        {{"optional", json::array()},
+                         {"expected", {"temperature_sensor chamber", "neopixel status"}}}}};
     }
 };
 

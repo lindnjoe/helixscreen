@@ -10,38 +10,33 @@
  * Defines all JSON configuration paths used by wizard screens to eliminate
  * hardcoded string literals and reduce typo risk.
  *
- * Paths now use structured format under /printers/default_printer/... to align
- * with the expected structure checked by Config::is_wizard_required().
+ * All printer-specific paths are under /printer/...
  */
 
 namespace helix {
 namespace wizard {
 // Printer identification
-constexpr const char* DEFAULT_PRINTER = "/default_printer";
-constexpr const char* PRINTER_NAME = "/printers/default_printer/name";
-constexpr const char* PRINTER_TYPE = "/printers/default_printer/type";
+constexpr const char* PRINTER_NAME = "/printer/name";
+constexpr const char* PRINTER_TYPE = "/printer/type";
 
 // Bed hardware
-constexpr const char* BED_HEATER = "/printers/default_printer/heater/bed";
-constexpr const char* BED_SENSOR = "/printers/default_printer/sensor/bed";
+constexpr const char* BED_HEATER = "/printer/heater/bed";
+constexpr const char* BED_SENSOR = "/printer/sensor/bed";
 
 // Hotend hardware
-constexpr const char* HOTEND_HEATER = "/printers/default_printer/heater/hotend";
-constexpr const char* HOTEND_SENSOR = "/printers/default_printer/sensor/hotend";
+constexpr const char* HOTEND_HEATER = "/printer/heater/hotend";
+constexpr const char* HOTEND_SENSOR = "/printer/sensor/hotend";
 
 // Fan hardware
-constexpr const char* HOTEND_FAN = "/printers/default_printer/fan/hotend";
-constexpr const char* PART_FAN = "/printers/default_printer/fan/part";
+constexpr const char* HOTEND_FAN = "/printer/fan/hotend";
+constexpr const char* PART_FAN = "/printer/fan/part";
 
 // LED hardware
-constexpr const char* LED_STRIP = "/printers/default_printer/led/strip";
+constexpr const char* LED_STRIP = "/printer/led/strip";
 
 // Network configuration
-// Note: Connection screen constructs full path dynamically using default_printer
-// e.g., "/printers/" + default_printer + "/moonraker_host"
-// These constants are for direct access in ui_wizard_complete()
-constexpr const char* MOONRAKER_HOST = "/printers/default_printer/moonraker_host";
-constexpr const char* MOONRAKER_PORT = "/printers/default_printer/moonraker_port";
+constexpr const char* MOONRAKER_HOST = "/printer/moonraker_host";
+constexpr const char* MOONRAKER_PORT = "/printer/moonraker_port";
 constexpr const char* WIFI_SSID = "/wifi/ssid";
 constexpr const char* WIFI_PASSWORD = "/wifi/password";
 } // namespace wizard

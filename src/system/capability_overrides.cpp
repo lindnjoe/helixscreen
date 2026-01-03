@@ -20,7 +20,7 @@ void CapabilityOverrides::load_from_config() {
     std::string prefix = cfg->df();
 
     // Try to read capability_overrides from config
-    // Path: /printers/<printer>/capability_overrides/<capability>
+    // Path: /printer/capability_overrides/<capability>
     auto read_override = [&](const std::string& name) {
         // Ensure path starts with '/' for valid JSON pointer
         std::string path = (prefix.empty() || prefix[0] != '/')

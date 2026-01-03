@@ -39,7 +39,7 @@ json get_default_printer_config(const std::string& moonraker_host) {
 }
 
 /// Default root-level config - shared between init() and reset_to_defaults()
-/// @param moonraker_host Host address for default printer
+/// @param moonraker_host Host address for printer
 /// @param include_user_prefs Include user preference fields (brightness, sounds, etc.)
 json get_default_config(const std::string& moonraker_host, bool include_user_prefs) {
     json config = {{"log_path", "/tmp/helixscreen.log"},
@@ -47,10 +47,9 @@ json get_default_config(const std::string& moonraker_host, bool include_user_pre
                    {"display_sleep_sec", 600},
                    {"display_rotate", 0},
                    {"dark_mode", true},
-                   {"default_printer", "default_printer"},
                    {"gcode_viewer", {{"shading_model", "phong"}, {"tube_sides", 4}}},
                    {"input", {{"scroll_throw", 25}, {"scroll_limit", 5}}},
-                   {"printers", {{"default_printer", get_default_printer_config(moonraker_host)}}}};
+                   {"printer", get_default_printer_config(moonraker_host)}};
 
     if (include_user_prefs) {
         config["brightness"] = 50;
@@ -126,11 +125,11 @@ void Config::init(const std::string& config_path) {
     // Store config path in data for reference
     data["config_path"] = config_path;
 
-    // Set default printer path prefix
-    auto df_name = data["/default_printer"_json_pointer];
-    if (!df_name.is_null()) {
-        default_printer = "/printers/" + df_name.template get<std::string>() + "/";
-
+    // Ensure printer section exists with required fields
+    auto& printer = data["/printer"_json_pointer];
+    if (printer.is_null()) {
+        data["/printer"_json_pointer] = get_default_printer_config("127.0.0.1");
+    } else {
         // Ensure monitored_sensors exists (even if empty for auto-discovery)
         auto& monitored_sensors = data[json::json_pointer(df() + "monitored_sensors")];
         if (monitored_sensors.is_null()) {
@@ -176,8 +175,8 @@ void Config::init(const std::string& config_path) {
                   get<std::string>(df() + "moonraker_host"), get<int>(df() + "moonraker_port"));
 }
 
-std::string& Config::df() {
-    return default_printer;
+std::string Config::df() {
+    return "/printer/";
 }
 
 std::string Config::get_path() {
@@ -246,9 +245,6 @@ void Config::reset_to_defaults() {
     // and include user preferences (brightness, sounds, etc.) with wizard_completed=false
     data = get_default_config("", true);
     data["config_path"] = path;
-
-    // Update default printer path prefix
-    default_printer = "/printers/default_printer/";
 
     spdlog::info("[Config] Configuration reset to defaults. Wizard will run on next startup.");
 }

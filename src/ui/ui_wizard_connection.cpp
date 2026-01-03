@@ -138,12 +138,8 @@ void WizardConnectionStep::init_subjects() {
     std::string default_port = "7125"; // Default Moonraker port
 
     try {
-        std::string default_printer =
-            config->get<std::string>("/default_printer", "default_printer");
-        std::string printer_path = "/printers/" + default_printer;
-
-        default_ip = config->get<std::string>(printer_path + "/moonraker_host", "");
-        int port_num = config->get<int>(printer_path + "/moonraker_port", 7125);
+        default_ip = config->get<std::string>(config->df() + "moonraker_host", "");
+        int port_num = config->get<int>(config->df() + "moonraker_port", 7125);
         default_port = std::to_string(port_num);
 
         spdlog::debug("[{}] Loaded from config: {}:{}", get_name(), default_ip, default_port);
@@ -350,12 +346,8 @@ void WizardConnectionStep::on_connection_success() {
             // NOW safe to access config (on main thread)
             Config* config = Config::get_instance();
             try {
-                std::string default_printer =
-                    config->get<std::string>("/default_printer", "default_printer");
-                std::string printer_path = "/printers/" + default_printer;
-
-                config->set(printer_path + "/moonraker_host", ip);
-                config->set(printer_path + "/moonraker_port", std::stoi(port));
+                config->set(config->df() + "moonraker_host", ip);
+                config->set(config->df() + "moonraker_port", std::stoi(port));
                 if (config->save()) {
                     spdlog::debug("[Wizard Connection] Saved configuration: {}:{}", ip, port);
                 } else {
@@ -633,12 +625,8 @@ void WizardConnectionStep::on_auto_probe_success() {
             // NOW safe to access config (on main thread)
             Config* config = Config::get_instance();
             try {
-                std::string default_printer =
-                    config->get<std::string>("/default_printer", "default_printer");
-                std::string printer_path = "/printers/" + default_printer;
-
-                config->set(printer_path + "/moonraker_host", ip);
-                config->set(printer_path + "/moonraker_port", std::stoi(port));
+                config->set(config->df() + "moonraker_host", ip);
+                config->set(config->df() + "moonraker_port", std::stoi(port));
                 if (config->save()) {
                     spdlog::debug("[Wizard Connection] Auto-probe: Saved configuration");
                 }

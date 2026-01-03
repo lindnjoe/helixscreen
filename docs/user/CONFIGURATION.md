@@ -59,8 +59,6 @@ The configuration file is JSON format with several top-level sections:
   "input": { ... },
   "network": { ... },
   "printer": { ... },
-  "moonraker": { ... },
-  "printers": { ... },
   "gcode_viewer": { ... },
   "ams": { ... }
 }
@@ -216,13 +214,21 @@ Located in the `printer` section:
   "printer": {
     "name": "My Printer",
     "type": "Voron 2.4",
-    "hotend_heater": "extruder",
-    "bed_heater": "heater_bed",
-    "hotend_sensor": "temperature_sensor extruder",
-    "bed_sensor": "temperature_sensor bed",
-    "part_fan": "fan",
-    "hotend_fan": "heater_fan hotend_fan",
-    "led_strip": "None"
+    "heater": {
+      "hotend": "extruder",
+      "bed": "heater_bed"
+    },
+    "sensor": {
+      "hotend": "temperature_sensor extruder",
+      "bed": "temperature_sensor bed"
+    },
+    "fan": {
+      "part": "fan",
+      "hotend": "heater_fan hotend_fan"
+    },
+    "led": {
+      "strip": "None"
+    }
   }
 }
 ```
@@ -235,34 +241,34 @@ Located in the `printer` section:
 **Type:** string
 **Description:** Printer model/type for feature detection.
 
-### `hotend_heater`
+### `heater.hotend`
 **Type:** string
 **Default:** `"extruder"`
 **Description:** Klipper heater name for hotend.
 
-### `bed_heater`
+### `heater.bed`
 **Type:** string
 **Default:** `"heater_bed"`
 **Description:** Klipper heater name for heated bed.
 
-### `hotend_sensor`
+### `sensor.hotend`
 **Type:** string
 **Description:** Temperature sensor for hotend (if different from heater).
 
-### `bed_sensor`
+### `sensor.bed`
 **Type:** string
 **Description:** Temperature sensor for bed (if different from heater).
 
-### `part_fan`
+### `fan.part`
 **Type:** string
 **Default:** `"fan"`
 **Description:** Klipper fan name for part cooling.
 
-### `hotend_fan`
+### `fan.hotend`
 **Type:** string
 **Description:** Klipper fan name for hotend cooling.
 
-### `led_strip`
+### `led.strip`
 **Type:** string
 **Default:** `"None"`
 **Description:** Klipper LED strip name, or `"None"` if no controllable LEDs.
@@ -271,22 +277,20 @@ Located in the `printer` section:
 
 ## Moonraker Settings
 
-Connection settings in the `printers.default_printer` section:
+Connection settings are in the `printer` section:
 
 ```json
 {
-  "printers": {
-    "default_printer": {
-      "moonraker_host": "192.168.1.100",
-      "moonraker_port": 7125,
-      "moonraker_api_key": false,
-      "moonraker_connection_timeout_ms": 10000,
-      "moonraker_request_timeout_ms": 30000,
-      "moonraker_keepalive_interval_ms": 10000,
-      "moonraker_reconnect_min_delay_ms": 200,
-      "moonraker_reconnect_max_delay_ms": 2000,
-      "moonraker_timeout_check_interval_ms": 2000
-    }
+  "printer": {
+    "moonraker_host": "192.168.1.100",
+    "moonraker_port": 7125,
+    "moonraker_api_key": false,
+    "moonraker_connection_timeout_ms": 10000,
+    "moonraker_request_timeout_ms": 30000,
+    "moonraker_keepalive_interval_ms": 10000,
+    "moonraker_reconnect_min_delay_ms": 200,
+    "moonraker_reconnect_max_delay_ms": 2000,
+    "moonraker_timeout_check_interval_ms": 2000
   }
 }
 ```
@@ -390,11 +394,12 @@ Located in the `ams` section:
 
 ## Safety Limits
 
-Located in `printers.default_printer.safety_limits`:
+Located in `printer.safety_limits`:
 
 ```json
 {
-  "safety_limits": {
+  "printer": {
+    "safety_limits": {
     "max_temperature_celsius": 400.0,
     "min_temperature_celsius": 0.0,
     "max_fan_speed_percent": 100.0,
@@ -404,7 +409,8 @@ Located in `printers.default_printer.safety_limits`:
     "max_relative_distance_mm": 1000.0,
     "min_relative_distance_mm": -1000.0,
     "max_absolute_position_mm": 1000.0,
-    "min_absolute_position_mm": 0.0
+      "min_absolute_position_mm": 0.0
+    }
   }
 }
 ```
@@ -420,17 +426,19 @@ Leave unset (or remove the section) to use Moonraker auto-detection from printer
 
 ## Capability Overrides
 
-Located in `printers.default_printer.capability_overrides`:
+Located in `printer.capability_overrides`:
 
 ```json
 {
-  "capability_overrides": {
+  "printer": {
+    "capability_overrides": {
     "bed_leveling": "auto",
     "qgl": "auto",
     "z_tilt": "auto",
     "nozzle_clean": "auto",
     "heat_soak": "auto",
-    "chamber": "auto"
+      "chamber": "auto"
+    }
   }
 }
 ```
@@ -523,20 +531,21 @@ Environment="HELIX_TOUCH_DEVICE=/dev/input/event0"
   "printer": {
     "name": "Voron 2.4 350",
     "type": "Voron 2.4",
-    "hotend_heater": "extruder",
-    "bed_heater": "heater_bed",
-    "part_fan": "fan",
-    "hotend_fan": "heater_fan hotend_fan",
-    "led_strip": "caselight"
-  },
-
-  "printers": {
-    "default_printer": {
-      "moonraker_host": "localhost",
-      "moonraker_port": 7125,
-      "moonraker_api_key": false,
-      "moonraker_connection_timeout_ms": 10000,
-      "moonraker_request_timeout_ms": 30000
+    "moonraker_host": "localhost",
+    "moonraker_port": 7125,
+    "moonraker_api_key": false,
+    "moonraker_connection_timeout_ms": 10000,
+    "moonraker_request_timeout_ms": 30000,
+    "heater": {
+      "hotend": "extruder",
+      "bed": "heater_bed"
+    },
+    "fan": {
+      "part": "fan",
+      "hotend": "heater_fan hotend_fan"
+    },
+    "led": {
+      "strip": "caselight"
     }
   },
 

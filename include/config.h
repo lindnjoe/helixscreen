@@ -48,10 +48,10 @@ struct MacroConfig {
  * cfg->init("/path/to/config.json");
  *
  * // Get with default fallback
- * std::string ip = cfg->get<std::string>("/printers/default/ip", "127.0.0.1");
+ * std::string ip = cfg->get<std::string>(cfg->df() + "moonraker_host", "127.0.0.1");
  *
  * // Set and save
- * cfg->set<int>("/printers/default/port", 7125);
+ * cfg->set<int>(cfg->df() + "moonraker_port", 7125);
  * cfg->save();
  * ```
  */
@@ -62,7 +62,6 @@ class Config {
 
   protected:
     json data;
-    std::string default_printer;
 
     /// Allow test fixtures to access protected members
     friend class ConfigTestFixture;
@@ -96,7 +95,7 @@ class Config {
      * Use the overload with default_value for safer access.
      *
      * @tparam T Value type to retrieve
-     * @param json_ptr JSON pointer path (e.g., "/printers/default/ip")
+     * @param json_ptr JSON pointer path (e.g., "/printer/moonraker_host")
      * @return Configuration value of type T
      * @throws nlohmann::json::exception if path not found
      */
@@ -110,7 +109,7 @@ class Config {
      * Safe accessor that returns default_value if path doesn't exist.
      *
      * @tparam T Value type to retrieve
-     * @param json_ptr JSON pointer path (e.g., "/printers/default/ip")
+     * @param json_ptr JSON pointer path (e.g., "/printer/moonraker_host")
      * @param default_value Fallback value if path not found
      * @return Configuration value or default_value
      */
@@ -129,7 +128,7 @@ class Config {
      * Changes are in-memory only until save() is called.
      *
      * @tparam T Value type to store
-     * @param json_ptr JSON pointer path (e.g., "/printers/default/port")
+     * @param json_ptr JSON pointer path (e.g., "/printer/moonraker_port")
      * @param v Value to set
      * @return The value that was set
      */
@@ -172,14 +171,14 @@ class Config {
     bool save();
 
     /**
-     * @brief Get default printer path prefix
+     * @brief Get printer config path prefix
      *
-     * Returns JSON pointer prefix for the default printer configuration.
+     * Returns JSON pointer prefix for the printer configuration.
      * Useful for constructing full paths to printer settings.
      *
-     * @return JSON pointer prefix (e.g., "/printers/default_printer/")
+     * @return JSON pointer prefix ("/printer/")
      */
-    std::string& df();
+    std::string df();
 
     /**
      * @brief Get configuration file path

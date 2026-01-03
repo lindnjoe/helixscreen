@@ -27,38 +27,26 @@ class ConfigTestFixture {
 
     void set_data_empty() {
         config.data = {};
-        config.default_printer = "/printers/default/";
     }
 
     void setup_default_config() {
         // Manually populate config.data with realistic test JSON
         config.data = {
-            {"default_printer", "test_printer"},
-            {"printers",
-             {{"test_printer",
-               {{"moonraker_host", "192.168.1.100"},
-                {"moonraker_port", 7125},
-                {"log_level", "debug"},
-                {"hardware_map", {{"heated_bed", "heater_bed"}, {"hotend", "extruder"}}}}}}}};
-        config.default_printer = "/printers/test_printer/";
+            {"printer",
+             {{"moonraker_host", "192.168.1.100"},
+              {"moonraker_port", 7125},
+              {"log_level", "debug"},
+              {"hardware_map", {{"heated_bed", "heater_bed"}, {"hotend", "extruder"}}}}}};
     }
 
     void setup_minimal_config() {
         // Minimal config for wizard testing (default host)
-        config.data = {
-            {"default_printer", "default_printer"},
-            {"printers",
-             {{"default_printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}}}}};
-        config.default_printer = "/printers/default_printer/";
+        config.data = {{"printer", {{"moonraker_host", "127.0.0.1"}, {"moonraker_port", 7125}}}};
     }
 
     void setup_incomplete_config() {
         // Config missing hardware_map (should trigger wizard)
-        config.data = {{"default_printer", "default_printer"},
-                       {"printers",
-                        {{"default_printer",
-                          {{"moonraker_host", "192.168.1.50"}, {"moonraker_port", 7125}}}}}};
-        config.default_printer = "/printers/default_printer/";
+        config.data = {{"printer", {{"moonraker_host", "192.168.1.50"}, {"moonraker_port", 7125}}}};
     }
 };
 
@@ -70,7 +58,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() returns existing string value
                  "[core][config][get]") {
     setup_default_config();
 
-    std::string host = config.get<std::string>("/printers/test_printer/moonraker_host");
+    std::string host = config.get<std::string>("/printer/moonraker_host");
     REQUIRE(host == "192.168.1.100");
 }
 
@@ -78,7 +66,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() returns existing int value",
                  "[core][config][get]") {
     setup_default_config();
 
-    int port = config.get<int>("/printers/test_printer/moonraker_port");
+    int port = config.get<int>("/printer/moonraker_port");
     REQUIRE(port == 7125);
 }
 
@@ -86,7 +74,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() returns existing nested value
                  "[config][get]") {
     setup_default_config();
 
-    std::string bed = config.get<std::string>("/printers/test_printer/hardware_map/heated_bed");
+    std::string bed = config.get<std::string>("/printer/hardware_map/heated_bed");
     REQUIRE(bed == "heater_bed");
 }
 
@@ -102,7 +90,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with missing key throws excep
                  "[core][config][get]") {
     setup_default_config();
 
-    REQUIRE_THROWS_AS(config.get<std::string>("/printers/test_printer/nonexistent_key"),
+    REQUIRE_THROWS_AS(config.get<std::string>("/printer/nonexistent_key"),
                       nlohmann::detail::type_error);
 }
 
@@ -110,7 +98,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with missing nested key throw
                  "[config][get]") {
     setup_default_config();
 
-    REQUIRE_THROWS_AS(config.get<std::string>("/printers/test_printer/hardware_map/missing"),
+    REQUIRE_THROWS_AS(config.get<std::string>("/printer/hardware_map/missing"),
                       nlohmann::detail::type_error);
 }
 
@@ -119,14 +107,14 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with type mismatch throws exc
     setup_default_config();
 
     // Try to get string value as int
-    REQUIRE_THROWS(config.get<int>("/printers/test_printer/moonraker_host"));
+    REQUIRE_THROWS(config.get<int>("/printer/moonraker_host"));
 }
 
 TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with object returns nested structure",
                  "[config][get]") {
     setup_default_config();
 
-    auto hardware_map = config.get<json>("/printers/test_printer/hardware_map");
+    auto hardware_map = config.get<json>("/printer/hardware_map");
     REQUIRE(hardware_map.is_object());
     REQUIRE(hardware_map["heated_bed"] == "heater_bed");
     REQUIRE(hardware_map["hotend"] == "extruder");
@@ -141,8 +129,7 @@ TEST_CASE_METHOD(ConfigTestFixture,
                  "[config][get][default]") {
     setup_default_config();
 
-    std::string host =
-        config.get<std::string>("/printers/test_printer/moonraker_host", "default.local");
+    std::string host = config.get<std::string>("/printer/moonraker_host", "default.local");
     REQUIRE(host == "192.168.1.100"); // Ignores default
 }
 
@@ -151,7 +138,7 @@ TEST_CASE_METHOD(ConfigTestFixture,
                  "[config][get][default]") {
     setup_default_config();
 
-    int port = config.get<int>("/printers/test_printer/moonraker_port", 9999);
+    int port = config.get<int>("/printer/moonraker_port", 9999);
     REQUIRE(port == 7125); // Ignores default
 }
 
@@ -160,8 +147,7 @@ TEST_CASE_METHOD(ConfigTestFixture,
                  "[core][config][get][default]") {
     setup_default_config();
 
-    std::string printer_name =
-        config.get<std::string>("/printers/test_printer/printer_name", "My Printer");
+    std::string printer_name = config.get<std::string>("/printer/printer_name", "My Printer");
     REQUIRE(printer_name == "My Printer");
 }
 
@@ -170,7 +156,7 @@ TEST_CASE_METHOD(ConfigTestFixture,
                  "[config][get][default]") {
     setup_default_config();
 
-    int timeout = config.get<int>("/printers/test_printer/timeout", 30);
+    int timeout = config.get<int>("/printer/timeout", 30);
     REQUIRE(timeout == 30);
 }
 
@@ -179,7 +165,7 @@ TEST_CASE_METHOD(ConfigTestFixture,
                  "[config][get][default]") {
     setup_default_config();
 
-    bool api_key = config.get<bool>("/printers/test_printer/moonraker_api_key", false);
+    bool api_key = config.get<bool>("/printer/moonraker_api_key", false);
     REQUIRE(api_key == false);
 }
 
@@ -187,8 +173,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with default handles nested m
                  "[config][get][default]") {
     setup_default_config();
 
-    std::string led =
-        config.get<std::string>("/printers/test_printer/hardware_map/main_led", "none");
+    std::string led = config.get<std::string>("/printer/hardware_map/main_led", "none");
     REQUIRE(led == "none");
 }
 
@@ -196,7 +181,7 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with empty string default",
                  "[config][get][default]") {
     setup_default_config();
 
-    std::string empty = config.get<std::string>("/printers/test_printer/empty_field", "");
+    std::string empty = config.get<std::string>("/printer/empty_field", "");
     REQUIRE(empty == "");
 }
 
@@ -240,46 +225,46 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: set() creates new top-level key", "
 TEST_CASE_METHOD(ConfigTestFixture, "Config: set() updates existing key", "[config][set]") {
     setup_default_config();
 
-    config.set<std::string>("/printers/test_printer/moonraker_host", "10.0.0.1");
-    REQUIRE(config.get<std::string>("/printers/test_printer/moonraker_host") == "10.0.0.1");
+    config.set<std::string>("/printer/moonraker_host", "10.0.0.1");
+    REQUIRE(config.get<std::string>("/printer/moonraker_host") == "10.0.0.1");
 }
 
 TEST_CASE_METHOD(ConfigTestFixture, "Config: set() creates nested path", "[config][set]") {
     setup_default_config();
 
-    config.set<std::string>("/printers/test_printer/hardware_map/main_led", "neopixel");
-    REQUIRE(config.get<std::string>("/printers/test_printer/hardware_map/main_led") == "neopixel");
+    config.set<std::string>("/printer/hardware_map/main_led", "neopixel");
+    REQUIRE(config.get<std::string>("/printer/hardware_map/main_led") == "neopixel");
 }
 
 TEST_CASE_METHOD(ConfigTestFixture, "Config: set() updates nested value", "[config][set]") {
     setup_default_config();
 
-    config.set<std::string>("/printers/test_printer/hardware_map/hotend", "extruder1");
-    REQUIRE(config.get<std::string>("/printers/test_printer/hardware_map/hotend") == "extruder1");
+    config.set<std::string>("/printer/hardware_map/hotend", "extruder1");
+    REQUIRE(config.get<std::string>("/printer/hardware_map/hotend") == "extruder1");
 }
 
 TEST_CASE_METHOD(ConfigTestFixture, "Config: set() handles different types", "[config][set]") {
     setup_default_config();
 
-    config.set<int>("/printers/test_printer/new_int", 42);
-    config.set<bool>("/printers/test_printer/new_bool", true);
-    config.set<std::string>("/printers/test_printer/new_string", "test");
+    config.set<int>("/printer/new_int", 42);
+    config.set<bool>("/printer/new_bool", true);
+    config.set<std::string>("/printer/new_string", "test");
 
-    REQUIRE(config.get<int>("/printers/test_printer/new_int") == 42);
-    REQUIRE(config.get<bool>("/printers/test_printer/new_bool") == true);
-    REQUIRE(config.get<std::string>("/printers/test_printer/new_string") == "test");
+    REQUIRE(config.get<int>("/printer/new_int") == 42);
+    REQUIRE(config.get<bool>("/printer/new_bool") == true);
+    REQUIRE(config.get<std::string>("/printer/new_string") == "test");
 }
 
 TEST_CASE_METHOD(ConfigTestFixture, "Config: set() overwrites value of different type",
                  "[config][set]") {
     setup_default_config();
 
-    config.set<int>("/printers/test_printer/moonraker_port", 8080);
-    REQUIRE(config.get<int>("/printers/test_printer/moonraker_port") == 8080);
+    config.set<int>("/printer/moonraker_port", 8080);
+    REQUIRE(config.get<int>("/printer/moonraker_port") == 8080);
 
     // Overwrite int with string
-    config.set<std::string>("/printers/test_printer/moonraker_port", "9090");
-    REQUIRE(config.get<std::string>("/printers/test_printer/moonraker_port") == "9090");
+    config.set<std::string>("/printer/moonraker_port", "9090");
+    REQUIRE(config.get<std::string>("/printer/moonraker_port") == "9090");
 }
 
 // ============================================================================
@@ -368,9 +353,8 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: is_wizard_required() handles null w
 TEST_CASE_METHOD(ConfigTestFixture, "Config: handles deeply nested structures", "[config][edge]") {
     setup_default_config();
 
-    config.set<std::string>("/printers/test_printer/nested/level1/level2/level3", "deep");
-    std::string deep =
-        config.get<std::string>("/printers/test_printer/nested/level1/level2/level3");
+    config.set<std::string>("/printer/nested/level1/level2/level3", "deep");
+    std::string deep = config.get<std::string>("/printer/nested/level1/level2/level3");
     REQUIRE(deep == "deep");
 }
 
@@ -379,6 +363,6 @@ TEST_CASE_METHOD(ConfigTestFixture, "Config: get() with default handles empty co
     // Empty config
     set_data_empty();
 
-    std::string host = config.get<std::string>("/printers/default/moonraker_host", "localhost");
+    std::string host = config.get<std::string>("/printer/moonraker_host", "localhost");
     REQUIRE(host == "localhost");
 }

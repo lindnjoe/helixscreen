@@ -232,7 +232,7 @@ When adding new configuration options:
    {
      "config_path": "helixconfig.json",
      "dark_mode": false,          // NEW: Theme preference
-     "default_printer": "...",
+     "printer": { ... },
      ...
    }
    ```

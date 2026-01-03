@@ -97,11 +97,9 @@ iw wlan0 set power_save off
 **Increase Moonraker timeouts** in helixconfig.json:
 ```json
 {
-  "printers": {
-    "default_printer": {
-      "moonraker_connection_timeout_ms": 15000,
-      "moonraker_request_timeout_ms": 60000
-    }
+  "printer": {
+    "moonraker_connection_timeout_ms": 15000,
+    "moonraker_request_timeout_ms": 60000
   }
 }
 ```

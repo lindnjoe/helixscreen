@@ -3,7 +3,6 @@
   "brightness": 100,
   "config_path": "helixconfig.json",
   "dark_mode": true,
-  "default_printer": "default_printer",
   "display_rotate": 0,
   "display_sleep_sec": 600,
   "gcode_viewer": {
@@ -16,37 +15,35 @@
   },
   "log_level": "warn",
   "log_path": "/tmp/helixscreen.log",
-  "printers": {
-    "default_printer": {
-      "default_macros": {
-        "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
-        "load_filament": "LOAD_FILAMENT",
-        "unload_filament": "UNLOAD_FILAMENT"
-      },
-      "fan": {
-        "hotend": "heater_fan hotend_fan",
-        "part": "fan"
-      },
-      "fans": [],
-      "filament_sensors": {
-        "sensors": null
-      },
-      "heater": {
-        "bed": "heater_bed",
-        "hotend": "extruder"
-      },
-      "led": {
-        "strip": "led chamber_led"
-      },
-      "monitored_sensors": [],
-      "moonraker_api_key": false,
-      "moonraker_host": "127.0.0.1",
-      "moonraker_port": 7125,
-      "sensor": {
-        "bed": "heater_bed",
-        "hotend": "extruder"
-      },
-      "type": "FlashForge Adventurer 5M Pro"
+  "printer": {
+    "type": "FlashForge Adventurer 5M Pro",
+    "moonraker_host": "127.0.0.1",
+    "moonraker_port": 7125,
+    "moonraker_api_key": false,
+    "heater": {
+      "bed": "heater_bed",
+      "hotend": "extruder"
+    },
+    "sensor": {
+      "bed": "heater_bed",
+      "hotend": "extruder"
+    },
+    "fan": {
+      "hotend": "heater_fan hotend_fan",
+      "part": "fan"
+    },
+    "led": {
+      "strip": "led chamber_led"
+    },
+    "fans": [],
+    "monitored_sensors": [],
+    "filament_sensors": {
+      "sensors": null
+    },
+    "default_macros": {
+      "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
+      "load_filament": "LOAD_FILAMENT",
+      "unload_filament": "UNLOAD_FILAMENT"
     }
   },
   "wizard_completed": true
