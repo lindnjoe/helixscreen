@@ -272,7 +272,7 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
         }
 
         if (resp->status_code == 404) {
-            spdlog::error("[Moonraker API] File not found: {}", path);
+            spdlog::debug("[Moonraker API] File not found: {}", path);
             if (on_error) {
                 MoonrakerError err;
                 err.type = MoonrakerErrorType::FILE_NOT_FOUND;
@@ -362,7 +362,7 @@ void MoonrakerAPI::download_file_partial(const std::string& root, const std::str
         }
 
         if (resp->status_code == 404) {
-            spdlog::error("[Moonraker API] File not found: {}", path);
+            spdlog::debug("[Moonraker API] File not found: {}", path);
             if (on_error) {
                 MoonrakerError err;
                 err.type = MoonrakerErrorType::FILE_NOT_FOUND;

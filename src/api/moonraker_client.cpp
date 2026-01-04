@@ -364,7 +364,15 @@ int MoonrakerClient::connect(const char* url, std::function<void()> on_connected
                         error_cb(error);
                     }
                 } else if (success_cb) {
-                    success_cb(j);
+                    try {
+                        success_cb(j);
+                    } catch (const std::exception& e) {
+                        LOG_ERROR_INTERNAL(
+                            "[Moonraker Client] Success callback for '{}' threw exception: {}",
+                            method_name, e.what());
+                        // Re-throw to be caught by outer handler for consistency
+                        throw;
+                    }
                 }
             }
 
@@ -1020,7 +1028,7 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete) {
                 spdlog::debug("[Moonraker Client] Moonraker version: {}", moonraker_version_);
                 spdlog::debug("[Moonraker Client] Klippy version: {}", klippy_version);
 
-                if (result.contains("components")) {
+                if (result.contains("components") && result["components"].is_array()) {
                     std::vector<std::string> components =
                         result["components"].get<std::vector<std::string>>();
                     spdlog::debug("[Moonraker Client] Server components: {}",
@@ -1127,7 +1135,8 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete) {
 
                                 if (mcu_data.contains("mcu_constants") &&
                                     mcu_data["mcu_constants"].is_object() &&
-                                    mcu_data["mcu_constants"].contains("MCU")) {
+                                    mcu_data["mcu_constants"].contains("MCU") &&
+                                    mcu_data["mcu_constants"]["MCU"].is_string()) {
                                     chip_type = mcu_data["mcu_constants"]["MCU"].get<std::string>();
                                     spdlog::debug("[Moonraker Client] Detected MCU '{}': {}",
                                                   mcu_obj, chip_type);
@@ -1451,15 +1460,17 @@ void MoonrakerClient::parse_bed_mesh(const json& bed_mesh) {
                                        : static_cast<int>(active_bed_mesh_.probed_matrix[0].size());
     }
 
-    // Parse mesh bounds
+    // Parse mesh bounds (check that elements are numbers, not null)
     if (bed_mesh.contains("mesh_min") && bed_mesh["mesh_min"].is_array() &&
-        bed_mesh["mesh_min"].size() >= 2) {
+        bed_mesh["mesh_min"].size() >= 2 && bed_mesh["mesh_min"][0].is_number() &&
+        bed_mesh["mesh_min"][1].is_number()) {
         active_bed_mesh_.mesh_min[0] = bed_mesh["mesh_min"][0].template get<float>();
         active_bed_mesh_.mesh_min[1] = bed_mesh["mesh_min"][1].template get<float>();
     }
 
     if (bed_mesh.contains("mesh_max") && bed_mesh["mesh_max"].is_array() &&
-        bed_mesh["mesh_max"].size() >= 2) {
+        bed_mesh["mesh_max"].size() >= 2 && bed_mesh["mesh_max"][0].is_number() &&
+        bed_mesh["mesh_max"][1].is_number()) {
         active_bed_mesh_.mesh_max[0] = bed_mesh["mesh_max"][0].template get<float>();
         active_bed_mesh_.mesh_max[1] = bed_mesh["mesh_max"][1].template get<float>();
     }

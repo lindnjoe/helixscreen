@@ -29,13 +29,14 @@
  * - Static trampolines for LVGL event callbacks
  * - Global singleton getter for backwards compatibility
  *
- * ## Subject Bindings (5 total):
+ * ## Subject Bindings (6 total):
  *
  * - connection_ip (string) - IP address or hostname
  * - connection_port (string) - Port number (default "7125")
- * - connection_status_icon (string) - FontAwesome icon (check/xmark/empty)
+ * - connection_status_icon (string) - MDI icon (check/xmark/empty)
  * - connection_status_text (string) - Status message text
- * - connection_testing (int) - 0=idle, 1=testing (controls spinner)
+ * - connection_testing (int) - 0=idle, 1=testing (disables button)
+ * - connection_discovering (int) - 0=not discovering, 1=discovering (shows spinner)
  *
  * ## External Subject:
  *
@@ -163,12 +164,13 @@ class WizardConnectionStep {
     // Screen instance
     lv_obj_t* screen_root_ = nullptr;
 
-    // Subjects (5 total)
+    // Subjects (6 total)
     lv_subject_t connection_ip_;
     lv_subject_t connection_port_;
     lv_subject_t connection_status_icon_;
     lv_subject_t connection_status_text_;
     lv_subject_t connection_testing_;
+    lv_subject_t connection_discovering_;
 
     // String buffers (must be persistent)
     char connection_ip_buffer_[128];

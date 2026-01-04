@@ -14,6 +14,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "lvgl/lvgl.h"
+#include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "static_panel_registry.h"
 #include "wizard_config_paths.h"
@@ -164,6 +165,7 @@ void WizardConnectionStep::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(connection_status_text_, connection_status_text_buffer_, "",
                                         "connection_status_text");
     UI_SUBJECT_INIT_AND_REGISTER_INT(connection_testing_, 0, "connection_testing");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(connection_discovering_, 0, "connection_discovering");
 
     // Set connection_test_passed to 0 (disabled) for this step
     lv_subject_set_int(&connection_test_passed, 0);
@@ -358,13 +360,19 @@ void WizardConnectionStep::on_connection_success() {
                 spdlog::error("[Wizard Connection] Failed to save config: {}", e.what());
             }
 
-            // Show "discovering" status - don't enable Next yet until discovery completes
-            const char* spinner_icon = lv_xml_get_const(nullptr, "icon_loading");
-            lv_subject_copy_string(&self->connection_status_icon_,
-                                   spinner_icon ? spinner_icon : "");
+            // Show "discovering" status - spinner shows via XML binding
+            lv_subject_set_int(&self->connection_discovering_, 1);
+            lv_subject_copy_string(&self->connection_status_icon_, "");
             lv_subject_copy_string(&self->connection_status_text_,
                                    "Connected! Discovering printer...");
             lv_subject_set_int(&self->connection_testing_, 0);
+
+            // Set HTTP base URL so discovery can make HTTP calls
+            MoonrakerAPI* api = get_moonraker_api();
+            if (api) {
+                std::string http_url = "http://" + ip + ":" + port;
+                api->set_http_base_url(http_url);
+            }
 
             // Trigger hardware discovery - only enable Next when this completes
             MoonrakerClient* client = get_moonraker_client();
@@ -405,6 +413,7 @@ void WizardConnectionStep::on_connection_success() {
                             }
 
                             // NOW enable Next button - discovery is complete
+                            lv_subject_set_int(&self2->connection_discovering_, 0);
                             const char* check_icon = lv_xml_get_const(nullptr, "icon_check_circle");
                             lv_subject_copy_string(&self2->connection_status_icon_,
                                                    check_icon ? check_icon : "");
@@ -417,6 +426,7 @@ void WizardConnectionStep::on_connection_success() {
                 });
             } else {
                 // No client available - still show success but warn
+                lv_subject_set_int(&self->connection_discovering_, 0);
                 const char* check_icon = lv_xml_get_const(nullptr, "icon_check_circle");
                 lv_subject_copy_string(&self->connection_status_icon_,
                                        check_icon ? check_icon : "");
@@ -648,14 +658,20 @@ void WizardConnectionStep::on_auto_probe_success() {
                 }
             }
 
-            // Show "discovering" status - don't enable Next until discovery completes
-            const char* spinner_icon = lv_xml_get_const(nullptr, "icon_loading");
-            lv_subject_copy_string(&self->connection_status_icon_,
-                                   spinner_icon ? spinner_icon : "");
+            // Show "discovering" status - spinner shows via XML binding
+            lv_subject_set_int(&self->connection_discovering_, 1);
+            lv_subject_copy_string(&self->connection_status_icon_, "");
             lv_subject_copy_string(&self->connection_status_text_, "Connected, discovering...");
 
             // Clear testing state
             lv_subject_set_int(&self->connection_testing_, 0);
+
+            // Set HTTP base URL so discovery can make HTTP calls
+            MoonrakerAPI* api = get_moonraker_api();
+            if (api) {
+                std::string http_url = "http://" + ip + ":" + port;
+                api->set_http_base_url(http_url);
+            }
 
             // Trigger hardware discovery - only enable Next when this completes
             MoonrakerClient* client = get_moonraker_client();
@@ -690,6 +706,7 @@ void WizardConnectionStep::on_auto_probe_success() {
                             }
 
                             // NOW enable Next button - discovery is complete
+                            lv_subject_set_int(&self2->connection_discovering_, 0);
                             const char* check_icon = lv_xml_get_const(nullptr, "icon_check_circle");
                             lv_subject_copy_string(&self2->connection_status_icon_,
                                                    check_icon ? check_icon : "");
@@ -702,6 +719,7 @@ void WizardConnectionStep::on_auto_probe_success() {
                 });
             } else {
                 // No client - still show success
+                lv_subject_set_int(&self->connection_discovering_, 0);
                 const char* check_icon = lv_xml_get_const(nullptr, "icon_check_circle");
                 lv_subject_copy_string(&self->connection_status_icon_,
                                        check_icon ? check_icon : "");

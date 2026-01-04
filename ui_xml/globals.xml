@@ -603,6 +603,7 @@
     <str name="icon_wifi_strength_4_lock" value="󰤪"/>
     <str name="icon_wrench" value="󱌣"/>
     <str name="icon_xmark" value="󰅖"/>
+    <str name="icon_xmark_circle" value="󰅙"/>
     <str name="icon_z_closer" value="󰜮"/>
     <str name="icon_z_farther" value="󰜷"/>
     <!-- END GENERATED ICON CONSTS -->

@@ -92,8 +92,8 @@ PrintHistoryJob parse_history_job(const json& job_json) {
     job.filament_used = job_json.value("filament_used", 0.0);
     job.exists = job_json.value("exists", false);
 
-    // Metadata (may be nested)
-    if (job_json.contains("metadata")) {
+    // Metadata (may be nested or null)
+    if (job_json.contains("metadata") && job_json["metadata"].is_object()) {
         const auto& meta = job_json["metadata"];
         job.filament_type = meta.value("filament_type", "");
         job.layer_count = meta.value("layer_count", 0);

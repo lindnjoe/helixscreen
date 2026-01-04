@@ -824,7 +824,7 @@ void PrinterState::update_from_status(const json& state) {
     if (state.contains("manual_probe")) {
         const auto& mp = state["manual_probe"];
 
-        if (mp.contains("is_active")) {
+        if (mp.contains("is_active") && mp["is_active"].is_boolean()) {
             bool is_active = mp["is_active"].get<bool>();
             int old_active = lv_subject_get_int(&manual_probe_active_);
             int new_active = is_active ? 1 : 0;
