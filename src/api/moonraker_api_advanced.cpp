@@ -580,6 +580,175 @@ class InputShaperCollector : public std::enable_shared_from_this<InputShaperColl
     float recommended_freq_ = 0.0f;
 };
 
+/**
+ * @brief State machine for collecting BED_MESH_CALIBRATE progress
+ *
+ * Klipper sends probing progress as console output lines via notify_gcode_response.
+ * This class collects and parses those lines to provide real-time progress updates.
+ *
+ * Expected output formats:
+ *   Probing point 5/25
+ *   Probe point 5 of 25
+ *
+ * Completion markers:
+ *   "Mesh Bed Leveling Complete"
+ *   "Mesh bed leveling complete"
+ *
+ * Error handling:
+ *   - "!! " prefix - Klipper emergency/critical errors
+ *   - "Error:" prefix - Standard Klipper errors
+ *   - "error:" in line - Python traceback errors
+ */
+class BedMeshProgressCollector : public std::enable_shared_from_this<BedMeshProgressCollector> {
+  public:
+    using ProgressCallback = std::function<void(int current, int total)>;
+
+    BedMeshProgressCollector(MoonrakerClient& client, ProgressCallback on_progress,
+                              MoonrakerAPI::SuccessCallback on_complete,
+                              MoonrakerAPI::ErrorCallback on_error)
+        : client_(client), on_progress_(std::move(on_progress)),
+          on_complete_(std::move(on_complete)), on_error_(std::move(on_error)) {}
+
+    ~BedMeshProgressCollector() {
+        unregister();
+    }
+
+    void start() {
+        static std::atomic<uint64_t> s_collector_id{0};
+        handler_name_ = "bed_mesh_collector_" + std::to_string(++s_collector_id);
+
+        auto self = shared_from_this();
+        client_.register_method_callback("notify_gcode_response", handler_name_,
+                                         [self](const json& msg) { self->on_gcode_response(msg); });
+
+        registered_.store(true);
+        spdlog::debug("[BedMeshProgressCollector] Started collecting responses (handler: {})",
+                      handler_name_);
+    }
+
+    void unregister() {
+        bool was_registered = registered_.exchange(false);
+        if (was_registered) {
+            client_.unregister_method_callback("notify_gcode_response", handler_name_);
+            spdlog::debug("[BedMeshProgressCollector] Unregistered callback");
+        }
+    }
+
+    void mark_completed() {
+        completed_.store(true);
+    }
+
+    void on_gcode_response(const json& msg) {
+        if (completed_.load()) {
+            return;
+        }
+
+        // notify_gcode_response format: {"method": "notify_gcode_response", "params": ["line"]}
+        if (!msg.contains("params") || !msg["params"].is_array() || msg["params"].empty()) {
+            return;
+        }
+
+        const std::string& line = msg["params"][0].get_ref<const std::string&>();
+        spdlog::trace("[BedMeshProgressCollector] Received: {}", line);
+
+        // Check for errors first
+        if (line.rfind("!! ", 0) == 0 ||           // Emergency errors
+            line.rfind("Error:", 0) == 0 ||        // Standard errors
+            line.find("error:") != std::string::npos) { // Python traceback
+            complete_error(line);
+            return;
+        }
+
+        // Check for unknown command error
+        if (line.find("Unknown command") != std::string::npos &&
+            line.find("BED_MESH_CALIBRATE") != std::string::npos) {
+            complete_error("BED_MESH_CALIBRATE requires [bed_mesh] in printer.cfg");
+            return;
+        }
+
+        // Try to parse probe progress
+        parse_probe_line(line);
+
+        // Check for completion markers
+        if (line.find("Mesh Bed Leveling Complete") != std::string::npos ||
+            line.find("Mesh bed leveling complete") != std::string::npos) {
+            complete_success();
+            return;
+        }
+    }
+
+  private:
+    void parse_probe_line(const std::string& line) {
+        // Static regex for performance - handles both formats:
+        // "Probing point 5/25" and "Probe point 5 of 25"
+        static const std::regex probe_regex(
+            R"(Prob(?:ing point|e point) (\d+)[/\s]+(?:of\s+)?(\d+))");
+
+        std::smatch match;
+        if (std::regex_search(line, match, probe_regex) && match.size() == 3) {
+            try {
+                int current = std::stoi(match[1].str());
+                int total = std::stoi(match[2].str());
+
+                // Update tracked values
+                current_probe_ = current;
+                total_probes_ = total;
+
+                spdlog::debug("[BedMeshProgressCollector] Progress: {}/{}", current, total);
+
+                // Invoke progress callback
+                if (on_progress_) {
+                    on_progress_(current, total);
+                }
+            } catch (const std::exception& e) {
+                spdlog::warn("[BedMeshProgressCollector] Failed to parse values: {}", e.what());
+            }
+        }
+    }
+
+    void complete_success() {
+        if (completed_.exchange(true)) {
+            return; // Already completed
+        }
+
+        spdlog::info("[BedMeshProgressCollector] Complete ({}/{} probes)", current_probe_,
+                     total_probes_);
+        unregister();
+
+        if (on_complete_) {
+            on_complete_();
+        }
+    }
+
+    void complete_error(const std::string& message) {
+        if (completed_.exchange(true)) {
+            return;
+        }
+
+        spdlog::error("[BedMeshProgressCollector] Error: {}", message);
+        unregister();
+
+        if (on_error_) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::JSON_RPC_ERROR;
+            err.message = message;
+            err.method = "BED_MESH_CALIBRATE";
+            on_error_(err);
+        }
+    }
+
+    MoonrakerClient& client_;
+    ProgressCallback on_progress_;
+    MoonrakerAPI::SuccessCallback on_complete_;
+    MoonrakerAPI::ErrorCallback on_error_;
+    std::string handler_name_;
+    std::atomic<bool> registered_{false};
+    std::atomic<bool> completed_{false};
+
+    int current_probe_ = 0;
+    int total_probes_ = 0;
+};
+
 void MoonrakerAPI::calculate_screws_tilt(ScrewTiltCallback on_success, ErrorCallback on_error) {
     spdlog::info("[Moonraker API] Starting SCREWS_TILT_CALCULATE");
 

@@ -1,0 +1,314 @@
+// Copyright (C) 2025-2026 356C LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file test_bed_mesh_collector.cpp
+ * @brief Unit tests for BedMeshProgressCollector
+ *
+ * Tests the regex parsing, progress callbacks, completion detection,
+ * and error handling for bed mesh calibration progress tracking.
+ */
+
+#include <regex>
+#include <string>
+
+#include "../catch_amalgamated.hpp"
+
+// ============================================================================
+// Regex Parsing Tests (standalone, no collector instance needed)
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief Parse a probe progress line and extract current/total values
+ *
+ * Handles both formats:
+ * - "Probing point 5/25"
+ * - "Probe point 5 of 25"
+ *
+ * @param line The G-code response line to parse
+ * @param current Output: current probe number
+ * @param total Output: total probe count
+ * @return true if line matched and was parsed successfully
+ */
+bool parse_probe_progress(const std::string& line, int& current, int& total) {
+    // Static regex for performance - handles both formats
+    static const std::regex probe_regex(
+        R"(Prob(?:ing point|e point) (\d+)[/\s]+(?:of\s+)?(\d+))");
+
+    std::smatch match;
+    if (std::regex_search(line, match, probe_regex) && match.size() == 3) {
+        try {
+            current = std::stoi(match[1].str());
+            total = std::stoi(match[2].str());
+            return true;
+        } catch (const std::exception&) {
+            return false;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Check if a line indicates mesh calibration completion
+ */
+bool is_completion_line(const std::string& line) {
+    // Case-insensitive check for completion markers
+    return line.find("Mesh Bed Leveling Complete") != std::string::npos ||
+           line.find("Mesh bed leveling complete") != std::string::npos ||
+           (line.find("BED_MESH_CALIBRATE") != std::string::npos && line.find("ok") != std::string::npos);
+}
+
+/**
+ * @brief Check if a line indicates an error
+ */
+bool is_error_line(const std::string& line) {
+    return line.rfind("!! ", 0) == 0 ||        // Emergency errors start with "!! "
+           line.rfind("Error:", 0) == 0 ||     // Standard errors
+           line.find("error:") != std::string::npos; // Python tracebacks
+}
+
+} // namespace
+
+// ============================================================================
+// Regex Parsing Tests
+// ============================================================================
+
+TEST_CASE("BedMeshCollector parses 'Probing point X/Y' format", "[bed_mesh_collector][regex]") {
+    int current = 0, total = 0;
+
+    SECTION("simple case") {
+        REQUIRE(parse_probe_progress("Probing point 5/25", current, total));
+        REQUIRE(current == 5);
+        REQUIRE(total == 25);
+    }
+
+    SECTION("first point") {
+        REQUIRE(parse_probe_progress("Probing point 1/25", current, total));
+        REQUIRE(current == 1);
+        REQUIRE(total == 25);
+    }
+
+    SECTION("last point") {
+        REQUIRE(parse_probe_progress("Probing point 25/25", current, total));
+        REQUIRE(current == 25);
+        REQUIRE(total == 25);
+    }
+
+    SECTION("large grid") {
+        REQUIRE(parse_probe_progress("Probing point 49/100", current, total));
+        REQUIRE(current == 49);
+        REQUIRE(total == 100);
+    }
+
+    SECTION("with prefix text") {
+        REQUIRE(parse_probe_progress("// Probing point 3/9", current, total));
+        REQUIRE(current == 3);
+        REQUIRE(total == 9);
+    }
+}
+
+TEST_CASE("BedMeshCollector parses 'Probe point X of Y' format", "[bed_mesh_collector][regex]") {
+    int current = 0, total = 0;
+
+    SECTION("simple case") {
+        REQUIRE(parse_probe_progress("Probe point 5 of 25", current, total));
+        REQUIRE(current == 5);
+        REQUIRE(total == 25);
+    }
+
+    SECTION("first point") {
+        REQUIRE(parse_probe_progress("Probe point 1 of 16", current, total));
+        REQUIRE(current == 1);
+        REQUIRE(total == 16);
+    }
+
+    SECTION("last point") {
+        REQUIRE(parse_probe_progress("Probe point 16 of 16", current, total));
+        REQUIRE(current == 16);
+        REQUIRE(total == 16);
+    }
+
+    SECTION("large grid") {
+        REQUIRE(parse_probe_progress("Probe point 77 of 144", current, total));
+        REQUIRE(current == 77);
+        REQUIRE(total == 144);
+    }
+}
+
+TEST_CASE("BedMeshCollector rejects invalid lines", "[bed_mesh_collector][regex]") {
+    int current = 0, total = 0;
+
+    SECTION("empty string") {
+        REQUIRE_FALSE(parse_probe_progress("", current, total));
+    }
+
+    SECTION("unrelated gcode output") {
+        REQUIRE_FALSE(parse_probe_progress("ok", current, total));
+        REQUIRE_FALSE(parse_probe_progress("G28", current, total));
+        REQUIRE_FALSE(parse_probe_progress("M104 S200", current, total));
+    }
+
+    SECTION("similar but different text") {
+        REQUIRE_FALSE(parse_probe_progress("Moving to point 5/25", current, total));
+        REQUIRE_FALSE(parse_probe_progress("Point 5 of 25", current, total));
+    }
+
+    SECTION("malformed numbers") {
+        REQUIRE_FALSE(parse_probe_progress("Probing point abc/def", current, total));
+    }
+}
+
+// ============================================================================
+// Completion Detection Tests
+// ============================================================================
+
+TEST_CASE("BedMeshCollector detects completion markers", "[bed_mesh_collector][completion]") {
+    SECTION("standard completion message") {
+        REQUIRE(is_completion_line("Mesh Bed Leveling Complete"));
+    }
+
+    SECTION("lowercase variant") {
+        REQUIRE(is_completion_line("Mesh bed leveling complete"));
+    }
+
+    SECTION("with prefix") {
+        REQUIRE(is_completion_line("// Mesh Bed Leveling Complete"));
+    }
+
+    SECTION("non-completion lines") {
+        REQUIRE_FALSE(is_completion_line("ok"));
+        REQUIRE_FALSE(is_completion_line("Probing point 5/25"));
+        REQUIRE_FALSE(is_completion_line("Moving to bed mesh position"));
+    }
+}
+
+// ============================================================================
+// Error Detection Tests
+// ============================================================================
+
+TEST_CASE("BedMeshCollector detects error markers", "[bed_mesh_collector][error]") {
+    SECTION("emergency error prefix") {
+        REQUIRE(is_error_line("!! Probe triggered prior to move"));
+        REQUIRE(is_error_line("!! Timer too close"));
+    }
+
+    SECTION("standard error prefix") {
+        REQUIRE(is_error_line("Error: Probe failed to trigger"));
+        REQUIRE(is_error_line("Error: Heater extruder not heating at expected rate"));
+    }
+
+    SECTION("python traceback error") {
+        REQUIRE(is_error_line("klippy/extras/probe.py:123: error: probe not found"));
+    }
+
+    SECTION("non-error lines") {
+        REQUIRE_FALSE(is_error_line("ok"));
+        REQUIRE_FALSE(is_error_line("Probing point 5/25"));
+        REQUIRE_FALSE(is_error_line("// Comment with error word"));
+        REQUIRE_FALSE(is_error_line("B:60.0 /60.0 T0:200.0 /200.0"));
+    }
+}
+
+// ============================================================================
+// Progress Callback Integration Tests
+// ============================================================================
+
+TEST_CASE("BedMeshCollector progress callback receives correct values",
+          "[bed_mesh_collector][callback]") {
+    // Simulate what the collector would do with parsed values
+    std::vector<std::pair<int, int>> progress_calls;
+
+    auto on_progress = [&progress_calls](int current, int total) {
+        progress_calls.push_back({current, total});
+    };
+
+    // Simulate parsing a sequence of lines
+    std::vector<std::string> lines = {
+        "// Moving to first probe position",
+        "Probing point 1/9",
+        "Probing point 2/9",
+        "Probing point 3/9",
+        "// Probe result: z=0.125",
+        "Probing point 4/9",
+        "Probing point 5/9",
+        "Probing point 6/9",
+        "Probing point 7/9",
+        "Probing point 8/9",
+        "Probing point 9/9",
+        "Mesh Bed Leveling Complete",
+    };
+
+    for (const auto& line : lines) {
+        int current = 0, total = 0;
+        if (parse_probe_progress(line, current, total)) {
+            on_progress(current, total);
+        }
+    }
+
+    REQUIRE(progress_calls.size() == 9);
+    REQUIRE(progress_calls[0] == std::make_pair(1, 9));
+    REQUIRE(progress_calls[4] == std::make_pair(5, 9));
+    REQUIRE(progress_calls[8] == std::make_pair(9, 9));
+}
+
+TEST_CASE("BedMeshCollector handles mixed format progress lines",
+          "[bed_mesh_collector][callback]") {
+    std::vector<std::pair<int, int>> progress_calls;
+
+    auto on_progress = [&progress_calls](int current, int total) {
+        progress_calls.push_back({current, total});
+    };
+
+    // Some printers might use different formats
+    std::vector<std::string> lines = {
+        "Probe point 1 of 25",
+        "Probing point 2/25",
+        "Probe point 3 of 25",
+        "Probing point 4/25",
+    };
+
+    for (const auto& line : lines) {
+        int current = 0, total = 0;
+        if (parse_probe_progress(line, current, total)) {
+            on_progress(current, total);
+        }
+    }
+
+    REQUIRE(progress_calls.size() == 4);
+    // All should parse to same total
+    for (const auto& call : progress_calls) {
+        REQUIRE(call.second == 25);
+    }
+    REQUIRE(progress_calls[0].first == 1);
+    REQUIRE(progress_calls[1].first == 2);
+    REQUIRE(progress_calls[2].first == 3);
+    REQUIRE(progress_calls[3].first == 4);
+}
+
+// ============================================================================
+// Edge Cases
+// ============================================================================
+
+TEST_CASE("BedMeshCollector handles edge case probe counts", "[bed_mesh_collector][edge]") {
+    int current = 0, total = 0;
+
+    SECTION("minimum grid (2x2 = 4 points)") {
+        REQUIRE(parse_probe_progress("Probing point 1/4", current, total));
+        REQUIRE(current == 1);
+        REQUIRE(total == 4);
+    }
+
+    SECTION("large grid (20x20 = 400 points)") {
+        REQUIRE(parse_probe_progress("Probing point 399/400", current, total));
+        REQUIRE(current == 399);
+        REQUIRE(total == 400);
+    }
+
+    SECTION("adaptive mesh with odd count") {
+        REQUIRE(parse_probe_progress("Probing point 17/37", current, total));
+        REQUIRE(current == 17);
+        REQUIRE(total == 37);
+    }
+}
