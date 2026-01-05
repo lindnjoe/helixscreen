@@ -65,6 +65,8 @@ BedMeshPanel::BedMeshPanel() {
     std::memset(min_value_buf_, 0, sizeof(min_value_buf_));
     std::memset(variance_buf_, 0, sizeof(variance_buf_));
     std::memset(rename_old_name_buf_, 0, sizeof(rename_old_name_buf_));
+    std::memset(probe_text_buf_, 0, sizeof(probe_text_buf_));
+    std::memset(error_message_buf_, 0, sizeof(error_message_buf_));
 
     // Initialize profile buffers
     for (int i = 0; i < BED_MESH_MAX_PROFILES; i++) {
@@ -169,6 +171,14 @@ void BedMeshPanel::init_subjects() {
                                         "bed_mesh_rename_old_name");
     // Note: All modals now use ui_modal_show() pattern instead of visibility subjects
 
+    // Calibration state machine subjects
+    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_calibrate_state_, 0, "bed_mesh_calibrate_state");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_mesh_probe_progress_, 0, "bed_mesh_probe_progress");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_mesh_probe_text_, probe_text_buf_, "Preparing...",
+                                        "bed_mesh_probe_text");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_mesh_error_message_, error_message_buf_, "",
+                                        "bed_mesh_error_message");
+
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized and registered", get_name());
 }
@@ -201,6 +211,12 @@ void BedMeshPanel::deinit_subjects() {
     // Modal state subjects
     lv_subject_deinit(&bed_mesh_calibrating_);
     lv_subject_deinit(&bed_mesh_rename_old_name_);
+
+    // Calibration state machine subjects
+    lv_subject_deinit(&bed_mesh_calibrate_state_);
+    lv_subject_deinit(&bed_mesh_probe_progress_);
+    lv_subject_deinit(&bed_mesh_probe_text_);
+    lv_subject_deinit(&bed_mesh_error_message_);
 
     subjects_initialized_ = false;
     spdlog::debug("[{}] Subjects deinitialized", get_name());
@@ -915,6 +931,46 @@ void BedMeshPanel::execute_save_config() {
             spdlog::error("[{}] Failed to save config: {}", get_name(), err.message);
             NOTIFY_ERROR("Failed to save configuration");
         });
+}
+
+// ============================================================================
+// Calibration Progress Handlers
+// ============================================================================
+
+void BedMeshPanel::on_probe_progress(int current, int total) {
+    int progress = (total > 0) ? (current * 100 / total) : 0;
+    lv_subject_set_int(&bed_mesh_probe_progress_, progress);
+
+    std::snprintf(probe_text_buf_, sizeof(probe_text_buf_), "Probing point %d of %d", current,
+                  total);
+    lv_subject_copy_string(&bed_mesh_probe_text_, probe_text_buf_);
+
+    spdlog::debug("[BedMeshPanel] Probe progress: {}/{} ({}%)", current, total, progress);
+}
+
+void BedMeshPanel::on_calibration_complete() {
+    spdlog::info("[BedMeshPanel] Calibration complete, transitioning to naming state");
+    lv_subject_set_int(&bed_mesh_calibrate_state_,
+                       static_cast<int>(BedMeshCalibrationState::NAMING));
+}
+
+void BedMeshPanel::on_calibration_error(const std::string& message) {
+    spdlog::error("[BedMeshPanel] Calibration error: {}", message);
+    std::strncpy(error_message_buf_, message.c_str(), sizeof(error_message_buf_) - 1);
+    error_message_buf_[sizeof(error_message_buf_) - 1] = '\0';
+    lv_subject_copy_string(&bed_mesh_error_message_, error_message_buf_);
+    lv_subject_set_int(&bed_mesh_calibrate_state_,
+                       static_cast<int>(BedMeshCalibrationState::ERROR));
+}
+
+void BedMeshPanel::handle_emergency_stop() {
+    spdlog::warn("[BedMeshPanel] Emergency stop requested during calibration");
+    // Will be implemented in Phase 5
+}
+
+void BedMeshPanel::save_profile_with_name(const std::string& name) {
+    spdlog::info("[BedMeshPanel] Saving profile: {}", name);
+    // Will be implemented in Phase 5
 }
 
 // ============================================================================

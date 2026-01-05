@@ -29,6 +29,14 @@
 // Maximum number of profiles displayed in UI
 constexpr int BED_MESH_MAX_PROFILES = 5;
 
+/// Calibration modal state machine
+enum class BedMeshCalibrationState {
+    IDLE = 0,    ///< Modal not shown
+    PROBING = 1, ///< Actively probing (progress shown)
+    NAMING = 2,  ///< Probing complete, awaiting profile name
+    ERROR = 3    ///< Error occurred
+};
+
 class BedMeshPanel : public OverlayBase {
   public:
     BedMeshPanel();
@@ -76,6 +84,13 @@ class BedMeshPanel : public OverlayBase {
     void start_calibration_with_name(const std::string& profile_name);
     void confirm_rename(const std::string& new_name);
 
+    // Calibration progress handlers (called by BedMeshProbeCollector)
+    void on_probe_progress(int current, int total);
+    void on_calibration_complete();
+    void on_calibration_error(const std::string& message);
+    void handle_emergency_stop();
+    void save_profile_with_name(const std::string& name);
+
   private:
     // ========== Current Mesh Stats Subjects ==========
     lv_subject_t bed_mesh_available_;
@@ -113,6 +128,15 @@ class BedMeshPanel : public OverlayBase {
     lv_subject_t bed_mesh_rename_old_name_; // Display the old name in rename modal
 
     char rename_old_name_buf_[64];
+
+    // ========== Calibration Progress Subjects ==========
+    lv_subject_t bed_mesh_calibrate_state_;  ///< CalibrationState enum value
+    lv_subject_t bed_mesh_probe_progress_;   ///< 0-100 percentage
+    lv_subject_t bed_mesh_probe_text_;       ///< "Probing point 5 of 25"
+    lv_subject_t bed_mesh_error_message_;    ///< Error message if failed
+
+    char probe_text_buf_[64];      ///< Buffer for probe_text_ subject
+    char error_message_buf_[256];  ///< Buffer for error_message_ subject
 
     // ========== Modal Widget Pointers (uses ui_modal_show pattern) ==========
     lv_obj_t* calibrate_modal_widget_ = nullptr;
