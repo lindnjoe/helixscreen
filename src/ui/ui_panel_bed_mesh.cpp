@@ -50,6 +50,8 @@ static void on_delete_cancel_cb(lv_event_t* e);
 static void on_delete_confirm_cb(lv_event_t* e);
 static void on_save_config_no_cb(lv_event_t* e);
 static void on_save_config_yes_cb(lv_event_t* e);
+static void on_emergency_stop_cb(lv_event_t* e);
+static void on_save_profile_cb(lv_event_t* e);
 
 // ============================================================================
 // Constructor / Destructor
@@ -370,6 +372,10 @@ void BedMeshPanel::register_callbacks() {
     // Save config modal
     lv_xml_register_event_cb(nullptr, "on_bed_mesh_save_config_no", on_save_config_no_cb);
     lv_xml_register_event_cb(nullptr, "on_bed_mesh_save_config_yes", on_save_config_yes_cb);
+
+    // Calibration modal - emergency stop and save profile
+    lv_xml_register_event_cb(nullptr, "on_bed_mesh_emergency_stop", on_emergency_stop_cb);
+    lv_xml_register_event_cb(nullptr, "on_bed_mesh_save_profile", on_save_profile_cb);
 
     callbacks_registered_ = true;
     spdlog::debug("[{}] Event callbacks registered", get_name());
@@ -714,7 +720,64 @@ void BedMeshPanel::rename_profile(int index) {
 }
 
 void BedMeshPanel::start_calibration() {
-    show_calibrate_modal();
+    // Reset state to PROBING
+    lv_subject_set_int(&bed_mesh_calibrate_state_,
+                       static_cast<int>(BedMeshCalibrationState::PROBING));
+    lv_subject_set_int(&bed_mesh_probe_progress_, 0);
+    lv_subject_copy_string(&bed_mesh_probe_text_, "Preparing...");
+
+    // Show modal immediately
+    calibrate_modal_widget_ = ui_modal_show("bed_mesh_calibrate_modal");
+    spdlog::debug("[BedMeshPanel] Starting calibration, modal shown");
+
+    // Get API
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        on_calibration_error("API not available");
+        return;
+    }
+
+    // Capture alive flag for callback safety
+    auto alive = alive_;
+
+    // Start calibration with progress tracking
+    api->start_bed_mesh_calibrate(
+        // Progress callback (from WebSocket thread)
+        [this, alive](int current, int total) {
+            if (!alive->load())
+                return;
+            // Must use ui_async_call for thread safety [L012]
+            auto* ctx = new std::tuple<BedMeshPanel*, int, int>{this, current, total};
+            ui_async_call(
+                [](void* data) {
+                    auto* c = static_cast<std::tuple<BedMeshPanel*, int, int>*>(data);
+                    std::get<0>(*c)->on_probe_progress(std::get<1>(*c), std::get<2>(*c));
+                    delete c;
+                },
+                ctx);
+        },
+        // Complete callback (from WebSocket thread)
+        [this, alive]() {
+            if (!alive->load())
+                return;
+            ui_async_call(
+                [](void* data) { static_cast<BedMeshPanel*>(data)->on_calibration_complete(); },
+                this);
+        },
+        // Error callback (from WebSocket thread)
+        [this, alive](const MoonrakerError& err) {
+            if (!alive->load())
+                return;
+            std::string msg = err.message;
+            auto* ctx = new std::pair<BedMeshPanel*, std::string>{this, std::move(msg)};
+            ui_async_call(
+                [](void* data) {
+                    auto* c = static_cast<std::pair<BedMeshPanel*, std::string>*>(data);
+                    c->first->on_calibration_error(c->second);
+                    delete c;
+                },
+                ctx);
+        });
 }
 
 // ============================================================================
@@ -763,8 +826,10 @@ void BedMeshPanel::show_save_config_modal() {
 }
 
 void BedMeshPanel::hide_all_modals() {
-    // Reset calibrating state
+    // Reset calibration state machine
     lv_subject_set_int(&bed_mesh_calibrating_, 0);
+    lv_subject_set_int(&bed_mesh_calibrate_state_,
+                       static_cast<int>(BedMeshCalibrationState::IDLE));
 
     // Hide all modals (all use ui_modal_hide pattern now)
     if (calibrate_modal_widget_) {
@@ -964,13 +1029,50 @@ void BedMeshPanel::on_calibration_error(const std::string& message) {
 }
 
 void BedMeshPanel::handle_emergency_stop() {
-    spdlog::warn("[BedMeshPanel] Emergency stop requested during calibration");
-    // Will be implemented in Phase 5
+    spdlog::warn("[BedMeshPanel] Emergency stop during bed mesh calibration");
+
+    MoonrakerAPI* api = get_moonraker_api();
+    if (api) {
+        api->emergency_stop(
+            []() { spdlog::info("[BedMeshPanel] Emergency stop sent"); },
+            [](const MoonrakerError& err) {
+                spdlog::error("[BedMeshPanel] Emergency stop failed: {}", err.message);
+            });
+    }
+
+    // Close modal and reset state
+    hide_all_modals();
+    lv_subject_set_int(&bed_mesh_calibrate_state_,
+                       static_cast<int>(BedMeshCalibrationState::IDLE));
 }
 
 void BedMeshPanel::save_profile_with_name(const std::string& name) {
-    spdlog::info("[BedMeshPanel] Saving profile: {}", name);
-    // Will be implemented in Phase 5
+    spdlog::info("[BedMeshPanel] Saving mesh profile: {}", name);
+
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        hide_all_modals();
+        return;
+    }
+
+    std::string cmd = "BED_MESH_PROFILE SAVE=" + name;
+    api->execute_gcode(
+        cmd,
+        [this, name]() {
+            spdlog::info("[BedMeshPanel] Profile saved: {}", name);
+            NOTIFY_SUCCESS("Mesh saved as '" + name + "'");
+            hide_all_modals();
+            lv_subject_set_int(&bed_mesh_calibrate_state_,
+                               static_cast<int>(BedMeshCalibrationState::IDLE));
+            // Prompt to save config
+            pending_operation_ = PendingOperation::Calibrate;
+            show_save_config_modal();
+        },
+        [this](const MoonrakerError& err) {
+            spdlog::error("[BedMeshPanel] Failed to save profile: {}", err.message);
+            NOTIFY_ERROR("Failed to save profile");
+            hide_all_modals();
+        });
 }
 
 // ============================================================================
@@ -1090,6 +1192,28 @@ static void on_save_config_no_cb(lv_event_t* /*e*/) {
 
 static void on_save_config_yes_cb(lv_event_t* /*e*/) {
     get_global_bed_mesh_panel().confirm_save_config();
+}
+
+static void on_emergency_stop_cb(lv_event_t* /*e*/) {
+    get_global_bed_mesh_panel().handle_emergency_stop();
+}
+
+static void on_save_profile_cb(lv_event_t* /*e*/) {
+    // Find the input field in the modal
+    lv_obj_t* input = lv_obj_find_by_name(lv_layer_top(), "calibrate_profile_name_input");
+    if (!input) {
+        input = lv_obj_find_by_name(lv_screen_active(), "calibrate_profile_name_input");
+    }
+
+    std::string profile_name = "default";
+    if (input) {
+        const char* text = lv_textarea_get_text(input);
+        if (text && std::strlen(text) > 0) {
+            profile_name = text;
+        }
+    }
+
+    get_global_bed_mesh_panel().save_profile_with_name(profile_name);
 }
 
 // ============================================================================

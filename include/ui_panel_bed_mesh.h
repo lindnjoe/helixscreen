@@ -130,13 +130,13 @@ class BedMeshPanel : public OverlayBase {
     char rename_old_name_buf_[64];
 
     // ========== Calibration Progress Subjects ==========
-    lv_subject_t bed_mesh_calibrate_state_;  ///< CalibrationState enum value
-    lv_subject_t bed_mesh_probe_progress_;   ///< 0-100 percentage
-    lv_subject_t bed_mesh_probe_text_;       ///< "Probing point 5 of 25"
-    lv_subject_t bed_mesh_error_message_;    ///< Error message if failed
+    lv_subject_t bed_mesh_calibrate_state_; ///< CalibrationState enum value
+    lv_subject_t bed_mesh_probe_progress_;  ///< 0-100 percentage
+    lv_subject_t bed_mesh_probe_text_;      ///< "Probing point 5 of 25"
+    lv_subject_t bed_mesh_error_message_;   ///< Error message if failed
 
-    char probe_text_buf_[64];      ///< Buffer for probe_text_ subject
-    char error_message_buf_[256];  ///< Buffer for error_message_ subject
+    char probe_text_buf_[64];     ///< Buffer for probe_text_ subject
+    char error_message_buf_[256]; ///< Buffer for error_message_ subject
 
     // ========== Modal Widget Pointers (uses ui_modal_show pattern) ==========
     lv_obj_t* calibrate_modal_widget_ = nullptr;
@@ -154,7 +154,7 @@ class BedMeshPanel : public OverlayBase {
     std::string pending_delete_profile_;
     std::string pending_rename_old_;
     std::string pending_rename_new_;
-    enum class PendingOperation { None, Delete, Rename };
+    enum class PendingOperation { None, Delete, Rename, Calibrate };
     PendingOperation pending_operation_ = PendingOperation::None;
 
     // Destruction flag for async callback safety [L012]

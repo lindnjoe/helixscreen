@@ -624,11 +624,18 @@ void MoonrakerAPIMock::reset_mock_bed_state() {
 }
 
 void MoonrakerAPIMock::start_bed_mesh_calibrate(BedMeshProgressCallback on_progress,
-                                                 SuccessCallback on_complete,
-                                                 ErrorCallback /*on_error*/) {
-    spdlog::warn("[MoonrakerAPIMock] start_bed_mesh_calibrate() - mock implementation pending");
-    // TODO: Phase 6 will add proper mock simulation with progress callbacks
-    (void)on_progress; // Unused for now
+                                                SuccessCallback on_complete,
+                                                ErrorCallback /*on_error*/) {
+    spdlog::info("[MoonrakerAPIMock] start_bed_mesh_calibrate() - simulating quick progress");
+
+    // Simulate 25 probe points with rapid progress for testing
+    constexpr int total_points = 25;
+    for (int i = 1; i <= total_points; i++) {
+        if (on_progress) {
+            on_progress(i, total_points);
+        }
+    }
+
     if (on_complete) {
         on_complete();
     }
