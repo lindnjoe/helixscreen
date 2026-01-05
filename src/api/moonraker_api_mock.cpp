@@ -623,6 +623,17 @@ void MoonrakerAPIMock::reset_mock_bed_state() {
     spdlog::info("[MoonrakerAPIMock] Mock bed state reset");
 }
 
+void MoonrakerAPIMock::start_bed_mesh_calibrate(BedMeshProgressCallback on_progress,
+                                                 SuccessCallback on_complete,
+                                                 ErrorCallback /*on_error*/) {
+    spdlog::warn("[MoonrakerAPIMock] start_bed_mesh_calibrate() - mock implementation pending");
+    // TODO: Phase 6 will add proper mock simulation with progress callbacks
+    (void)on_progress; // Unused for now
+    if (on_complete) {
+        on_complete();
+    }
+}
+
 // ============================================================================
 // MoonrakerAPIMock - Spoolman Override
 // ============================================================================

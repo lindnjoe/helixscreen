@@ -55,6 +55,9 @@ class MoonrakerAPI {
      */
     using ProgressCallback = std::function<void(size_t current, size_t total)>;
 
+    /// Progress callback for bed mesh calibration: (current_probe, total_probes)
+    using BedMeshProgressCallback = std::function<void(int current, int total)>;
+
     /**
      * @brief Constructor
      *
@@ -878,17 +881,17 @@ class MoonrakerAPI {
     // ========================================================================
 
     /**
-     * @brief Start automatic bed mesh calibration
+     * @brief Start automatic bed mesh calibration with progress tracking
      *
-     * Executes BED_MESH_CALIBRATE command with optional profile name.
-     * The operation runs asynchronously; completion is signaled via callback.
+     * Executes BED_MESH_CALIBRATE command and tracks probe progress via
+     * notify_gcode_response parsing.
      *
-     * @param profile_name Profile name to save (empty for "default")
-     * @param on_success Called when calibration completes
+     * @param on_progress Called for each probe point (current, total)
+     * @param on_complete Called when calibration completes successfully
      * @param on_error Called on failure
      */
-    virtual void start_bed_mesh_calibrate(const std::string& profile_name,
-                                          SuccessCallback on_success, ErrorCallback on_error);
+    virtual void start_bed_mesh_calibrate(BedMeshProgressCallback on_progress,
+                                          SuccessCallback on_complete, ErrorCallback on_error);
 
     /**
      * @brief Calculate screw adjustments for manual bed leveling

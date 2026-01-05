@@ -285,6 +285,19 @@ class MoonrakerAPIMock : public MoonrakerAPI {
     // ========================================================================
 
     /**
+     * @brief Mock bed mesh calibration with progress simulation
+     *
+     * Logs the call and immediately calls on_complete for now.
+     * Phase 6 will add proper progress simulation.
+     *
+     * @param on_progress Progress callback (current, total)
+     * @param on_complete Completion callback
+     * @param on_error Error callback (rarely called - mock usually succeeds)
+     */
+    void start_bed_mesh_calibrate(BedMeshProgressCallback on_progress, SuccessCallback on_complete,
+                                  ErrorCallback on_error) override;
+
+    /**
      * @brief Simulate SCREWS_TILT_CALCULATE with iterative bed leveling
      *
      * First call returns screws out of level. Subsequent calls show

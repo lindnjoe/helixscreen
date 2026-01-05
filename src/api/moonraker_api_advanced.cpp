@@ -135,18 +135,7 @@ void MoonrakerAPI::get_available_objects(
 // ADVANCED PANEL STUB IMPLEMENTATIONS
 // ============================================================================
 // These methods are placeholders for future implementation.
-
-void MoonrakerAPI::start_bed_mesh_calibrate(const std::string& /*profile_name*/,
-                                            SuccessCallback /*on_success*/,
-                                            ErrorCallback on_error) {
-    spdlog::warn("[Moonraker API] start_bed_mesh_calibrate() not yet implemented");
-    if (on_error) {
-        MoonrakerError err;
-        err.type = MoonrakerErrorType::UNKNOWN;
-        err.message = "Bed mesh calibration not yet implemented";
-        on_error(err);
-    }
-}
+// NOTE: start_bed_mesh_calibrate is implemented after BedMeshProgressCollector class below.
 
 /**
  * @brief State machine for collecting SCREWS_TILT_CALCULATE responses
@@ -604,8 +593,8 @@ class BedMeshProgressCollector : public std::enable_shared_from_this<BedMeshProg
     using ProgressCallback = std::function<void(int current, int total)>;
 
     BedMeshProgressCollector(MoonrakerClient& client, ProgressCallback on_progress,
-                              MoonrakerAPI::SuccessCallback on_complete,
-                              MoonrakerAPI::ErrorCallback on_error)
+                             MoonrakerAPI::SuccessCallback on_complete,
+                             MoonrakerAPI::ErrorCallback on_error)
         : client_(client), on_progress_(std::move(on_progress)),
           on_complete_(std::move(on_complete)), on_error_(std::move(on_error)) {}
 
@@ -652,8 +641,8 @@ class BedMeshProgressCollector : public std::enable_shared_from_this<BedMeshProg
         spdlog::trace("[BedMeshProgressCollector] Received: {}", line);
 
         // Check for errors first
-        if (line.rfind("!! ", 0) == 0 ||           // Emergency errors
-            line.rfind("Error:", 0) == 0 ||        // Standard errors
+        if (line.rfind("!! ", 0) == 0 ||                // Emergency errors
+            line.rfind("Error:", 0) == 0 ||             // Standard errors
             line.find("error:") != std::string::npos) { // Python traceback
             complete_error(line);
             return;
@@ -748,6 +737,34 @@ class BedMeshProgressCollector : public std::enable_shared_from_this<BedMeshProg
     int current_probe_ = 0;
     int total_probes_ = 0;
 };
+
+void MoonrakerAPI::start_bed_mesh_calibrate(BedMeshProgressCallback on_progress,
+                                            SuccessCallback on_complete,
+                                            ErrorCallback on_error) {
+    spdlog::info("[MoonrakerAPI] Starting bed mesh calibration with progress tracking");
+
+    // Create collector to track progress
+    auto collector = std::make_shared<BedMeshProgressCollector>(client_, std::move(on_progress),
+                                                                 std::move(on_complete), on_error);
+
+    collector->start();
+
+    // Execute the calibration command
+    // Note: No PROFILE= parameter - user will name the mesh after completion
+    execute_gcode(
+        "BED_MESH_CALIBRATE",
+        [collector]() {
+            // Command accepted - collector will handle completion via gcode_response
+            spdlog::debug("[MoonrakerAPI] BED_MESH_CALIBRATE command accepted");
+        },
+        [collector, on_error](const MoonrakerError& err) {
+            spdlog::error("[MoonrakerAPI] BED_MESH_CALIBRATE failed: {}", err.message);
+            collector->mark_completed(); // Stop listening
+            if (on_error) {
+                on_error(err);
+            }
+        });
+}
 
 void MoonrakerAPI::calculate_screws_tilt(ScrewTiltCallback on_success, ErrorCallback on_error) {
     spdlog::info("[Moonraker API] Starting SCREWS_TILT_CALCULATE");
