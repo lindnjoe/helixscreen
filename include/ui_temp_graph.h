@@ -1,6 +1,36 @@
 // Copyright (C) 2025-2026 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_temp_graph.h
+ * @brief Real-time temperature graph widget with gradient fills and target lines
+ *
+ * Usage:
+ * @code
+ *   // Create and configure
+ *   ui_temp_graph_t* graph = ui_temp_graph_create(parent);
+ *   int nozzle = ui_temp_graph_add_series(graph, "Nozzle", lv_color_hex(0xFF4444));
+ *   int bed = ui_temp_graph_add_series(graph, "Bed", lv_color_hex(0x44FF44));
+ *
+ *   // Set targets (shows horizontal line)
+ *   ui_temp_graph_set_series_target(graph, nozzle, 210.0f, true);
+ *
+ *   // Update in your temp callback (push mode - one value at a time)
+ *   ui_temp_graph_update_series(graph, nozzle, current_temp);
+ *
+ *   // Cleanup
+ *   ui_temp_graph_destroy(graph);
+ * @endcode
+ *
+ * Recommended colors:
+ *   - Nozzle:  0xFF4444 (red)
+ *   - Bed:     0x44FF44 (green)
+ *   - Chamber: 0x4444FF (blue)
+ *   - Ambient: 0xFFAA44 (orange)
+ *
+ * Performance: ~2.4KB per series (300 points × 8 bytes). Update is O(1) circular buffer.
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"
