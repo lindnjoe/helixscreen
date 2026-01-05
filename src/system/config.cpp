@@ -39,7 +39,7 @@ json get_default_printer_config(const std::string& moonraker_host) {
             {"heaters", {{"bed", "heater_bed"}, {"hotend", "extruder"}}},
             {"temp_sensors", {{"bed", "heater_bed"}, {"hotend", "extruder"}}},
             {"fans", {{"part", "fan"}, {"hotend", "heater_fan hotend_fan"}}},
-            {"leds", {{"strip", "neopixel chamber_light"}}},
+            {"leds", {{"strip", ""}}}, // Empty default - wizard will auto-detect
             {"extra_sensors", json::object()},
             {"hardware",
              {{"optional", json::array()},

@@ -56,26 +56,43 @@ int restore_dropdown_selection(lv_obj_t* dropdown, lv_subject_t* subject,
                                const PrinterHardware* hw,
                                std::function<std::string(const PrinterHardware&)> guess_method_fn,
                                const char* log_prefix) {
-    int selected_index = 0; // Default to first option
+    int selected_index = 0;
 
-    Config* config = Config::get_instance();
-    if (config) {
-        // Try to restore from saved config
-        std::string saved_item = config->get<std::string>(config_path, "");
-        if (!saved_item.empty()) {
-            // Search for saved name in items
-            selected_index = find_item_index(items, saved_item, 0);
-            if (selected_index > 0 || (!items.empty() && items[0] == saved_item)) {
-                spdlog::debug("{} Restored selection: {}", log_prefix, saved_item);
+    // Count real items (excluding "None")
+    size_t real_item_count =
+        std::count_if(items.begin(), items.end(), [](const auto& s) { return s != "None"; });
+
+    // Helper to try finding an item and log the result
+    auto try_select = [&](const std::string& name, const char* reason) -> bool {
+        if (name.empty())
+            return false;
+        int idx = find_item_index(items, name, -1);
+        if (idx >= 0) {
+            selected_index = idx;
+            spdlog::debug("{} {}: {}", log_prefix, reason, name);
+            return true;
+        }
+        return false;
+    };
+
+    // Priority 1: If only ONE real hardware option, auto-select it
+    // (handles non-standard names like "bed_heater" instead of "heater_bed")
+    if (real_item_count == 1 && !items.empty() && items[0] != "None") {
+        spdlog::debug("{} Single option available, auto-selecting: {}", log_prefix, items[0]);
+    }
+    // Priority 2: Try to restore from saved config
+    else if (Config* config = Config::get_instance()) {
+        std::string saved = config->get<std::string>(config_path, "");
+        if (!saved.empty() && try_select(saved, "Restored selection")) {
+            // Found saved item
+        } else {
+            // Priority 3: Saved not found or empty - try guessing
+            if (!saved.empty()) {
+                spdlog::debug("{} Saved '{}' not in available hardware, trying auto-detect",
+                              log_prefix, saved);
             }
-        } else if (hw && guess_method_fn) {
-            // No saved config, try guessing via PrinterHardware
-            std::string guessed = guess_method_fn(*hw);
-            if (!guessed.empty()) {
-                selected_index = find_item_index(items, guessed, 0);
-                if (selected_index > 0 || (!items.empty() && items[0] == guessed)) {
-                    spdlog::debug("{} Auto-selected: {}", log_prefix, guessed);
-                }
+            if (hw && guess_method_fn) {
+                try_select(guess_method_fn(*hw), "Auto-selected");
             }
         }
     }
@@ -88,8 +105,8 @@ int restore_dropdown_selection(lv_obj_t* dropdown, lv_subject_t* subject,
         lv_subject_set_int(subject, selected_index);
     }
 
-    spdlog::debug("{} Configured dropdown with {} options, selected index: {}", log_prefix,
-                  items.size(), selected_index);
+    spdlog::debug("{} Configured dropdown: {} options, selected index {}", log_prefix, items.size(),
+                  selected_index);
 
     return selected_index;
 }
