@@ -932,8 +932,7 @@ void TempControlPanel::update_nozzle_status() {
         400;                                 // 40°C - above this when off = "cooling down"
     constexpr int TEMP_TOLERANCE_CENTI = 20; // 2°C - within this of target = "at target"
 
-    // Convert to degrees for display
-    int current_deg = nozzle_current_ / 10;
+    // Convert target to degrees for display (current temp shown separately in UI)
     int target_deg = nozzle_target_ / 10;
 
     if (nozzle_target_ > 0 && nozzle_current_ < nozzle_target_ - TEMP_TOLERANCE_CENTI) {
@@ -945,8 +944,7 @@ void TempControlPanel::update_nozzle_status() {
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "At target temperature");
     } else if (nozzle_target_ == 0 && nozzle_current_ > NOZZLE_COOLING_THRESHOLD_CENTI) {
         // Cooling down (heater off but still hot)
-        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Cooling down (%d°C)",
-                 current_deg);
+        snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Cooling down");
     } else {
         // Idle (heater off and cool)
         snprintf(nozzle_status_buf_.data(), nozzle_status_buf_.size(), "Idle");
@@ -974,8 +972,7 @@ void TempControlPanel::update_bed_status() {
     constexpr int BED_COOLING_THRESHOLD_CENTI = 350; // 35°C - above this when off = "cooling down"
     constexpr int TEMP_TOLERANCE_CENTI = 20;         // 2°C - within this of target = "at target"
 
-    // Convert to degrees for display
-    int current_deg = bed_current_ / 10;
+    // Convert target to degrees for display (current temp shown separately in UI)
     int target_deg = bed_target_ / 10;
 
     if (bed_target_ > 0 && bed_current_ < bed_target_ - TEMP_TOLERANCE_CENTI) {
@@ -986,8 +983,7 @@ void TempControlPanel::update_bed_status() {
         snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "At target temperature");
     } else if (bed_target_ == 0 && bed_current_ > BED_COOLING_THRESHOLD_CENTI) {
         // Cooling down (heater off but still hot)
-        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Cooling down (%d°C)",
-                 current_deg);
+        snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Cooling down");
     } else {
         // Idle (heater off and cool)
         snprintf(bed_status_buf_.data(), bed_status_buf_.size(), "Idle");
