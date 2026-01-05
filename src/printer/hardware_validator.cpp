@@ -464,6 +464,72 @@ void HardwareValidator::validate_configured_hardware(Config* config, const Moonr
         }
     } catch (...) {
     }
+
+    // Check expected hardware array (includes AMS and other generic hardware)
+    // Items are added by wizard completion and should exist in printer_objects
+    try {
+        json& expected_list = config->get_json(config->df() + "hardware/expected");
+        if (expected_list.is_array()) {
+            const auto& printer_objects = client->get_printer_objects();
+
+            for (const auto& item : expected_list) {
+                if (!item.is_string())
+                    continue;
+
+                std::string hw_name = item.get<std::string>();
+                if (hw_name.empty())
+                    continue;
+
+                // Check if this is AMS/MMU hardware (needs printer_objects check)
+                bool is_ams_hardware = (hw_name == "AFC" || hw_name == "mmu" ||
+                                        hw_name == "toolchanger" || hw_name == "valgace");
+
+                if (is_ams_hardware) {
+                    // For AMS hardware, check against printer_objects
+                    bool found = false;
+                    for (const auto& obj : printer_objects) {
+                        // Case-insensitive comparison for AFC/mmu
+                        std::string lower_obj = obj;
+                        std::transform(lower_obj.begin(), lower_obj.end(), lower_obj.begin(),
+                                       ::tolower);
+                        std::string lower_hw = hw_name;
+                        std::transform(lower_hw.begin(), lower_hw.end(), lower_hw.begin(),
+                                       ::tolower);
+
+                        if (lower_obj == lower_hw) {
+                            found = true;
+                            break;
+                        }
+                        // For tool changers, check for "toolhead " prefix
+                        if (hw_name == "toolchanger" && obj.rfind("toolhead ", 0) == 0) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        // ValgACE is detected via REST, not Klipper objects
+                        // For now, skip validation for valgace as it requires REST probe
+                        if (hw_name == "valgace") {
+                            spdlog::debug("[HardwareValidator] Skipping ValgACE validation "
+                                          "(REST-based detection required)");
+                            continue;
+                        }
+
+                        bool is_optional = is_hardware_optional(config, hw_name);
+                        result.expected_missing.push_back(
+                            HardwareIssue::warning(hw_name, HardwareType::OTHER,
+                                                   "AMS/MMU system not detected", is_optional));
+                        spdlog::debug("[HardwareValidator] Expected AMS hardware '{}' not found",
+                                      hw_name);
+                    }
+                }
+                // Non-AMS hardware is already checked above via specific config paths
+            }
+        }
+    } catch (const std::exception& e) {
+        spdlog::debug("[HardwareValidator] Error checking expected hardware: {}", e.what());
+    }
 }
 
 void HardwareValidator::validate_new_hardware(Config* config, const MoonrakerClient* client,

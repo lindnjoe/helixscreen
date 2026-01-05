@@ -3,7 +3,10 @@
 
 #include "printer_capabilities.h"
 
+#include "ams_state.h"
+#include "filament_sensor_manager.h"
 #include "spdlog/spdlog.h"
+#include "standard_macros.h"
 
 #include <algorithm>
 #include <cctype>
@@ -396,4 +399,30 @@ bool PrinterCapabilities::matches_any(const std::string& name,
         }
     }
     return false;
+}
+
+// ============================================================================
+// Subsystem Initialization Helper
+// ============================================================================
+
+void init_subsystems_from_capabilities(const PrinterCapabilities& caps, MoonrakerAPI* api,
+                                       MoonrakerClient* client) {
+    spdlog::debug("[PrinterCapabilities] Initializing subsystems from capabilities");
+
+    // Initialize AMS backend (AFC, Happy Hare, ValgACE, Tool Changer)
+    AmsState::instance().init_backend_from_capabilities(caps, api, client);
+
+    // Initialize filament sensor manager
+    if (caps.has_filament_sensors()) {
+        auto& fsm = helix::FilamentSensorManager::instance();
+        fsm.discover_sensors(caps.get_filament_sensor_names());
+        fsm.load_config();
+        spdlog::debug("[PrinterCapabilities] Discovered {} filament sensors",
+                      caps.get_filament_sensor_names().size());
+    }
+
+    // Initialize standard macros
+    StandardMacros::instance().init(caps);
+
+    spdlog::info("[PrinterCapabilities] Subsystem initialization complete");
 }

@@ -11,11 +11,14 @@
 #include "ui_update_queue.h"
 #include "ui_wizard.h"
 
+#include "ams_state.h"
 #include "app_globals.h"
 #include "config.h"
+#include "filament_sensor_manager.h"
 #include "lvgl/lvgl.h"
 #include "moonraker_api.h"
 #include "moonraker_client.h"
+#include "printer_capabilities.h"
 #include "static_panel_registry.h"
 #include "wizard_config_paths.h"
 #include "wizard_validation.h"
@@ -401,6 +404,7 @@ void WizardConnectionStep::on_connection_success() {
                             }
 
                             MoonrakerClient* client = get_moonraker_client();
+                            MoonrakerAPI* api = get_moonraker_api();
                             if (client) {
                                 auto heaters = client->get_heaters();
                                 auto sensors = client->get_sensors();
@@ -410,6 +414,12 @@ void WizardConnectionStep::on_connection_success() {
                                              heaters.size(), sensors.size(), fans.size());
                                 spdlog::info("[Wizard Connection] Hostname: '{}'",
                                              client->get_hostname());
+
+                                // Initialize subsystems (AMS, filament sensors, macros)
+                                // so they're available for later wizard steps
+                                PrinterCapabilities caps;
+                                caps.parse_objects(client->get_printer_objects());
+                                init_subsystems_from_capabilities(caps, api, client);
                             }
 
                             // NOW enable Next button - discovery is complete
@@ -700,9 +710,15 @@ void WizardConnectionStep::on_auto_probe_success() {
                             }
 
                             MoonrakerClient* client = get_moonraker_client();
+                            MoonrakerAPI* api = get_moonraker_api();
                             if (client) {
                                 spdlog::info("[Wizard Connection] Hostname: '{}'",
                                              client->get_hostname());
+
+                                // Initialize subsystems (AMS, filament sensors, macros)
+                                PrinterCapabilities caps;
+                                caps.parse_objects(client->get_printer_objects());
+                                init_subsystems_from_capabilities(caps, api, client);
                             }
 
                             // NOW enable Next button - discovery is complete

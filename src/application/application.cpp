@@ -1057,17 +1057,8 @@ bool Application::connect_moonraker() {
                 auto* ctx = static_cast<
                     std::pair<PrinterCapabilities, std::pair<MoonrakerAPI*, MoonrakerClient*>>*>(
                     user_data);
-                AmsState::instance().init_backend_from_capabilities(ctx->first, ctx->second.first,
-                                                                    ctx->second.second);
-                if (ctx->first.has_filament_sensors()) {
-                    auto& fsm = helix::FilamentSensorManager::instance();
-                    fsm.discover_sensors(ctx->first.get_filament_sensor_names());
-                    fsm.load_config();
-                }
-
-                // Initialize standard macros with discovered capabilities
-                StandardMacros::instance().init(ctx->first);
-
+                init_subsystems_from_capabilities(ctx->first, ctx->second.first,
+                                                  ctx->second.second);
                 delete ctx;
             },
             new std::pair<PrinterCapabilities, std::pair<MoonrakerAPI*, MoonrakerClient*>>(

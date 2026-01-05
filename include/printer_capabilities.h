@@ -466,3 +466,25 @@ class PrinterCapabilities {
      */
     static bool matches_any(const std::string& name, const std::vector<std::string>& patterns);
 };
+
+// Forward declarations for init function
+class MoonrakerAPI;
+class MoonrakerClient;
+
+/**
+ * @brief Initialize subsystems from discovered printer capabilities
+ *
+ * Called after printer discovery to initialize:
+ * - AmsState backend (AFC, Happy Hare, ValgACE, Tool Changer)
+ * - FilamentSensorManager with discovered sensors
+ * - StandardMacros with detected macros
+ *
+ * This function should be called on the LVGL main thread (not from WebSocket callbacks).
+ * Use ui_async_call() to defer if needed.
+ *
+ * @param caps Discovered printer capabilities
+ * @param api MoonrakerAPI instance (may be null)
+ * @param client MoonrakerClient instance (may be null)
+ */
+void init_subsystems_from_capabilities(const PrinterCapabilities& caps, MoonrakerAPI* api,
+                                       MoonrakerClient* client);

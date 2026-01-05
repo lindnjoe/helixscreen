@@ -145,7 +145,7 @@
 
 
 ### [L032] [*****|-----] Re-stage after pre-commit format
-- **Uses**: 50 | **Velocity**: 0.32 | **Learned**: 2025-12-27 | **Last**: 2026-01-04 | **Category**: correction
+- **Uses**: 50 | **Velocity**: 0.04 | **Learned**: 2025-12-27 | **Last**: 2026-01-04 | **Category**: correction
 > When pre-commit hook auto-formats files, they are NOT automatically re-staged. Always check git status after a commit and amend if the hook formatted files. Look for 'Auto-formatted: <file>' messages and run 'git add -u && git commit --amend --no-edit'.
 
 
@@ -199,6 +199,6 @@
 > Use Sonnet (not Haiku) for architectural-level code reviews, structural changes, or final comprehensive reviews. Haiku is fine for quick single-file spot-checks with clear pass/fail criteria.
 
 
-### [L044] [**---|+----] Targeted tests during development
-- **Uses**: 3 | **Velocity**: 0.5 | **Learned**: 2026-01-04 | **Last**: 2026-01-04 | **Category**: preference
+### [L044] [**---|-----] Targeted tests during development
+- **Uses**: 4 | **Velocity**: 0.19 | **Learned**: 2026-01-04 | **Last**: 2026-01-04 | **Category**: preference
 > Run targeted tests with specific tags during implementation (e.g., ./build/bin/helix-tests "[tag]"). Only run full test suite (make test-run) at the end of a feature or phase. Full suite is SLOW - save it for final verification.

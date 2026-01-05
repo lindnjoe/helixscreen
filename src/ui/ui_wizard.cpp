@@ -7,6 +7,7 @@
 #include "ui_panel_home.h"
 #include "ui_subject_registry.h"
 #include "ui_theme.h"
+#include "ui_wizard_ams_identify.h"
 #include "ui_wizard_connection.h"
 #include "ui_wizard_fan_select.h"
 #include "ui_wizard_filament_sensor_select.h"
@@ -16,6 +17,7 @@
 #include "ui_wizard_summary.h"
 #include "ui_wizard_wifi.h"
 
+#include "ams_state.h"
 #include "app_globals.h"
 #include "config.h"
 #include "hardware_validator.h"
@@ -52,10 +54,13 @@ static lv_obj_t* wizard_container = nullptr;
 // Track current screen for proper cleanup
 static int current_screen_step = 0;
 
-// Track if LED step (6) is being skipped - no LEDs discovered
+// Track if AMS step (6) is being skipped - no AMS detected
+static bool ams_step_skipped = false;
+
+// Track if LED step (7) is being skipped - no LEDs discovered
 static bool led_step_skipped = false;
 
-// Track if filament sensor step (7) is being skipped - <2 standalone sensors
+// Track if filament sensor step (8) is being skipped - <2 standalone sensors
 static bool filament_step_skipped = false;
 
 // Forward declarations
@@ -81,11 +86,12 @@ static const char* const STEP_COMPONENT_NAMES[] = {
     "wizard_printer_identify",       // 3
     "wizard_heater_select",          // 4
     "wizard_fan_select",             // 5
-    "wizard_led_select",             // 6
-    "wizard_filament_sensor_select", // 7 (may be skipped if <2 sensors)
-    "wizard_summary"                 // 8
+    "wizard_ams_identify",           // 6 (may be skipped if no AMS)
+    "wizard_led_select",             // 7 (may be skipped if no LEDs)
+    "wizard_filament_sensor_select", // 8 (may be skipped if <2 sensors)
+    "wizard_summary"                 // 9
 };
-static constexpr int STEP_COMPONENT_COUNT = 8;
+static constexpr int STEP_COMPONENT_COUNT = 9;
 
 /**
  * Get step title from XML component's <consts> block
@@ -150,13 +156,13 @@ void ui_wizard_init_subjects() {
 
     // Initialize subjects with defaults
     UI_SUBJECT_INIT_AND_REGISTER_INT(current_step, 1, "current_step");
-    UI_SUBJECT_INIT_AND_REGISTER_INT(
-        total_steps, 8,
-        "total_steps"); // 8 steps: WiFi, Connection, Printer, Heater, Fan, LED, Filament, Summary
+    UI_SUBJECT_INIT_AND_REGISTER_INT(total_steps, 9,
+                                     "total_steps"); // 9 steps: WiFi, Connection, Printer, Heater,
+                                                     // Fan, AMS, LED, Filament, Summary
 
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_title, wizard_title_buffer, "Welcome",
                                         "wizard_title");
-    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_progress, wizard_progress_buffer, "Step 1 of 8",
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_progress, wizard_progress_buffer, "Step 1 of 9",
                                         "wizard_progress");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_next_button_text, wizard_next_button_text_buffer,
                                         "Next", "wizard_next_button_text");
@@ -296,6 +302,7 @@ void ui_wizard_container_register_responsive_constants() {
         "wizard_printer_identify",
         "wizard_heater_select",
         "wizard_fan_select",
+        "wizard_ams_identify",
         "wizard_led_select",
         "wizard_filament_sensor_select",
         "wizard_summary",
@@ -313,7 +320,7 @@ void ui_wizard_container_register_responsive_constants() {
     }
 
     spdlog::debug("[Wizard] Registered 11 constants to wizard_container and propagated to {} child "
-                  "components (8 wizard screens)",
+                  "components (9 wizard screens)",
                   child_count);
     spdlog::debug("[Wizard] Values: padding={}, gap={}, header_h={}, footer_h={}, button_w={}",
                   padding_value, gap_value, header_height, footer_height, button_width);
@@ -358,22 +365,28 @@ void ui_wizard_navigate_to_step(int step) {
     // Reset skip flags when starting wizard from the beginning
     // This ensures correct behavior if wizard is restarted after hardware changes
     if (step == 1) {
+        ams_step_skipped = false;
         led_step_skipped = false;
         filament_step_skipped = false;
     }
 
     // Calculate display step and total for progress indicator
     // When steps are skipped, we adjust the display numbers:
-    // - LED skip (6): steps 7+ display one lower
-    // - Filament skip (7): steps 8+ display one lower
-    // Total = 8 - skipped_count
+    // - AMS skip (6): steps 7+ display one lower
+    // - LED skip (7): steps 8+ display one lower
+    // - Filament skip (8): steps 9+ display one lower
+    // Total = 9 - skipped_count
     int display_step = step;
-    if (led_step_skipped && step > 6)
+    if (ams_step_skipped && step > 6)
         display_step--;
-    if (filament_step_skipped && step > 7)
+    if (led_step_skipped && step > 7)
+        display_step--;
+    if (filament_step_skipped && step > 8)
         display_step--;
 
-    int display_total = 8;
+    int display_total = 9;
+    if (ams_step_skipped)
+        display_total--;
     if (led_step_skipped)
         display_total--;
     if (filament_step_skipped)
@@ -382,8 +395,8 @@ void ui_wizard_navigate_to_step(int step) {
     // Update current_step subject (internal step number for UI bindings)
     lv_subject_set_int(&current_step, step);
 
-    // Determine if this is the last step (summary is always step 8 internally)
-    bool is_last_step = (step == 8);
+    // Determine if this is the last step (summary is always step 9 internally)
+    bool is_last_step = (step == 9);
 
     // Update next button text based on step
     if (is_last_step) {
@@ -452,13 +465,16 @@ static void ui_wizard_cleanup_current_screen() {
     case 5: // Fan Select
         get_wizard_fan_select_step()->cleanup();
         break;
-    case 6: // LED Select
+    case 6: // AMS Identify
+        get_wizard_ams_identify_step()->cleanup();
+        break;
+    case 7: // LED Select
         get_wizard_led_select_step()->cleanup();
         break;
-    case 7: // Filament Sensor Select
+    case 8: // Filament Sensor Select
         get_wizard_filament_sensor_select_step()->cleanup();
         break;
-    case 8: // Summary
+    case 9: // Summary
         get_wizard_summary_step()->cleanup();
         break;
     default:
@@ -542,7 +558,15 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 6: // LED Select
+    case 6: // AMS Identify
+        spdlog::debug("[Wizard] Creating AMS identify screen");
+        get_wizard_ams_identify_step()->init_subjects();
+        get_wizard_ams_identify_step()->register_callbacks();
+        (void)get_wizard_ams_identify_step()->create(content);
+        lv_obj_update_layout(content);
+        break;
+
+    case 7: // LED Select
         spdlog::debug("[Wizard] Creating LED select screen");
         get_wizard_led_select_step()->init_subjects();
         get_wizard_led_select_step()->register_callbacks();
@@ -550,7 +574,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 7: // Filament Sensor Select
+    case 8: // Filament Sensor Select
         spdlog::debug("[Wizard] Creating filament sensor select screen");
         get_wizard_filament_sensor_select_step()->init_subjects();
         get_wizard_filament_sensor_select_step()->register_callbacks();
@@ -558,7 +582,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 8: // Summary
+    case 9: // Summary
         spdlog::debug("[Wizard] Creating summary screen");
         get_wizard_summary_step()->init_subjects();
         get_wizard_summary_step()->register_callbacks();
@@ -603,6 +627,37 @@ void ui_wizard_complete() {
             if (!hw_name.empty() && hw_name != "None") {
                 HardwareValidator::add_expected_hardware(config, hw_name);
                 spdlog::debug("[Wizard] Added '{}' to expected_hardware", hw_name);
+            }
+        }
+
+        // 1c. Add AMS to expected hardware if detected (step wasn't skipped)
+        // This allows the hardware validator to warn if AMS disappears between sessions
+        if (!ams_step_skipped) {
+            auto& ams = AmsState::instance();
+            AmsBackend* backend = ams.get_backend();
+            if (backend) {
+                AmsType type = backend->get_type();
+                std::string ams_hw_name;
+                switch (type) {
+                case AmsType::AFC:
+                    ams_hw_name = "AFC"; // Matches the Klipper object name (uppercase)
+                    break;
+                case AmsType::HAPPY_HARE:
+                    ams_hw_name = "mmu"; // Matches the Klipper object name
+                    break;
+                case AmsType::TOOL_CHANGER:
+                    ams_hw_name = "toolchanger"; // Marker for tool changer detection
+                    break;
+                case AmsType::VALGACE:
+                    ams_hw_name = "valgace"; // ValgACE marker (REST-based, not a Klipper object)
+                    break;
+                default:
+                    break;
+                }
+                if (!ams_hw_name.empty()) {
+                    HardwareValidator::add_expected_hardware(config, ams_hw_name);
+                    spdlog::info("[Wizard] Added '{}' to expected hardware", ams_hw_name);
+                }
             }
         }
 
@@ -708,13 +763,18 @@ static void on_back_clicked(lv_event_t* e) {
     if (current > 1) {
         int prev_step = current - 1;
 
-        // Skip filament sensor step (7) when going back if it was skipped
-        if (prev_step == 7 && filament_step_skipped) {
+        // Skip filament sensor step (8) when going back if it was skipped
+        if (prev_step == 8 && filament_step_skipped) {
+            prev_step = 7;
+        }
+
+        // Skip LED step (7) when going back if it was skipped
+        if (prev_step == 7 && led_step_skipped) {
             prev_step = 6;
         }
 
-        // Skip LED step (6) when going back if it was skipped
-        if (prev_step == 6 && led_step_skipped) {
+        // Skip AMS step (6) when going back if it was skipped
+        if (prev_step == 6 && ams_step_skipped) {
             prev_step = 5;
         }
 
@@ -727,7 +787,7 @@ static void on_next_clicked(lv_event_t* e) {
     (void)e;
     int current = lv_subject_get_int(&current_step);
 
-    // Summary (step 8) is always the last internal step
+    // Summary (step 9) is always the last internal step
     if (current >= STEP_COMPONENT_COUNT) {
         spdlog::info("[Wizard] Finish button clicked, completing wizard");
         ui_wizard_complete();
@@ -736,15 +796,22 @@ static void on_next_clicked(lv_event_t* e) {
 
     int next_step = current + 1;
 
-    // Skip LED step (6) if no LEDs detected
-    if (next_step == 6 && get_wizard_led_select_step()->should_skip()) {
-        led_step_skipped = true;
+    // Skip AMS step (6) if no AMS detected
+    if (next_step == 6 && get_wizard_ams_identify_step()->should_skip()) {
+        ams_step_skipped = true;
         next_step = 7;
+        spdlog::debug("[Wizard] Skipping AMS step (no AMS detected)");
+    }
+
+    // Skip LED step (7) if no LEDs detected
+    if (next_step == 7 && get_wizard_led_select_step()->should_skip()) {
+        led_step_skipped = true;
+        next_step = 8;
         spdlog::debug("[Wizard] Skipping LED step (no LEDs detected)");
     }
 
-    // Skip filament sensor step (7) if <2 standalone sensors
-    if (next_step == 7 && get_wizard_filament_sensor_select_step()->should_skip()) {
+    // Skip filament sensor step (8) if <2 standalone sensors
+    if (next_step == 8 && get_wizard_filament_sensor_select_step()->should_skip()) {
         filament_step_skipped = true;
 
         // Auto-configure single sensor if exactly 1 detected
@@ -753,7 +820,7 @@ static void on_next_clicked(lv_event_t* e) {
             step->auto_configure_single_sensor();
             spdlog::info("[Wizard] Auto-configured single filament sensor as RUNOUT");
         }
-        next_step = 8;
+        next_step = 9;
         spdlog::debug("[Wizard] Skipping filament sensor step (<2 sensors)");
     }
 

@@ -8,8 +8,10 @@
 #include "ui_wizard.h"
 #include "ui_wizard_helpers.h"
 
+#include "app_globals.h"
 #include "filament_sensor_manager.h"
 #include "lvgl/lvgl.h"
+#include "moonraker_client.h"
 #include "static_panel_registry.h"
 
 #include <spdlog/spdlog.h>
@@ -57,8 +59,6 @@ WizardFilamentSensorSelectStep::~WizardFilamentSensorSelectStep() {
 WizardFilamentSensorSelectStep::WizardFilamentSensorSelectStep(
     WizardFilamentSensorSelectStep&& other) noexcept
     : screen_root_(other.screen_root_), runout_sensor_selected_(other.runout_sensor_selected_),
-      toolhead_sensor_selected_(other.toolhead_sensor_selected_),
-      entry_sensor_selected_(other.entry_sensor_selected_),
       sensor_items_(std::move(other.sensor_items_)),
       standalone_sensors_(std::move(other.standalone_sensors_)),
       subjects_initialized_(other.subjects_initialized_) {
@@ -71,8 +71,6 @@ WizardFilamentSensorSelectStep::operator=(WizardFilamentSensorSelectStep&& other
     if (this != &other) {
         screen_root_ = other.screen_root_;
         runout_sensor_selected_ = other.runout_sensor_selected_;
-        toolhead_sensor_selected_ = other.toolhead_sensor_selected_;
-        entry_sensor_selected_ = other.entry_sensor_selected_;
         sensor_items_ = std::move(other.sensor_items_);
         standalone_sensors_ = std::move(other.standalone_sensors_);
         subjects_initialized_ = other.subjects_initialized_;
@@ -178,10 +176,8 @@ void WizardFilamentSensorSelectStep::filter_standalone_sensors() {
 void WizardFilamentSensorSelectStep::init_subjects() {
     spdlog::debug("[{}] Initializing subjects", get_name());
 
-    // Initialize subjects with default index 0 (None)
+    // Initialize subject with default index 0 (None)
     helix::ui::wizard::init_int_subject(&runout_sensor_selected_, 0, "runout_sensor_selected");
-    helix::ui::wizard::init_int_subject(&toolhead_sensor_selected_, 0, "toolhead_sensor_selected");
-    helix::ui::wizard::init_int_subject(&entry_sensor_selected_, 0, "entry_sensor_selected");
 
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized", get_name());
@@ -202,29 +198,6 @@ static void on_runout_sensor_dropdown_changed(lv_event_t* e) {
     }
 }
 
-static void on_toolhead_sensor_dropdown_changed(lv_event_t* e) {
-    auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-    int index = static_cast<int>(lv_dropdown_get_selected(dropdown));
-    auto* step = get_wizard_filament_sensor_select_step();
-    if (step) {
-        lv_subject_set_int(step->get_toolhead_sensor_subject(), index);
-        spdlog::debug(
-            "[WizardFilamentSensorSelectStep] Toolhead sensor selection changed to index {}",
-            index);
-    }
-}
-
-static void on_entry_sensor_dropdown_changed(lv_event_t* e) {
-    auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-    int index = static_cast<int>(lv_dropdown_get_selected(dropdown));
-    auto* step = get_wizard_filament_sensor_select_step();
-    if (step) {
-        lv_subject_set_int(step->get_entry_sensor_subject(), index);
-        spdlog::debug("[WizardFilamentSensorSelectStep] Entry sensor selection changed to index {}",
-                      index);
-    }
-}
-
 // ============================================================================
 // Callback Registration
 // ============================================================================
@@ -232,11 +205,7 @@ static void on_entry_sensor_dropdown_changed(lv_event_t* e) {
 void WizardFilamentSensorSelectStep::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_runout_sensor_dropdown_changed",
                              on_runout_sensor_dropdown_changed);
-    lv_xml_register_event_cb(nullptr, "on_toolhead_sensor_dropdown_changed",
-                             on_toolhead_sensor_dropdown_changed);
-    lv_xml_register_event_cb(nullptr, "on_entry_sensor_dropdown_changed",
-                             on_entry_sensor_dropdown_changed);
-    spdlog::debug("[{}] Registered dropdown callbacks", get_name());
+    spdlog::debug("[{}] Registered dropdown callback", get_name());
 }
 
 // ============================================================================
@@ -254,7 +223,7 @@ void WizardFilamentSensorSelectStep::populate_dropdowns() {
         sensor_items_.push_back(sensor.klipper_name);
     }
 
-    // Build options string for dropdowns (newline-separated)
+    // Build options string for dropdown (newline-separated)
     std::string options;
     for (size_t i = 0; i < sensor_items_.size(); i++) {
         if (i > 0)
@@ -267,10 +236,8 @@ void WizardFilamentSensorSelectStep::populate_dropdowns() {
         }
     }
 
-    // Find and populate dropdowns
+    // Find and populate the runout dropdown
     lv_obj_t* runout_dropdown = lv_obj_find_by_name(screen_root_, "runout_sensor_dropdown");
-    lv_obj_t* toolhead_dropdown = lv_obj_find_by_name(screen_root_, "toolhead_sensor_dropdown");
-    lv_obj_t* entry_dropdown = lv_obj_find_by_name(screen_root_, "entry_sensor_dropdown");
 
     if (runout_dropdown) {
         lv_dropdown_set_options(runout_dropdown, options.c_str());
@@ -278,19 +245,7 @@ void WizardFilamentSensorSelectStep::populate_dropdowns() {
             runout_dropdown, static_cast<uint32_t>(lv_subject_get_int(&runout_sensor_selected_)));
     }
 
-    if (toolhead_dropdown) {
-        lv_dropdown_set_options(toolhead_dropdown, options.c_str());
-        lv_dropdown_set_selected(toolhead_dropdown, static_cast<uint32_t>(lv_subject_get_int(
-                                                        &toolhead_sensor_selected_)));
-    }
-
-    if (entry_dropdown) {
-        lv_dropdown_set_options(entry_dropdown, options.c_str());
-        lv_dropdown_set_selected(
-            entry_dropdown, static_cast<uint32_t>(lv_subject_get_int(&entry_sensor_selected_)));
-    }
-
-    spdlog::debug("[{}] Populated dropdowns with {} options", get_name(), sensor_items_.size());
+    spdlog::debug("[{}] Populated dropdown with {} options", get_name(), sensor_items_.size());
 }
 
 std::string WizardFilamentSensorSelectStep::get_klipper_name_for_index(int dropdown_index) const {
@@ -328,17 +283,14 @@ lv_obj_t* WizardFilamentSensorSelectStep::create(lv_obj_t* parent) {
         return nullptr;
     }
 
-    // Restore selections from existing FilamentSensorManager config
+    // Restore selection from existing FilamentSensorManager config
     for (size_t i = 0; i < standalone_sensors_.size(); i++) {
         const auto& sensor = standalone_sensors_[i];
         int dropdown_index = static_cast<int>(i + 1); // +1 because index 0 is "None"
 
         if (sensor.role == helix::FilamentSensorRole::RUNOUT) {
             lv_subject_set_int(&runout_sensor_selected_, dropdown_index);
-        } else if (sensor.role == helix::FilamentSensorRole::TOOLHEAD) {
-            lv_subject_set_int(&toolhead_sensor_selected_, dropdown_index);
-        } else if (sensor.role == helix::FilamentSensorRole::ENTRY) {
-            lv_subject_set_int(&entry_sensor_selected_, dropdown_index);
+            break;
         }
     }
 
@@ -353,19 +305,62 @@ lv_obj_t* WizardFilamentSensorSelectStep::create(lv_obj_t* parent) {
 // Skip Logic
 // ============================================================================
 
+size_t WizardFilamentSensorSelectStep::count_standalone_sensors_from_printer_objects() const {
+    MoonrakerClient* client = get_moonraker_client();
+    if (!client) {
+        spdlog::debug("[{}] No MoonrakerClient available for skip check", get_name());
+        return 0;
+    }
+
+    const auto& printer_objects = client->get_printer_objects();
+    size_t count = 0;
+
+    for (const auto& obj : printer_objects) {
+        // Check for filament sensor objects
+        if (obj.find("filament_switch_sensor ") == 0 || obj.find("filament_motion_sensor ") == 0) {
+            // Extract sensor name after the space
+            auto pos = obj.find(' ');
+            if (pos != std::string::npos) {
+                std::string sensor_name = obj.substr(pos + 1);
+                if (!is_ams_sensor(sensor_name)) {
+                    count++;
+                    spdlog::debug("[{}] Found standalone sensor from printer_objects: {}",
+                                  get_name(), sensor_name);
+                } else {
+                    spdlog::debug("[{}] Filtered AMS sensor from printer_objects: {}", get_name(),
+                                  sensor_name);
+                }
+            }
+        }
+    }
+
+    spdlog::debug("[{}] Counted {} standalone sensors from printer_objects", get_name(), count);
+    return count;
+}
+
 bool WizardFilamentSensorSelectStep::should_skip() const {
     auto& sensor_mgr = helix::FilamentSensorManager::instance();
     auto all_sensors = sensor_mgr.get_sensors();
 
-    // Count non-AMS sensors
-    size_t standalone_count = 0;
-    for (const auto& sensor : all_sensors) {
-        if (!is_ams_sensor(sensor.sensor_name)) {
-            standalone_count++;
+    // If FilamentSensorManager has sensors, use those
+    if (!all_sensors.empty()) {
+        // Count non-AMS sensors
+        size_t standalone_count = 0;
+        for (const auto& sensor : all_sensors) {
+            if (!is_ams_sensor(sensor.sensor_name)) {
+                standalone_count++;
+            }
         }
+        spdlog::debug("[{}] should_skip: {} standalone sensors from FilamentSensorManager",
+                      get_name(), standalone_count);
+        return standalone_count < 2;
     }
 
-    // Skip if fewer than 2 standalone sensors
+    // FilamentSensorManager::discover_sensors() hasn't been called yet (async race).
+    // Query MoonrakerClient's printer_objects directly.
+    size_t standalone_count = count_standalone_sensors_from_printer_objects();
+    spdlog::debug("[{}] should_skip: {} standalone sensors from printer_objects (manager empty)",
+                  get_name(), standalone_count);
     return standalone_count < 2;
 }
 
@@ -394,32 +389,20 @@ void WizardFilamentSensorSelectStep::cleanup() {
 
     auto& sensor_mgr = helix::FilamentSensorManager::instance();
 
-    // Clear all existing role assignments first
+    // Clear existing RUNOUT role assignments first
     for (const auto& sensor : standalone_sensors_) {
-        sensor_mgr.set_sensor_role(sensor.klipper_name, helix::FilamentSensorRole::NONE);
+        if (sensor.role == helix::FilamentSensorRole::RUNOUT) {
+            sensor_mgr.set_sensor_role(sensor.klipper_name, helix::FilamentSensorRole::NONE);
+        }
     }
 
-    // Apply new role assignments based on dropdown selections
+    // Apply new role assignment based on dropdown selection
     std::string runout_name =
         get_klipper_name_for_index(lv_subject_get_int(&runout_sensor_selected_));
-    std::string toolhead_name =
-        get_klipper_name_for_index(lv_subject_get_int(&toolhead_sensor_selected_));
-    std::string entry_name =
-        get_klipper_name_for_index(lv_subject_get_int(&entry_sensor_selected_));
 
     if (!runout_name.empty()) {
         sensor_mgr.set_sensor_role(runout_name, helix::FilamentSensorRole::RUNOUT);
         spdlog::info("[{}] Assigned RUNOUT role to: {}", get_name(), runout_name);
-    }
-
-    if (!toolhead_name.empty()) {
-        sensor_mgr.set_sensor_role(toolhead_name, helix::FilamentSensorRole::TOOLHEAD);
-        spdlog::info("[{}] Assigned TOOLHEAD role to: {}", get_name(), toolhead_name);
-    }
-
-    if (!entry_name.empty()) {
-        sensor_mgr.set_sensor_role(entry_name, helix::FilamentSensorRole::ENTRY);
-        spdlog::info("[{}] Assigned ENTRY role to: {}", get_name(), entry_name);
     }
 
     // Persist to disk

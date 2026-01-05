@@ -12,9 +12,9 @@
 
 /**
  * @file ui_wizard_filament_sensor_select.h
- * @brief Wizard filament sensor selection step - assigns roles to detected sensors
+ * @brief Wizard filament sensor selection step - assigns runout sensor role
  *
- * Uses FilamentSensorManager to discover sensors and assign roles (RUNOUT, TOOLHEAD, ENTRY).
+ * Uses FilamentSensorManager to discover sensors and assign the RUNOUT role.
  *
  * ## Skip Logic:
  *
@@ -24,11 +24,9 @@
  *
  * AMS sensors (lane/slot sensors from AFC, etc.) are filtered out.
  *
- * ## Subject Bindings (3 total):
+ * ## Subject Bindings (1 total):
  *
  * - runout_sensor_selected (int) - Selected sensor index for runout role
- * - toolhead_sensor_selected (int) - Selected sensor index for toolhead role
- * - entry_sensor_selected (int) - Selected sensor index for entry role
  *
  * Index 0 = "None", 1+ = sensor index in sensor_items_
  */
@@ -115,12 +113,6 @@ class WizardFilamentSensorSelectStep {
     lv_subject_t* get_runout_sensor_subject() {
         return &runout_sensor_selected_;
     }
-    lv_subject_t* get_toolhead_sensor_subject() {
-        return &toolhead_sensor_selected_;
-    }
-    lv_subject_t* get_entry_sensor_subject() {
-        return &entry_sensor_selected_;
-    }
 
     std::vector<std::string>& get_sensor_items() {
         return sensor_items_;
@@ -131,6 +123,17 @@ class WizardFilamentSensorSelectStep {
      * @brief Check if a sensor name indicates it's managed by AMS
      */
     static bool is_ams_sensor(const std::string& name);
+
+    /**
+     * @brief Count standalone sensors directly from MoonrakerClient's printer_objects
+     *
+     * Used as fallback when FilamentSensorManager::discover_sensors() hasn't run yet.
+     * This solves the async race condition where should_skip() is called before the
+     * FilamentSensorManager has discovered sensors.
+     *
+     * @return Number of non-AMS filament sensors found in printer_objects
+     */
+    size_t count_standalone_sensors_from_printer_objects() const;
 
     /**
      * @brief Filter sensors to get only standalone (non-AMS) sensors
@@ -153,10 +156,8 @@ class WizardFilamentSensorSelectStep {
     // Screen instance
     lv_obj_t* screen_root_ = nullptr;
 
-    // Subjects (dropdown selection indices)
+    // Subject (dropdown selection index)
     lv_subject_t runout_sensor_selected_;
-    lv_subject_t toolhead_sensor_selected_;
-    lv_subject_t entry_sensor_selected_;
 
     // Dynamic options storage
     std::vector<std::string> sensor_items_;                       // Klipper names for dropdown

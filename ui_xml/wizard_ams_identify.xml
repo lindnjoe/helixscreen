@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!-- Copyright (C) 2025-2026 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<component>
+  <!-- First-Run Wizard: AMS Identification Screen (Informational) -->
+  <!-- Displays detected AMS system type and lane count -->
+  <consts>
+    <!-- Step metadata (read by wizard orchestrator) -->
+    <str name="step_title" value="Multi-Material System Detected"/>
+    <str name="step_subtitle" value="Your printer has an automatic filament changer"/>
+    <int name="step_order" value="6"/>
+  </consts>
+  <view name="wizard_ams_identify_root"
+        extends="lv_obj" width="100%" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0"
+        flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center">
+
+    <!-- Info card -->
+    <ui_card width="100%"
+             flex_grow="1" style_radius="#border_radius_large" style_pad_all="#space_lg" style_pad_gap="#space_md"
+             flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
+
+      <!-- AMS Type name (large) -->
+      <text_heading name="ams_type_label" style_text_align="center">
+        AFC (Armored Turtle)
+      </text_heading>
+
+      <!-- Details (lane count) -->
+      <text_body name="ams_details_label" style_text_color="#text_secondary" style_text_align="center">
+        4 lanes detected
+      </text_body>
+
+      <!-- Spacer -->
+      <lv_obj width="1" height="#space_lg" style_bg_opa="0" style_border_width="0"/>
+
+      <!-- Description -->
+      <text_body width="90%" style_text_align="center" style_text_color="#text_secondary">
+        HelixScreen will integrate with your filament changer for multi-material print operations.
+      </text_body>
+
+    </ui_card>
+
+  </view>
+</component>
