@@ -700,3 +700,24 @@ const lv_font_t* ui_theme_get_font(const char* token) {
 
     return font;
 }
+
+const char* ui_theme_size_to_font_token(const char* size, const char* default_size) {
+    const char* effective_size = size ? size : default_size;
+    if (!effective_size) {
+        effective_size = "sm"; // Fallback if both are null
+    }
+
+    if (strcmp(effective_size, "xs") == 0) {
+        return "font_xs";
+    } else if (strcmp(effective_size, "sm") == 0) {
+        return "font_small";
+    } else if (strcmp(effective_size, "md") == 0) {
+        return "font_body";
+    } else if (strcmp(effective_size, "lg") == 0) {
+        return "font_heading";
+    }
+
+    // Unknown size - warn and return default
+    spdlog::warn("[Theme] Unknown size '{}', using default '{}'", effective_size, default_size);
+    return ui_theme_size_to_font_token(default_size, "sm");
+}

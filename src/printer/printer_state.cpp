@@ -485,7 +485,7 @@ void PrinterState::update_from_status(const json& state) {
         if (extruder.contains("temperature") && extruder["temperature"].is_number()) {
             int temp_centi = helix::units::json_to_centidegrees(extruder, "temperature");
             lv_subject_set_int(&extruder_temp_, temp_centi);
-            // lv_subject_set_int already notifies observers when value changes
+            lv_subject_notify(&extruder_temp_); // Force notify for graph updates even if unchanged
         }
 
         if (extruder.contains("target") && extruder["target"].is_number()) {
@@ -501,7 +501,7 @@ void PrinterState::update_from_status(const json& state) {
         if (bed.contains("temperature") && bed["temperature"].is_number()) {
             int temp_centi = helix::units::json_to_centidegrees(bed, "temperature");
             lv_subject_set_int(&bed_temp_, temp_centi);
-            // lv_subject_set_int already notifies observers when value changes
+            lv_subject_notify(&bed_temp_); // Force notify for graph updates even if unchanged
             spdlog::trace("[PrinterState] Bed temp: {}.{}°C", temp_centi / 10, temp_centi % 10);
         }
 

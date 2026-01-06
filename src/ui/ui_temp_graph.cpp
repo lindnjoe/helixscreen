@@ -311,7 +311,7 @@ static void draw_x_axis_labels_cb(lv_event_t* e) {
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = lv_obj_get_style_text_color(chart, LV_PART_MAIN); // Use chart's text color
-    label_dsc.font = graph->axis_font; // Configurable axis font
+    label_dsc.font = graph->axis_font;                                  // Configurable axis font
     label_dsc.align = LV_TEXT_ALIGN_CENTER;
     label_dsc.opa = lv_obj_get_style_text_opa(chart, LV_PART_MAIN); // Use chart's text opacity
 
@@ -458,13 +458,13 @@ static void draw_y_axis_labels_cb(lv_event_t* e) {
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = lv_obj_get_style_text_color(chart, LV_PART_MAIN);
-    label_dsc.font = graph->axis_font; // Configurable axis font
+    label_dsc.font = graph->axis_font;     // Configurable axis font
     label_dsc.align = LV_TEXT_ALIGN_RIGHT; // Right-align Y-axis labels
     label_dsc.opa = lv_obj_get_style_text_opa(chart, LV_PART_MAIN);
 
-    // Y-axis label height (for positioning)
+    // Y-axis label dimensions (for positioning)
     int32_t label_height = ui_theme_get_font_height(graph->axis_font);
-    int32_t label_width = 40; // Fixed width for Y-axis labels (fits "320°")
+    int32_t label_width = graph->y_axis_width; // Use configured width
 
     // Temperature range
     float temp_range = graph->max_temp - graph->min_temp;
@@ -527,8 +527,9 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     graph->next_series_id = 0;
     graph->y_axis_increment = 0; // Disabled by default (caller must enable)
     graph->show_y_axis = false;
-    graph->max_visible_temp = graph->min_temp + 1.0f; // Initialize to avoid zero gradient span
+    graph->max_visible_temp = graph->min_temp + 1.0f;   // Initialize to avoid zero gradient span
     graph->axis_font = ui_theme_get_font("font_small"); // Default axis label font
+    graph->y_axis_width = 40;                           // Default Y-axis label width
 
     // Create LVGL chart
     graph->chart = lv_chart_create(parent);
@@ -673,12 +674,9 @@ int ui_temp_graph_add_series(ui_temp_graph_t* graph, const char* name, lv_color_
         return -1;
     }
 
-    // Initialize all points to the minimum temperature (baseline)
-    // This prevents the LVGL chart from drawing garbage lines when sparse data exists.
-    // LVGL's chart drawing uses start_point unconditionally for the first Y calculation,
-    // so if start_point contains LV_CHART_POINT_NONE (INT32_MAX), it produces huge Y values.
-    // By initializing to min_temp, the graph starts as a flat line at 0° which looks clean.
-    lv_chart_set_all_values(graph->chart, ser, static_cast<int32_t>(graph->min_temp));
+    // Initialize all points to POINT_NONE (no data) so empty chart doesn't show false history.
+    // The draw_task_cb filters out garbage lines from POINT_NONE values (clamped to chart top).
+    lv_chart_set_all_values(graph->chart, ser, LV_CHART_POINT_NONE);
 
     // Initialize series metadata
     ui_temp_series_meta_t* meta = &graph->series_meta[slot];
@@ -817,9 +815,8 @@ void ui_temp_graph_set_series_data(ui_temp_graph_t* graph, int series_id, const 
         return;
     }
 
-    // Clear existing data using public API (reset to min_temp to avoid garbage lines)
-    lv_chart_set_all_values(graph->chart, meta->chart_series,
-                            static_cast<int32_t>(graph->min_temp));
+    // Clear existing data before setting new values
+    lv_chart_set_all_values(graph->chart, meta->chart_series, LV_CHART_POINT_NONE);
 
     // Convert float array to int32_t array for LVGL API (using RAII)
     int points_to_copy = count > graph->point_count ? graph->point_count : count;
@@ -856,9 +853,7 @@ void ui_temp_graph_clear(ui_temp_graph_t* graph) {
     for (int i = 0; i < graph->series_count; i++) {
         ui_temp_series_meta_t* meta = &graph->series_meta[i];
         if (meta->chart_series) {
-            // Reset to min_temp to avoid garbage lines from POINT_NONE
-            lv_chart_set_all_values(graph->chart, meta->chart_series,
-                                    static_cast<int32_t>(graph->min_temp));
+            lv_chart_set_all_values(graph->chart, meta->chart_series, LV_CHART_POINT_NONE);
         }
     }
 
@@ -878,9 +873,7 @@ void ui_temp_graph_clear_series(ui_temp_graph_t* graph, int series_id) {
         return;
     }
 
-    // Reset to min_temp to avoid garbage lines from POINT_NONE (see clear() comment)
-    lv_chart_set_all_values(graph->chart, meta->chart_series,
-                            static_cast<int32_t>(graph->min_temp));
+    lv_chart_set_all_values(graph->chart, meta->chart_series, LV_CHART_POINT_NONE);
 
     lv_chart_refresh(graph->chart);
 
@@ -1006,26 +999,23 @@ void ui_temp_graph_set_axis_size(ui_temp_graph_t* graph, const char* size) {
         return;
     }
 
-    // Map size name to font token (direct 1:1 mapping with theme system)
-    const char* font_token = "font_small"; // default "sm"
-    int32_t y_axis_width = 40;             // Width for Y-axis labels
+    // Map size name to font token using shared helper
+    const char* font_token = ui_theme_size_to_font_token(size, "sm");
+
+    // Y-axis width varies by size (smaller fonts need less space)
+    int32_t y_axis_width = 40; // default for "sm"
     if (size) {
         if (strcmp(size, "xs") == 0) {
-            font_token = "font_xs";
-            y_axis_width = 24; // Smallest font, minimal width
-        } else if (strcmp(size, "sm") == 0) {
-            font_token = "font_small";
-            y_axis_width = 40;
+            y_axis_width = 24;
         } else if (strcmp(size, "md") == 0) {
-            font_token = "font_body";
             y_axis_width = 45;
         } else if (strcmp(size, "lg") == 0) {
-            font_token = "font_heading";
             y_axis_width = 50;
         }
     }
 
     graph->axis_font = ui_theme_get_font(font_token);
+    graph->y_axis_width = y_axis_width;
 
     // Recalculate padding to match new font size
     int32_t space_xs = ui_theme_get_spacing("space_xs");
@@ -1036,9 +1026,9 @@ void ui_temp_graph_set_axis_size(ui_temp_graph_t* graph, const char* size) {
     // Update padding (tighter for smaller sizes)
     bool is_xs = size && strcmp(size, "xs") == 0;
     int32_t top_pad = is_xs ? space_xs : space_md;
-    int32_t left_pad = y_axis_width + space_xs;
-    int32_t bottom_pad = is_xs ? (space_xs + label_height + space_xs)
-                               : (space_sm + label_height + space_md);
+    int32_t left_pad = y_axis_width + space_sm; // Add gap between labels and chart
+    int32_t bottom_pad =
+        is_xs ? (space_xs + label_height + space_xs) : (space_sm + label_height + space_md);
 
     lv_obj_set_style_pad_top(graph->chart, top_pad, LV_PART_MAIN);
     lv_obj_set_style_pad_left(graph->chart, left_pad, LV_PART_MAIN);

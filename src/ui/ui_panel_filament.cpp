@@ -1005,7 +1005,7 @@ void FilamentPanel::set_limits(int min_temp, int max_temp, int min_extrude_temp)
         min_extrude_temp_ = min_extrude_temp;
         std::snprintf(safety_warning_text_buf_, sizeof(safety_warning_text_buf_),
                       "Heat to %d°C to load/unload", min_extrude_temp_);
-        lv_subject_set_pointer(&safety_warning_text_subject_, safety_warning_text_buf_);
+        lv_subject_copy_string(&safety_warning_text_subject_, safety_warning_text_buf_);
         spdlog::info("[{}] Min extrusion temp updated: {}°C", get_name(), min_extrude_temp_);
     }
 

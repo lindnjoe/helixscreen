@@ -1752,7 +1752,7 @@ void PrintStatusPanel::on_print_start_message_changed(const char* message) {
     if (message) {
         strncpy(preparing_operation_buf_, message, sizeof(preparing_operation_buf_) - 1);
         preparing_operation_buf_[sizeof(preparing_operation_buf_) - 1] = '\0';
-        lv_subject_set_pointer(&preparing_operation_subject_, preparing_operation_buf_);
+        lv_subject_copy_string(&preparing_operation_subject_, preparing_operation_buf_);
         spdlog::trace("[{}] Print start message: {}", get_name(), message);
     }
 }

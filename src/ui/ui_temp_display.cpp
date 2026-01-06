@@ -78,32 +78,11 @@ static TempDisplayData* get_data(lv_obj_t* obj) {
 // Internal helpers
 // ============================================================================
 
-/** Get font based on size string */
+/** Get font based on size string using shared helper */
 static const lv_font_t* get_font_for_size(const char* size) {
-    const char* font_const = "font_body"; // default md
-
-    if (size) {
-        if (strcmp(size, "sm") == 0) {
-            font_const = "font_small";
-        } else if (strcmp(size, "lg") == 0) {
-            font_const = "font_heading";
-        }
-        // "md" uses font_body (default)
-    }
-
-    const char* font_name = lv_xml_get_const(nullptr, font_const);
-    if (!font_name) {
-        spdlog::warn("[temp_display] Font constant '{}' not found, using default", font_const);
-        return &noto_sans_18;
-    }
-
-    const lv_font_t* font = lv_xml_get_font(nullptr, font_name);
-    if (!font) {
-        spdlog::warn("[temp_display] Font '{}' not available, using default", font_name);
-        return &noto_sans_18;
-    }
-
-    return font;
+    const char* font_token = ui_theme_size_to_font_token(size, "md");
+    const lv_font_t* font = ui_theme_get_font(font_token);
+    return font ? font : &noto_sans_18;
 }
 
 /** Tolerance for "at temperature" state (±degrees) */

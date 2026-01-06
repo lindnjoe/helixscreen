@@ -231,3 +231,21 @@ int32_t ui_theme_get_spacing(const char* token);
  * @return Font pointer, or nullptr if token not found
  */
 const lv_font_t* ui_theme_get_font(const char* token);
+
+/**
+ * @brief Convert semantic size name to font token
+ *
+ * Maps semantic size names (xs, sm, md, lg) to font tokens (font_xs, font_small, etc.)
+ * This provides a consistent size vocabulary across widgets.
+ *
+ * Mapping:
+ *   "xs" → "font_xs"
+ *   "sm" → "font_small"
+ *   "md" → "font_body"
+ *   "lg" → "font_heading"
+ *
+ * @param size Size name (xs, sm, md, lg), or NULL for default
+ * @param default_size Default size to use if size is NULL (defaults to "sm")
+ * @return Font token string (e.g., "font_small"). Never returns NULL.
+ */
+const char* ui_theme_size_to_font_token(const char* size, const char* default_size = "sm");
