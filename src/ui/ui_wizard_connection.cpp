@@ -19,6 +19,7 @@
 #include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_capabilities.h"
+#include "runtime_config.h"
 #include "static_panel_registry.h"
 #include "wizard_config_paths.h"
 #include "wizard_validation.h"
@@ -938,12 +939,14 @@ lv_obj_t* WizardConnectionStep::create(lv_obj_t* parent) {
         lv_timer_set_repeat_count(auto_probe_timer_, 1); // One-shot timer
     }
 
-    // Start mDNS discovery
-    if (mdns_discovery_) {
+    // Start mDNS discovery (skip in test mode - no real responders)
+    if (mdns_discovery_ && !get_runtime_config()->should_mock_mdns()) {
         spdlog::debug("[{}] Starting mDNS discovery", get_name());
         mdns_discovery_->start_discovery([this](const std::vector<DiscoveredPrinter>& printers) {
             on_printers_discovered(printers);
         });
+    } else if (get_runtime_config()->should_mock_mdns()) {
+        spdlog::debug("[{}] Skipping mDNS discovery (test mode)", get_name());
     }
 
     spdlog::debug("[{}] Screen created successfully", get_name());

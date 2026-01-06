@@ -58,6 +58,12 @@ struct RuntimeConfig {
     /// Default test file used when auto-starting prints or generating mock history
     static constexpr const char* DEFAULT_TEST_FILE = "3DBenchy.gcode";
 
+    /// Production config file path
+    static constexpr const char* PROD_CONFIG_PATH = "config/helixconfig.json";
+
+    /// Test mode config file path (separate from production to avoid conflicts)
+    static constexpr const char* TEST_CONFIG_PATH = "config/helixconfig-test.json";
+
     /**
      * @brief Get full path to default test G-code file
      * @return Path like "assets/test_gcodes/3DBenchy.gcode"
@@ -135,6 +141,14 @@ struct RuntimeConfig {
      * @return true if test mode is enabled
      */
     bool should_mock_usb() const {
+        return test_mode;
+    }
+
+    /**
+     * @brief Check if mDNS discovery should be skipped
+     * @return true if test mode is enabled (no mDNS responders in test environments)
+     */
+    bool should_mock_mdns() const {
         return test_mode;
     }
 
