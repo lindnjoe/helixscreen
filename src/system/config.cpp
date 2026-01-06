@@ -68,6 +68,7 @@ json get_default_config(const std::string& moonraker_host, bool include_user_pre
         config["sounds_enabled"] = true;
         config["completion_alert"] = true;
         config["wizard_completed"] = false;
+        config["wifi_expected"] = false;
     }
 
     return config;
@@ -274,6 +275,14 @@ bool Config::is_wizard_required() {
     // No flag set - wizard has never been run
     spdlog::debug("[Config] No wizard_completed flag found, wizard required");
     return true;
+}
+
+bool Config::is_wifi_expected() {
+    return get<bool>("/wifi_expected", false);
+}
+
+void Config::set_wifi_expected(bool expected) {
+    set("/wifi_expected", expected);
 }
 
 void Config::reset_to_defaults() {

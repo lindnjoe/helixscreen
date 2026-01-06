@@ -99,6 +99,7 @@ class Application {
     lv_obj_t* create_overlay_panel(lv_obj_t* screen, const char* component_name,
                                    const char* display_name);
     void init_action_prompt();
+    void check_wifi_availability();
 
     // Owned managers (in initialization order)
     std::unique_ptr<DisplayManager> m_display;

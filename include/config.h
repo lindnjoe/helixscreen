@@ -198,6 +198,25 @@ class Config {
     bool is_wizard_required();
 
     /**
+     * @brief Check if WiFi connectivity is expected for this device
+     *
+     * When true, the UI will show WiFi status and settings even if
+     * no WiFi hardware is currently detected (e.g., USB adapter unplugged).
+     *
+     * @return true if WiFi is expected, false otherwise
+     */
+    bool is_wifi_expected();
+
+    /**
+     * @brief Set whether WiFi connectivity is expected
+     *
+     * Call save() after this to persist the setting.
+     *
+     * @param expected true if WiFi should be expected
+     */
+    void set_wifi_expected(bool expected);
+
+    /**
      * @brief Reset configuration to factory defaults
      *
      * Clears all user settings and restores the config to initial state.

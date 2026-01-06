@@ -11,6 +11,7 @@
 #include "ui_theme.h"
 #include "ui_update_queue.h"
 
+#include "config.h"
 #include "ethernet_manager.h"
 #include "lvgl/lvgl.h"
 #include "static_panel_registry.h"
@@ -493,6 +494,12 @@ void WizardWifiStep::handle_wifi_toggle_changed(lv_event_t* e) {
     spdlog::debug("[{}] WiFi toggle changed: {}", get_name(), checked ? "ON" : "OFF");
 
     lv_subject_set_int(&wifi_enabled_, checked ? 1 : 0);
+
+    // Persist WiFi expectation
+    if (auto* config = Config::get_instance()) {
+        config->set_wifi_expected(checked);
+        // Don't save yet - will be saved on wizard completion
+    }
 
     if (checked) {
         update_wifi_status(get_status_text("enabled"));

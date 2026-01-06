@@ -10,6 +10,7 @@
 #include "ui_subject_registry.h"
 #include "ui_update_queue.h"
 
+#include "config.h"
 #include "ethernet_manager.h"
 #include "network_tester.h"
 #include "static_panel_registry.h"
@@ -89,7 +90,7 @@ NetworkSettingsOverlay::NetworkSettingsOverlay() {
 
 NetworkSettingsOverlay::~NetworkSettingsOverlay() {
     // Clean up managers FIRST - they have background threads
-    wifi_manager_.reset();
+    // NOTE: wifi_manager_ is the global singleton - do NOT reset it
     ethernet_manager_.reset();
     network_tester_.reset();
 
@@ -269,11 +270,10 @@ lv_obj_t* NetworkSettingsOverlay::create(lv_obj_t* parent_screen) {
     // Initially hidden
     lv_obj_add_flag(overlay_root_, LV_OBJ_FLAG_HIDDEN);
 
-    // Initialize WiFi manager
+    // Initialize WiFi manager - use global singleton
     if (!wifi_manager_) {
-        wifi_manager_ = std::make_shared<WiFiManager>();
-        wifi_manager_->init_self_reference(wifi_manager_);
-        spdlog::debug("[NetworkSettingsOverlay] WiFiManager initialized");
+        wifi_manager_ = get_wifi_manager(); // Uses global singleton (already has self-reference)
+        spdlog::debug("[NetworkSettingsOverlay] WiFiManager obtained from global singleton");
 
         // Check WiFi hardware availability and update subject
         bool hw_available = wifi_manager_->has_hardware();
@@ -434,7 +434,7 @@ void NetworkSettingsOverlay::cleanup() {
 
     clear_network_list();
 
-    wifi_manager_.reset();
+    // NOTE: wifi_manager_ is the global singleton - do NOT reset it
     ethernet_manager_.reset();
     network_tester_.reset();
 
@@ -789,6 +789,12 @@ void NetworkSettingsOverlay::handle_wlan_toggle_changed(lv_event_t* e) {
         lv_subject_notify(&connected_ssid_);
         lv_subject_notify(&ip_address_);
         lv_subject_notify(&mac_address_);
+    }
+
+    // Persist WiFi expectation
+    if (auto* config = Config::get_instance()) {
+        config->set_wifi_expected(enabled);
+        config->save();
     }
 
     // Update combined network status

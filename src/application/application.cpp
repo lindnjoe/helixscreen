@@ -35,6 +35,7 @@
 #include "ui_component_header_bar.h"
 #include "ui_dialog.h"
 #include "ui_emergency_stop.h"
+#include "ui_error_reporting.h"
 #include "ui_fan_control_overlay.h"
 #include "ui_gcode_viewer.h"
 #include "ui_gradient_canvas.h"
@@ -74,6 +75,7 @@
 #include "ui_wizard_wifi.h"
 
 #include "settings_manager.h"
+#include "wifi_manager.h"
 
 // Backend headers
 #include "action_prompt_manager.h"
@@ -242,6 +244,9 @@ int Application::run(int argc, char** argv) {
     if (!init_plugins()) {
         spdlog::warn("[Application] Plugin initialization had errors (non-fatal)");
     }
+
+    // Phase 14b: Check WiFi availability if expected
+    check_wifi_availability();
 
     // Phase 15: Connect to printer
     if (!connect_moonraker()) {
@@ -430,7 +435,12 @@ void Application::auto_configure_mock_state() {
 
 bool Application::init_config() {
     m_config = Config::get_instance();
-    m_config->init("config/helixconfig.json");
+
+    // Use separate config file for test mode to avoid conflicts with real printer settings
+    const char* config_path = get_runtime_config()->test_mode ? RuntimeConfig::TEST_CONFIG_PATH
+                                                              : RuntimeConfig::PROD_CONFIG_PATH;
+    spdlog::info("[Application] Using config: {}", config_path);
+    m_config->init(config_path);
 
     // Initialize streaming policy from config (auto-detects thresholds from RAM)
     helix::StreamingPolicy::instance().load_from_config();
@@ -1070,8 +1080,9 @@ bool Application::connect_moonraker() {
     // Determine if we should connect
     std::string saved_host = m_config->get<std::string>(m_config->df() + "moonraker_host", "");
     bool has_cli_url = !m_args.moonraker_url.empty();
+    // In test mode, still respect wizard state - don't connect until wizard completes
     bool should_connect =
-        has_cli_url || get_runtime_config()->test_mode ||
+        has_cli_url || (get_runtime_config()->test_mode && !m_wizard_active) ||
         (!m_args.force_wizard && !m_config->is_wizard_required() && !saved_host.empty());
 
     if (!should_connect) {
@@ -1295,6 +1306,18 @@ void Application::init_action_prompt() {
         });
 
     spdlog::info("[Application] Action prompt system initialized");
+}
+
+void Application::check_wifi_availability() {
+    if (!m_config || !m_config->is_wifi_expected()) {
+        return; // WiFi not expected, no need to check
+    }
+
+    auto wifi = get_wifi_manager();
+    if (wifi && !wifi->has_hardware()) {
+        NOTIFY_ERROR_MODAL("WiFi Unavailable", "WiFi was configured but hardware is not available. "
+                                               "Check system configuration.");
+    }
 }
 
 int Application::main_loop() {
