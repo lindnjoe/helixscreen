@@ -59,15 +59,14 @@ class MacroManagerTestFixture {
 // ============================================================================
 
 TEST_CASE_METHOD(MacroManagerTestFixture,
-                 "MacroManager - is_installed returns false when no macros",
-                 "[config][status][.]") {
+                 "MacroManager - is_installed returns false when no macros", "[config][status]") {
     set_no_helix_macros();
 
     REQUIRE_FALSE(manager_.is_installed());
 }
 
 TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - is_installed returns true when installed",
-                 "[config][status][.]") {
+                 "[config][status]") {
     set_helix_macros_installed();
 
     REQUIRE(manager_.is_installed());
@@ -75,7 +74,7 @@ TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - is_installed returns t
 
 TEST_CASE_METHOD(MacroManagerTestFixture,
                  "MacroManager - get_status returns NOT_INSTALLED when no macros",
-                 "[config][status][.]") {
+                 "[config][status]") {
     set_no_helix_macros();
 
     REQUIRE(manager_.get_status() == MacroInstallStatus::NOT_INSTALLED);
@@ -83,7 +82,7 @@ TEST_CASE_METHOD(MacroManagerTestFixture,
 
 TEST_CASE_METHOD(MacroManagerTestFixture,
                  "MacroManager - get_status returns INSTALLED when current version",
-                 "[config][status][.]") {
+                 "[config][status]") {
     set_helix_macros_installed();
 
     REQUIRE(manager_.get_status() == MacroInstallStatus::INSTALLED);
@@ -236,7 +235,7 @@ TEST_CASE("MacroManager - filename constant is valid", "[slow][config][constants
 // is implemented, these tests should be updated to verify actual success.
 
 TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - install initiates sequence",
-                 "[config][install][.]") {
+                 "[config][install]") {
     set_no_helix_macros();
 
     bool callback_received = false;
@@ -253,7 +252,7 @@ TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - install initiates sequ
 }
 
 TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - update initiates sequence",
-                 "[config][install][.]") {
+                 "[config][install]") {
     set_helix_macros_installed();
 
     bool callback_received = false;

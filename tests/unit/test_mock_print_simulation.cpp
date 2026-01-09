@@ -231,7 +231,7 @@ static std::string get_print_state_from_notification(const json& n) {
 
 // DEFERRED: Mock print tests crash with SIGSEGV during fixture destruction
 // Similar to CommandSequencer - mock lifecycle management issue
-TEST_CASE("Mock print phase state machine transitions", "[print][phase][.]") {
+TEST_CASE("Mock print phase state machine transitions", "[print][phase]") {
     MockPrintTestFixture fixture;
 
     SECTION("initial phase is IDLE") {
@@ -373,7 +373,7 @@ TEST_CASE("Mock print phase state machine transitions", "[print][phase][.]") {
 // Speedup Factor Tests [print][speedup]
 // ============================================================================
 
-TEST_CASE("Mock print speedup factor behavior", "[print][speedup][.]") {
+TEST_CASE("Mock print speedup factor behavior", "[print][speedup]") {
     MockPrintTestFixture fixture;
 
     SECTION("default constructor has speedup factor 1.0") {

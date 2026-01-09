@@ -1999,6 +1999,9 @@ void MoonrakerClientMock::stop_temperature_simulation(bool during_destruction) {
         return; // Was already stopped (or never started)
     }
 
+    // Wake the simulation thread so it exits promptly instead of waiting for sleep
+    sim_cv_.notify_one();
+
     if (simulation_thread_.joinable()) {
         simulation_thread_.join();
     }
@@ -2301,8 +2304,14 @@ void MoonrakerClientMock::temperature_simulation_loop() {
                           callbacks_copy.size());
         }
 
-        // Sleep wall-clock interval (unchanged by speedup factor)
-        std::this_thread::sleep_for(std::chrono::milliseconds(SIMULATION_INTERVAL_MS));
+        // Sleep wall-clock interval with early-exit support for clean shutdown
+        // Uses condition_variable wait instead of raw sleep so stop_temperature_simulation()
+        // can wake the thread immediately instead of waiting for the full interval
+        {
+            std::unique_lock<std::mutex> lock(sim_mutex_);
+            sim_cv_.wait_for(lock, std::chrono::milliseconds(SIMULATION_INTERVAL_MS),
+                             [this] { return !simulation_running_.load(); });
+        }
     }
     spdlog::info("[MoonrakerClientMock] temperature_simulation_loop EXITED");
 }

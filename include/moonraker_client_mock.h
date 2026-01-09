@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <map>
 #include <memory>
 #include <optional>
@@ -737,6 +738,8 @@ class MoonrakerClientMock : public MoonrakerClient {
     // Simulation thread control
     std::thread simulation_thread_;
     std::atomic<bool> simulation_running_{false};
+    std::mutex sim_mutex_;           // For condition variable wait
+    std::condition_variable sim_cv_; // For interruptible sleep during shutdown
 
     // Restart simulation thread (for RESTART/FIRMWARE_RESTART commands)
     std::thread restart_thread_;
