@@ -90,7 +90,9 @@ The core functionality works correctly after recent fixes. The system uses a pri
 | **Capability Caching** | ✅ Complete | Avoids repeated database lookups |
 | **Test Coverage** | ✅ Complete | Added tests for async state, cache, priority order |
 | **Enum Consolidation** | ✅ Complete | Single `OperationCategory` source of truth |
-| **Technical Debt** | 🟡 Reduced | No retry logic, checkbox ambiguity remain |
+| **CapabilityMatrix** | ✅ Complete | Unified capability source management (MT2) |
+| **Retry Logic** | ✅ Complete | Exponential backoff for macro analysis (MT3) |
+| **Technical Debt** | 🟡 Reduced | Checkbox ambiguity remains |
 
 ---
 
@@ -98,6 +100,9 @@ The core functionality works correctly after recent fixes. The system uses a pri
 
 | Commit | Date | Description |
 |--------|------|-------------|
+| `ca308c8f` | 2026-01-09 | Added retry logic for macro analysis with exponential backoff (MT3) |
+| `6765aa3b` | 2026-01-09 | Added CapabilityMatrix for unified capability sources (MT2) |
+| `2d4c98b0` | 2026-01-08 | Consolidated operation enums into single source of truth (MT1) |
 | `653a84fc` | 2026-01-08 | Added this refactor plan document |
 | `7a56b19d` | 2026-01-08 | Unified priority order (Database > Macro > File) and added capability caching |
 | `95acc10e` | 2026-01-08 | Disabled Print button during macro analysis (race condition fix) |
@@ -111,6 +116,9 @@ The core functionality works correctly after recent fixes. The system uses a pri
 - ✅ Generic printers use detected `SKIP_*` or `PERFORM_*` parameters
 - ✅ Print button disabled until macro analysis completes (no race condition)
 - ✅ File-embedded operations can be commented out
+- ✅ Macro analysis retries on network failure (3 attempts, exponential backoff)
+- ✅ User notification on persistent macro analysis failure
+- ✅ CapabilityMatrix provides unified capability querying with priority
 
 ---
 
@@ -119,11 +127,11 @@ The core functionality works correctly after recent fixes. The system uses a pri
 | Priority | Issue | Location | Effort |
 |----------|-------|----------|--------|
 | ~~High~~ | ~~Three operation enums with redundant definitions~~ | ~~Multiple files~~ | ✅ DONE |
-| Low | Mutable cache pattern lacks thread-safety documentation | `ui_print_preparation_manager.cpp` | 0.5h |
-| Medium | No retry for macro analysis on network failure | `analyze_print_start_macro()` | 2h |
+| ~~Low~~ | ~~Mutable cache pattern lacks thread-safety documentation~~ | ~~`ui_print_preparation_manager.h`~~ | ✅ DONE |
+| ~~Medium~~ | ~~No retry for macro analysis on network failure~~ | ~~`analyze_print_start_macro()`~~ | ✅ DONE |
+| ~~Low~~ | ~~Silent macro analysis failure (no user notification)~~ | ~~`analyze_print_start_macro()`~~ | ✅ DONE |
 | Medium | No priming checkbox in UI | `print_detail_panel.xml` | 1h |
 | Low | Redundant detection in both analyzers | `GCodeOpsDetector` + `PrintStartAnalyzer` | 4h |
-| Low | Silent macro analysis failure (no user notification) | `analyze_print_start_macro()` | 1h |
 | Low | PrinterState vs PrinterDetector capability divergence | Two independent capability sources | 6h |
 | Low | Checkbox semantic ambiguity | `PrePrintOptions` struct | 1h |
 
@@ -131,7 +139,7 @@ The core functionality works correctly after recent fixes. The system uses a pri
 
 ## 🟡 Medium-Term Refactors (2-4 hours each)
 
-> **Status**: MT1 complete, others not started
+> **Status**: MT1, MT2, MT3 complete
 
 ### ✅ MT1: Consolidate Operation Enums (COMPLETED 2026-01-09)
 
@@ -155,68 +163,63 @@ Adding a new operation (e.g., input shaper) now requires changes in only 1 file 
 
 ---
 
-### MT2: Create Capability Matrix Struct
+### ✅ MT2: Create Capability Matrix Struct (COMPLETED 2026-01-09)
 
-**Current State:**
-Three sources provide overlapping capability information with no unified view. The orchestrator queries each source separately and must reconcile differences.
+**What was done:**
+- Created `CapabilityMatrix` class in `include/capability_matrix.h`
+- Unified three capability sources: DATABASE, MACRO_ANALYSIS, FILE_SCAN
+- Priority-aware querying via `get_best_source()` method
+- Added 17 test cases (138 assertions) covering all edge cases
+- Fixed bug in MACRO_PARAMETER embedding handling
 
-**Proposed Design:**
+**Key Implementation:**
 ```cpp
-struct CapabilitySource {
-    enum class Origin { DATABASE, MACRO_ANALYSIS, FILE_SCAN };
-    Origin origin;
-    std::string param_name;      // e.g., "FORCE_LEVELING"
-    std::string skip_value;      // e.g., "false"
-    ParameterSemantic semantic;  // OPT_IN or OPT_OUT
-};
+enum class CapabilityOrigin { DATABASE, MACRO_ANALYSIS, FILE_SCAN };
 
-struct CapabilityMatrix {
-    std::map<OperationCategory, std::vector<CapabilitySource>> capabilities;
+class CapabilityMatrix {
+    void add_from_database(const PrintStartCapabilities& caps);
+    void add_from_macro_analysis(const PrintStartAnalysis& analysis);
+    void add_from_file_scan(const gcode::ScanResult& scan);
 
-    // Returns highest-priority source for an operation
-    std::optional<CapabilitySource> get_best_source(OperationCategory op) const;
-
-    // Check if an operation is controllable from any source
     bool is_controllable(OperationCategory op) const;
+    std::optional<CapabilitySource> get_best_source(OperationCategory op) const;
+    std::optional<std::pair<std::string, std::string>> get_skip_param(OperationCategory op) const;
 };
 ```
 
-**Benefit:** Single place to query "can I control bed mesh and how?" Eliminates scattered priority logic.
-
-**Effort:** 3 hours
+**Benefit:** Single unified interface for capability queries. Future integration into `PrintPreparationManager::collect_macro_skip_params()` will simplify the priority logic.
 
 ---
 
-### MT3: Add Retry Logic for Macro Analysis
+### ✅ MT3: Add Retry Logic for Macro Analysis (COMPLETED 2026-01-09)
 
-**Current State:**
-If macro analysis fails (network hiccup, timeout), the system silently falls back to file-only mode. The user loses the ability to control macro-embedded operations with no notification.
+**What was done:**
+- Added `macro_analysis_retry_count_` and `MAX_MACRO_ANALYSIS_RETRIES = 2`
+- Split into `analyze_print_start_macro()` (public, resets counter) and `analyze_print_start_macro_internal()` (for retries)
+- Exponential backoff: 1s, 2s delays between retries (via LVGL timer)
+- `macro_analysis_in_progress_` stays true during retries
+- `NOTIFY_ERROR()` shown only on final failure (all 3 attempts exhausted)
+- Safe timer pattern with `RetryTimerData` capturing `alive_guard_` to prevent use-after-free
 
-**Proposed Solution:**
-1. Add retry counter (max 2 retries with exponential backoff)
-2. On persistent failure, show toast notification
-3. Add manual retry button in file detail view
-4. Cache successful results longer (current: session only)
-
-**Implementation:**
+**Key Implementation:**
 ```cpp
-// In PrintPreparationManager:
-void analyze_print_start_macro() {
-    if (macro_analysis_retry_count_ >= MAX_RETRIES) {
-        // Show user notification about degraded functionality
-        return;
+// Schedule retry via LVGL timer with safe lifetime management
+struct RetryTimerData {
+    PrintPreparationManager* mgr;
+    std::shared_ptr<bool> alive_guard;
+};
+auto* timer_data = new RetryTimerData{mgr, mgr->alive_guard_};
+lv_timer_create([](lv_timer_t* timer) {
+    auto* data = static_cast<RetryTimerData*>(lv_timer_get_user_data(timer));
+    if (data && data->alive_guard && *data->alive_guard) {
+        data->mgr->analyze_print_start_macro_internal();
     }
-
-    // ... existing analysis code ...
-
-    // On error callback:
-    if (++macro_analysis_retry_count_ < MAX_RETRIES) {
-        schedule_retry(std::chrono::seconds(2 << macro_analysis_retry_count_));
-    }
-}
+    delete data;
+    lv_timer_delete(timer);
+}, delay_ms, timer_data);
 ```
 
-**Effort:** 2 hours
+**Benefit:** Users now get retry + notification on persistent failures. Print button remains disabled during entire retry sequence.
 
 ---
 

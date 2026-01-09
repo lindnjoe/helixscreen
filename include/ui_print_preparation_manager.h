@@ -363,6 +363,13 @@ class PrintPreparationManager {
     std::optional<size_t> cached_file_size_; ///< File size from Moonraker metadata
 
     // === Capability Cache ===
+    //
+    // Thread-safety: These mutable members use lazy initialization pattern.
+    // Safe because ALL access occurs on the main LVGL thread:
+    // - get_cached_capabilities() called from format_preprint_steps(), collect_macro_skip_params()
+    // - Both are called from UI event handlers or print flow (main thread only)
+    //
+    // If threading model changes (e.g., background thread access), add mutex protection.
     mutable std::optional<PrintStartCapabilities> cached_capabilities_;
     mutable std::string cached_capabilities_printer_type_;
 
@@ -371,6 +378,9 @@ class PrintPreparationManager {
      *
      * Caches PrinterDetector lookup to avoid repeated database parsing.
      * Cache is invalidated when printer type changes.
+     *
+     * @note Thread-safety: Must be called from main LVGL thread only.
+     *       Uses mutable lazy-init pattern; not thread-safe for concurrent access.
      */
     [[nodiscard]] const PrintStartCapabilities& get_cached_capabilities() const;
 
