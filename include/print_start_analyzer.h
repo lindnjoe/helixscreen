@@ -59,14 +59,27 @@ enum class PrintStartOpCategory {
 [[nodiscard]] const char* category_to_string(PrintStartOpCategory category);
 
 /**
+ * @brief Semantic type for skip/perform parameters
+ *
+ * Indicates whether a parameter uses opt-out (SKIP_*) or opt-in (PERFORM_*) logic:
+ * - OPT_OUT: SKIP_BED_MESH=1 means "skip it", =0 or omitted means "do it"
+ * - OPT_IN: PERFORM_BED_MESH=1 means "do it", =0 or omitted means "skip it"
+ */
+enum class ParameterSemantic {
+    OPT_OUT, ///< SKIP_*: param=1 means skip, param=0 means do
+    OPT_IN   ///< PERFORM_*/DO_*/FORCE_*: param=1 means do, param=0 means skip
+};
+
+/**
  * @brief An operation detected within a PRINT_START macro
  */
 struct PrintStartOperation {
     std::string name; ///< G-code command (e.g., "BED_MESH_CALIBRATE")
     PrintStartOpCategory category = PrintStartOpCategory::UNKNOWN;
     bool has_skip_param = false; ///< true if already wrapped in conditional
-    std::string skip_param_name; ///< e.g., "SKIP_BED_MESH" if detected
-    size_t line_number = 0;      ///< Line number in macro gcode (1-indexed)
+    std::string skip_param_name; ///< e.g., "SKIP_BED_MESH" or "PERFORM_BED_MESH" if detected
+    ParameterSemantic param_semantic = ParameterSemantic::OPT_OUT; ///< Semantic type of parameter
+    size_t line_number = 0; ///< Line number in macro gcode (1-indexed)
 };
 
 /**
@@ -206,20 +219,24 @@ class PrintStartAnalyzer {
     detect_operations(const std::string& gcode);
 
     /**
-     * @brief Check if an operation is wrapped in a skip conditional
+     * @brief Check if an operation is wrapped in a skip/perform conditional
      *
      * Looks for patterns like:
      *   {% if SKIP_BED_MESH == 0 %} or {% if params.SKIP_BED_MESH|default(0) == 0 %}
+     *   {% if PERFORM_BED_MESH == 1 %} or {% if params.PERFORM_BED_MESH|default(0) == 1 %}
      *   followed by the operation
      *
      * @param gcode Full macro gcode
      * @param op_name Operation to check
      * @param out_param_name Output: detected parameter name if found
+     * @param out_semantic Output: detected parameter semantic (OPT_OUT for SKIP_*, OPT_IN for
+     * PERFORM_*)
      * @return true if operation is conditional
      */
     [[nodiscard]] static bool detect_skip_conditional(const std::string& gcode,
                                                       const std::string& op_name,
-                                                      std::string& out_param_name);
+                                                      std::string& out_param_name,
+                                                      ParameterSemantic& out_semantic);
 
     /**
      * @brief Extract known parameters from macro gcode

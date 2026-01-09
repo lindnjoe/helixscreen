@@ -203,6 +203,15 @@ class PrintPreparationManager {
      */
     [[nodiscard]] std::string get_macro_skip_param(helix::PrintStartOpCategory category) const;
 
+    /**
+     * @brief Get the parameter semantic for a macro operation
+     *
+     * @param category The operation category
+     * @return ParameterSemantic (OPT_OUT for SKIP_*, OPT_IN for PERFORM_*)
+     */
+    [[nodiscard]] helix::ParameterSemantic
+    get_macro_param_semantic(helix::PrintStartOpCategory category) const;
+
     // === G-code Scanning ===
 
     /**

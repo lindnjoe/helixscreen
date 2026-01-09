@@ -253,6 +253,19 @@ PrintPreparationManager::get_macro_skip_param(helix::PrintStartOpCategory catego
     return "";
 }
 
+helix::ParameterSemantic
+PrintPreparationManager::get_macro_param_semantic(helix::PrintStartOpCategory category) const {
+    if (!macro_analysis_.has_value() || !macro_analysis_->found) {
+        return helix::ParameterSemantic::OPT_OUT; // Default assumption
+    }
+
+    const auto* op = macro_analysis_->get_operation(category);
+    if (op && op->has_skip_param) {
+        return op->param_semantic;
+    }
+    return helix::ParameterSemantic::OPT_OUT; // Default assumption
+}
+
 // ============================================================================
 // G-code Scanning
 // ============================================================================
@@ -901,8 +914,12 @@ PrintPreparationManager::collect_macro_skip_params() const {
         is_option_disabled(bed_mesh_checkbox_)) {
         std::string param = get_macro_skip_param(helix::PrintStartOpCategory::BED_MESH);
         if (!param.empty()) {
-            skip_params.emplace_back(param, "1");
-            spdlog::debug("[PrintPreparationManager] Adding skip param for bed mesh: {}=1", param);
+            auto semantic = get_macro_param_semantic(helix::PrintStartOpCategory::BED_MESH);
+            // OPT_OUT (SKIP_*): "1" means skip. OPT_IN (PERFORM_*): "0" means don't do.
+            std::string value = (semantic == helix::ParameterSemantic::OPT_OUT) ? "1" : "0";
+            skip_params.emplace_back(param, value);
+            spdlog::debug("[PrintPreparationManager] Adding skip param for bed mesh: {}={}", param,
+                          value);
         }
     }
 
@@ -911,8 +928,12 @@ PrintPreparationManager::collect_macro_skip_params() const {
         is_option_disabled(qgl_checkbox_)) {
         std::string param = get_macro_skip_param(helix::PrintStartOpCategory::QGL);
         if (!param.empty()) {
-            skip_params.emplace_back(param, "1");
-            spdlog::debug("[PrintPreparationManager] Adding skip param for QGL: {}=1", param);
+            auto semantic = get_macro_param_semantic(helix::PrintStartOpCategory::QGL);
+            // OPT_OUT (SKIP_*): "1" means skip. OPT_IN (PERFORM_*): "0" means don't do.
+            std::string value = (semantic == helix::ParameterSemantic::OPT_OUT) ? "1" : "0";
+            skip_params.emplace_back(param, value);
+            spdlog::debug("[PrintPreparationManager] Adding skip param for QGL: {}={}", param,
+                          value);
         }
     }
 
@@ -921,8 +942,12 @@ PrintPreparationManager::collect_macro_skip_params() const {
         is_option_disabled(z_tilt_checkbox_)) {
         std::string param = get_macro_skip_param(helix::PrintStartOpCategory::Z_TILT);
         if (!param.empty()) {
-            skip_params.emplace_back(param, "1");
-            spdlog::debug("[PrintPreparationManager] Adding skip param for Z-tilt: {}=1", param);
+            auto semantic = get_macro_param_semantic(helix::PrintStartOpCategory::Z_TILT);
+            // OPT_OUT (SKIP_*): "1" means skip. OPT_IN (PERFORM_*): "0" means don't do.
+            std::string value = (semantic == helix::ParameterSemantic::OPT_OUT) ? "1" : "0";
+            skip_params.emplace_back(param, value);
+            spdlog::debug("[PrintPreparationManager] Adding skip param for Z-tilt: {}={}", param,
+                          value);
         }
     }
 
@@ -931,9 +956,12 @@ PrintPreparationManager::collect_macro_skip_params() const {
         is_option_disabled(nozzle_clean_checkbox_)) {
         std::string param = get_macro_skip_param(helix::PrintStartOpCategory::NOZZLE_CLEAN);
         if (!param.empty()) {
-            skip_params.emplace_back(param, "1");
-            spdlog::debug("[PrintPreparationManager] Adding skip param for nozzle clean: {}=1",
-                          param);
+            auto semantic = get_macro_param_semantic(helix::PrintStartOpCategory::NOZZLE_CLEAN);
+            // OPT_OUT (SKIP_*): "1" means skip. OPT_IN (PERFORM_*): "0" means don't do.
+            std::string value = (semantic == helix::ParameterSemantic::OPT_OUT) ? "1" : "0";
+            skip_params.emplace_back(param, value);
+            spdlog::debug("[PrintPreparationManager] Adding skip param for nozzle clean: {}={}",
+                          param, value);
         }
     }
 
@@ -1139,7 +1167,8 @@ void PrintPreparationManager::modify_and_print_streaming(
                     // Otherwise, use standard start_print
 
                     // Define common callbacks to avoid code duplication
-                    auto on_print_success = [self, on_navigate_to_status, display_filename]() {
+                    auto on_print_success = [self, on_navigate_to_status, display_filename,
+                                             file_path]() {
                         spdlog::info("[PrintPreparationManager] Print started with "
                                      "modified G-code (streaming, original: {})",
                                      display_filename);
@@ -1151,22 +1180,26 @@ void PrintPreparationManager::modify_and_print_streaming(
 
                         // Defer LVGL operations to main thread
                         struct PrintStartedData {
-                            std::string filename;
+                            std::string display_filename; // For display purposes
+                            std::string original_path;    // Full path for metadata lookup
                             NavigateToStatusCallback navigate_cb;
                         };
                         ui_queue_update<PrintStartedData>(
-                            std::make_unique<PrintStartedData>(
-                                PrintStartedData{display_filename, on_navigate_to_status}),
+                            std::make_unique<PrintStartedData>(PrintStartedData{
+                                display_filename, file_path, on_navigate_to_status}),
                             [](PrintStartedData* d) {
                                 // Hide overlay now that print is starting
                                 BusyOverlay::hide();
 
                                 // Set thumbnail source override for modified temp files
+                                // Uses original_path (e.g., usb/flowrate_0.gcode) for metadata
+                                // lookup
                                 // - Panel: local gcode viewer and thumbnail display
                                 // - Manager: shared subjects for HomePanel
-                                get_global_print_status_panel().set_thumbnail_source(d->filename);
+                                get_global_print_status_panel().set_thumbnail_source(
+                                    d->original_path);
                                 helix::get_active_print_media_manager().set_thumbnail_source(
-                                    d->filename);
+                                    d->original_path);
 
                                 if (d->navigate_cb) {
                                     d->navigate_cb();

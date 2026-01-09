@@ -371,12 +371,14 @@ PrintStartAnalysis PrintStartAnalyzer::parse_macro(const std::string& macro_name
     result.operations = detect_operations(gcode);
     result.total_ops_count = result.operations.size();
 
-    // Check each operation for skip conditionals
+    // Check each operation for skip/perform conditionals
     for (auto& op : result.operations) {
         std::string param_name;
-        if (detect_skip_conditional(gcode, op.name, param_name)) {
+        ParameterSemantic semantic = ParameterSemantic::OPT_OUT;
+        if (detect_skip_conditional(gcode, op.name, param_name, semantic)) {
             op.has_skip_param = true;
             op.skip_param_name = param_name;
+            op.param_semantic = semantic;
             result.controllable_count++;
         }
     }
@@ -482,27 +484,13 @@ std::vector<PrintStartOperation> PrintStartAnalyzer::detect_operations(const std
 
 bool PrintStartAnalyzer::detect_skip_conditional(const std::string& gcode,
                                                  const std::string& op_name,
-                                                 std::string& out_param_name) {
-    // Get the category to know which skip param variations to look for
+                                                 std::string& out_param_name,
+                                                 ParameterSemantic& out_semantic) {
+    // Get the category to know which skip/perform param variations to look for
     PrintStartOpCategory category = categorize_operation(op_name);
     if (category == PrintStartOpCategory::UNKNOWN) {
         return false;
     }
-
-    // Get skip param variations from shared registry
-    // Use get_all_skip_variations() so that SKIP_BED_LEVEL works for QGL and Z_TILT
-    OperationCategory shared_cat = to_operation_category(category);
-    auto variations = get_all_skip_variations(shared_cat);
-    if (variations.empty()) {
-        return false;
-    }
-
-    // Look for patterns like:
-    //   {% if SKIP_BED_MESH == 0 %}
-    //   {% if params.SKIP_BED_MESH|default(0)|int == 0 %}
-    //   {% if not SKIP_BED_MESH %}
-    //
-    // We check if any skip parameter variation appears near the operation
 
     // First, find the operation in the gcode
     auto op_pos = gcode.find(op_name);
@@ -514,36 +502,56 @@ bool PrintStartAnalyzer::detect_skip_conditional(const std::string& gcode,
     // Search up to 500 characters before the operation
     size_t search_start = (op_pos > 500) ? op_pos - 500 : 0;
     std::string context = gcode.substr(search_start, op_pos - search_start);
+    std::string context_lower = context;
+    std::transform(context_lower.begin(), context_lower.end(), context_lower.begin(), ::tolower);
 
-    // Check for each skip param variation
-    for (const auto& param : variations) {
-        // Case-insensitive search
+    // Helper lambda to check if a param is in an if statement or set statement
+    auto check_param_in_context = [&](const std::string& param) -> bool {
         std::string param_lower = param;
         std::transform(param_lower.begin(), param_lower.end(), param_lower.begin(), ::tolower);
 
-        std::string context_lower = context;
-        std::transform(context_lower.begin(), context_lower.end(), context_lower.begin(),
-                       ::tolower);
+        if (context_lower.find(param_lower) == std::string::npos) {
+            return false;
+        }
 
-        // Look for the param in an if statement
-        if (context_lower.find(param_lower) != std::string::npos) {
-            // Verify it's in an if statement context
-            // Look for patterns like: {% if ... param ...
-            std::regex if_pattern(R"(\{%\s*if\s+.*)" + param_lower + R"(.*%\})", std::regex::icase);
-            if (std::regex_search(context, if_pattern)) {
-                out_param_name = param;
-                spdlog::trace("[PrintStartAnalyzer] {} is controlled by {}", op_name, param);
-                return true;
-            }
+        // Verify it's in an if statement context
+        // Look for patterns like: {% if ... param ...
+        std::regex if_pattern(R"(\{%\s*if\s+.*)" + param_lower + R"(.*%\})", std::regex::icase);
+        if (std::regex_search(context, if_pattern)) {
+            out_param_name = param;
+            spdlog::trace("[PrintStartAnalyzer] {} is controlled by {}", op_name, param);
+            return true;
+        }
 
-            // Also check for variable assignment: {% set X = params.SKIP_...
-            std::regex set_pattern(R"(\{%\s*set\s+\w+\s*=\s*params\.)" + param_lower,
-                                   std::regex::icase);
-            if (std::regex_search(context, set_pattern)) {
-                out_param_name = param;
-                spdlog::trace("[PrintStartAnalyzer] {} is controlled by params.{}", op_name, param);
-                return true;
-            }
+        // Also check for variable assignment: {% set X = params.PARAM_...
+        std::regex set_pattern(R"(\{%\s*set\s+\w+\s*=\s*params\.)" + param_lower,
+                               std::regex::icase);
+        if (std::regex_search(context, set_pattern)) {
+            out_param_name = param;
+            spdlog::trace("[PrintStartAnalyzer] {} is controlled by params.{}", op_name, param);
+            return true;
+        }
+
+        return false;
+    };
+
+    OperationCategory shared_cat = to_operation_category(category);
+
+    // First check SKIP_* patterns (opt-out semantics)
+    auto skip_variations = get_all_skip_variations(shared_cat);
+    for (const auto& param : skip_variations) {
+        if (check_param_in_context(param)) {
+            out_semantic = ParameterSemantic::OPT_OUT;
+            return true;
+        }
+    }
+
+    // Then check PERFORM_* patterns (opt-in semantics)
+    auto perform_variations = get_all_perform_variations(shared_cat);
+    for (const auto& param : perform_variations) {
+        if (check_param_in_context(param)) {
+            out_semantic = ParameterSemantic::OPT_IN;
+            return true;
         }
     }
 

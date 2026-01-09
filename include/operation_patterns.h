@@ -61,8 +61,9 @@ struct OperationKeyword {
 // clang-format off
 inline const OperationKeyword OPERATION_KEYWORDS[] = {
     // === Bed Mesh ===
-    // Matches BED_MESH_CALIBRATE, BED_MESH_PROFILE, etc.
+    // Matches BED_MESH_CALIBRATE, BED_MESH_PROFILE, AUTO_BED_LEVEL, etc.
     {"BED_MESH",             OperationCategory::BED_MESH, "SKIP_BED_MESH",     false},
+    {"AUTO_BED_LEVEL",       OperationCategory::BED_MESH, "SKIP_BED_MESH",     false},
     {"G29",                  OperationCategory::BED_MESH, "SKIP_BED_MESH",     true},
 
     // === Quad Gantry Level ===
@@ -133,6 +134,39 @@ inline const std::vector<std::string> SKIP_PARAM_VARIATIONS[] = {
     {"SKIP_SOAK", "SKIP_HEAT_SOAK", "NO_SOAK", "SKIP_CHAMBER"},
     // Index 8: SKEW_CORRECT
     {"SKIP_SKEW", "NO_SKEW", "DISABLE_SKEW", "DISABLE_SKEW_CORRECT"},
+};
+// clang-format on
+
+/**
+ * @brief Perform (opt-in) parameter variations for detecting controllability
+ *
+ * When scanning a macro, we look for these parameter names in {% if %} blocks
+ * to determine if an operation can be explicitly enabled.
+ *
+ * These use opt-in semantics: param=1 means "do it", param=0 or omitted means "skip it".
+ */
+// clang-format off
+inline const std::vector<std::string> PERFORM_PARAM_VARIATIONS[] = {
+    // Index 0: BED_MESH
+    {"PERFORM_BED_MESH", "DO_BED_MESH", "ENABLE_BED_MESH", "FORCE_BED_MESH", "FORCE_LEVELING"},
+    // Index 1: QGL
+    {"PERFORM_QGL", "DO_QGL", "ENABLE_QGL", "FORCE_QGL"},
+    // Index 2: Z_TILT
+    {"PERFORM_Z_TILT", "DO_Z_TILT", "ENABLE_Z_TILT", "FORCE_Z_TILT"},
+    // Index 3: BED_LEVEL (parent of QGL and Z_TILT)
+    {"PERFORM_BED_LEVEL", "DO_BED_LEVEL", "ENABLE_BED_LEVEL", "FORCE_BED_LEVEL"},
+    // Index 4: NOZZLE_CLEAN
+    {"PERFORM_NOZZLE_CLEAN", "DO_NOZZLE_CLEAN", "ENABLE_NOZZLE_CLEAN", "FORCE_NOZZLE_CLEAN"},
+    // Index 5: PURGE_LINE
+    {"PERFORM_PURGE", "DO_PURGE", "ENABLE_PURGE", "FORCE_PURGE",
+     "PERFORM_PRIME", "DO_PRIME", "ENABLE_PRIME", "FORCE_PRIME"},
+    // Index 6: HOMING
+    {"PERFORM_HOMING", "DO_HOMING", "ENABLE_HOMING", "FORCE_HOMING"},
+    // Index 7: CHAMBER_SOAK
+    {"PERFORM_SOAK", "DO_SOAK", "ENABLE_SOAK", "FORCE_SOAK",
+     "PERFORM_HEAT_SOAK", "DO_HEAT_SOAK", "ENABLE_HEAT_SOAK", "FORCE_HEAT_SOAK"},
+    // Index 8: SKEW_CORRECT
+    {"PERFORM_SKEW", "DO_SKEW", "ENABLE_SKEW", "FORCE_SKEW"},
 };
 // clang-format on
 
@@ -240,6 +274,48 @@ inline std::vector<std::string> get_all_skip_variations(OperationCategory cat) {
     // For QGL and Z_TILT, also accept BED_LEVEL variations as unified skip
     if (cat == OperationCategory::QGL || cat == OperationCategory::Z_TILT) {
         const auto& bed_level_vars = get_skip_variations(OperationCategory::BED_LEVEL);
+        result.insert(result.end(), bed_level_vars.begin(), bed_level_vars.end());
+    }
+    return result;
+}
+
+/**
+ * @brief Get perform (opt-in) parameter variations for a category
+ *
+ * @param cat The operation category
+ * @return Vector of perform parameter name variations, or empty if none
+ */
+inline const std::vector<std::string>& get_perform_variations(OperationCategory cat) {
+    static const std::vector<std::string> empty;
+    size_t idx = static_cast<size_t>(cat);
+    constexpr size_t count = sizeof(PERFORM_PARAM_VARIATIONS) / sizeof(PERFORM_PARAM_VARIATIONS[0]);
+    if (idx < count) {
+        return PERFORM_PARAM_VARIATIONS[idx];
+    }
+    return empty;
+}
+
+/**
+ * @brief Get all perform (opt-in) parameter variations that could enable this category
+ *
+ * Returns variations like PERFORM_BED_MESH, DO_BED_MESH, FORCE_BED_MESH, etc.
+ * These use opt-in semantics: param=1 means "do it", param=0 means "skip it".
+ *
+ * For QGL and Z_TILT, includes both specific variations (PERFORM_QGL, PERFORM_Z_TILT)
+ * AND the unified BED_LEVEL variations. This allows PERFORM_BED_LEVEL to work
+ * as a catch-all for physical bed leveling operations.
+ *
+ * @param cat The operation category
+ * @return Vector of perform parameter name variations
+ */
+inline std::vector<std::string> get_all_perform_variations(OperationCategory cat) {
+    std::vector<std::string> result;
+    const auto& own_vars = get_perform_variations(cat);
+    result.insert(result.end(), own_vars.begin(), own_vars.end());
+
+    // For QGL and Z_TILT, also accept BED_LEVEL variations as unified perform
+    if (cat == OperationCategory::QGL || cat == OperationCategory::Z_TILT) {
+        const auto& bed_level_vars = get_perform_variations(OperationCategory::BED_LEVEL);
         result.insert(result.end(), bed_level_vars.begin(), bed_level_vars.end());
     }
     return result;

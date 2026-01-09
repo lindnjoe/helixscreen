@@ -407,3 +407,268 @@ TEST_CASE("PrintStart: get_all_skip_variations includes unified BED_LEVEL", "[pr
         REQUIRE(mesh_all.size() == mesh_own.size());
     }
 }
+
+// ============================================================================
+// Tests: PERFORM_* Opt-In Parameter Detection (NEW)
+// ============================================================================
+
+// Opt-in macro using PERFORM_* pattern (HelixScreen standard)
+static const char* PERFORM_PRINT_START = R"(
+{% set bed_temp = params.BED_TEMP|default(60)|float %}
+{% set extruder_temp = params.EXTRUDER_TEMP|default(200)|float %}
+{% set perform_qgl = params.PERFORM_QGL|default(0)|int %}
+{% set perform_bed_mesh = params.PERFORM_BED_MESH|default(0)|int %}
+
+G28
+
+{% if perform_qgl == 1 %}
+    QUAD_GANTRY_LEVEL
+{% endif %}
+
+{% if perform_bed_mesh == 1 %}
+    BED_MESH_CALIBRATE
+{% endif %}
+
+M190 S{bed_temp}
+M109 S{extruder_temp}
+)";
+
+// Opt-in macro using DO_* pattern (compatibility with existing helix_macros.cfg)
+static const char* DO_STYLE_PRINT_START = R"(
+{% set do_qgl = params.DO_QGL|default(0)|int %}
+{% set do_bed_mesh = params.DO_BED_MESH|default(0)|int %}
+{% set do_nozzle_clean = params.DO_NOZZLE_CLEAN|default(0)|int %}
+
+G28
+
+{% if do_qgl == 1 %}
+    QUAD_GANTRY_LEVEL
+{% endif %}
+
+{% if do_bed_mesh == 1 %}
+    BED_MESH_CALIBRATE
+{% endif %}
+
+{% if do_nozzle_clean == 1 %}
+    CLEAN_NOZZLE
+{% endif %}
+)";
+
+// AD5M Klipper Mod style with FORCE_LEVELING (real-world compatibility)
+static const char* FORCE_LEVELING_PRINT_START = R"(
+{% set bed_temp = params.BED_TEMP|default(60)|float %}
+{% set extruder_temp = params.EXTRUDER_TEMP|default(200)|float %}
+{% set force_leveling = params.FORCE_LEVELING|default(false) %}
+
+M140 S{bed_temp}
+G28
+
+{% if (not printer['bed_mesh'].profile_name) or force_leveling %}
+    AUTO_BED_LEVEL BED_TEMP={bed_temp} EXTRUDER_TEMP={extruder_temp}
+{% endif %}
+
+M109 S{extruder_temp}
+)";
+
+// Mixed macro with both SKIP_* (opt-out) and PERFORM_* (opt-in)
+static const char* MIXED_SEMANTIC_PRINT_START = R"(
+{% set skip_qgl = params.SKIP_QGL|default(0)|int %}
+{% set perform_bed_mesh = params.PERFORM_BED_MESH|default(0)|int %}
+
+G28
+
+{% if skip_qgl == 0 %}
+    QUAD_GANTRY_LEVEL
+{% endif %}
+
+{% if perform_bed_mesh == 1 %}
+    BED_MESH_CALIBRATE
+{% endif %}
+)";
+
+// Uncontrollable macro - uses custom variable, not recognized pattern
+static const char* UNCONTROLLABLE_PRINT_START = R"(
+{% set bed_temp = params.BED_TEMP|default(60)|float %}
+
+G28
+
+{% if printer['bed_mesh'].profile_name == '' %}
+    BED_MESH_CALIBRATE
+{% endif %}
+
+QUAD_GANTRY_LEVEL
+)";
+
+TEST_CASE("PrintStartAnalyzer: PERFORM_* opt-in pattern detection",
+          "[print_start][perform][opt_in]") {
+    auto result = PrintStartAnalyzer::parse_macro("PRINT_START", PERFORM_PRINT_START);
+
+    REQUIRE(result.found == true);
+    REQUIRE(result.is_controllable == true);
+
+    SECTION("Detects QGL controllable via PERFORM_QGL") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        REQUIRE(qgl != nullptr);
+        REQUIRE(qgl->has_skip_param == true);
+        REQUIRE(qgl->skip_param_name == "PERFORM_QGL");
+    }
+
+    SECTION("Detects bed mesh controllable via PERFORM_BED_MESH") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->has_skip_param == true);
+        REQUIRE(mesh->skip_param_name == "PERFORM_BED_MESH");
+    }
+
+    SECTION("PERFORM_* parameters have OPT_IN semantic") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(qgl->param_semantic == ParameterSemantic::OPT_IN);
+        REQUIRE(mesh->param_semantic == ParameterSemantic::OPT_IN);
+    }
+}
+
+TEST_CASE("PrintStartAnalyzer: DO_* opt-in pattern detection", "[print_start][perform][opt_in]") {
+    auto result = PrintStartAnalyzer::parse_macro("PRINT_START", DO_STYLE_PRINT_START);
+
+    REQUIRE(result.found == true);
+    REQUIRE(result.is_controllable == true);
+    REQUIRE(result.controllable_count >= 3);
+
+    SECTION("Detects QGL controllable via DO_QGL") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        REQUIRE(qgl != nullptr);
+        REQUIRE(qgl->has_skip_param == true);
+        REQUIRE(qgl->skip_param_name == "DO_QGL");
+        REQUIRE(qgl->param_semantic == ParameterSemantic::OPT_IN);
+    }
+
+    SECTION("Detects bed mesh controllable via DO_BED_MESH") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->has_skip_param == true);
+        REQUIRE(mesh->skip_param_name == "DO_BED_MESH");
+        REQUIRE(mesh->param_semantic == ParameterSemantic::OPT_IN);
+    }
+
+    SECTION("Detects nozzle clean controllable via DO_NOZZLE_CLEAN") {
+        auto clean = result.get_operation(PrintStartOpCategory::NOZZLE_CLEAN);
+        REQUIRE(clean != nullptr);
+        REQUIRE(clean->has_skip_param == true);
+        REQUIRE(clean->skip_param_name == "DO_NOZZLE_CLEAN");
+        REQUIRE(clean->param_semantic == ParameterSemantic::OPT_IN);
+    }
+}
+
+TEST_CASE("PrintStartAnalyzer: FORCE_LEVELING compatibility", "[print_start][perform][opt_in]") {
+    auto result = PrintStartAnalyzer::parse_macro("START_PRINT", FORCE_LEVELING_PRINT_START);
+
+    REQUIRE(result.found == true);
+
+    SECTION("Detects bed mesh controllable via FORCE_LEVELING") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->has_skip_param == true);
+        REQUIRE(mesh->skip_param_name == "FORCE_LEVELING");
+        REQUIRE(mesh->param_semantic == ParameterSemantic::OPT_IN);
+    }
+}
+
+TEST_CASE("PrintStartAnalyzer: Mixed semantic detection (SKIP_* and PERFORM_*)",
+          "[print_start][perform][mixed]") {
+    auto result = PrintStartAnalyzer::parse_macro("PRINT_START", MIXED_SEMANTIC_PRINT_START);
+
+    REQUIRE(result.found == true);
+    REQUIRE(result.is_controllable == true);
+    REQUIRE(result.controllable_count == 2);
+
+    SECTION("QGL is opt-out via SKIP_QGL") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        REQUIRE(qgl != nullptr);
+        REQUIRE(qgl->has_skip_param == true);
+        REQUIRE(qgl->skip_param_name == "SKIP_QGL");
+        REQUIRE(qgl->param_semantic == ParameterSemantic::OPT_OUT);
+    }
+
+    SECTION("Bed mesh is opt-in via PERFORM_BED_MESH") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->has_skip_param == true);
+        REQUIRE(mesh->skip_param_name == "PERFORM_BED_MESH");
+        REQUIRE(mesh->param_semantic == ParameterSemantic::OPT_IN);
+    }
+}
+
+TEST_CASE("PrintStartAnalyzer: Existing SKIP_* patterns retain OPT_OUT semantic",
+          "[print_start][perform][backward_compat]") {
+    auto result = PrintStartAnalyzer::parse_macro("PRINT_START", CONTROLLABLE_PRINT_START);
+
+    SECTION("SKIP_QGL has OPT_OUT semantic") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        REQUIRE(qgl != nullptr);
+        REQUIRE(qgl->param_semantic == ParameterSemantic::OPT_OUT);
+    }
+
+    SECTION("SKIP_BED_MESH has OPT_OUT semantic") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->param_semantic == ParameterSemantic::OPT_OUT);
+    }
+}
+
+TEST_CASE("PrintStartAnalyzer: Uncontrollable macro detection", "[print_start][perform][edge]") {
+    auto result = PrintStartAnalyzer::parse_macro("PRINT_START", UNCONTROLLABLE_PRINT_START);
+
+    REQUIRE(result.found == true);
+
+    SECTION("Bed mesh is NOT controllable (uses custom variable)") {
+        auto mesh = result.get_operation(PrintStartOpCategory::BED_MESH);
+        REQUIRE(mesh != nullptr);
+        REQUIRE(mesh->has_skip_param == false);
+    }
+
+    SECTION("QGL is NOT controllable (no conditional)") {
+        auto qgl = result.get_operation(PrintStartOpCategory::QGL);
+        REQUIRE(qgl != nullptr);
+        REQUIRE(qgl->has_skip_param == false);
+    }
+
+    SECTION("Macro has operations but none are controllable") {
+        REQUIRE(result.total_ops_count >= 2);
+        REQUIRE(result.controllable_count == 0);
+        REQUIRE(result.is_controllable == false);
+    }
+}
+
+TEST_CASE("PrintStart: get_all_perform_variations helper", "[print_start][perform][helpers]") {
+    using helix::get_all_perform_variations;
+    using helix::OperationCategory;
+
+    SECTION("BED_MESH includes PERFORM, DO, ENABLE, FORCE variants") {
+        auto variations = get_all_perform_variations(OperationCategory::BED_MESH);
+
+        REQUIRE(std::find(variations.begin(), variations.end(), "PERFORM_BED_MESH") !=
+                variations.end());
+        REQUIRE(std::find(variations.begin(), variations.end(), "DO_BED_MESH") != variations.end());
+        REQUIRE(std::find(variations.begin(), variations.end(), "FORCE_BED_MESH") !=
+                variations.end());
+        REQUIRE(std::find(variations.begin(), variations.end(), "FORCE_LEVELING") !=
+                variations.end());
+    }
+
+    SECTION("QGL includes PERFORM, DO, ENABLE, FORCE variants") {
+        auto variations = get_all_perform_variations(OperationCategory::QGL);
+
+        REQUIRE(std::find(variations.begin(), variations.end(), "PERFORM_QGL") != variations.end());
+        REQUIRE(std::find(variations.begin(), variations.end(), "DO_QGL") != variations.end());
+    }
+
+    SECTION("NOZZLE_CLEAN includes PERFORM, DO variants") {
+        auto variations = get_all_perform_variations(OperationCategory::NOZZLE_CLEAN);
+
+        REQUIRE(std::find(variations.begin(), variations.end(), "PERFORM_NOZZLE_CLEAN") !=
+                variations.end());
+        REQUIRE(std::find(variations.begin(), variations.end(), "DO_NOZZLE_CLEAN") !=
+                variations.end());
+    }
+}

@@ -144,6 +144,91 @@ When `helix_macros.cfg` is installed, these macros are available:
 | `HELIX_CLEAN_NOZZLE` | Nozzle cleaning sequence (configure brush position) |
 | `HELIX_START_PRINT` | Complete start print sequence with all options |
 
+## Controllable Pre-Print Operations
+
+HelixScreen can analyze your `PRINT_START` macro to detect which operations can be toggled from the print details panel. This allows you to skip bed mesh, QGL, etc. on a per-print basis.
+
+### Parameter Semantics
+
+HelixScreen recognizes two styles of parameter control:
+
+| Style | Example | When checkbox is unchecked |
+|-------|---------|---------------------------|
+| **Opt-IN** (recommended) | `PERFORM_BED_MESH=1` | Passes `PERFORM_BED_MESH=0` |
+| **Opt-OUT** | `SKIP_BED_MESH=1` | Passes `SKIP_BED_MESH=1` |
+
+**Opt-IN (PERFORM_*)**: Operation is skipped by default; checkbox enables it.
+**Opt-OUT (SKIP_*)**: Operation runs by default; checkbox disables it.
+
+### Recognized Parameter Names
+
+HelixScreen detects these parameter patterns in your `PRINT_START` macro:
+
+| Operation | Opt-IN Patterns | Opt-OUT Patterns |
+|-----------|-----------------|------------------|
+| Bed Mesh | `PERFORM_BED_MESH`, `DO_BED_MESH`, `FORCE_BED_MESH`, `FORCE_LEVELING` | `SKIP_BED_MESH`, `SKIP_MESH`, `NO_MESH` |
+| QGL | `PERFORM_QGL`, `DO_QGL`, `FORCE_QGL` | `SKIP_QGL`, `NO_QGL` |
+| Z-Tilt | `PERFORM_Z_TILT`, `DO_Z_TILT`, `FORCE_Z_TILT` | `SKIP_Z_TILT`, `NO_Z_TILT` |
+| Nozzle Clean | `PERFORM_NOZZLE_CLEAN`, `DO_NOZZLE_CLEAN` | `SKIP_NOZZLE_CLEAN`, `SKIP_CLEAN` |
+
+### Making Your Macro Controllable
+
+Wrap operations in Jinja conditionals using recognized parameters:
+
+**Opt-IN Style (recommended):**
+
+```gcode
+[gcode_macro PRINT_START]
+gcode:
+    {% set perform_bed_mesh = params.PERFORM_BED_MESH|default(0)|int %}
+    {% set perform_qgl = params.PERFORM_QGL|default(0)|int %}
+
+    G28  ; Always home
+
+    {% if perform_qgl == 1 %}
+        QUAD_GANTRY_LEVEL
+    {% endif %}
+
+    {% if perform_bed_mesh == 1 %}
+        BED_MESH_CALIBRATE
+    {% endif %}
+
+    HELIX_READY
+```
+
+**Opt-OUT Style:**
+
+```gcode
+[gcode_macro PRINT_START]
+gcode:
+    {% set skip_bed_mesh = params.SKIP_BED_MESH|default(0)|int %}
+
+    G28  ; Always home
+
+    {% if skip_bed_mesh == 0 %}
+        BED_MESH_CALIBRATE
+    {% endif %}
+
+    HELIX_READY
+```
+
+### Using HELIX_START_PRINT
+
+The bundled `HELIX_START_PRINT` macro supports all controllable operations:
+
+```gcode
+; In your slicer's start G-code:
+HELIX_START_PRINT BED_TEMP={first_layer_bed_temperature} EXTRUDER_TEMP={first_layer_temperature} PERFORM_BED_MESH=1 PERFORM_QGL=1
+```
+
+Available parameters:
+- `BED_TEMP` - Bed temperature (default: 60)
+- `EXTRUDER_TEMP` - Extruder temperature (default: 200)
+- `PERFORM_QGL` - Run quad gantry level (0 or 1)
+- `PERFORM_Z_TILT` - Run Z-tilt adjust (0 or 1)
+- `PERFORM_BED_MESH` - Run bed mesh calibrate (0 or 1)
+- `PERFORM_NOZZLE_CLEAN` - Run nozzle cleaning (0 or 1)
+
 ## Troubleshooting
 
 ### "Preparing" Stuck Forever
