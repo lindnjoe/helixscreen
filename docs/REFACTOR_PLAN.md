@@ -1584,102 +1584,62 @@ MoonrakerClient (orchestrator, ~300 lines)
 
 ## Quick Wins
 
+> **Assessment (2026-01-09)**: Original estimates were optimistic. Actual analysis revealed
+> some items are already covered by existing infrastructure or are larger than quick wins.
+
 ### Temperature Formatting Utilities
 
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [ ] Not Started  [ ] In Progress  [x] Complete
 
-**Problem**: 43+ occurrences of temperature formatting:
-```cpp
-std::snprintf(buf, sizeof(buf), "%d / %d°C", current, target);
-```
+**Problem**: 43+ occurrences of temperature formatting scattered across UI files.
 
-**Solution**:
-```cpp
-// include/ui_temperature_utils.h
-namespace helix::ui {
-    std::string format_temp_pair(int current, int target);
-    std::string format_temp_current(int current);
-    std::string format_temp_target(int target);
-}
-```
+**Solution**: Extended `ui_temperature_utils.h` with:
+- `format_temperature_f()` - float precision: "210.5°C"
+- `format_temperature_pair_f()` - float pairs: "210.5 / 215.0°C"
+- `format_temperature_range()` - material ranges: "200-230°C"
 
-**Effort**: 2 hours | **Lines saved**: ~200
+**Result**: Added 3 utilities with full test coverage. Migration of existing usages is optional.
+
+**Effort**: 1 hour | **Lines added**: 50 (utilities + tests)
 
 ---
 
 ### AutoModal RAII Wrapper
 
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Skipped (Low ROI)
 
-**Problem**: 74+ occurrences of modal cleanup:
-```cpp
-if (lv_is_initialized()) {
-    if (modal_) { ui_modal_hide(modal_); modal_ = nullptr; }
-}
-```
+**Analysis (2026-01-09)**: The "74+ occurrences" counted patterns now handled by:
+- `ObserverGuard` - RAII for observer cleanup (already in use)
+- `SubjectManager` - subject lifecycle management
+- Modal-specific cleanup (widget refs, vectors) is too varied for generic wrapper
 
-**Solution**:
-```cpp
-// include/auto_modal.h
-class AutoModal {
-    lv_obj_t* modal_ = nullptr;
-public:
-    ~AutoModal() { hide(); }
-    void show(lv_obj_t* modal) { hide(); modal_ = modal; }
-    void hide() { if (modal_) { ui_modal_hide(modal_); modal_ = nullptr; } }
-};
-```
-
-**Effort**: 3 hours | **Lines saved**: ~400
+**Decision**: Skip - existing infrastructure covers most cases.
 
 ---
 
 ### Test Stub Consolidation
 
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Deferred (Larger than Quick Win)
 
-**Problem**: 15+ stub pairs with identical logging pattern:
-```cpp
-void ui_notification_info(const char* message) { spdlog::debug("[Test Stub] info: {}", message); }
-void ui_notification_info(const char* title, const char* message) { spdlog::debug("[Test Stub] info: {} - {}", title, message); }
-void ui_notification_success(const char* message) { ... }
-void ui_notification_success(const char* title, const char* message) { ... }
-// etc.
-```
+**Analysis (2026-01-09)**: Actual scope is much larger:
+- **920+ lines** of duplicated test boilerplate (not 150)
+- **19 files** affected, not 15
+- Primary pattern: `CallbackTestFixture` with mutex/cv/capture (8 files, 560 lines)
 
-**Solution**:
-```cpp
-#define STUB_NOTIFY_1(name) \
-    void ui_notification_##name(const char* msg) { \
-        spdlog::debug("[Test Stub] " #name ": {}", msg); \
-    }
-#define STUB_NOTIFY_2(name) \
-    void ui_notification_##name(const char* title, const char* msg) { \
-        spdlog::debug("[Test Stub] " #name ": {} - {}", title, msg); \
-    }
-```
-
-**Effort**: 2 hours | **Lines saved**: ~150
+**Decision**: Track as separate Tier 2 item - "Test Infrastructure Consolidation"
 
 ---
 
 ### Parent Coordinate Utility
 
-**Status**: [ ] Not Started  [ ] In Progress  [ ] Complete
+**Status**: [x] Skipped (Insufficient Usage)
 
-**Problem**: 2 occurrences of parent traversal:
-```cpp
-lv_obj_t* parent = lv_obj_get_parent(widget);
-while (parent) {
-    x += lv_obj_get_x(parent);
-    y += lv_obj_get_y(parent);
-    parent = lv_obj_get_parent(parent);
-}
-```
+**Analysis (2026-01-09)**:
+- Only **1 occurrence** of coordinate calculation pattern
+- 8 "find parent with predicate" patterns exist but need template solution
+- ROI too low for 1 usage
 
-**Solution**: Extract to `get_absolute_position()` in `ui_utils.h`
-
-**Effort**: 30 minutes | **Lines saved**: ~10
+**Decision**: Skip - not worth adding utility for single usage.
 
 ---
 
@@ -1688,10 +1648,10 @@ while (parent) {
 ### Phase 1: Quick Wins (1-2 days)
 | Item | Effort | Owner | Status |
 |------|--------|-------|--------|
-| Temperature formatting utilities | 2h | | [ ] |
-| AutoModal RAII wrapper | 3h | | [ ] |
-| Test stub consolidation | 2h | | [ ] |
-| Parent coordinate utility | 30m | | [ ] |
+| Temperature formatting utilities | 1h | | [x] Done |
+| AutoModal RAII wrapper | -- | | [x] Skipped |
+| Test stub consolidation | -- | | [x] Deferred |
+| Parent coordinate utility | -- | | [x] Skipped |
 | Extract PrintStatusPanel modals | 2h | | [ ] |
 
 ### Phase 2: Foundation (1 week)
