@@ -29,6 +29,10 @@ class PrinterCapabilities;
 class MoonrakerAPI;
 struct MoonrakerError;
 
+namespace helix {
+class PrinterHardwareDiscovery;
+}
+
 /**
  * @brief Standard macro slot identifiers
  *
@@ -162,8 +166,20 @@ class StandardMacros {
      * Loads user config and runs pattern matching on available macros.
      *
      * @param caps Printer capabilities with discovered macros
+     * @deprecated Use init(const helix::PrinterHardwareDiscovery&) instead
      */
+    [[deprecated("Use init(const helix::PrinterHardwareDiscovery&) instead")]]
     void init(const PrinterCapabilities& caps);
+
+    /**
+     * @brief Initialize with hardware discovery
+     *
+     * Call this after printer discovery to enable auto-detection.
+     * Loads user config and runs pattern matching on available macros.
+     *
+     * @param hardware Hardware discovery with discovered macros
+     */
+    void init(const helix::PrinterHardwareDiscovery& hardware);
 
     /**
      * @brief Reset to uninitialized state
@@ -288,8 +304,15 @@ class StandardMacros {
     /**
      * @brief Run auto-detection for all slots
      * @param caps Printer capabilities with macro list
+     * @deprecated Use auto_detect(const helix::PrinterHardwareDiscovery&) instead
      */
     void auto_detect(const PrinterCapabilities& caps);
+
+    /**
+     * @brief Run auto-detection for all slots
+     * @param hardware Hardware discovery with macro list
+     */
+    void auto_detect(const helix::PrinterHardwareDiscovery& hardware);
 
     /**
      * @brief Try to detect a macro for a slot using patterns
@@ -297,8 +320,19 @@ class StandardMacros {
      * @param slot Slot to detect for
      * @param patterns Patterns to match (uppercase)
      * @return Detected macro name, or empty if none found
+     * @deprecated Use try_detect with PrinterHardwareDiscovery instead
      */
     std::string try_detect(const PrinterCapabilities& caps, StandardMacroSlot slot,
+                           const std::vector<std::string>& patterns);
+
+    /**
+     * @brief Try to detect a macro for a slot using patterns
+     * @param hardware Hardware discovery
+     * @param slot Slot to detect for
+     * @param patterns Patterns to match (uppercase)
+     * @return Detected macro name, or empty if none found
+     */
+    std::string try_detect(const helix::PrinterHardwareDiscovery& hardware, StandardMacroSlot slot,
                            const std::vector<std::string>& patterns);
 
     std::vector<StandardMacroInfo> slots_;

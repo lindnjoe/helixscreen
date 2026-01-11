@@ -7,6 +7,7 @@
 #include "hardware_validator.h"
 #include "lvgl/lvgl.h"
 #include "printer_detector.h"
+#include "printer_hardware_discovery.h"
 #include "spdlog/spdlog.h"
 #include "subject_managed_panel.h"
 
@@ -826,8 +827,21 @@ class PrinterState {
      * Called by main.cpp after MoonrakerClient::discover_printer() completes.
      *
      * @param caps PrinterCapabilities populated from printer.objects.list
+     * @deprecated Use set_hardware instead
      */
+    [[deprecated("Use set_hardware instead")]]
     void set_printer_capabilities(const PrinterCapabilities& caps);
+
+    /**
+     * @brief Update printer capability subjects from PrinterHardwareDiscovery
+     *
+     * Updates subjects that control visibility of pre-print option checkboxes.
+     * Applies user-configured overrides from helixconfig.json before updating subjects.
+     * Called by main.cpp after MoonrakerClient::discover_printer() completes.
+     *
+     * @param hardware PrinterHardwareDiscovery populated from printer.objects.list
+     */
+    void set_hardware(const helix::PrinterHardwareDiscovery& hardware);
 
     /**
      * @brief Set Klipper software version from printer.info
@@ -1399,6 +1413,7 @@ class PrinterState {
     friend void async_klippy_state_callback(void* user_data);
 
     void set_printer_capabilities_internal(const PrinterCapabilities& caps);
+    void set_hardware_internal(const helix::PrinterHardwareDiscovery& hardware);
     void set_klipper_version_internal(const std::string& version);
     void set_moonraker_version_internal(const std::string& version);
     void set_klippy_state_internal(KlippyState state);

@@ -127,13 +127,20 @@ class PrinterHardwareDiscovery {
                 leds_.push_back(name);
                 has_led_ = true;
             }
-            // Output pins with LED/LIGHT in name
+            // Output pins with LED/LIGHT in name or speaker/buzzer
             else if (name.rfind("output_pin ", 0) == 0) {
                 std::string pin_name = name.substr(11); // Remove "output_pin " prefix
                 std::string upper_pin = to_upper(pin_name);
                 if (upper_pin.find("LIGHT") != std::string::npos ||
-                    upper_pin.find("LED") != std::string::npos) {
+                    upper_pin.find("LED") != std::string::npos ||
+                    upper_pin.find("LAMP") != std::string::npos) {
                     has_led_ = true;
+                }
+                // Speaker/buzzer detection for M300 support
+                if (upper_pin.find("BEEPER") != std::string::npos ||
+                    upper_pin.find("BUZZER") != std::string::npos ||
+                    upper_pin.find("SPEAKER") != std::string::npos) {
+                    has_speaker_ = true;
                 }
             }
             // ================================================================
@@ -153,6 +160,10 @@ class PrinterHardwareDiscovery {
                 has_firmware_retraction_ = true;
             } else if (name == "timelapse") {
                 has_timelapse_ = true;
+            } else if (name == "exclude_object") {
+                has_exclude_object_ = true;
+            } else if (name == "screws_tilt_adjust") {
+                has_screws_tilt_ = true;
             }
             // Accelerometer detection
             else if (name == "adxl345" || name.rfind("adxl345 ", 0) == 0 || name == "lis2dw" ||
@@ -210,6 +221,16 @@ class PrinterHardwareDiscovery {
                 std::string upper_macro = to_upper(macro_name);
 
                 macros_.insert(upper_macro);
+
+                // Check for HelixScreen helper macros
+                if (upper_macro.rfind("HELIX_", 0) == 0) {
+                    helix_macros_.insert(upper_macro);
+                }
+
+                // Check for Klippain Shake&Tune
+                if (upper_macro == "AXES_SHAPER_CALIBRATION") {
+                    has_klippain_shaketune_ = true;
+                }
 
                 // Check for common macro patterns and cache them
                 if (nozzle_clean_macro_.empty()) {
@@ -274,6 +295,7 @@ class PrinterHardwareDiscovery {
 
         // Macros
         macros_.clear();
+        helix_macros_.clear();
         nozzle_clean_macro_.clear();
         purge_line_macro_.clear();
         heat_soak_macro_.clear();
@@ -292,6 +314,10 @@ class PrinterHardwareDiscovery {
         has_accelerometer_ = false;
         has_firmware_retraction_ = false;
         has_timelapse_ = false;
+        has_exclude_object_ = false;
+        has_screws_tilt_ = false;
+        has_klippain_shaketune_ = false;
+        has_speaker_ = false;
         mmu_type_ = AmsType::NONE;
     }
 
@@ -379,6 +405,22 @@ class PrinterHardwareDiscovery {
         return has_timelapse_;
     }
 
+    [[nodiscard]] bool has_exclude_object() const {
+        return has_exclude_object_;
+    }
+
+    [[nodiscard]] bool has_screws_tilt() const {
+        return has_screws_tilt_;
+    }
+
+    [[nodiscard]] bool has_klippain_shaketune() const {
+        return has_klippain_shaketune_;
+    }
+
+    [[nodiscard]] bool has_speaker() const {
+        return has_speaker_;
+    }
+
     [[nodiscard]] bool supports_leveling() const {
         return has_qgl() || has_z_tilt() || has_bed_mesh();
     }
@@ -395,7 +437,17 @@ class PrinterHardwareDiscovery {
         return mmu_type_;
     }
 
+    /// @brief Alias for mmu_type() - compatibility with PrinterCapabilities API
+    [[nodiscard]] AmsType get_mmu_type() const {
+        return mmu_type_;
+    }
+
     [[nodiscard]] const std::vector<std::string>& afc_lane_names() const {
+        return afc_lane_names_;
+    }
+
+    /// @brief Alias for afc_lane_names() - compatibility with PrinterCapabilities API
+    [[nodiscard]] const std::vector<std::string>& get_afc_lane_names() const {
         return afc_lane_names_;
     }
 
@@ -403,11 +455,26 @@ class PrinterHardwareDiscovery {
         return afc_hub_names_;
     }
 
+    /// @brief Alias for afc_hub_names() - compatibility with PrinterCapabilities API
+    [[nodiscard]] const std::vector<std::string>& get_afc_hub_names() const {
+        return afc_hub_names_;
+    }
+
     [[nodiscard]] const std::vector<std::string>& tool_names() const {
         return tool_names_;
     }
 
+    /// @brief Alias for tool_names() - compatibility with PrinterCapabilities API
+    [[nodiscard]] const std::vector<std::string>& get_tool_names() const {
+        return tool_names_;
+    }
+
     [[nodiscard]] const std::vector<std::string>& filament_sensor_names() const {
+        return filament_sensor_names_;
+    }
+
+    /// @brief Alias for filament_sensor_names() - compatibility with PrinterCapabilities API
+    [[nodiscard]] const std::vector<std::string>& get_filament_sensor_names() const {
         return filament_sensor_names_;
     }
 
@@ -416,6 +483,11 @@ class PrinterHardwareDiscovery {
     // ========================================================================
 
     [[nodiscard]] const std::unordered_set<std::string>& macros() const {
+        return macros_;
+    }
+
+    /// @brief Alias for macros() - compatibility with PrinterCapabilities API
+    [[nodiscard]] const std::unordered_set<std::string>& get_macros() const {
         return macros_;
     }
 
@@ -432,13 +504,77 @@ class PrinterHardwareDiscovery {
         return nozzle_clean_macro_;
     }
 
+    /// @brief Alias for nozzle_clean_macro() - compatibility with PrinterCapabilities API
+    [[nodiscard]] std::string get_nozzle_clean_macro() const {
+        return nozzle_clean_macro_;
+    }
+
     [[nodiscard]] std::string purge_line_macro() const {
+        return purge_line_macro_;
+    }
+
+    /// @brief Alias for purge_line_macro() - compatibility with PrinterCapabilities API
+    [[nodiscard]] std::string get_purge_line_macro() const {
         return purge_line_macro_;
     }
 
     [[nodiscard]] std::string heat_soak_macro() const {
         return heat_soak_macro_;
     }
+
+    /// @brief Alias for heat_soak_macro() - compatibility with PrinterCapabilities API
+    [[nodiscard]] std::string get_heat_soak_macro() const {
+        return heat_soak_macro_;
+    }
+
+    [[nodiscard]] bool has_nozzle_clean_macro() const {
+        return !nozzle_clean_macro_.empty();
+    }
+
+    [[nodiscard]] bool has_purge_line_macro() const {
+        return !purge_line_macro_.empty();
+    }
+
+    [[nodiscard]] bool has_heat_soak_macro() const {
+        return !heat_soak_macro_.empty();
+    }
+
+    /**
+     * @brief Get detected HelixScreen helper macros
+     * @return Set of HELIX_* macro names
+     */
+    [[nodiscard]] const std::unordered_set<std::string>& helix_macros() const {
+        return helix_macros_;
+    }
+
+    /**
+     * @brief Check if HelixScreen helper macros are installed
+     * @return true if any HELIX_* macros were detected
+     */
+    [[nodiscard]] bool has_helix_macros() const {
+        return !helix_macros_.empty();
+    }
+
+    /**
+     * @brief Check if a specific HelixScreen helper macro exists
+     * @param macro_name Full macro name (e.g., "HELIX_BED_LEVEL_IF_NEEDED")
+     * @return true if macro was detected
+     */
+    [[nodiscard]] bool has_helix_macro(const std::string& macro_name) const {
+        return helix_macros_.count(to_upper(macro_name)) > 0;
+    }
+
+    /**
+     * @brief Get total number of detected macros
+     */
+    [[nodiscard]] size_t macro_count() const {
+        return macros_.size();
+    }
+
+    /**
+     * @brief Get summary string for logging
+     */
+    [[nodiscard]] std::string summary() const;
 
   private:
     // Helper: convert string to uppercase
@@ -474,6 +610,7 @@ class PrinterHardwareDiscovery {
 
     // Macros
     std::unordered_set<std::string> macros_;
+    std::unordered_set<std::string> helix_macros_;
     std::string nozzle_clean_macro_;
     std::string purge_line_macro_;
     std::string heat_soak_macro_;
@@ -492,6 +629,10 @@ class PrinterHardwareDiscovery {
     bool has_accelerometer_ = false;
     bool has_firmware_retraction_ = false;
     bool has_timelapse_ = false;
+    bool has_exclude_object_ = false;
+    bool has_screws_tilt_ = false;
+    bool has_klippain_shaketune_ = false;
+    bool has_speaker_ = false;
     AmsType mmu_type_ = AmsType::NONE;
 };
 

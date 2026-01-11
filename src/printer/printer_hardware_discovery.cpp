@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "printer_hardware_discovery.h"
+
+#include <sstream>
+#include <vector>
+
+namespace helix {
+
+std::string PrinterHardwareDiscovery::summary() const {
+    std::ostringstream ss;
+    ss << "Capabilities: ";
+
+    std::vector<std::string> caps;
+
+    if (has_qgl_)
+        caps.push_back("QGL");
+    if (has_z_tilt_)
+        caps.push_back("Z-tilt");
+    if (has_bed_mesh_)
+        caps.push_back("bed_mesh");
+    if (has_chamber_heater_)
+        caps.push_back("chamber_heater");
+    if (has_chamber_sensor_)
+        caps.push_back("chamber_sensor");
+    if (has_exclude_object_)
+        caps.push_back("exclude_object");
+    if (has_probe_)
+        caps.push_back("probe");
+    if (has_heater_bed_)
+        caps.push_back("heater_bed");
+    if (has_led_)
+        caps.push_back("LED");
+    if (has_accelerometer_)
+        caps.push_back("accelerometer");
+    if (has_screws_tilt_)
+        caps.push_back("screws_tilt");
+    if (has_klippain_shaketune_)
+        caps.push_back("Klippain");
+    if (has_speaker_)
+        caps.push_back("speaker");
+    if (has_firmware_retraction_)
+        caps.push_back("firmware_retraction");
+    if (has_mmu_)
+        caps.push_back(mmu_type_ == AmsType::HAPPY_HARE ? "Happy Hare" : "AFC");
+    if (has_tool_changer_) {
+        std::string tc_str = "Tool Changer";
+        if (!tool_names_.empty()) {
+            tc_str += " (" + std::to_string(tool_names_.size()) + " tools)";
+        }
+        caps.push_back(tc_str);
+    }
+    if (has_timelapse_)
+        caps.push_back("timelapse");
+    if (!filament_sensor_names_.empty())
+        caps.push_back("filament_sensors(" + std::to_string(filament_sensor_names_.size()) + ")");
+
+    if (caps.empty()) {
+        ss << "none";
+    } else {
+        for (size_t i = 0; i < caps.size(); ++i) {
+            if (i > 0)
+                ss << ", ";
+            ss << caps[i];
+        }
+    }
+
+    ss << " | " << macros_.size() << " macros";
+    if (!helix_macros_.empty()) {
+        ss << " (" << helix_macros_.size() << " HELIX_*)";
+    }
+
+    return ss.str();
+}
+
+} // namespace helix

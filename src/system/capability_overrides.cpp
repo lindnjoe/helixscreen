@@ -40,9 +40,9 @@ void CapabilityOverrides::load_from_config() {
     spdlog::debug("[CapabilityOverrides] Loaded: {}", summary());
 }
 
-void CapabilityOverrides::set_printer_capabilities(const PrinterCapabilities& caps) {
-    capabilities_ = caps;
-    capabilities_set_ = true;
+void CapabilityOverrides::set_hardware(const helix::PrinterHardwareDiscovery& hardware) {
+    hardware_ = hardware;
+    hardware_set_ = true;
 }
 
 OverrideState CapabilityOverrides::get_override(const std::string& name) const {
@@ -72,23 +72,23 @@ bool CapabilityOverrides::is_available(const std::string& name) const {
 }
 
 bool CapabilityOverrides::get_auto_value(const std::string& name) const {
-    if (!capabilities_set_) {
-        // No capabilities set, default to false for safety
+    if (!hardware_set_) {
+        // No hardware set, default to false for safety
         return false;
     }
 
     if (name == capability::BED_MESH) {
-        return capabilities_.has_bed_mesh();
+        return hardware_.has_bed_mesh();
     } else if (name == capability::QGL) {
-        return capabilities_.has_qgl();
+        return hardware_.has_qgl();
     } else if (name == capability::Z_TILT) {
-        return capabilities_.has_z_tilt();
+        return hardware_.has_z_tilt();
     } else if (name == capability::NOZZLE_CLEAN) {
-        return capabilities_.has_nozzle_clean_macro();
+        return hardware_.has_nozzle_clean_macro();
     } else if (name == capability::HEAT_SOAK) {
-        return capabilities_.has_heat_soak_macro();
+        return hardware_.has_heat_soak_macro();
     } else if (name == capability::CHAMBER) {
-        return capabilities_.supports_chamber();
+        return hardware_.supports_chamber();
     }
 
     // Unknown capability, default to false

@@ -1175,18 +1175,15 @@ void PrinterState::set_printer_capabilities(const PrinterCapabilities& caps) {
 }
 
 void PrinterState::set_printer_capabilities_internal(const PrinterCapabilities& caps) {
-    // Pass auto-detected capabilities to the override layer
-    capability_overrides_.set_printer_capabilities(caps);
+    // Deprecated: This maintains backward compatibility while we transition callers
+    // Note: We can't easily convert PrinterCapabilities to PrinterHardwareDiscovery
+    // without re-parsing, so we just update subjects directly here for now
 
-    // Update subjects using effective values (auto-detect + user overrides)
-    // This allows users to force-enable features that weren't detected
-    // (e.g., heat soak macro without chamber heater) or force-disable
-    // features they don't want to see in the UI.
-    lv_subject_set_int(&printer_has_qgl_, capability_overrides_.has_qgl() ? 1 : 0);
-    lv_subject_set_int(&printer_has_z_tilt_, capability_overrides_.has_z_tilt() ? 1 : 0);
-    lv_subject_set_int(&printer_has_bed_mesh_, capability_overrides_.has_bed_mesh() ? 1 : 0);
-    lv_subject_set_int(&printer_has_nozzle_clean_,
-                       capability_overrides_.has_nozzle_clean() ? 1 : 0);
+    // Update subjects using values from caps
+    lv_subject_set_int(&printer_has_qgl_, caps.has_qgl() ? 1 : 0);
+    lv_subject_set_int(&printer_has_z_tilt_, caps.has_z_tilt() ? 1 : 0);
+    lv_subject_set_int(&printer_has_bed_mesh_, caps.has_bed_mesh() ? 1 : 0);
+    lv_subject_set_int(&printer_has_nozzle_clean_, caps.has_nozzle_clean_macro() ? 1 : 0);
 
     // Hardware capabilities (no user override support yet - set directly from detection)
     lv_subject_set_int(&printer_has_probe_, caps.has_probe() ? 1 : 0);
@@ -1203,13 +1200,58 @@ void PrinterState::set_printer_capabilities_internal(const PrinterCapabilities& 
     // Firmware retraction capability (for G10/G11 retraction settings)
     lv_subject_set_int(&printer_has_firmware_retraction_, caps.has_firmware_retraction() ? 1 : 0);
 
-    // Spoolman requires async check - default to 0, updated separately
-
-    spdlog::info("[PrinterState] Capabilities set: probe={}, heater_bed={}, LED={}, "
+    spdlog::info("[PrinterState] Capabilities set (legacy): probe={}, heater_bed={}, LED={}, "
                  "accelerometer={}, speaker={}, timelapse={}, fw_retraction={}",
                  caps.has_probe(), caps.has_heater_bed(), caps.has_led(), caps.has_accelerometer(),
                  caps.has_speaker(), caps.has_timelapse(), caps.has_firmware_retraction());
-    spdlog::info("[PrinterState] Capabilities set (with overrides): {}",
+
+    // Update composite subjects for G-code modification options
+    update_gcode_modification_visibility();
+}
+
+void PrinterState::set_hardware(const helix::PrinterHardwareDiscovery& hardware) {
+    // Thread-safe wrapper: defer LVGL subject updates to main thread
+    helix::async::call_method_ref(this, &PrinterState::set_hardware_internal, hardware);
+}
+
+void PrinterState::set_hardware_internal(const helix::PrinterHardwareDiscovery& hardware) {
+    // Pass auto-detected hardware to the override layer
+    capability_overrides_.set_hardware(hardware);
+
+    // Update subjects using effective values (auto-detect + user overrides)
+    // This allows users to force-enable features that weren't detected
+    // (e.g., heat soak macro without chamber heater) or force-disable
+    // features they don't want to see in the UI.
+    lv_subject_set_int(&printer_has_qgl_, capability_overrides_.has_qgl() ? 1 : 0);
+    lv_subject_set_int(&printer_has_z_tilt_, capability_overrides_.has_z_tilt() ? 1 : 0);
+    lv_subject_set_int(&printer_has_bed_mesh_, capability_overrides_.has_bed_mesh() ? 1 : 0);
+    lv_subject_set_int(&printer_has_nozzle_clean_,
+                       capability_overrides_.has_nozzle_clean() ? 1 : 0);
+
+    // Hardware capabilities (no user override support yet - set directly from detection)
+    lv_subject_set_int(&printer_has_probe_, hardware.has_probe() ? 1 : 0);
+    lv_subject_set_int(&printer_has_heater_bed_, hardware.has_heater_bed() ? 1 : 0);
+    lv_subject_set_int(&printer_has_led_, hardware.has_led() ? 1 : 0);
+    lv_subject_set_int(&printer_has_accelerometer_, hardware.has_accelerometer() ? 1 : 0);
+
+    // Speaker capability (for M300 audio feedback)
+    lv_subject_set_int(&printer_has_speaker_, hardware.has_speaker() ? 1 : 0);
+
+    // Timelapse capability (Moonraker-Timelapse plugin)
+    lv_subject_set_int(&printer_has_timelapse_, hardware.has_timelapse() ? 1 : 0);
+
+    // Firmware retraction capability (for G10/G11 retraction settings)
+    lv_subject_set_int(&printer_has_firmware_retraction_,
+                       hardware.has_firmware_retraction() ? 1 : 0);
+
+    // Spoolman requires async check - default to 0, updated separately
+
+    spdlog::info("[PrinterState] Hardware set: probe={}, heater_bed={}, LED={}, "
+                 "accelerometer={}, speaker={}, timelapse={}, fw_retraction={}",
+                 hardware.has_probe(), hardware.has_heater_bed(), hardware.has_led(),
+                 hardware.has_accelerometer(), hardware.has_speaker(), hardware.has_timelapse(),
+                 hardware.has_firmware_retraction());
+    spdlog::info("[PrinterState] Hardware set (with overrides): {}",
                  capability_overrides_.summary());
 
     // Update composite subjects for G-code modification options

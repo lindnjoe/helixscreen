@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "printer_capabilities.h"
+#include "printer_hardware_discovery.h"
 
 #include <map>
 #include <string>
@@ -63,7 +63,7 @@ constexpr const char* CHAMBER = "chamber";
  * ```cpp
  * CapabilityOverrides overrides;
  * overrides.load_from_config();
- * overrides.set_printer_capabilities(caps);
+ * overrides.set_hardware(hardware);
  *
  * // Check effective capability (with overrides applied)
  * if (overrides.is_available(capability::BED_MESH)) {
@@ -71,7 +71,7 @@ constexpr const char* CHAMBER = "chamber";
  * }
  * ```
  *
- * @see PrinterCapabilities for auto-detection logic
+ * @see PrinterHardwareDiscovery for auto-detection logic
  */
 class CapabilityOverrides {
   public:
@@ -93,11 +93,11 @@ class CapabilityOverrides {
     void load_from_config();
 
     /**
-     * @brief Set the underlying PrinterCapabilities for AUTO lookups
+     * @brief Set the underlying hardware discovery for AUTO lookups
      *
-     * @param caps Detected printer capabilities
+     * @param hardware Discovered printer hardware
      */
-    void set_printer_capabilities(const PrinterCapabilities& caps);
+    void set_hardware(const helix::PrinterHardwareDiscovery& hardware);
 
     /**
      * @brief Get override state for a capability
@@ -204,6 +204,6 @@ class CapabilityOverrides {
     [[nodiscard]] bool get_auto_value(const std::string& name) const;
 
     std::map<std::string, OverrideState> overrides_;
-    PrinterCapabilities capabilities_;
-    bool capabilities_set_ = false;
+    helix::PrinterHardwareDiscovery hardware_;
+    bool hardware_set_ = false;
 };

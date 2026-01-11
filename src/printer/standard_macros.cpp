@@ -6,6 +6,7 @@
 #include "config.h"
 #include "moonraker_api.h"
 #include "printer_capabilities.h"
+#include "printer_hardware_discovery.h"
 
 #include <spdlog/spdlog.h>
 
@@ -335,4 +336,96 @@ bool StandardMacros::execute(StandardMacroSlot slot, MoonrakerAPI* api,
     spdlog::info("[StandardMacros] Executing {} via {}", info.slot_name, macro_name);
     api->execute_macro(macro_name, params, std::move(on_success), std::move(on_error));
     return true;
+}
+
+// ============================================================================
+// PrinterHardwareDiscovery Overloads
+// ============================================================================
+
+void StandardMacros::init(const helix::PrinterHardwareDiscovery& hardware) {
+    spdlog::debug("[StandardMacros] Initializing with hardware discovery");
+
+    // Reset detected macros and restore fallbacks from static table
+    for (auto& slot : slots_) {
+        slot.detected_macro.clear();
+
+        // Restore fallback from static definition
+        auto fallback_it = FALLBACK_MACROS.find(slot.slot);
+        if (fallback_it != FALLBACK_MACROS.end()) {
+            slot.fallback_macro = fallback_it->second;
+        }
+    }
+
+    // Load user configuration
+    load_from_config();
+
+    // Run auto-detection
+    auto_detect(hardware);
+
+    // Check which fallbacks are actually available on this printer
+    for (auto& slot : slots_) {
+        if (!slot.fallback_macro.empty()) {
+            if (!hardware.has_helix_macro(slot.fallback_macro)) {
+                spdlog::debug("[StandardMacros] Fallback {} not installed for {}",
+                              slot.fallback_macro, slot.slot_name);
+                slot.fallback_macro.clear();
+            }
+        }
+    }
+
+    initialized_ = true;
+
+    // Log summary
+    int configured = 0, detected = 0, fallback = 0, empty = 0;
+    for (const auto& slot : slots_) {
+        switch (slot.get_source()) {
+        case MacroSource::CONFIGURED:
+            configured++;
+            break;
+        case MacroSource::DETECTED:
+            detected++;
+            break;
+        case MacroSource::FALLBACK:
+            fallback++;
+            break;
+        case MacroSource::NONE:
+            empty++;
+            break;
+        }
+    }
+    spdlog::info("[StandardMacros] Initialized: {} configured, {} detected, {} fallback, {} empty",
+                 configured, detected, fallback, empty);
+}
+
+void StandardMacros::auto_detect(const helix::PrinterHardwareDiscovery& hardware) {
+    spdlog::debug("[StandardMacros] Running auto-detection on {} macros", hardware.macro_count());
+
+    for (const auto& pattern_def : DETECTION_PATTERNS) {
+        auto detected = try_detect(hardware, pattern_def.slot, pattern_def.patterns);
+        if (!detected.empty()) {
+            auto index = static_cast<size_t>(pattern_def.slot);
+            if (index < slots_.size()) {
+                slots_[index].detected_macro = detected;
+                spdlog::debug("[StandardMacros] Detected {} -> {}", slots_[index].slot_name,
+                              detected);
+            }
+        }
+    }
+}
+
+std::string StandardMacros::try_detect(const helix::PrinterHardwareDiscovery& hardware,
+                                       [[maybe_unused]] StandardMacroSlot slot,
+                                       const std::vector<std::string>& patterns) {
+    const auto& macros = hardware.macros();
+
+    for (const auto& pattern : patterns) {
+        std::string upper_pattern = to_upper(pattern);
+        // Check if the pattern exists as a macro (both are uppercase)
+        if (macros.find(upper_pattern) != macros.end()) {
+            // Return the pattern as-is (Klipper macros are case-insensitive)
+            return pattern;
+        }
+    }
+
+    return "";
 }

@@ -16,6 +16,10 @@ class PrinterCapabilities;
 class MoonrakerAPI;
 class MoonrakerClient;
 
+namespace helix {
+class PrinterHardwareDiscovery;
+}
+
 /**
  * @file ams_state.h
  * @brief LVGL reactive state management for AMS UI binding
@@ -113,9 +117,25 @@ class AmsState {
      * @param caps Detected printer capabilities
      * @param api MoonrakerAPI instance for making API calls
      * @param client MoonrakerClient instance for WebSocket communication
+     * @deprecated Use init_backend_from_hardware instead
      */
+    [[deprecated("Use init_backend_from_hardware instead")]]
     void init_backend_from_capabilities(const PrinterCapabilities& caps, MoonrakerAPI* api,
                                         MoonrakerClient* client);
+
+    /**
+     * @brief Initialize AMS backend from discovered hardware
+     *
+     * Called after Moonraker discovery completes. If the printer has an MMU system
+     * (AFC/Box Turtle, Happy Hare, etc.), creates and starts the appropriate backend.
+     * Does nothing if no MMU is detected or if already in mock mode.
+     *
+     * @param hardware Discovered printer hardware
+     * @param api MoonrakerAPI instance for making API calls
+     * @param client MoonrakerClient instance for WebSocket communication
+     */
+    void init_backend_from_hardware(const helix::PrinterHardwareDiscovery& hardware,
+                                    MoonrakerAPI* api, MoonrakerClient* client);
 
     /**
      * @brief Set the AMS backend

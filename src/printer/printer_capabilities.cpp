@@ -5,6 +5,7 @@
 
 #include "ams_state.h"
 #include "filament_sensor_manager.h"
+#include "printer_hardware_discovery.h"
 #include "spdlog/spdlog.h"
 #include "standard_macros.h"
 
@@ -425,4 +426,30 @@ void init_subsystems_from_capabilities(const PrinterCapabilities& caps, Moonrake
     StandardMacros::instance().init(caps);
 
     spdlog::info("[PrinterCapabilities] Subsystem initialization complete");
+}
+
+// ============================================================================
+// Hardware Discovery Version
+// ============================================================================
+
+void init_subsystems_from_hardware(const helix::PrinterHardwareDiscovery& hardware,
+                                   MoonrakerAPI* api, MoonrakerClient* client) {
+    spdlog::debug("[PrinterHardwareDiscovery] Initializing subsystems from hardware discovery");
+
+    // Initialize AMS backend (AFC, Happy Hare, ValgACE, Tool Changer)
+    AmsState::instance().init_backend_from_hardware(hardware, api, client);
+
+    // Initialize filament sensor manager
+    if (hardware.has_filament_sensors()) {
+        auto& fsm = helix::FilamentSensorManager::instance();
+        fsm.discover_sensors(hardware.filament_sensor_names());
+        fsm.load_config();
+        spdlog::debug("[PrinterHardwareDiscovery] Discovered {} filament sensors",
+                      hardware.filament_sensor_names().size());
+    }
+
+    // Initialize standard macros
+    StandardMacros::instance().init(hardware);
+
+    spdlog::info("[PrinterHardwareDiscovery] Subsystem initialization complete");
 }

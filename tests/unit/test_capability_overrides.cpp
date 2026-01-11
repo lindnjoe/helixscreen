@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "capability_overrides.h"
-#include "printer_capabilities.h"
+#include "printer_hardware_discovery.h"
 
 #include "../catch_amalgamated.hpp"
 
@@ -89,11 +89,11 @@ TEST_CASE("CapabilityOverrides - get/set override", "[printer][overrides]") {
 TEST_CASE("CapabilityOverrides - is_available logic", "[printer][overrides]") {
     CapabilityOverrides overrides;
 
-    // Create mock printer capabilities
-    PrinterCapabilities caps;
+    // Create mock printer hardware
+    helix::PrinterHardwareDiscovery hardware;
     json objects = {"bed_mesh", "quad_gantry_level", "gcode_macro CLEAN_NOZZLE"};
-    caps.parse_objects(objects);
-    overrides.set_printer_capabilities(caps);
+    hardware.parse_objects(objects);
+    overrides.set_hardware(hardware);
 
     SECTION("AUTO uses detected value") {
         // bed_mesh is detected, should be available
@@ -137,15 +137,15 @@ TEST_CASE("CapabilityOverrides - is_available logic", "[printer][overrides]") {
 TEST_CASE("CapabilityOverrides - convenience methods", "[printer][overrides]") {
     CapabilityOverrides overrides;
 
-    PrinterCapabilities caps;
+    helix::PrinterHardwareDiscovery hardware;
     json objects = {"bed_mesh",
                     "quad_gantry_level",
                     "z_tilt",
                     "gcode_macro CLEAN_NOZZLE",
                     "gcode_macro HEAT_SOAK",
                     "heater_generic chamber"};
-    caps.parse_objects(objects);
-    overrides.set_printer_capabilities(caps);
+    hardware.parse_objects(objects);
+    overrides.set_hardware(hardware);
 
     SECTION("Convenience methods work with defaults") {
         REQUIRE(overrides.has_bed_mesh());
@@ -172,7 +172,7 @@ TEST_CASE("CapabilityOverrides - convenience methods", "[printer][overrides]") {
 
 TEST_CASE("CapabilityOverrides - no capabilities set", "[printer][overrides]") {
     CapabilityOverrides overrides;
-    // Don't call set_printer_capabilities()
+    // Don't call set_hardware()
 
     SECTION("AUTO returns false when no capabilities set") {
         overrides.set_override(capability::BED_MESH, OverrideState::AUTO);
@@ -209,10 +209,10 @@ TEST_CASE("CapabilityOverrides - summary", "[printer][overrides]") {
     }
 
     SECTION("Summary shows auto(Y) for detected capabilities") {
-        PrinterCapabilities caps;
+        helix::PrinterHardwareDiscovery hardware;
         json objects = {"bed_mesh"};
-        caps.parse_objects(objects);
-        overrides.set_printer_capabilities(caps);
+        hardware.parse_objects(objects);
+        overrides.set_hardware(hardware);
 
         std::string summary = overrides.summary();
         REQUIRE(summary.find("bed_mesh=auto(Y)") != std::string::npos);
@@ -238,10 +238,10 @@ TEST_CASE("CapabilityOverrides - copy semantics", "[printer][overrides]") {
     original.set_override(capability::BED_MESH, OverrideState::ENABLE);
     original.set_override(capability::QGL, OverrideState::DISABLE);
 
-    PrinterCapabilities caps;
+    helix::PrinterHardwareDiscovery hardware;
     json objects = {"bed_mesh"};
-    caps.parse_objects(objects);
-    original.set_printer_capabilities(caps);
+    hardware.parse_objects(objects);
+    original.set_hardware(hardware);
 
     SECTION("Copy constructor preserves state") {
         CapabilityOverrides copy(original);

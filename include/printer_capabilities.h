@@ -471,6 +471,11 @@ class PrinterCapabilities {
 class MoonrakerAPI;
 class MoonrakerClient;
 
+// Forward declaration
+namespace helix {
+class PrinterHardwareDiscovery;
+}
+
 /**
  * @brief Initialize subsystems from discovered printer capabilities
  *
@@ -485,6 +490,26 @@ class MoonrakerClient;
  * @param caps Discovered printer capabilities
  * @param api MoonrakerAPI instance (may be null)
  * @param client MoonrakerClient instance (may be null)
+ * @deprecated Use init_subsystems_from_hardware instead
  */
+[[deprecated("Use init_subsystems_from_hardware instead")]]
 void init_subsystems_from_capabilities(const PrinterCapabilities& caps, MoonrakerAPI* api,
                                        MoonrakerClient* client);
+
+/**
+ * @brief Initialize subsystems from discovered printer hardware
+ *
+ * Called after printer discovery to initialize:
+ * - AmsState backend (AFC, Happy Hare, ValgACE, Tool Changer)
+ * - FilamentSensorManager with discovered sensors
+ * - StandardMacros with detected macros
+ *
+ * This function should be called on the LVGL main thread (not from WebSocket callbacks).
+ * Use ui_async_call() to defer if needed.
+ *
+ * @param hardware Discovered printer hardware
+ * @param api MoonrakerAPI instance (may be null)
+ * @param client MoonrakerClient instance (may be null)
+ */
+void init_subsystems_from_hardware(const helix::PrinterHardwareDiscovery& hardware,
+                                   MoonrakerAPI* api, MoonrakerClient* client);
