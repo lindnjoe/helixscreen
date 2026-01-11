@@ -435,8 +435,8 @@ TEST_CASE_METHOD(EventIntegrationFixture, "Full stack: Event emission and handli
 TEST_CASE_METHOD(FullStackTestFixture, "Full stack: PrinterHardware guessing",
                  "[integration][printer]") {
     // Create PrinterHardware from the mock client's discovered hardware
-    PrinterHardware hw(client_.get_heaters(), client_.get_sensors(), client_.get_fans(),
-                       client_.get_leds());
+    PrinterHardware hw(client_.hardware().heaters(), client_.hardware().sensors(), client_.hardware().fans(),
+                       client_.hardware().leds());
 
     SECTION("guess_bed_heater finds heater_bed") {
         std::string result = hw.guess_bed_heater();
@@ -497,8 +497,8 @@ TEST_CASE("Full stack: All printer types work correctly",
             api.set_mock_state(shared_state);
 
             // Verify basic operations work via PrinterHardware
-            PrinterHardware hw(client.get_heaters(), client.get_sensors(), client.get_fans(),
-                               client.get_leds());
+            PrinterHardware hw(client.hardware().heaters(), client.hardware().sensors(), client.hardware().fans(),
+                               client.hardware().leds());
             std::string bed = hw.guess_bed_heater();
             std::string hotend = hw.guess_hotend_heater();
 
@@ -681,8 +681,8 @@ TEST_CASE("Full stack: API error callbacks work correctly",
     SECTION("Sync API methods return values without crash") {
         // These should return immediately with mock data
         // Hardware guessing now uses PrinterHardware directly
-        PrinterHardware hw(client.get_heaters(), client.get_sensors(), client.get_fans(),
-                           client.get_leds());
+        PrinterHardware hw(client.hardware().heaters(), client.hardware().sensors(), client.hardware().fans(),
+                           client.hardware().leds());
         std::string bed = hw.guess_bed_heater();
         std::string hotend = hw.guess_hotend_heater();
         (void)api.has_bed_mesh();          // Verify doesn't crash

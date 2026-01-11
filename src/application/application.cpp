@@ -1255,8 +1255,8 @@ bool Application::connect_moonraker() {
 
                 get_printer_state().set_printer_capabilities(std::get<0>(*ctx));
                 get_printer_state().init_fans(client_ptr->hardware().fans());
-                get_printer_state().set_klipper_version(client_ptr->get_software_version());
-                get_printer_state().set_moonraker_version(client_ptr->get_moonraker_version());
+                get_printer_state().set_klipper_version(client_ptr->hardware().software_version());
+                get_printer_state().set_moonraker_version(client_ptr->hardware().moonraker_version());
 
                 // Hardware validation: check config expectations vs discovered hardware
                 HardwareValidator validator;

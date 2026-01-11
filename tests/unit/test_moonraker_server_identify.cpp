@@ -101,8 +101,8 @@ TEST_CASE("MoonrakerClientMock discover_printer doesn't fail due to identify",
         REQUIRE(discovery_complete.load());
 
         // Verify discovery populated expected data
-        REQUIRE_FALSE(mock.get_hostname().empty());
-        REQUIRE_FALSE(mock.get_heaters().empty());
+        REQUIRE_FALSE(mock.hardware().hostname().empty());
+        REQUIRE_FALSE(mock.hardware().heaters().empty());
     }
 
     mock.stop_temperature_simulation();

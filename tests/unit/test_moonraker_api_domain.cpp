@@ -90,8 +90,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_bed_heater returns correct heater",
                  "[printer][guessing]") {
     // VORON_24 mock should have heater_bed
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string bed_heater = hw.guess_bed_heater();
     REQUIRE(bed_heater == "heater_bed");
 }
@@ -100,8 +100,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_hotend_heater returns correct heater",
                  "[printer][guessing]") {
     // VORON_24 mock should have extruder
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string hotend_heater = hw.guess_hotend_heater();
     REQUIRE(hotend_heater == "extruder");
 }
@@ -110,8 +110,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_bed_sensor returns correct sensor",
                  "[printer][guessing]") {
     // Bed sensor should return heater_bed (heaters have built-in sensors)
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string bed_sensor = hw.guess_bed_sensor();
     REQUIRE(bed_sensor == "heater_bed");
 }
@@ -120,8 +120,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_hotend_sensor returns correct sensor",
                  "[printer][guessing]") {
     // Hotend sensor should return extruder (heaters have built-in sensors)
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string hotend_sensor = hw.guess_hotend_sensor();
     REQUIRE(hotend_sensor == "extruder");
 }
@@ -130,8 +130,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_part_cooling_fan returns correct fan",
                  "[printer][guessing]") {
     // VORON_24 should have canonical "fan" for part cooling
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string fan = hw.guess_part_cooling_fan();
     // The canonical [fan] section should be prioritized if it exists
     REQUIRE_FALSE(fan.empty());
@@ -139,8 +139,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
 
 TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture, "PrinterHardware::guess_main_led_strip returns LED",
                  "[printer][guessing]") {
-    PrinterHardware hw(mock_client.get_heaters(), mock_client.get_sensors(), mock_client.get_fans(),
-                       mock_client.get_leds());
+    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
+                       mock_client.hardware().fans(), mock_client.hardware().leds());
     std::string led = hw.guess_main_led_strip();
     // May be empty if no LEDs configured, but shouldn't crash
     // Just verify the call works
@@ -161,8 +161,8 @@ TEST_CASE("PrinterHardware guessing works for multiple printer types",
         mock.connect("ws://mock/websocket", []() {}, []() {});
         mock.discover_printer([]() {});
 
-        PrinterHardware hw(mock.get_heaters(), mock.get_sensors(), mock.get_fans(),
-                           mock.get_leds());
+        PrinterHardware hw(mock.hardware().heaters(), mock.hardware().sensors(), mock.hardware().fans(),
+                           mock.hardware().leds());
 
         REQUIRE(hw.guess_bed_heater() == "heater_bed");
         REQUIRE(hw.guess_hotend_heater() == "extruder");
@@ -178,8 +178,8 @@ TEST_CASE("PrinterHardware guessing works for multiple printer types",
         mock.connect("ws://mock/websocket", []() {}, []() {});
         mock.discover_printer([]() {});
 
-        PrinterHardware hw(mock.get_heaters(), mock.get_sensors(), mock.get_fans(),
-                           mock.get_leds());
+        PrinterHardware hw(mock.hardware().heaters(), mock.hardware().sensors(), mock.hardware().fans(),
+                           mock.hardware().leds());
 
         // Just verify these return something sensible
         REQUIRE_FALSE(hw.guess_bed_heater().empty());
@@ -194,8 +194,8 @@ TEST_CASE("PrinterHardware guessing works for multiple printer types",
         mock.connect("ws://mock/websocket", []() {}, []() {});
         mock.discover_printer([]() {});
 
-        PrinterHardware hw(mock.get_heaters(), mock.get_sensors(), mock.get_fans(),
-                           mock.get_leds());
+        PrinterHardware hw(mock.hardware().heaters(), mock.hardware().sensors(), mock.hardware().fans(),
+                           mock.hardware().leds());
 
         // Multi-extruder should still find bed and primary extruder
         REQUIRE_FALSE(hw.guess_bed_heater().empty());
@@ -360,8 +360,8 @@ TEST_CASE("PrinterHardware and MoonrakerAPI domain methods work for all printer 
             mock.discover_printer([]() {});
 
             // Test PrinterHardware guessing
-            PrinterHardware hw(mock.get_heaters(), mock.get_sensors(), mock.get_fans(),
-                               mock.get_leds());
+            PrinterHardware hw(mock.hardware().heaters(), mock.hardware().sensors(),
+                               mock.hardware().fans(), mock.hardware().leds());
 
             std::string bed_heater = hw.guess_bed_heater();
             std::string hotend_heater = hw.guess_hotend_heater();
