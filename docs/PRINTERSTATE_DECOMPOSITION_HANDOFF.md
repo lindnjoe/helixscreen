@@ -2,7 +2,7 @@
 
 **Created**: 2026-01-11
 **Last Updated**: 2026-01-12
-**Status**: IN PROGRESS - 5 domains extracted (Temperature, Motion, LED, Fan, Print)
+**Status**: IN PROGRESS - 6 domains extracted (Temperature, Motion, LED, Fan, Print, Capabilities)
 
 ## Quick Resume
 
@@ -16,14 +16,14 @@ git fetch origin && git status
 # 3. Build
 make -j && make test-build
 
-# 4. Run characterization tests (should all pass - 117 tests, 904 assertions)
+# 4. Run characterization tests (should all pass - 134 tests, 1136 assertions)
 ./build/bin/helix-tests "[characterization]"
 
 # 5. Continue with next domain extraction (see Remaining Domains section)
 ```
 
-### Recommended Next Domain: **Capabilities** (12 subjects)
-Simple boolean flags like `printer_has_qgl_`, `printer_has_z_tilt_`, etc. Clean extraction.
+### Recommended Next Domain: **Plugin Status** (2 subjects)
+Tri-state plugin subjects: `helix_plugin_installed_`, `phase_tracking_enabled_`. Simple extraction.
 
 ---
 
@@ -50,15 +50,16 @@ Decompose the 2808-line `PrinterState` god class (86 subjects across 11+ domains
 | LED | `PrinterLedState` | 6 | 18 | 146 | ee5ac704 |
 | Fan | `PrinterFanState` | 2 static + dynamic | 26 | 118 | ee5ac704 |
 | Print | `PrinterPrintState` | 17 | 26 | 330 | 7dfd653d |
-| **Total** | | **37+17** | **117** | **904** | |
+| Capabilities | `PrinterCapabilitiesState` | 14 | 17 | 232 | 0c045f49 |
+| **Total** | | **51+** | **134** | **1136** | |
 
 ### Next Steps
 
 | Step | Description | Status |
 |------|-------------|--------|
-| 1 | Write Print State characterization tests | ✅ DONE |
-| 2 | Extract PrinterPrintState class | ✅ DONE |
-| 3 | Continue with remaining domains... | ⏳ NEXT |
+| 1 | Write Capabilities characterization tests | ✅ DONE |
+| 2 | Extract PrinterCapabilitiesState class | ✅ DONE |
+| 3 | Continue with Plugin Status domain (2 subjects) | ⏳ NEXT |
 
 ---
 
@@ -134,18 +135,39 @@ Decompose the 2808-line `PrinterState` god class (86 subjects across 11+ domains
 
 **Key behaviors**: Progress guard for terminal states, outcome persistence, derived subjects update automatically.
 
+### 6. PrinterCapabilitiesState (14 subjects)
+**File**: `include/printer_capabilities_state.h`, `src/printer/printer_capabilities_state.cpp`
+
+| Subject | Type | Storage |
+|---------|------|---------|
+| `printer_has_qgl_` | int | 0/1 (QGL capability) |
+| `printer_has_z_tilt_` | int | 0/1 (Z-tilt capability) |
+| `printer_has_bed_mesh_` | int | 0/1 (Bed mesh capability) |
+| `printer_has_nozzle_clean_` | int | 0/1 (Override only) |
+| `printer_has_probe_` | int | 0/1 (Probe/BLTouch) |
+| `printer_has_heater_bed_` | int | 0/1 (Heated bed) |
+| `printer_has_led_` | int | 0/1 (Controllable LED) |
+| `printer_has_accelerometer_` | int | 0/1 (Input shaping) |
+| `printer_has_spoolman_` | int | 0/1 (Filament manager) |
+| `printer_has_speaker_` | int | 0/1 (M300 beeper) |
+| `printer_has_timelapse_` | int | 0/1 (Timelapse plugin) |
+| `printer_has_purge_line_` | int | 0/1 (Priming capability) |
+| `printer_has_firmware_retraction_` | int | 0/1 (G10/G11) |
+| `printer_bed_moves_` | int | 0=gantry, 1=bed (kinematics) |
+
+**Key methods**: `set_hardware()`, `set_spoolman_available()` (async), `set_bed_moves()`, `set_purge_line()`, `has_probe()`
+
 ---
 
 ## Remaining Domains
 
 | Domain | Subjects | Complexity | Notes |
 |--------|----------|------------|-------|
-| **Capabilities** | 12 | Low | Boolean flags: `printer_has_qgl_`, `printer_has_z_tilt_`, etc. **Recommended next** |
+| **Plugin Status** | 2 | Low | Tri-state: `helix_plugin_installed_`, `phase_tracking_enabled_`. **Recommended next** |
+| **Composite Visibility** | 5 | Low | Derived flags: `can_show_bed_mesh_`, `can_show_qgl_`, etc. |
 | **Network/Connection** | 6 | Medium | State machine: `printer_connection_state_`, `klippy_state_`, etc. |
 | **Hardware Validation** | 11 | Medium | Validation logic: `hardware_has_issues_`, etc. |
 | **Calibration/Config** | 8 | Low | Simple values |
-| **Plugin Status** | 3 | Low | |
-| **Composite Visibility** | 5 | Low | Derived visibility flags |
 | **Firmware Retraction** | 4 | Low | |
 | **Manual Probe** | 2 | Low | |
 | **Excluded Objects** | 2 | Low | |
@@ -224,15 +246,17 @@ include/printer_motion_state.h         src/printer/printer_motion_state.cpp
 include/printer_led_state.h            src/printer/printer_led_state.cpp
 include/printer_fan_state.h            src/printer/printer_fan_state.cpp
 include/printer_print_state.h          src/printer/printer_print_state.cpp
+include/printer_capabilities_state.h   src/printer/printer_capabilities_state.cpp
 ```
 
 ### Test Files
 ```
-tests/unit/test_printer_temperature_char.cpp  # 26 tests
-tests/unit/test_printer_motion_char.cpp       # 21 tests
-tests/unit/test_printer_led_char.cpp          # 18 tests
-tests/unit/test_printer_fan_char.cpp          # 26 tests
-tests/unit/test_printer_print_char.cpp        # 26 tests
+tests/unit/test_printer_temperature_char.cpp   # 26 tests
+tests/unit/test_printer_motion_char.cpp        # 21 tests
+tests/unit/test_printer_led_char.cpp           # 18 tests
+tests/unit/test_printer_fan_char.cpp           # 26 tests
+tests/unit/test_printer_print_char.cpp         # 26 tests
+tests/unit/test_printer_capabilities_char.cpp  # 17 tests
 ```
 
 ---
@@ -253,6 +277,7 @@ make -j
 ./build/bin/helix-tests "[led]"
 ./build/bin/helix-tests "[fan]"
 ./build/bin/helix-tests "[print]"
+./build/bin/helix-tests "[capabilities]"
 
 # Run full printer state tests
 ./build/bin/helix-tests "[printer]" "~[slow]"
@@ -275,7 +300,7 @@ When resuming this work:
 - [ ] `cd /Users/pbrown/Code/Printing/helixscreen-printer-state-decomp`
 - [ ] `git fetch origin && git status`
 - [ ] `make -j` (verify builds)
-- [ ] `./build/bin/helix-tests "[characterization]"` (117 tests, 904 assertions)
+- [ ] `./build/bin/helix-tests "[characterization]"` (134 tests, 1136 assertions)
 - [ ] Pick next domain from Remaining Domains table
 - [ ] Follow test-first methodology below
 
@@ -364,11 +389,27 @@ git commit -m "refactor(printer): extract Printer<Domain>State from PrinterState
 3. All 117 characterization tests still passing (904 assertions)
 4. **DONE** - 5 domains now extracted
 
+### 2026-01-12 Session 5
+1. Wrote Capabilities characterization tests (17 tests, 232 assertions)
+   - All 14 `printer_has_*` capability subjects
+   - `printer_bed_moves_` kinematics subject
+   - Tests for `set_hardware()`, `set_spoolman_available()`, `set_kinematics()`
+2. Extracted PrinterCapabilitiesState class (14 subjects)
+   - Created `include/printer_capabilities_state.h` and `src/printer/printer_capabilities_state.cpp`
+   - Updated PrinterState to delegate via `capabilities_state_` member
+3. Code review passed - no issues found
+4. All 134 characterization tests passing (1136 assertions)
+5. **DONE** - 6 domains now extracted
+
 ---
 
 ## Commits on Branch
 
 ```
+0c045f49 refactor(printer): extract PrinterCapabilitiesState from PrinterState
+1da837bf test(char): add capabilities domain characterization tests (14 subjects)
+ebc1971c refactor(ui): migrate to hardware() API for macros and sensors
+39730e16 docs: update PrinterState decomposition handoff for Print State extraction
 7dfd653d refactor(printer): extract PrinterPrintState from PrinterState
 99da8b67 test(char): add print domain characterization tests (17 subjects)
 ee5ac704 refactor(printer): extract PrinterLedState and PrinterFanState
@@ -379,4 +420,4 @@ cf74706d test(char): add temperature domain characterization tests
 
 ---
 
-HANDOFF: PrinterState God Class Decomposition - 5 domains extracted (Temperature, Motion, LED, Fan, Print)
+HANDOFF: PrinterState God Class Decomposition - 6 domains extracted (Temperature, Motion, LED, Fan, Print, Capabilities)
