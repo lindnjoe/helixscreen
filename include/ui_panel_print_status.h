@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "ui_exclude_object_modal.h"
 #include "ui_modal.h"
 #include "ui_observer_guard.h"
 #include "ui_print_cancel_modal.h"
+#include "ui_print_exclude_object_manager.h"
 #include "ui_print_light_timelapse.h"
 #include "ui_print_tune_overlay.h"
 #include "ui_runout_guidance_modal.h"
@@ -23,7 +23,6 @@ class MoonrakerAPI;
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_set>
 
 // Forward declarations
 class TempControlPanel;
@@ -151,6 +150,9 @@ class PrintStatusPanel : public OverlayBase {
      */
     void set_api(MoonrakerAPI* api) {
         api_ = api;
+        if (exclude_manager_) {
+            exclude_manager_->set_api(api);
+        }
     }
 
     //
@@ -452,7 +454,6 @@ class PrintStatusPanel : public OverlayBase {
     static void gcode_z_offset_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void led_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void print_layer_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
-    static void excluded_objects_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void print_duration_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void print_time_left_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void print_start_phase_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
@@ -472,7 +473,6 @@ class PrintStatusPanel : public OverlayBase {
     void on_gcode_z_offset_changed(int microns);
     void on_led_state_changed(int state);
     void on_print_layer_changed(int current_layer);
-    void on_excluded_objects_changed();
     void on_print_duration_changed(int seconds);
     void on_print_time_left_changed(int seconds);
     void on_print_start_phase_changed(int phase);
@@ -492,7 +492,6 @@ class PrintStatusPanel : public OverlayBase {
     ObserverGuard gcode_z_offset_observer_;
     ObserverGuard led_state_observer_;
     ObserverGuard print_layer_observer_;
-    ObserverGuard excluded_objects_observer_;
     ObserverGuard print_duration_observer_;
     ObserverGuard print_time_left_observer_;
     ObserverGuard print_start_phase_observer_;
@@ -500,20 +499,11 @@ class PrintStatusPanel : public OverlayBase {
     ObserverGuard print_start_progress_observer_;
 
     //
-    // === Exclude Object State ===
+    // === Exclude Object Manager ===
     //
 
-    /// Objects already excluded (sent to Klipper, cannot be undone)
-    std::unordered_set<std::string> excluded_objects_;
-
-    /// Object pending exclusion (in undo window, not yet sent to Klipper)
-    std::string pending_exclude_object_;
-
-    /// Timer for undo window (5 seconds before sending EXCLUDE_OBJECT to Klipper)
-    lv_timer_t* exclude_undo_timer_{nullptr};
-
-    /// Exclude object confirmation modal (RAII - auto-hides when destroyed)
-    ExcludeObjectModal exclude_modal_;
+    /// Manages exclude object feature (extracted from PrintStatusPanel)
+    std::unique_ptr<helix::ui::PrintExcludeObjectManager> exclude_manager_;
 
     /// Print cancel confirmation modal (RAII - auto-hides when destroyed)
     PrintCancelModal cancel_modal_;
@@ -524,43 +514,6 @@ class PrintStatusPanel : public OverlayBase {
     /// Flag to track if runout modal was shown for current pause
     /// Reset when print resumes or ends, prevents repeated modal popups
     bool runout_modal_shown_for_pause_ = false;
-
-    //
-    // === Exclude Object Handlers ===
-    //
-
-    /**
-     * @brief Handle long-press on object in G-code viewer
-     * Shows confirmation dialog for excluding the object
-     */
-    void handle_object_long_press(const char* object_name);
-
-    /**
-     * @brief Handle confirmation of object exclusion
-     * Starts the delayed undo window and shows undo toast
-     */
-    void handle_exclude_confirmed();
-
-    /**
-     * @brief Handle cancellation of exclusion dialog
-     */
-    void handle_exclude_cancelled();
-
-    /**
-     * @brief Handle undo button press on toast (cancels pending exclusion)
-     */
-    void handle_exclude_undo();
-
-    /**
-     * @brief Timer callback when undo window expires - sends EXCLUDE_OBJECT to Klipper
-     */
-    static void exclude_undo_timer_cb(lv_timer_t* timer);
-
-    //
-    // === Exclude Object Static Trampolines ===
-    //
-
-    static void on_object_long_pressed(lv_obj_t* viewer, const char* object_name, void* user_data);
 
     //
     // === Runout Guidance Modal ===
