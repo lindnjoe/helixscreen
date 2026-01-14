@@ -2022,6 +2022,16 @@
           "pattern": "velta",
           "confidence": 95,
           "reason": "Hostname contains 'velta'"
+        },
+        {
+          "type": "build_volume_range",
+          "field": "bed_mesh",
+          "min_x": 190,
+          "max_x": 210,
+          "min_y": 190,
+          "max_y": 210,
+          "confidence": 80,
+          "reason": "200mm delta build volume (Doron Velta size)"
         }
       ]
     },

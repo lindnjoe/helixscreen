@@ -2249,3 +2249,112 @@ TEST_CASE("PrinterDetector: find_roller_index returns Unknown for missing printe
 
     REQUIRE(idx == PrinterDetector::get_unknown_index());
 }
+
+// ============================================================================
+// Combined Scoring Tests
+// ============================================================================
+
+TEST_CASE("PrinterDetector: Combined scoring rewards multiple matches",
+          "[printer][combined_scoring]") {
+    PrinterDetector::reload();
+
+    // Doron Velta fingerprint with hostname match - should trigger multiple heuristics
+    PrinterHardwareData hardware{.heaters = {"extruder", "heater_bed"},
+                                 .sensors = {},
+                                 .fans = {},
+                                 .leds = {},
+                                 .hostname = "doron-velta",
+                                 .printer_objects = {"delta_calibrate", "stepper_enable"},
+                                 .steppers = {"stepper_a", "stepper_b", "stepper_c"},
+                                 .kinematics = "delta",
+                                 .mcu = "rp2040"};
+
+    auto result = PrinterDetector::detect(hardware);
+
+    REQUIRE(result.detected());
+    REQUIRE(result.type_name == "Doron Velta");
+    // Should have multiple matches: kinematics, delta_calibrate, stepper_a, hostname doron,
+    // hostname velta
+    REQUIRE(result.match_count >= 4);
+    // Combined score should be higher than single-match base (95% + bonus)
+    REQUIRE(result.confidence > 95);
+}
+
+TEST_CASE("PrinterDetector: Generic delta scores lower than specific Doron Velta",
+          "[printer][combined_scoring]") {
+    PrinterDetector::reload();
+
+    // Generic delta printer without Doron-specific hostname
+    PrinterHardwareData generic_delta{.heaters = {"extruder", "heater_bed"},
+                                      .sensors = {},
+                                      .fans = {},
+                                      .leds = {},
+                                      .hostname = "my-delta-printer",
+                                      .printer_objects = {"delta_calibrate"},
+                                      .steppers = {"stepper_a", "stepper_b", "stepper_c"},
+                                      .kinematics = "delta"};
+
+    // Specific Doron Velta with hostname
+    PrinterHardwareData doron_velta{.heaters = {"extruder", "heater_bed"},
+                                    .sensors = {},
+                                    .fans = {},
+                                    .leds = {},
+                                    .hostname = "doron-velta-001",
+                                    .printer_objects = {"delta_calibrate"},
+                                    .steppers = {"stepper_a", "stepper_b", "stepper_c"},
+                                    .kinematics = "delta"};
+
+    auto generic_result = PrinterDetector::detect(generic_delta);
+    auto doron_result = PrinterDetector::detect(doron_velta);
+
+    REQUIRE(generic_result.detected());
+    REQUIRE(doron_result.detected());
+
+    // Doron Velta should match itself with hostname bonus
+    REQUIRE(doron_result.type_name == "Doron Velta");
+    REQUIRE(doron_result.match_count > generic_result.match_count);
+
+    // Doron Velta should score higher due to additional hostname matches
+    REQUIRE(doron_result.confidence > generic_result.confidence);
+}
+
+TEST_CASE("PrinterDetector: Single heuristic match unchanged", "[printer][combined_scoring]") {
+    PrinterDetector::reload();
+
+    // Printer with only tvocValue sensor - single distinctive match
+    PrinterHardwareData hardware{.heaters = {"extruder", "heater_bed"},
+                                 .sensors = {"tvocValue"},
+                                 .fans = {},
+                                 .leds = {},
+                                 .hostname = "random-hostname-xyz"};
+
+    auto result = PrinterDetector::detect(hardware);
+
+    REQUIRE(result.detected());
+    // tvocValue is FlashForge AD5M signature
+    REQUIRE(result.type_name.find("FlashForge") != std::string::npos);
+    // Single match should have match_count of 1
+    REQUIRE(result.match_count == 1);
+    // Confidence should be the base value (95% for tvocValue) without bonus
+    REQUIRE(result.confidence == 95);
+}
+
+TEST_CASE("PrinterDetector: match_count in result reflects actual matches",
+          "[printer][combined_scoring]") {
+    PrinterDetector::reload();
+
+    // FlashForge with multiple matching heuristics
+    PrinterHardwareData hardware{.heaters = {"extruder", "heater_bed"},
+                                 .sensors = {"tvocValue", "temperature_sensor chamber_temp"},
+                                 .fans = {"fan_generic exhaust_fan"},
+                                 .leds = {"neopixel chamber_led"},
+                                 .hostname = "flashforge-ad5m-pro"};
+
+    auto result = PrinterDetector::detect(hardware);
+
+    REQUIRE(result.detected());
+    // Should have multiple matches: tvoc, chamber_temp, exhaust_fan, chamber_led, hostname
+    REQUIRE(result.match_count >= 3);
+    // Reason should indicate additional matches
+    REQUIRE(result.reason.find("+") != std::string::npos);
+}

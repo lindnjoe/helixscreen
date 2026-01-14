@@ -476,29 +476,58 @@ int execute_heuristic(const json& heuristic, const PrinterHardwareData& hardware
     return 0; // No match
 }
 
-// Execute all heuristics for a printer and return best confidence + reason
+// Execute all heuristics for a printer and return combined confidence + reason
 PrinterDetectionResult execute_printer_heuristics(const json& printer,
                                                   const PrinterHardwareData& hardware) {
     std::string printer_id = printer.value("id", "");
     std::string printer_name = printer.value("name", "");
 
     if (!printer.contains("heuristics") || !printer["heuristics"].is_array()) {
-        return {"", 0, ""};
+        return {"", 0, "", 0};
     }
 
-    PrinterDetectionResult best_result{"", 0, ""};
+    // Collect ALL matching heuristics
+    struct HeuristicMatch {
+        int confidence;
+        std::string reason;
+    };
+    std::vector<HeuristicMatch> matches;
 
-    // Try all heuristics for this printer
     for (const auto& heuristic : printer["heuristics"]) {
         int confidence = execute_heuristic(heuristic, hardware);
-        if (confidence > best_result.confidence) {
-            best_result.type_name = printer_name;
-            best_result.confidence = confidence;
-            best_result.reason = heuristic.value("reason", "");
+        if (confidence > 0) {
+            matches.push_back({confidence, heuristic.value("reason", "")});
         }
     }
 
-    return best_result;
+    if (matches.empty()) {
+        return {"", 0, "", 0};
+    }
+
+    // Sort by confidence descending to get best match first
+    std::sort(matches.begin(), matches.end(),
+              [](const auto& a, const auto& b) { return a.confidence > b.confidence; });
+
+    // Combined scoring: base + bonus for additional matches
+    // 3 points per extra match, capped at 12 (4 extra matches worth)
+    constexpr int BONUS_PER_EXTRA_MATCH = 3;
+    constexpr int MAX_BONUS = 12;
+
+    int base_confidence = matches[0].confidence;
+    int extra_matches = static_cast<int>(matches.size()) - 1;
+    int bonus = std::min(extra_matches * BONUS_PER_EXTRA_MATCH, MAX_BONUS);
+    int combined = std::min(base_confidence + bonus, 100);
+
+    // Format reason with match count if multiple matches
+    std::string reason = matches[0].reason;
+    if (matches.size() > 1) {
+        reason += fmt::format(" (+{} more)", matches.size() - 1);
+    }
+
+    spdlog::debug("[PrinterDetector] {} scored {}% (base {} + bonus {} from {} matches)",
+                  printer_name, combined, base_confidence, bonus, matches.size());
+
+    return {printer_name, combined, reason, static_cast<int>(matches.size())};
 }
 } // namespace
 
@@ -536,8 +565,9 @@ PrinterDetectionResult PrinterDetector::detect(const PrinterHardwareData& hardwa
 
             // Log all matches for debugging (not just best)
             if (result.confidence > 0) {
-                spdlog::info("[PrinterDetector] Candidate: '{}' scored {}% via: {}",
-                             result.type_name, result.confidence, result.reason);
+                spdlog::info("[PrinterDetector] Candidate: '{}' scored {}% ({} matches) via: {}",
+                             result.type_name, result.confidence, result.match_count,
+                             result.reason);
             }
 
             if (result.confidence > best_match.confidence) {
@@ -546,8 +576,10 @@ PrinterDetectionResult PrinterDetector::detect(const PrinterHardwareData& hardwa
         }
 
         if (best_match.confidence > 0) {
-            spdlog::info("[PrinterDetector] Detection complete: {} (confidence: {}, reason: {})",
-                         best_match.type_name, best_match.confidence, best_match.reason);
+            spdlog::info("[PrinterDetector] Detection complete: {} (confidence: {}%, {} matches, "
+                         "reason: {})",
+                         best_match.type_name, best_match.confidence, best_match.match_count,
+                         best_match.reason);
         } else {
             spdlog::debug("[PrinterDetector] No distinctive fingerprints detected");
         }
