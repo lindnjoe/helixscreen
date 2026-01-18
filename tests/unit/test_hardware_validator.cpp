@@ -706,3 +706,157 @@ TEST_CASE_METHOD(HardwareValidatorConfigFixture,
     REQUIRE(hardware.contains("expected"));
     REQUIRE(hardware.contains("last_snapshot"));
 }
+
+// ============================================================================
+// MMU/AMS Detection Tests - TEST FIRST (TDD)
+// These tests verify that the hardware validator uses hardware().has_mmu()
+// instead of searching printer_objects_ for string matches.
+// ============================================================================
+
+// Fixture for MMU detection tests - extends HardwareValidatorConfigFixture for Config access
+class MmuDetectionFixture : public HardwareValidatorConfigFixture {
+  protected:
+    MoonrakerClientMock client;
+    helix::PrinterHardwareDiscovery hardware;
+
+    void setup_config_with_expected(const std::vector<std::string>& expected) {
+        config.data = {{"printer",
+                        {{"moonraker_host", "127.0.0.1"},
+                         {"moonraker_port", 7125},
+                         {"hardware",
+                          {{"optional", json::array()},
+                           {"expected", expected},
+                           {"last_snapshot", json::object()}}}}}};
+    }
+
+    bool is_missing_in_result(const HardwareValidationResult& result, const std::string& name) {
+        for (const auto& issue : result.expected_missing) {
+            if (issue.hardware_name == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+TEST_CASE_METHOD(MmuDetectionFixture,
+                 "HardwareValidator - MMU detection uses has_mmu() capability flag",
+                 "[hardware][validator][mmu]") {
+    SECTION("No warning when has_mmu() is true and MMU is expected") {
+        // Setup: printer has MMU capability (Happy Hare)
+        client.set_heaters({"extruder", "heater_bed"});
+        client.set_additional_objects({"mmu"}); // This sets has_mmu() = true
+
+        // Verify capability flag is set
+        REQUIRE(client.hardware().has_mmu());
+
+        // Configure expectation for MMU
+        setup_config_with_expected({"mmu"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // MMU is present (has_mmu() = true), so no warning should be generated
+        REQUIRE_FALSE(is_missing_in_result(result, "mmu"));
+    }
+
+    SECTION("Warning when MMU is expected but has_mmu() is false") {
+        // Setup: printer does NOT have MMU capability
+        client.set_heaters({"extruder", "heater_bed"});
+        // NOT calling set_additional_objects({"mmu"}) - has_mmu() remains false
+
+        // Verify capability flag is NOT set
+        REQUIRE_FALSE(client.hardware().has_mmu());
+
+        // Configure expectation for MMU (user configured MMU in wizard)
+        setup_config_with_expected({"mmu"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // MMU is NOT present (has_mmu() = false), so warning SHOULD be generated
+        REQUIRE(is_missing_in_result(result, "mmu"));
+    }
+}
+
+TEST_CASE_METHOD(MmuDetectionFixture,
+                 "HardwareValidator - AFC detection uses has_mmu() and mmu_type() capability flags",
+                 "[hardware][validator][mmu][afc]") {
+    SECTION("No warning when has_mmu() is true with AFC type") {
+        // Setup: printer has AFC (Armored Turtle / BoxTurtle)
+        client.set_heaters({"extruder", "heater_bed"});
+        client.set_additional_objects({"AFC"}); // This sets has_mmu() = true, mmu_type = AFC
+
+        // Verify capability flags
+        REQUIRE(client.hardware().has_mmu());
+        REQUIRE(client.hardware().mmu_type() == AmsType::AFC);
+
+        // Configure expectation for AFC
+        setup_config_with_expected({"AFC"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // AFC is present (has_mmu() = true), so no warning should be generated
+        REQUIRE_FALSE(is_missing_in_result(result, "AFC"));
+    }
+
+    SECTION("Warning when AFC is expected but has_mmu() is false") {
+        // Setup: printer does NOT have AFC capability
+        client.set_heaters({"extruder", "heater_bed"});
+        // NOT calling set_additional_objects({"AFC"}) - has_mmu() remains false
+
+        // Verify capability flag is NOT set
+        REQUIRE_FALSE(client.hardware().has_mmu());
+
+        // Configure expectation for AFC
+        setup_config_with_expected({"AFC"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // AFC is NOT present (has_mmu() = false), so warning SHOULD be generated
+        REQUIRE(is_missing_in_result(result, "AFC"));
+    }
+}
+
+TEST_CASE_METHOD(
+    MmuDetectionFixture,
+    "HardwareValidator - tool changer detection uses has_tool_changer() capability flag",
+    "[hardware][validator][mmu][toolchanger]") {
+    SECTION("No warning when has_tool_changer() is true") {
+        // Setup: printer has tool changer
+        client.set_heaters({"extruder", "heater_bed"});
+        client.set_additional_objects({"toolchanger", "tool T0", "tool T1"});
+
+        // Verify capability flag is set
+        REQUIRE(client.hardware().has_tool_changer());
+
+        // Configure expectation for tool changer
+        setup_config_with_expected({"toolchanger"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // Tool changer is present, so no warning should be generated
+        REQUIRE_FALSE(is_missing_in_result(result, "toolchanger"));
+    }
+
+    SECTION("Warning when tool changer is expected but has_tool_changer() is false") {
+        // Setup: printer does NOT have tool changer capability
+        client.set_heaters({"extruder", "heater_bed"});
+        // NOT calling set_additional_objects({"toolchanger"})
+
+        // Verify capability flag is NOT set
+        REQUIRE_FALSE(client.hardware().has_tool_changer());
+
+        // Configure expectation for tool changer
+        setup_config_with_expected({"toolchanger"});
+
+        HardwareValidator validator;
+        auto result = validator.validate(&config, &client, hardware);
+
+        // Tool changer is NOT present, so warning SHOULD be generated
+        REQUIRE(is_missing_in_result(result, "toolchanger"));
+    }
+}

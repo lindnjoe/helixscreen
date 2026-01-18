@@ -181,7 +181,19 @@ void MoonrakerClientMock::populate_capabilities() {
     mock_objects.push_back("output_pin beeper");   // Triggers has_speaker_ capability
     mock_objects.push_back("firmware_retraction"); // Triggers has_firmware_retraction_ capability
 
-    // Add LED objects from populated hardware
+    // Add hardware objects from populated lists
+    for (const auto& heater : heaters_) {
+        // Skip if already added (heater_bed, extruder)
+        if (heater != "heater_bed" && heater != "extruder") {
+            mock_objects.push_back(heater);
+        }
+    }
+    for (const auto& fan : fans_) {
+        mock_objects.push_back(fan);
+    }
+    for (const auto& sensor : sensors_) {
+        mock_objects.push_back(sensor);
+    }
     for (const auto& led : leds_) {
         mock_objects.push_back(led);
     }
@@ -220,7 +232,6 @@ void MoonrakerClientMock::populate_capabilities() {
     mock_objects.push_back("timelapse"); // Moonraker-Timelapse plugin
 
     // MMU/AMS system - Happy Hare uses "mmu" object name
-    // Add this so hardware validator can detect it
     mock_objects.push_back("mmu");
 
     // Filament sensors (common setup: runout sensor at spool holder)
@@ -310,6 +321,11 @@ void MoonrakerClientMock::rebuild_hardware() {
     for (const auto& fs : filament_sensors_) {
         objects.push_back(fs);
     }
+    // Include additional objects set via set_additional_objects() for capability testing
+    // (e.g., "mmu", "AFC", "toolchanger" for MMU/tool changer detection)
+    for (const auto& obj : additional_objects_) {
+        objects.push_back(obj);
+    }
 
     hardware_.parse_objects(objects);
 }
@@ -350,6 +366,14 @@ void MoonrakerClientMock::discover_printer(
 
         // Chain to printer.info to get hostname and software_version
         send_jsonrpc("printer.info", json::object(), [this, on_complete](json response) {
+            spdlog::debug("[MoonrakerClientMock] printer.info response received");
+
+            // Populate capabilities - builds complete hardware state from mock data
+            // (heaters_, fans_, sensors_, leds_, plus all standard mock objects like
+            // mmu, timelapse, macros, etc.) via hardware_.parse_objects()
+            populate_capabilities();
+
+            // Now set the metadata AFTER parse_objects() has run
             if (response.contains("result")) {
                 hostname_ = response["result"].value("hostname", "unknown");
                 software_version_ = response["result"].value("software_version", "unknown");
@@ -359,13 +383,6 @@ void MoonrakerClientMock::discover_printer(
                 spdlog::debug("[MoonrakerClientMock] Klipper software version: {}",
                               software_version_);
             }
-
-            // Populate capabilities (may have already been done in constructor, but idempotent)
-            populate_capabilities();
-
-            // Rebuild hardware_ from mock data (heaters_, fans_, sensors_, leds_)
-            // This ensures hardware() accessors return complete data including fans
-            rebuild_hardware();
 
             // Set Spoolman availability during discovery (matches real Moonraker behavior)
             // Real client queries server.spoolman.status during discovery - see

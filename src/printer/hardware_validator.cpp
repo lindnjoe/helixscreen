@@ -510,27 +510,17 @@ void HardwareValidator::validate_configured_hardware(
                                         hw_name == "toolchanger" || hw_name == "valgace");
 
                 if (is_ams_hardware) {
-                    // For AMS hardware, check against printer_objects
+                    // Use parsed capability flags instead of searching printer_objects_
                     bool found = false;
-                    for (const auto& obj : printer_objects) {
-                        // Case-insensitive comparison for AFC/mmu
-                        std::string lower_obj = obj;
-                        std::transform(lower_obj.begin(), lower_obj.end(), lower_obj.begin(),
-                                       ::tolower);
-                        std::string lower_hw = hw_name;
-                        std::transform(lower_hw.begin(), lower_hw.end(), lower_hw.begin(),
-                                       ::tolower);
 
-                        if (lower_obj == lower_hw) {
-                            found = true;
-                            break;
-                        }
-                        // For tool changers, check for "toolhead " prefix
-                        if (hw_name == "toolchanger" && obj.rfind("toolhead ", 0) == 0) {
-                            found = true;
-                            break;
-                        }
+                    if (hw_name == "mmu" && client->hardware().has_mmu()) {
+                        found = true;
+                    } else if (hw_name == "AFC" && client->hardware().mmu_type() == AmsType::AFC) {
+                        found = true;
+                    } else if (hw_name == "toolchanger" && client->hardware().has_tool_changer()) {
+                        found = true;
                     }
+                    // valgace check remains as-is (REST-based detection)
 
                     if (!found) {
                         // ValgACE is detected via REST, not Klipper objects

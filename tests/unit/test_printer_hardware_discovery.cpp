@@ -415,6 +415,101 @@ TEST_CASE("PrinterHardwareDiscovery detects Happy Hare MMU", "[printer_hardware_
     REQUIRE(hw.mmu_type() == AmsType::HAPPY_HARE);
 }
 
+TEST_CASE("PrinterHardwareDiscovery parses Happy Hare mmu_encoder objects",
+          "[printer_hardware_discovery]") {
+    PrinterHardwareDiscovery hw;
+
+    SECTION("Single encoder") {
+        json objects = {"mmu", "mmu_encoder toolhead"};
+        hw.parse_objects(objects);
+
+        REQUIRE(hw.has_mmu());
+        REQUIRE(hw.mmu_type() == AmsType::HAPPY_HARE);
+
+        auto encoders = hw.mmu_encoder_names();
+        REQUIRE(encoders.size() == 1);
+        REQUIRE(encoders[0] == "toolhead");
+    }
+
+    SECTION("Multiple encoders") {
+        json objects = {"mmu", "mmu_encoder toolhead", "mmu_encoder gate"};
+        hw.parse_objects(objects);
+
+        auto encoders = hw.mmu_encoder_names();
+        REQUIRE(encoders.size() == 2);
+        REQUIRE(std::find(encoders.begin(), encoders.end(), "toolhead") != encoders.end());
+        REQUIRE(std::find(encoders.begin(), encoders.end(), "gate") != encoders.end());
+    }
+
+    SECTION("Encoder without mmu object still detected") {
+        // Edge case: encoder object exists but main mmu object missing
+        json objects = {"mmu_encoder toolhead"};
+        hw.parse_objects(objects);
+
+        auto encoders = hw.mmu_encoder_names();
+        REQUIRE(encoders.size() == 1);
+        REQUIRE(encoders[0] == "toolhead");
+    }
+}
+
+TEST_CASE("PrinterHardwareDiscovery parses Happy Hare mmu_servo objects",
+          "[printer_hardware_discovery]") {
+    PrinterHardwareDiscovery hw;
+
+    SECTION("Single servo") {
+        json objects = {"mmu", "mmu_servo gate"};
+        hw.parse_objects(objects);
+
+        REQUIRE(hw.has_mmu());
+        REQUIRE(hw.mmu_type() == AmsType::HAPPY_HARE);
+
+        auto servos = hw.mmu_servo_names();
+        REQUIRE(servos.size() == 1);
+        REQUIRE(servos[0] == "gate");
+    }
+
+    SECTION("Multiple servos") {
+        json objects = {"mmu", "mmu_servo gate", "mmu_servo selector"};
+        hw.parse_objects(objects);
+
+        auto servos = hw.mmu_servo_names();
+        REQUIRE(servos.size() == 2);
+        REQUIRE(std::find(servos.begin(), servos.end(), "gate") != servos.end());
+        REQUIRE(std::find(servos.begin(), servos.end(), "selector") != servos.end());
+    }
+
+    SECTION("Servo without mmu object still detected") {
+        // Edge case: servo object exists but main mmu object missing
+        json objects = {"mmu_servo gate"};
+        hw.parse_objects(objects);
+
+        auto servos = hw.mmu_servo_names();
+        REQUIRE(servos.size() == 1);
+        REQUIRE(servos[0] == "gate");
+    }
+}
+
+TEST_CASE("PrinterHardwareDiscovery parses full Happy Hare configuration",
+          "[printer_hardware_discovery]") {
+    PrinterHardwareDiscovery hw;
+
+    // Typical Happy Hare setup with multiple encoders and servos
+    json objects = {
+        "mmu",       "mmu_encoder toolhead", "mmu_encoder gate", "mmu_servo gate", "extruder",
+        "heater_bed"};
+    hw.parse_objects(objects);
+
+    REQUIRE(hw.has_mmu());
+    REQUIRE(hw.mmu_type() == AmsType::HAPPY_HARE);
+
+    auto encoders = hw.mmu_encoder_names();
+    REQUIRE(encoders.size() == 2);
+
+    auto servos = hw.mmu_servo_names();
+    REQUIRE(servos.size() == 1);
+    REQUIRE(servos[0] == "gate");
+}
+
 TEST_CASE("PrinterHardwareDiscovery detects tool changer", "[printer_hardware_discovery]") {
     PrinterHardwareDiscovery hw;
 

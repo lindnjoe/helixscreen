@@ -51,6 +51,7 @@
 #include "moonraker_error.h"
 #include "moonraker_types.h"
 #include "print_history_data.h"
+#include "printer_hardware_discovery.h"
 #include "printer_state.h"
 
 #include <atomic>
@@ -949,6 +950,31 @@ class MoonrakerAPI {
         return client_;
     }
 
+    /**
+     * @brief Get const reference to discovered hardware
+     *
+     * Provides read-only access to the printer hardware discovery data,
+     * including heaters, fans, sensors, LEDs, and capability flags.
+     * This data is populated during printer discovery via MoonrakerClient.
+     *
+     * @return Const reference to PrinterHardwareDiscovery
+     */
+    [[nodiscard]] const helix::PrinterHardwareDiscovery& hardware() const {
+        return hardware_;
+    }
+
+    /**
+     * @brief Get non-const reference to hardware for internal updates
+     *
+     * Used internally by discovery callbacks to populate hardware data.
+     * Application code should use the const accessor instead.
+     *
+     * @return Reference to PrinterHardwareDiscovery
+     */
+    helix::PrinterHardwareDiscovery& hardware() {
+        return hardware_;
+    }
+
     // ========================================================================
     // Advanced Panel Operations - Bed Leveling
     // ========================================================================
@@ -1226,6 +1252,9 @@ class MoonrakerAPI {
   private:
     std::string http_base_url_; ///< HTTP base URL for file transfers
     MoonrakerClient& client_;
+
+    /// Discovered printer hardware (heaters, fans, sensors, LEDs, capabilities)
+    helix::PrinterHardwareDiscovery hardware_;
 
     SafetyLimits safety_limits_;
     bool limits_explicitly_set_ = false;

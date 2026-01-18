@@ -158,8 +158,8 @@ bool migrate_display_config(json& data) {
 /// @param moonraker_host Host address for printer
 /// @param include_user_prefs Include user preference fields (brightness, sounds, etc.)
 json get_default_config(const std::string& moonraker_host, bool include_user_prefs) {
+    // log_level intentionally absent - test_mode provides fallback to DEBUG
     json config = {{"log_path", "/tmp/helixscreen.log"},
-                   {"log_level", "warn"},
                    {"dark_mode", true},
                    {"display", get_default_display_config()},
                    {"gcode_viewer", {{"shading_model", "phong"}, {"tube_sides", 4}}},
@@ -307,12 +307,7 @@ void Config::init(const std::string& config_path) {
         }
     }
 
-    // Ensure log_level exists at root level
-    auto& ll = data["/log_level"_json_pointer];
-    if (ll.is_null()) {
-        data["/log_level"_json_pointer] = "warn";
-        config_modified = true;
-    }
+    // log_level intentionally NOT migrated - absence allows test_mode fallback
 
     // Ensure display section exists with defaults
     if (!data.contains("display")) {

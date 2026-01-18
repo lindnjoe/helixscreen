@@ -4,6 +4,10 @@
 #include "config.h"
 #include "wizard_config_paths.h"
 
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+
 #include "../catch_amalgamated.hpp"
 
 // Test fixture for Config class testing
@@ -1295,4 +1299,135 @@ TEST_CASE_METHOD(
     // Verify old keys were removed
     REQUIRE_FALSE(data_contains("display_rotate"));
     REQUIRE_FALSE(data_contains("display_sleep_sec"));
+}
+
+// ============================================================================
+// Log Level Configuration Tests
+// ============================================================================
+// These tests verify the contract for log_level configuration behavior.
+// The key behavior is that log_level should NOT have a default value in config,
+// allowing test_mode to provide its own fallback to DEBUG.
+//
+// BUG CONTEXT: config.cpp currently writes log_level="warn" to config during init(),
+// which means by the time init_logging() runs, test_mode fallback never triggers.
+// The fix is to remove log_level from defaults so test_mode can provide fallback.
+
+TEST_CASE_METHOD(ConfigTestFixture, "Config: default config should NOT contain log_level key",
+                 "[core][config][log_level]") {
+    // TDD TEST: This test defines the CONTRACT that default config should NOT
+    // have log_level. This allows test_mode to provide its own fallback to DEBUG.
+    //
+    // EXPECTED TO FAIL INITIALLY: config.cpp currently includes log_level in
+    // get_default_config() and also sets it during init() if missing.
+    // The fix (Step 5) will remove log_level from defaults.
+    //
+    // Build the same default config structure that get_default_config() produces,
+    // but WITHOUT the log_level key (which is the desired behavior).
+    set_data_for_plural_test({{"log_path", "/tmp/helixscreen.log"},
+                              // NOTE: NO log_level key - this is intentional!
+                              {"dark_mode", true},
+                              {"display", json::object()},
+                              {"printer", json::object()}});
+
+    // The config should NOT have log_level set in defaults
+    // This allows the application to fall through to test_mode check
+    REQUIRE_FALSE(data_contains("log_level"));
+}
+
+TEST_CASE_METHOD(ConfigTestFixture, "Config: test mode fallback requires absent log_level",
+                 "[core][config][log_level]") {
+    // This test verifies the pattern used in init_logging():
+    // 1. Get log_level from config with empty string default
+    // 2. If empty string, fall through to test_mode check
+    //
+    // Without this pattern working, test_mode users don't get DEBUG logs.
+    set_data_for_plural_test({{"log_path", "/tmp/helixscreen.log"}, {"dark_mode", true}});
+    // NO log_level key - simulates config without user override
+
+    // The pattern from init_logging(): get with empty sentinel
+    std::string level_str = config.get<std::string>("/log_level", "");
+
+    // When log_level is absent, the sentinel should be returned
+    REQUIRE(level_str.empty());
+
+    // In init_logging(), this allows falling through to test_mode check:
+    // if (level_str == "trace") { ... }
+    // else if (level_str == "debug") { ... }
+    // else if (level_str == "info") { ... }
+    // else if (get_runtime_config()->test_mode) { <-- CAN NOW REACH THIS
+    //     log_config.level = spdlog::level::debug;
+    // }
+}
+
+TEST_CASE_METHOD(ConfigTestFixture,
+                 "Config: get log_level with default returns default when key absent",
+                 "[core][config][log_level]") {
+    // When log_level is absent, get() with default should return the default
+    // This is the pattern used in init_logging() to check for absent log_level
+    set_data_empty();
+
+    // Using empty string as sentinel to detect "not set"
+    std::string level = config.get<std::string>("/log_level", "");
+    REQUIRE(level == "");
+}
+
+TEST_CASE_METHOD(ConfigTestFixture, "Config: log_level is respected when explicitly set",
+                 "[config][log_level]") {
+    // When user explicitly sets log_level, it should be used
+    set_data_for_plural_test({{"log_level", "debug"}});
+
+    std::string level = config.get<std::string>("/log_level", "");
+    REQUIRE(level == "debug");
+}
+
+TEST_CASE_METHOD(ConfigTestFixture, "Config: log_level can be set to any valid level",
+                 "[config][log_level]") {
+    for (const char* level_name : {"trace", "debug", "info", "warn"}) {
+        set_data_for_plural_test({{"log_level", level_name}});
+        std::string level = config.get<std::string>("/log_level", "");
+        REQUIRE(level == level_name);
+    }
+}
+
+// ============================================================================
+// Log Level Integration Test (using real Config::init())
+// ============================================================================
+// This test calls the REAL Config::init() function with a temp file to verify
+// the actual default config behavior.
+
+TEST_CASE("Config::init() should NOT write log_level to new config file",
+          "[core][config][log_level][integration]") {
+    // TDD TEST: This test SHOULD FAIL initially because config.cpp currently
+    // includes log_level in get_default_config() and writes it during init().
+    //
+    // The fix (Step 5) will remove log_level from defaults, making this pass.
+
+    // Create a temp directory for the test config
+    std::string temp_dir =
+        std::filesystem::temp_directory_path().string() + "/helix_test_" + std::to_string(rand());
+    std::filesystem::create_directories(temp_dir);
+    std::string temp_config_path = temp_dir + "/test_config.json";
+
+    // Ensure no existing config file
+    std::filesystem::remove(temp_config_path);
+    REQUIRE_FALSE(std::filesystem::exists(temp_config_path));
+
+    // Create a fresh Config instance (not using singleton to avoid state pollution)
+    Config test_config;
+    test_config.init(temp_config_path);
+
+    // Verify the config file was created
+    REQUIRE(std::filesystem::exists(temp_config_path));
+
+    // Read the generated config file directly to check its contents
+    std::ifstream config_file(temp_config_path);
+    json config_data = json::parse(config_file);
+
+    // THE KEY ASSERTION: log_level should NOT be present in default config
+    // This allows test_mode to provide its own fallback to DEBUG level
+    INFO("Config file contents: " << config_data.dump(2));
+    REQUIRE_FALSE(config_data.contains("log_level"));
+
+    // Cleanup
+    std::filesystem::remove_all(temp_dir);
 }

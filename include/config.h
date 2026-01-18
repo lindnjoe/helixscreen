@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "spdlog/spdlog.h"
-
 #include <string>
 
 #include "hv/json.hpp"
@@ -66,6 +64,7 @@ class Config {
     /// Allow test fixtures to access protected members
     friend class ConfigTestFixture;
     friend class HardwareValidatorConfigFixture;
+    friend class MmuDetectionFixture;
 
   public:
     /**

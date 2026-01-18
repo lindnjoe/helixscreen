@@ -519,7 +519,7 @@ bool Application::init_config() {
 bool Application::init_logging() {
     helix::logging::LogConfig log_config;
 
-    // Determine log level: CLI verbosity takes precedence, then config file
+    // Determine log level: CLI verbosity takes precedence, then config file, then test_mode
     if (m_args.verbosity > 0) {
         // CLI -v flags override config
         switch (m_args.verbosity) {
@@ -534,16 +534,23 @@ bool Application::init_logging() {
             break;
         }
     } else {
-        // No CLI verbosity - check config file
-        std::string level_str = m_config->get<std::string>("/log_level", "warn");
+        // No CLI verbosity - check config file first (empty string = absent)
+        std::string level_str = m_config->get<std::string>("/log_level", "");
         if (level_str == "trace") {
             log_config.level = spdlog::level::trace;
         } else if (level_str == "debug") {
             log_config.level = spdlog::level::debug;
         } else if (level_str == "info") {
             log_config.level = spdlog::level::info;
+        } else if (level_str == "warn" || level_str == "warning") {
+            log_config.level = spdlog::level::warn;
+        } else if (level_str == "error") {
+            log_config.level = spdlog::level::err;
+        } else if (get_runtime_config()->test_mode) {
+            // Test mode defaults to DEBUG for easier debugging (when log_level absent)
+            log_config.level = spdlog::level::debug;
         } else {
-            log_config.level = spdlog::level::warn; // default
+            log_config.level = spdlog::level::warn; // default for production
         }
     }
 
@@ -1656,21 +1663,20 @@ void Application::shutdown() {
     m_panels.reset();
     m_subjects.reset();
 
-    // Deinitialize core singleton subjects (PrinterState, AmsState, SettingsManager, etc.)
-    // This disconnects observers from subjects. Must happen before lv_deinit().
-    StaticSubjectRegistry::instance().deinit_all();
-
     // Restore display backlight (guard for early exit paths like --help)
     if (m_display) {
         m_display->restore_display_on_shutdown();
     }
 
     // Destroy ALL static panel/overlay globals via self-registration pattern.
-    // This is done RIGHT BEFORE lv_deinit() to avoid panels being recreated by
-    // async callbacks (e.g., timer callbacks, discovery callbacks) that might fire
-    // between destroy_all() and lv_deinit(). By destroying panels last, we ensure
-    // no code path can recreate them before LVGL shuts down.
+    // Must happen BEFORE deinit_all() so ObserverGuards can properly unsubscribe
+    // from subjects that still exist. Safe at this point because m_moonraker is
+    // already reset, preventing async callbacks from recreating panels.
     StaticPanelRegistry::instance().destroy_all();
+
+    // Deinitialize core singleton subjects (PrinterState, AmsState, SettingsManager, etc.)
+    // Now safe because all panels (and their observers) have been destroyed.
+    StaticSubjectRegistry::instance().deinit_all();
 
     // Shutdown display (calls lv_deinit)
     m_display.reset();

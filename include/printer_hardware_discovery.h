@@ -182,6 +182,20 @@ class PrinterHardwareDiscovery {
                 has_mmu_ = true;
                 mmu_type_ = AmsType::AFC;
             }
+            // MMU encoder discovery (Happy Hare)
+            else if (name.rfind("mmu_encoder ", 0) == 0) {
+                std::string encoder_name = name.substr(12); // Remove "mmu_encoder " prefix
+                if (!encoder_name.empty()) {
+                    mmu_encoder_names_.push_back(encoder_name);
+                }
+            }
+            // MMU servo discovery (Happy Hare)
+            else if (name.rfind("mmu_servo ", 0) == 0) {
+                std::string servo_name = name.substr(10); // Remove "mmu_servo " prefix
+                if (!servo_name.empty()) {
+                    mmu_servo_names_.push_back(servo_name);
+                }
+            }
             // AFC lane discovery
             else if (name.rfind("AFC_stepper ", 0) == 0) {
                 std::string lane_name = name.substr(12); // Remove "AFC_stepper " prefix
@@ -297,6 +311,8 @@ class PrinterHardwareDiscovery {
         afc_hub_names_.clear();
         tool_names_.clear();
         filament_sensor_names_.clear();
+        mmu_encoder_names_.clear();
+        mmu_servo_names_.clear();
 
         // Macros
         macros_.clear();
@@ -491,6 +507,14 @@ class PrinterHardwareDiscovery {
     /// @brief Alias for filament_sensor_names() - compatibility with PrinterCapabilities API
     [[nodiscard]] const std::vector<std::string>& get_filament_sensor_names() const {
         return filament_sensor_names_;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& mmu_encoder_names() const {
+        return mmu_encoder_names_;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& mmu_servo_names() const {
+        return mmu_servo_names_;
     }
 
     // ========================================================================
@@ -714,6 +738,8 @@ class PrinterHardwareDiscovery {
     std::vector<std::string> afc_hub_names_;
     std::vector<std::string> tool_names_;
     std::vector<std::string> filament_sensor_names_;
+    std::vector<std::string> mmu_encoder_names_;
+    std::vector<std::string> mmu_servo_names_;
 
     // Macros
     std::unordered_set<std::string> macros_;

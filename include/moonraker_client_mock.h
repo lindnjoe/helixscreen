@@ -416,6 +416,19 @@ class MoonrakerClientMock : public MoonrakerClient {
     }
 
     /**
+     * @brief Set additional printer objects for testing (e.g., "mmu", "AFC", "toolchanger")
+     *
+     * These objects are included when rebuild_hardware() is called, allowing
+     * tests to configure capability flags like has_mmu() and has_tool_changer().
+     *
+     * @param objects List of additional Klipper object names to include
+     */
+    void set_additional_objects(std::vector<std::string> objects) {
+        additional_objects_ = std::move(objects);
+        rebuild_hardware();
+    }
+
+    /**
      * @brief Set accelerometer availability for testing
      *
      * When false, MEASURE_AXES_NOISE will dispatch an error response
@@ -878,6 +891,9 @@ class MoonrakerClientMock : public MoonrakerClient {
     bool mock_spoolman_enabled_{true};   ///< Controlled by HELIX_MOCK_SPOOLMAN env var
     bool accelerometer_available_{true}; ///< Accelerometer available for input shaper tests
     bool input_shaper_configured_{true}; ///< Input shaper configured for config query tests
+
+    // Additional objects for testing (e.g., "mmu", "AFC", "toolchanger")
+    std::vector<std::string> additional_objects_;
 };
 
 // ============================================================================
