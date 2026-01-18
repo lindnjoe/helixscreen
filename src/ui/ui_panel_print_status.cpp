@@ -48,6 +48,7 @@
 static std::unique_ptr<PrintStatusPanel> g_print_status_panel;
 
 using helix::ui::temperature::centi_to_degrees;
+using helix::ui::temperature::format_temperature_pair;
 
 // Helper to get or create the global instance
 PrintStatusPanel& get_global_print_status_panel() {
@@ -662,23 +663,13 @@ void PrintStatusPanel::update_all_displays() {
     format_time(remaining_seconds_, remaining_buf_, sizeof(remaining_buf_));
     lv_subject_copy_string(&remaining_subject_, remaining_buf_);
 
-    // Show "--" for target when heater is off (target=0) for better UX
-    if (nozzle_target_ > 0) {
-        std::snprintf(nozzle_temp_buf_, sizeof(nozzle_temp_buf_), "%d / %d°C",
-                      centi_to_degrees(nozzle_current_), centi_to_degrees(nozzle_target_));
-    } else {
-        std::snprintf(nozzle_temp_buf_, sizeof(nozzle_temp_buf_), "%d / --",
-                      centi_to_degrees(nozzle_current_));
-    }
+    // Use centralized temperature formatting with em dash for heater-off state
+    format_temperature_pair(centi_to_degrees(nozzle_current_), centi_to_degrees(nozzle_target_),
+                            nozzle_temp_buf_, sizeof(nozzle_temp_buf_));
     lv_subject_copy_string(&nozzle_temp_subject_, nozzle_temp_buf_);
 
-    if (bed_target_ > 0) {
-        std::snprintf(bed_temp_buf_, sizeof(bed_temp_buf_), "%d / %d°C",
-                      centi_to_degrees(bed_current_), centi_to_degrees(bed_target_));
-    } else {
-        std::snprintf(bed_temp_buf_, sizeof(bed_temp_buf_), "%d / --",
-                      centi_to_degrees(bed_current_));
-    }
+    format_temperature_pair(centi_to_degrees(bed_current_), centi_to_degrees(bed_target_),
+                            bed_temp_buf_, sizeof(bed_temp_buf_));
     lv_subject_copy_string(&bed_temp_subject_, bed_temp_buf_);
 
     // Speeds

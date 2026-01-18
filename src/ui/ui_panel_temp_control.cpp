@@ -319,14 +319,14 @@ void TempControlPanel::update_nozzle_display() {
             snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / %d*",
                      current_deg, nozzle_pending_);
         } else {
-            snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / --*",
+            snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / —*",
                      current_deg);
         }
     } else if (display_target > 0) {
         snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / %d", current_deg,
                  display_target);
     } else {
-        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / --", current_deg);
+        snprintf(nozzle_display_buf_.data(), nozzle_display_buf_.size(), "%d / —", current_deg);
     }
     lv_subject_copy_string(&nozzle_display_subject_, nozzle_display_buf_.data());
 }
@@ -351,13 +351,13 @@ void TempControlPanel::update_bed_display() {
             snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d*", current_deg,
                      bed_pending_);
         } else {
-            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --*", current_deg);
+            snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / —*", current_deg);
         }
     } else if (display_target > 0) {
         snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / %d", current_deg,
                  display_target);
     } else {
-        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / --", current_deg);
+        snprintf(bed_display_buf_.data(), bed_display_buf_.size(), "%d / —", current_deg);
     }
 
     lv_subject_copy_string(&bed_display_subject_, bed_display_buf_.data());

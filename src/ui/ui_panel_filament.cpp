@@ -39,6 +39,7 @@ static const char* MATERIAL_NAMES[] = {"PLA", "PETG", "ABS", "TPU"};
 
 using helix::ui::observe_int_async;
 using helix::ui::temperature::centi_to_degrees;
+using helix::ui::temperature::format_target_or_off;
 using helix::ui::temperature::get_heating_state_color;
 
 // ============================================================================
@@ -55,12 +56,12 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
                   nozzle_current_, nozzle_target_);
     std::snprintf(safety_warning_text_buf_, sizeof(safety_warning_text_buf_),
                   "Heat to %d°C to load/unload", min_extrude_temp_);
-    std::snprintf(material_nozzle_buf_, sizeof(material_nozzle_buf_), "--");
-    std::snprintf(material_bed_buf_, sizeof(material_bed_buf_), "--");
+    format_target_or_off(0, material_nozzle_buf_, sizeof(material_nozzle_buf_));
+    format_target_or_off(0, material_bed_buf_, sizeof(material_bed_buf_));
     std::snprintf(nozzle_current_buf_, sizeof(nozzle_current_buf_), "%d°C", nozzle_current_);
-    std::snprintf(nozzle_target_buf_, sizeof(nozzle_target_buf_), "--");
+    format_target_or_off(0, nozzle_target_buf_, sizeof(nozzle_target_buf_));
     std::snprintf(bed_current_buf_, sizeof(bed_current_buf_), "%d°C", bed_current_);
-    std::snprintf(bed_target_buf_, sizeof(bed_target_buf_), "--");
+    format_target_or_off(0, bed_target_buf_, sizeof(bed_target_buf_));
 
     // Register XML event callbacks
     lv_xml_register_event_cb(nullptr, "filament_manage_slots_cb", on_manage_slots_clicked);
@@ -520,17 +521,9 @@ void FilamentPanel::handle_custom_bed_confirmed(float value) {
 }
 
 void FilamentPanel::update_material_temp_display() {
-    // Show "--" for unset targets, otherwise show temperature
-    if (nozzle_target_ == 0) {
-        std::snprintf(material_nozzle_buf_, sizeof(material_nozzle_buf_), "--");
-    } else {
-        std::snprintf(material_nozzle_buf_, sizeof(material_nozzle_buf_), "%d°C", nozzle_target_);
-    }
-    if (bed_target_ == 0) {
-        std::snprintf(material_bed_buf_, sizeof(material_bed_buf_), "--");
-    } else {
-        std::snprintf(material_bed_buf_, sizeof(material_bed_buf_), "%d°C", bed_target_);
-    }
+    // Use centralized formatting with em dash for heater-off state
+    format_target_or_off(nozzle_target_, material_nozzle_buf_, sizeof(material_nozzle_buf_));
+    format_target_or_off(bed_target_, material_bed_buf_, sizeof(material_bed_buf_));
     lv_subject_copy_string(&material_nozzle_temp_subject_, material_nozzle_buf_);
     lv_subject_copy_string(&material_bed_temp_subject_, material_bed_buf_);
 }
@@ -542,17 +535,9 @@ void FilamentPanel::update_left_card_temps() {
     lv_subject_copy_string(&nozzle_current_subject_, nozzle_current_buf_);
     lv_subject_copy_string(&bed_current_subject_, bed_current_buf_);
 
-    // Update target temps (show "--" for unset)
-    if (nozzle_target_ == 0) {
-        std::snprintf(nozzle_target_buf_, sizeof(nozzle_target_buf_), "--");
-    } else {
-        std::snprintf(nozzle_target_buf_, sizeof(nozzle_target_buf_), "%d°C", nozzle_target_);
-    }
-    if (bed_target_ == 0) {
-        std::snprintf(bed_target_buf_, sizeof(bed_target_buf_), "--");
-    } else {
-        std::snprintf(bed_target_buf_, sizeof(bed_target_buf_), "%d°C", bed_target_);
-    }
+    // Update target temps using centralized formatting with em dash for heater-off state
+    format_target_or_off(nozzle_target_, nozzle_target_buf_, sizeof(nozzle_target_buf_));
+    format_target_or_off(bed_target_, bed_target_buf_, sizeof(bed_target_buf_));
     lv_subject_copy_string(&nozzle_target_subject_, nozzle_target_buf_);
     lv_subject_copy_string(&bed_target_subject_, bed_target_buf_);
 

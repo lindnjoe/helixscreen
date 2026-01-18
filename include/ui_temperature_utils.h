@@ -154,15 +154,27 @@ char* format_temperature(int temp, char* buffer, size_t buffer_size);
 /**
  * @brief Format a current/target temperature pair
  *
- * Formats as "210 / 245°C" or "210 / --°C" when target is 0 (heater off).
+ * Formats as "210 / 245°C" or "210 / —°C" when target is 0 (heater off).
  *
  * @param current Current temperature in degrees
- * @param target Target temperature in degrees (0 = heater off, shows "--")
+ * @param target Target temperature in degrees (0 = heater off, shows "—")
  * @param buffer Output buffer
  * @param buffer_size Size of buffer (recommended: 24)
  * @return Pointer to buffer for chaining convenience
  */
 char* format_temperature_pair(int current, int target, char* buffer, size_t buffer_size);
+
+/**
+ * @brief Format a target temperature or "— °C" when off
+ *
+ * Formats as "245°C" when target > 0, or "— °C" when target is 0 (heater off).
+ *
+ * @param target Target temperature in degrees (0 = heater off)
+ * @param buffer Output buffer
+ * @param buffer_size Size of buffer (recommended: 16)
+ * @return Pointer to buffer for chaining convenience
+ */
+char* format_target_or_off(int target, char* buffer, size_t buffer_size);
 
 /**
  * @brief Format a temperature value with one decimal place
@@ -179,7 +191,7 @@ char* format_temperature_f(float temp, char* buffer, size_t buffer_size);
 /**
  * @brief Format a float current/target temperature pair
  *
- * Formats as "210.5 / 215.0°C" or "180.5 / --°C" when target is 0.
+ * Formats as "210.5 / 215.0°C" or "180.5 / —°C" when target is 0.
  *
  * @param current Current temperature in degrees (float)
  * @param target Target temperature in degrees (float, 0 = heater off)

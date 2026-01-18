@@ -115,7 +115,7 @@ static void format_target_text(TempDisplayData* data) {
         return;
 
     if (data->target_temp == 0) {
-        snprintf(data->target_text_buf, sizeof(data->target_text_buf), "--");
+        snprintf(data->target_text_buf, sizeof(data->target_text_buf), "—");
     } else {
         snprintf(data->target_text_buf, sizeof(data->target_text_buf), "%d", data->target_temp);
     }
@@ -298,11 +298,11 @@ static void* ui_temp_display_create_cb(lv_xml_parser_state_t* state, const char*
                                 LV_PART_MAIN);
 
     // Initialize string subjects for text binding
-    snprintf(data_ptr->current_text_buf, sizeof(data_ptr->current_text_buf), "--");
+    snprintf(data_ptr->current_text_buf, sizeof(data_ptr->current_text_buf), "—");
     lv_subject_init_string(&data_ptr->current_text_subject, data_ptr->current_text_buf, nullptr,
                            sizeof(data_ptr->current_text_buf), data_ptr->current_text_buf);
 
-    snprintf(data_ptr->target_text_buf, sizeof(data_ptr->target_text_buf), "--");
+    snprintf(data_ptr->target_text_buf, sizeof(data_ptr->target_text_buf), "—");
     lv_subject_init_string(&data_ptr->target_text_subject, data_ptr->target_text_buf, nullptr,
                            sizeof(data_ptr->target_text_buf), data_ptr->target_text_buf);
 

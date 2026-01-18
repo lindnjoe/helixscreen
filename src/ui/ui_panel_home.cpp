@@ -52,7 +52,7 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     : PanelBase(printer_state, api) {
     // Initialize buffer contents with default values
     std::strcpy(status_buffer_, "Welcome to HelixScreen");
-    std::strcpy(temp_buffer_, "-- °C");
+    std::strcpy(temp_buffer_, "— °C");
     std::strcpy(network_label_buffer_, "WiFi");
 
     // Subscribe to PrinterState subjects (ObserverGuard handles cleanup)
@@ -138,7 +138,7 @@ void HomePanel::init_subjects() {
     // Note: LED state (led_state) is managed by PrinterState and already registered
     UI_MANAGED_SUBJECT_STRING(status_subject_, status_buffer_, "Welcome to HelixScreen",
                               "status_text", subjects_);
-    UI_MANAGED_SUBJECT_STRING(temp_subject_, temp_buffer_, "-- °C", "temp_text", subjects_);
+    UI_MANAGED_SUBJECT_STRING(temp_subject_, temp_buffer_, "— °C", "temp_text", subjects_);
 
     // Network icon state: integer 0-5 for conditional icon visibility
     // 0=disconnected, 1-4=wifi strength, 5=ethernet
