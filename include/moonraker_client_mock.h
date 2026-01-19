@@ -717,6 +717,12 @@ class MoonrakerClientMock : public MoonrakerClient {
     bool is_temp_stable(double current, double target, double tolerance = 2.0) const;
 
     /**
+     * @brief Check if this printer profile has a chamber sensor
+     * @return true if "temperature_sensor chamber" is in sensors_ list
+     */
+    bool has_chamber_sensor() const;
+
+    /**
      * @brief Advance print progress based on simulated time elapsed
      * @param dt_simulated Simulated time step in seconds (affected by speedup)
      */
@@ -834,6 +840,7 @@ class MoonrakerClientMock : public MoonrakerClient {
     std::atomic<double> extruder_target_{0.0}; // Target temperature (0 = off)
     std::atomic<double> bed_temp_{25.0};       // Current temperature
     std::atomic<double> bed_target_{0.0};      // Target temperature (0 = off)
+    std::atomic<double> chamber_temp_{25.0};   // Chamber temp (25-45°C, passive sensor)
 
     // Position simulation state
     std::atomic<double> pos_x_{0.0};

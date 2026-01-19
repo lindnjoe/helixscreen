@@ -99,6 +99,15 @@ int MoonrakerClientMock::get_total_layers() const {
     return static_cast<int>(print_metadata_.layer_count);
 }
 
+bool MoonrakerClientMock::has_chamber_sensor() const {
+    for (const auto& s : sensors_) {
+        if (s == "temperature_sensor chamber") {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::set<std::string> MoonrakerClientMock::get_excluded_objects() const {
     // If shared state is set, use that for consistency with MoonrakerAPIMock
     if (mock_state_) {
@@ -2036,6 +2045,12 @@ void MoonrakerClientMock::dispatch_initial_state() {
         }
     }
 
+    // Add chamber temperature for printers with chamber sensor
+    if (has_chamber_sensor()) {
+        double chamber = chamber_temp_.load();
+        initial_status["temperature_sensor chamber"] = {{"temperature", chamber}};
+    }
+
     // Add filament sensor states
     // Check HELIX_MOCK_FILAMENT_STATE env var for initial state (default: detected)
     // Format: "sensor:state,sensor:state" e.g., "fsensor:empty" or "fsensor:detected,encoder:empty"
@@ -2185,6 +2200,20 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
         json status_obj = {{"extruder", {{"temperature", ext_with_noise}, {"target", 0.0}}},
                            {"heater_bed", {{"temperature", bed_with_noise}, {"target", 0.0}}}};
 
+        // Add chamber temperature if sensor is available (slow variation 25-45°C)
+        if (has_chamber_sensor()) {
+            // Chamber temp varies slowly between 25-45°C with 120s period
+            constexpr double CHAMBER_MIN = 25.0;
+            constexpr double CHAMBER_MAX = 45.0;
+            constexpr double CHAMBER_PERIOD = 120.0; // Slow variation
+            double chamber_mid = (CHAMBER_MIN + CHAMBER_MAX) / 2.0;
+            double chamber_amp = (CHAMBER_MAX - CHAMBER_MIN) / 2.0;
+            double chamber_temp =
+                chamber_mid + chamber_amp * std::sin(2.0 * M_PI * timestamp_sec / CHAMBER_PERIOD);
+            double chamber_noise = pseudo_random(i * 3) * 0.5;
+            status_obj["temperature_sensor chamber"] = {{"temperature", chamber_temp + chamber_noise}};
+        }
+
         json notification = {{"method", "notify_status_update"},
                              {"params", json::array({status_obj, timestamp_sec})}};
 
@@ -2199,6 +2228,10 @@ void MoonrakerClientMock::dispatch_historical_temperatures() {
     // Store final historical values as current temps
     extruder_temp_.store(ext_temp_hist);
     bed_temp_.store(bed_temp_hist);
+    // Store chamber temp at midpoint for initial state
+    if (has_chamber_sensor()) {
+        chamber_temp_.store(35.0);
+    }
 
     spdlog::info("[MoonrakerClientMock] Historical temps dispatched: final extruder={:.1f}°C, "
                  "bed={:.1f}°C",
@@ -2336,6 +2369,39 @@ void MoonrakerClientMock::temperature_simulation_loop() {
             }
         }
         bed_temp_.store(bed_temp_val);
+
+        // Simulate chamber temperature (passive sensor, slow variation between 25-45°C)
+        // Chamber heats up slowly during printing/preheat, cools down when idle
+        if (has_chamber_sensor()) {
+            constexpr double CHAMBER_MIN = 25.0;
+            constexpr double CHAMBER_MAX = 45.0;
+            constexpr double CHAMBER_HEAT_RATE = 0.05;  // °C/sec (very slow heating)
+            constexpr double CHAMBER_COOL_RATE = 0.02;  // °C/sec (slow passive cooling)
+            constexpr double CHAMBER_WAVE_PERIOD = 90.0; // 90 second period for idle variation
+
+            double chamber = chamber_temp_.load();
+            MockPrintPhase current_phase = print_phase_.load();
+
+            if (current_phase == MockPrintPhase::PRINTING ||
+                current_phase == MockPrintPhase::PREHEAT) {
+                // During printing: chamber heats up toward max
+                if (chamber < CHAMBER_MAX) {
+                    chamber += CHAMBER_HEAT_RATE * effective_dt;
+                    if (chamber > CHAMBER_MAX)
+                        chamber = CHAMBER_MAX;
+                }
+            } else {
+                // When idle: cool toward room temp with slight variation
+                if (chamber > CHAMBER_MIN + 2.0) {
+                    chamber -= CHAMBER_COOL_RATE * effective_dt;
+                } else {
+                    // At minimum: add slow sinusoidal variation
+                    double wave = std::sin(2.0 * M_PI * sim_time / CHAMBER_WAVE_PERIOD);
+                    chamber = CHAMBER_MIN + 5.0 + 3.0 * wave; // Vary 27-33°C when idle
+                }
+            }
+            chamber_temp_.store(chamber);
+        }
 
         // ========== Phase-Based Print Simulation ==========
         MockPrintPhase phase = print_phase_.load();
@@ -2556,6 +2622,11 @@ void MoonrakerClientMock::temperature_simulation_loop() {
                     status_obj[name] = {{"speed", spd}};
                 }
             }
+        }
+
+        // Add chamber temperature for printers with chamber sensor
+        if (has_chamber_sensor()) {
+            status_obj["temperature_sensor chamber"] = {{"temperature", chamber_temp_.load()}};
         }
 
         json notification = {{"method", "notify_status_update"},
