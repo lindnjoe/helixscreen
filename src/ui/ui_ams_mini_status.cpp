@@ -28,6 +28,9 @@
 /** Minimum bar width in pixels (prevents bars from becoming invisible) */
 static constexpr int32_t MIN_BAR_WIDTH_PX = 3;
 
+/** Maximum bar width in pixels (prevents bars from becoming too wide) */
+static constexpr int32_t MAX_BAR_WIDTH_PX = 16;
+
 /** Border radius for bar corners in pixels (very rounded appearance) */
 static constexpr int32_t BAR_BORDER_RADIUS_PX = 8;
 
@@ -161,21 +164,17 @@ static void rebuild_bars(AmsMiniStatusData* data) {
     int visible_count = std::min(data->slot_count, data->max_visible);
     int overflow_count = data->slot_count - visible_count;
 
-    // Calculate bar width to fit within parent, leaving room for centering
-    // Get parent dimensions first
-    lv_obj_t* parent = lv_obj_get_parent(data->container);
-    if (parent) {
-        lv_obj_update_layout(parent);
-    }
-    int32_t parent_width = parent ? lv_obj_get_content_width(parent) : 100;
+    // Calculate bar width to fit within container
+    lv_obj_update_layout(data->container);
+    int32_t container_width = lv_obj_get_content_width(data->container);
 
     int32_t gap = ui_theme_get_spacing("space_xxs"); // Responsive 2-4px gap
 
-    // Use 70% of parent width for all bars combined, then divide by bar count
-    int32_t total_bar_space = (parent_width * 70) / 100;
+    // Use 90% of container width for bars (leave 10% margin for centering)
+    int32_t total_bar_space = (container_width * 90) / 100;
     int32_t total_gaps = (visible_count > 1) ? (visible_count - 1) * gap : 0;
     int32_t bar_width = (total_bar_space - total_gaps) / std::max(1, visible_count);
-    bar_width = std::max(MIN_BAR_WIDTH_PX, bar_width);
+    bar_width = std::clamp(bar_width, MIN_BAR_WIDTH_PX, MAX_BAR_WIDTH_PX);
 
     // Calculate bar height (2/3 of container, minus space for status line + gap)
     int32_t total_slot_height = (data->height * 2) / 3;
@@ -255,12 +254,8 @@ static void rebuild_bars(AmsMiniStatusData* data) {
         }
     }
 
-    // Center the container within its parent
-    lv_obj_t* center_parent = lv_obj_get_parent(data->container);
-    if (center_parent) {
-        lv_obj_update_layout(center_parent);
-    }
-    lv_obj_center(data->container);
+    // Force layout recalculation for flex centering
+    lv_obj_update_layout(data->container);
 
     // Hide entire widget if no slots
     if (data->slot_count <= 0) {
@@ -319,9 +314,14 @@ lv_obj_t* ui_ams_mini_status_create(lv_obj_t* parent, int32_t height) {
     lv_obj_set_style_border_width(container, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(container, 0, LV_PART_MAIN);
 
-    // Size to content and center within parent
-    lv_obj_set_size(container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_center(container);
+    // Fill parent width, content height
+    lv_obj_set_size(container, LV_PCT(100), LV_SIZE_CONTENT);
+
+    // Use flex layout to center children (bars_container + overflow_label) horizontally
+    lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(container, ui_theme_get_spacing("space_xs"), LV_PART_MAIN);
 
     // Create user data
     auto data_ptr = std::make_unique<AmsMiniStatusData>();
