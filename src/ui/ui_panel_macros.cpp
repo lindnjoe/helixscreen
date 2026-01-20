@@ -15,7 +15,7 @@
 #include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_state.h"
-#include "static_panel_registry.h"
+#include "ui_global_panel_helper.h"
 
 #include <spdlog/spdlog.h>
 
@@ -23,7 +23,6 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <memory>
 
 namespace {
 
@@ -42,16 +41,7 @@ const std::unordered_set<std::string> DANGEROUS_MACROS = {
 // Global Instance
 // ============================================================================
 
-static std::unique_ptr<MacrosPanel> g_macros_panel;
-
-MacrosPanel& get_global_macros_panel() {
-    if (!g_macros_panel) {
-        g_macros_panel = std::make_unique<MacrosPanel>();
-        StaticPanelRegistry::instance().register_destroy("MacrosPanel",
-                                                         []() { g_macros_panel.reset(); });
-    }
-    return *g_macros_panel;
-}
+DEFINE_GLOBAL_PANEL(MacrosPanel, g_macros_panel, get_global_macros_panel)
 
 // ============================================================================
 // Constructor

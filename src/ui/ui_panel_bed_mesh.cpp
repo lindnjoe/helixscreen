@@ -27,15 +27,13 @@
 #include "observer_factory.h"
 #include "printer_detector.h"
 #include "settings_manager.h"
-#include "static_panel_registry.h"
+#include "ui_global_panel_helper.h"
 
 #include <spdlog/spdlog.h>
 
 #include <cstdio>
 #include <cstring>
 #include <limits>
-
-static std::unique_ptr<BedMeshPanel> g_bed_mesh_panel;
 
 // ============================================================================
 // Forward declarations for static event callbacks
@@ -1235,11 +1233,4 @@ static void on_save_profile_cb(lv_event_t* /*e*/) {
 // Global Instance
 // ============================================================================
 
-BedMeshPanel& get_global_bed_mesh_panel() {
-    if (!g_bed_mesh_panel) {
-        g_bed_mesh_panel = std::make_unique<BedMeshPanel>();
-        StaticPanelRegistry::instance().register_destroy("BedMeshPanel",
-                                                         []() { g_bed_mesh_panel.reset(); });
-    }
-    return *g_bed_mesh_panel;
-}
+DEFINE_GLOBAL_PANEL(BedMeshPanel, g_bed_mesh_panel, get_global_bed_mesh_panel)

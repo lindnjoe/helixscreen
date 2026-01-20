@@ -23,6 +23,8 @@
 #include "ui_update_queue.h"
 
 #include "lvgl/lvgl.h"
+#include "moonraker_client.h" // ConnectionState
+#include "printer_state.h"    // PrintJobState
 
 #include <type_traits>
 
@@ -461,6 +463,56 @@ ObserverGuard observe_string_async(lv_subject_t* subject, Panel* panel,
             }
         },
         ctx);
+}
+
+// ============================================================================
+// Domain-Specific Observer Helpers
+// ============================================================================
+
+/**
+ * @brief Create connection state observer that triggers on CONNECTED
+ *
+ * Common pattern used in 6+ files to perform actions when connection is established.
+ * Only calls the handler when ConnectionState::CONNECTED is reached.
+ *
+ * @tparam Panel Panel class type
+ * @tparam OnConnected Callable: void(Panel*)
+ * @param subject Connection state subject (printer_connection_state)
+ * @param panel Panel instance
+ * @param on_connected Lambda called when state becomes CONNECTED
+ * @return ObserverGuard for RAII cleanup
+ */
+template <typename Panel, typename OnConnected>
+ObserverGuard observe_connection_state(lv_subject_t* subject, Panel* panel,
+                                       OnConnected&& on_connected) {
+    return observe_int_sync<Panel>(
+        subject, panel,
+        [on_connected = std::forward<OnConnected>(on_connected)](Panel* p, int state) {
+            if (state == static_cast<int>(ConnectionState::CONNECTED)) {
+                on_connected(p);
+            }
+        });
+}
+
+/**
+ * @brief Create print state observer with typed PrintJobState
+ *
+ * Common pattern used in 4+ files to react to print state changes.
+ * Automatically casts the int subject value to PrintJobState enum.
+ *
+ * @tparam Panel Panel class type
+ * @tparam Handler Callable: void(Panel*, PrintJobState)
+ * @param subject Print state enum subject (print_state_enum)
+ * @param panel Panel instance
+ * @param handler Lambda called with panel and typed PrintJobState
+ * @return ObserverGuard for RAII cleanup
+ */
+template <typename Panel, typename Handler>
+ObserverGuard observe_print_state(lv_subject_t* subject, Panel* panel, Handler&& handler) {
+    return observe_int_sync<Panel>(
+        subject, panel, [handler = std::forward<Handler>(handler)](Panel* p, int state_int) {
+            handler(p, static_cast<PrintJobState>(state_int));
+        });
 }
 
 } // namespace helix::ui

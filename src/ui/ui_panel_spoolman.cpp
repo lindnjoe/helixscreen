@@ -15,7 +15,7 @@
 #include "app_globals.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
-#include "static_panel_registry.h"
+#include "ui_global_panel_helper.h"
 
 #include <spdlog/spdlog.h>
 
@@ -26,16 +26,7 @@
 // Global Instance
 // ============================================================================
 
-static std::unique_ptr<SpoolmanPanel> g_spoolman_panel;
-
-SpoolmanPanel& get_global_spoolman_panel() {
-    if (!g_spoolman_panel) {
-        g_spoolman_panel = std::make_unique<SpoolmanPanel>();
-        StaticPanelRegistry::instance().register_destroy("SpoolmanPanel",
-                                                         []() { g_spoolman_panel.reset(); });
-    }
-    return *g_spoolman_panel;
-}
+DEFINE_GLOBAL_PANEL(SpoolmanPanel, g_spoolman_panel, get_global_spoolman_panel)
 
 // ============================================================================
 // Constructor
