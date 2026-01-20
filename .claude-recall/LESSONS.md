@@ -35,7 +35,7 @@
 
 
 ### [L014] [****-|-----] Register all XML components
-- **Uses**: 18 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-17 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 19 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-20 | **Category**: gotcha | **Type**: constraint
 > When adding new XML components, must add lv_xml_component_register_from_file() call in main.cpp. Forgetting causes silent failures
 
 
@@ -55,7 +55,7 @@
 
 
 ### [L027] [***--|-----] Worktree initialization
-- **Uses**: 10 | **Velocity**: 0.01 | **Learned**: 2025-12-24 | **Last**: 2026-01-12 | **Category**: pattern | **Type**: constraint
+- **Uses**: 11 | **Velocity**: 0.01 | **Learned**: 2025-12-24 | **Last**: 2026-01-20 | **Category**: pattern | **Type**: constraint
 > When creating a git worktree, ALWAYS run ./scripts/init-worktree.sh BEFORE any commits. Worktrees don't auto-initialize submodules - uninitialized submodules appear as deletions and will be silently removed from git's tree on your next commit.
 
 
