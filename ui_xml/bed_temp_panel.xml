@@ -48,13 +48,7 @@
             <lv_obj width="content"
                     height="content" flex_flow="column" style_flex_cross_place="start" style_bg_opa="0"
                     style_border_width="0" style_pad_all="0" style_pad_gap="#space_xs" scrollable="false">
-              <!-- Composite heatbed icon (xl size, stacked) -->
-              <lv_obj name="bed_icon"
-                      width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                      scrollable="false" flex_flow="column" style_flex_cross_place="center" style_pad_row="-8">
-                <icon name="heat_wave_icon" src="heat_wave" size="xl" variant="secondary"/>
-                <icon name="flatbed_icon" src="train_flatbed" size="xl" variant="secondary"/>
-              </lv_obj>
+              <icon name="bed_icon" src="radiator" size="xl" variant="secondary"/>
               <lv_obj height="content"
                       style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column"
                       style_flex_main_place="center" style_flex_cross_place="start" style_pad_gap="#space_xxs">
