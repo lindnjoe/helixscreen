@@ -133,6 +133,7 @@ static void ensure_ams_widgets_registered() {
     lv_xml_register_component_from_file("A:ui_xml/dryer_presets_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/ams_settings_nav_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/ams_settings_panel.xml");
+    lv_xml_register_component_from_file("A:ui_xml/ams_settings_tool_mapping.xml");
     lv_xml_register_component_from_file("A:ui_xml/ams_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/ams_context_menu.xml");
     lv_xml_register_component_from_file("A:ui_xml/spoolman_spool_item.xml");

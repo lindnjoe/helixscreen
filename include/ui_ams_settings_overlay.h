@@ -120,6 +120,17 @@ class AmsSettingsOverlay : public OverlayBase {
      */
     void update_status_card();
 
+    /**
+     * @brief Get the parent screen used for overlay creation
+     *
+     * Used by sub-panels to create their overlays on the same screen.
+     *
+     * @return Parent screen pointer, or nullptr if not yet shown
+     */
+    lv_obj_t* get_parent_screen() const {
+        return parent_screen_;
+    }
+
   private:
     //
     // === Static Callbacks for XML ===

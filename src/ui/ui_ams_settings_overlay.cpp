@@ -8,6 +8,7 @@
 
 #include "ui_ams_settings_overlay.h"
 
+#include "ui_ams_tool_mapping_overlay.h"
 #include "ui_event_safety.h"
 #include "ui_nav_manager.h"
 
@@ -218,8 +219,14 @@ void AmsSettingsOverlay::update_status_card() {
 void AmsSettingsOverlay::on_tool_mapping_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[AmsSettingsOverlay] on_tool_mapping_clicked");
     LV_UNUSED(e);
-    spdlog::info("[AmsSettingsOverlay] Tool Mapping clicked (not yet implemented)");
-    // TODO: Push tool mapping sub-panel
+
+    auto& overlay = get_ams_tool_mapping_overlay();
+    if (!overlay.are_subjects_initialized()) {
+        overlay.init_subjects();
+        overlay.register_callbacks();
+    }
+    overlay.show(get_ams_settings_overlay().get_parent_screen());
+
     LVGL_SAFE_EVENT_CB_END();
 }
 
