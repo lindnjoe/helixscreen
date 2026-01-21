@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <set>
 
 // Forward declaration for global print status panel (declared in ui_panel_print_status.h)
@@ -230,20 +231,22 @@ void PrintPreparationManager::analyze_print_start_macro_internal() {
                             PrintPreparationManager* mgr;
                             std::shared_ptr<bool> alive_guard;
                         };
-                        auto* timer_data = new RetryTimerData{mgr, mgr->alive_guard_};
+                        auto timer_data_ptr = std::make_unique<RetryTimerData>(
+                            RetryTimerData{mgr, mgr->alive_guard_});
 
                         lv_timer_t* retry_timer = lv_timer_create(
                             [](lv_timer_t* timer) {
-                                auto* data =
-                                    static_cast<RetryTimerData*>(lv_timer_get_user_data(timer));
+                                // Wrap raw pointer in unique_ptr for RAII cleanup
+                                std::unique_ptr<RetryTimerData> data(
+                                    static_cast<RetryTimerData*>(lv_timer_get_user_data(timer)));
                                 // Check alive_guard BEFORE dereferencing manager
                                 if (data && data->alive_guard && *data->alive_guard) {
                                     data->mgr->analyze_print_start_macro_internal();
                                 }
-                                delete data;
+                                // data automatically freed via ~unique_ptr()
                                 lv_timer_delete(timer);
                             },
-                            delay_ms, timer_data);
+                            delay_ms, timer_data_ptr.release());
                         lv_timer_set_repeat_count(retry_timer, 1);
                         return;
                     }

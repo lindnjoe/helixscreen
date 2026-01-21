@@ -283,7 +283,11 @@ static void bed_mesh_size_changed_cb(lv_event_t* e) {
  */
 static void bed_mesh_delete_cb(lv_event_t* e) {
     lv_obj_t* obj = lv_event_get_target_obj(e);
-    bed_mesh_widget_data_t* data = (bed_mesh_widget_data_t*)lv_obj_get_user_data(obj);
+
+    // Wrap raw pointer in unique_ptr for RAII cleanup
+    std::unique_ptr<bed_mesh_widget_data_t> data(
+        static_cast<bed_mesh_widget_data_t*>(lv_obj_get_user_data(obj)));
+    lv_obj_set_user_data(obj, nullptr);
 
     if (data) {
         // Destroy renderer
@@ -292,10 +296,7 @@ static void bed_mesh_delete_cb(lv_event_t* e) {
             data->renderer = nullptr;
             spdlog::debug("[bed_mesh] Destroyed renderer");
         }
-
-        // Delete widget data struct (allocated with unique_ptr, released to LVGL)
-        delete data;
-        lv_obj_set_user_data(obj, NULL);
+        // data automatically freed via ~unique_ptr()
     }
 }
 

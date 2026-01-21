@@ -1320,7 +1320,7 @@ Update this table as work progresses:
 | Priority | Status | Progress | Completed Date | Notes |
 |----------|--------|----------|----------------|-------|
 | P1: Critical Safety | [x] | 100% | | Timer leak fix done; `LvglTimerGuard` RAII wrapper created; all timer deletions guarded |
-| P2: RAII Compliance | [~] | 50% | | 4 delete statements remaining |
+| P2: RAII Compliance | [x] | 100% | 2026-01-20 | All manual delete converted to RAII |
 | P3: XML Tokens | [x] | 100% | 2026-01-20 | All hardcoded spacing migrated to design tokens |
 | P4: Declarative UI | [~] | 80% | | 28 event handlers in panels (most legitimate); inline styles remaining |
 | P5: File Splitting | [~] | 50% | | print_select: 2227 LOC, print_status: 1999 LOC; 3 modules extracted but not integrated |
@@ -1333,6 +1333,7 @@ Update this table as work progresses:
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2026-01-20 | Claude | P2 COMPLETE: Converted 4 remaining manual delete to RAII in ui_bed_mesh, ui_print_light_timelapse, ui_print_preparation_manager, ui_wizard_wifi. |
 | 2026-01-20 | Claude | P3 COMPLETE: All hardcoded spacing migrated. P5 progress: Extracted FileSorter, PathNavigator, HistoryIntegration from print_select. Updated metrics for P2/P4/P5. |
 | 2026-01-12 | Claude | P1 COMPLETE: All timer deletions now guarded with lv_is_initialized(); LvglTimerGuard RAII wrapper created |
 | 2025-12-18 | Claude | Audit & rebaseline: Updated all metrics, corrected progress percentages, renamed to Technical Debt Tracker |

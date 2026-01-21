@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cstdio>
+#include <memory>
 #include <utility>
 
 // ============================================================================
@@ -164,10 +165,13 @@ void PrintLightTimelapseControls::handle_timelapse_button() {
                              new_state ? "enabled" : "disabled");
 
                 // Defer UI updates to LVGL thread - API callbacks may be on background thread
+                auto data_ptr = std::make_unique<std::pair<PrintLightTimelapseControls*, bool>>(
+                    this, new_state);
                 ui_async_call(
                     [](void* user_data) {
-                        auto* data =
-                            static_cast<std::pair<PrintLightTimelapseControls*, bool>*>(user_data);
+                        // Wrap raw pointer in unique_ptr for RAII cleanup
+                        std::unique_ptr<std::pair<PrintLightTimelapseControls*, bool>> data(
+                            static_cast<std::pair<PrintLightTimelapseControls*, bool>*>(user_data));
                         auto* self = data->first;
                         bool enabled = data->second;
 
@@ -193,10 +197,9 @@ void PrintLightTimelapseControls::handle_timelapse_button() {
                                                self->timelapse_button_buf_);
                         lv_subject_copy_string(&self->timelapse_label_subject_,
                                                self->timelapse_label_buf_);
-
-                        delete data;
+                        // data automatically freed via ~unique_ptr()
                     },
-                    new std::pair<PrintLightTimelapseControls*, bool>(this, new_state));
+                    data_ptr.release());
             },
             [](const MoonrakerError& err) {
                 spdlog::error("[PrintLightTimelapseControls] Failed to toggle timelapse: {}",

@@ -418,18 +418,15 @@ void WizardWifiStep::network_item_delete_cb(lv_event_t* e) {
     if (!obj)
         return;
 
-    // Get data before cleanup
-    WifiWizardNetworkItemData* data =
-        static_cast<WifiWizardNetworkItemData*>(lv_obj_get_user_data(obj));
-    if (!data)
-        return;
+    // Wrap raw pointer in unique_ptr for RAII cleanup
+    // (destructor calls lv_subject_deinit on all subjects)
+    std::unique_ptr<WifiWizardNetworkItemData> data(
+        static_cast<WifiWizardNetworkItemData*>(lv_obj_get_user_data(obj)));
+    lv_obj_set_user_data(obj, nullptr);
 
     // NOTE: Observers are auto-removed when LVGL deletes child widgets (before this callback).
     // Do NOT manually remove them - the observer pointers are already freed = use-after-free.
-
-    // Free the network item data (destructor calls lv_subject_deinit on all subjects)
-    lv_obj_set_user_data(obj, nullptr);
-    delete data;
+    // data automatically freed via ~unique_ptr()
 }
 
 void WizardWifiStep::on_wifi_toggle_changed_static(lv_event_t* e) {
