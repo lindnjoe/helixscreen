@@ -349,6 +349,69 @@ static void ui_theme_register_palette_colors(lv_xml_component_scope_t* scope,
 }
 
 /**
+ * @brief Register semantic colors derived from palette
+ *
+ * Maps palette colors to semantic colors (app_bg_color, text_primary, etc.)
+ * with _light and _dark variants for theme mode switching.
+ * Also registers the base name with the appropriate value for the current mode.
+ *
+ * @param scope LVGL XML scope to register constants in
+ * @param theme Theme data with palette colors
+ * @param dark_mode Whether to use dark mode values for base names
+ */
+static void ui_theme_register_semantic_colors(lv_xml_component_scope_t* scope,
+                                              const helix::ThemeData& theme, bool dark_mode) {
+    const auto& c = theme.colors;
+
+    // Helper to register a themed color pair and its base name
+    auto register_themed = [&](const char* base_name, const char* dark_value,
+                               const char* light_value) {
+        char dark_name[128];
+        char light_name[128];
+        snprintf(dark_name, sizeof(dark_name), "%s_dark", base_name);
+        snprintf(light_name, sizeof(light_name), "%s_light", base_name);
+
+        lv_xml_register_const(scope, dark_name, dark_value);
+        lv_xml_register_const(scope, light_name, light_value);
+        lv_xml_register_const(scope, base_name, dark_mode ? dark_value : light_value);
+    };
+
+    // Background colors (mode-dependent)
+    register_themed("app_bg_color", c.bg_darkest.c_str(), c.bg_lightest.c_str());
+    register_themed("card_bg", c.bg_dark.c_str(), c.bg_light.c_str());
+    register_themed("selection_highlight", c.bg_dark_highlight.c_str(), c.text_light.c_str());
+
+    // Text colors (mode-dependent)
+    register_themed("text_primary", c.bg_lightest.c_str(), c.bg_darkest.c_str());
+    register_themed("text_secondary", c.text_light.c_str(), c.border_muted.c_str());
+    register_themed("header_text", c.bg_light.c_str(), c.bg_dark.c_str());
+
+    // Border/muted (mode-dependent)
+    register_themed("theme_grey", c.border_muted.c_str(), c.text_light.c_str());
+
+    // Keyboard colors (mode-dependent)
+    register_themed("keyboard_key", c.bg_dark_highlight.c_str(), c.bg_lightest.c_str());
+    register_themed("keyboard_key_special", c.bg_dark.c_str(), c.text_light.c_str());
+
+    // Accent colors (same in both modes)
+    lv_xml_register_const(scope, "primary_color", c.accent_primary.c_str());
+    lv_xml_register_const(scope, "secondary_color", c.accent_secondary.c_str());
+    lv_xml_register_const(scope, "tertiary_color", c.accent_tertiary.c_str());
+    lv_xml_register_const(scope, "highlight_color", c.accent_highlight.c_str());
+
+    // Status colors (same in both modes)
+    lv_xml_register_const(scope, "error_color", c.status_error.c_str());
+    lv_xml_register_const(scope, "danger_color", c.status_danger.c_str());
+    lv_xml_register_const(scope, "warning_color", c.status_danger.c_str());
+    lv_xml_register_const(scope, "attention_color", c.status_warning.c_str());
+    lv_xml_register_const(scope, "success_color", c.status_success.c_str());
+    lv_xml_register_const(scope, "special_color", c.status_special.c_str());
+    lv_xml_register_const(scope, "info_color", c.accent_primary.c_str());
+
+    spdlog::debug("[Theme] Registered semantic colors from palette");
+}
+
+/**
  * @brief Load active theme from config
  *
  * Reads /display/theme from config, loads corresponding JSON file.
@@ -394,6 +457,9 @@ void ui_theme_init(lv_display_t* display, bool use_dark_mode_param) {
 
     // Register palette colors FIRST (before static constants)
     ui_theme_register_palette_colors(scope, active_theme);
+
+    // Register semantic colors derived from palette (includes _light/_dark variants and base names)
+    ui_theme_register_semantic_colors(scope, active_theme, use_dark_mode);
 
     // Register static constants first (colors, px, strings without dynamic suffixes)
     ui_theme_register_static_constants(scope);
