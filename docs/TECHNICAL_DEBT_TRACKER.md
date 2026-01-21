@@ -1320,10 +1320,10 @@ Update this table as work progresses:
 | Priority | Status | Progress | Completed Date | Notes |
 |----------|--------|----------|----------------|-------|
 | P1: Critical Safety | [x] | 100% | | Timer leak fix done; `LvglTimerGuard` RAII wrapper created; all timer deletions guarded |
-| P2: RAII Compliance | [~] | 15% | | `ui_hsv_picker.cpp` migrated; 3 files remaining (8 deletes) |
+| P2: RAII Compliance | [~] | 50% | | 4 delete statements remaining |
 | P3: XML Tokens | [x] | 100% | 2026-01-20 | All hardcoded spacing migrated to design tokens |
-| P4: Declarative UI | [~] | 20% | | 140 event handlers (many legitimate); 533 inline styles |
-| P5: File Splitting | [~] | 33% | | `ui_panel_ams.cpp` now <1500; 2 files remain over limit |
+| P4: Declarative UI | [~] | 80% | | 28 event handlers in panels (most legitimate); inline styles remaining |
+| P5: File Splitting | [~] | 50% | | print_select: 2227 LOC, print_status: 1999 LOC; 3 modules extracted but not integrated |
 | P6: Documentation | [~] | 50% | | Timer docs + doc consolidation in progress |
 | P7: Tooling | [ ] | 0% | | |
 
@@ -1333,6 +1333,7 @@ Update this table as work progresses:
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2026-01-20 | Claude | P3 COMPLETE: All hardcoded spacing migrated. P5 progress: Extracted FileSorter, PathNavigator, HistoryIntegration from print_select. Updated metrics for P2/P4/P5. |
 | 2026-01-12 | Claude | P1 COMPLETE: All timer deletions now guarded with lv_is_initialized(); LvglTimerGuard RAII wrapper created |
 | 2025-12-18 | Claude | Audit & rebaseline: Updated all metrics, corrected progress percentages, renamed to Technical Debt Tracker |
 | 2025-12-16 | Claude | P1 partial: HomePanel timer fix, LvglTimerGuard RAII wrapper created (not yet adopted) |
