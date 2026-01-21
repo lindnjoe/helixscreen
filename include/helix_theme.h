@@ -70,6 +70,18 @@ lv_theme_t* helix_theme_init(lv_display_t* display, lv_color_t primary_color,
 void helix_theme_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t card_bg,
                                lv_color_t theme_grey, lv_color_t text_primary_color);
 
+/**
+ * @brief Update all theme colors for live preview
+ *
+ * Updates theme styles in-place without requiring restart.
+ * Call lv_obj_report_style_change(NULL) after to trigger refresh.
+ *
+ * @param is_dark Dark mode flag
+ * @param colors Array of 16 hex color strings (palette order)
+ * @param border_radius Corner radius in pixels
+ */
+void helix_theme_preview_colors(bool is_dark, const char* colors[16], int32_t border_radius);
+
 #ifdef __cplusplus
 }
 #endif

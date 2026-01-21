@@ -348,3 +348,78 @@ void helix_theme_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t ca
     // NULL means "all styles changed", which forces a complete style recalculation
     lv_obj_report_style_change(NULL);
 }
+
+void helix_theme_preview_colors(bool is_dark, const char* colors[16], int32_t border_radius) {
+    if (!helix_theme_instance) {
+        return;
+    }
+
+    // Parse palette colors
+    // 0: bg_darkest, 1: bg_dark, 2: bg_dark_highlight, 3: border_muted
+    // 4: text_light, 5: bg_light, 6: bg_lightest, 7: accent_highlight
+    // 8-10: accents, 11-15: status
+
+    lv_color_t screen_bg = is_dark ? lv_color_hex(strtoul(colors[0] + 1, NULL, 16)) : // bg_darkest
+                               lv_color_hex(strtoul(colors[6] + 1, NULL, 16));        // bg_lightest
+
+    lv_color_t card_bg = is_dark ? lv_color_hex(strtoul(colors[1] + 1, NULL, 16)) : // bg_dark
+                             lv_color_hex(strtoul(colors[5] + 1, NULL, 16));        // bg_light
+
+    lv_color_t theme_grey = is_dark ? lv_color_hex(strtoul(colors[3] + 1, NULL, 16))
+                                    :                                           // border_muted
+                                lv_color_hex(strtoul(colors[4] + 1, NULL, 16)); // text_light
+
+    lv_color_t text_primary = is_dark ? lv_color_hex(strtoul(colors[6] + 1, NULL, 16))
+                                      :                                           // bg_lightest
+                                  lv_color_hex(strtoul(colors[0] + 1, NULL, 16)); // bg_darkest
+
+    // Update the helix_theme instance
+    helix_theme_instance->is_dark_mode = is_dark;
+
+    // Recompute input widget background color
+    lv_color_t input_bg = compute_input_bg_color(card_bg, is_dark);
+    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, input_bg);
+
+    // Update button style
+    lv_style_set_bg_color(&helix_theme_instance->button_style, theme_grey);
+    lv_style_set_text_color(&helix_theme_instance->button_style, text_primary);
+    lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
+    lv_style_set_radius(&helix_theme_instance->pressed_style, border_radius);
+
+    // Update default theme internal styles (private API access)
+    typedef struct {
+        lv_style_t scr;
+        lv_style_t scrollbar;
+        lv_style_t scrollbar_scrolled;
+        lv_style_t card;
+        lv_style_t btn;
+    } theme_styles_partial_t;
+
+    typedef struct {
+        lv_theme_t base;
+        int disp_size;
+        int32_t disp_dpi;
+        lv_color_t color_scr;
+        lv_color_t color_text;
+        lv_color_t color_card;
+        lv_color_t color_grey;
+        bool inited;
+        theme_styles_partial_t styles;
+    } default_theme_t;
+
+    default_theme_t* def_theme = (default_theme_t*)helix_theme_instance->default_theme;
+
+    def_theme->color_scr = screen_bg;
+    def_theme->color_card = card_bg;
+    def_theme->color_grey = theme_grey;
+    def_theme->color_text = text_primary;
+
+    lv_style_set_bg_color(&def_theme->styles.scr, screen_bg);
+    lv_style_set_text_color(&def_theme->styles.scr, text_primary);
+    lv_style_set_bg_color(&def_theme->styles.card, card_bg);
+    lv_style_set_bg_color(&def_theme->styles.btn, theme_grey);
+    lv_style_set_radius(&def_theme->styles.btn, border_radius);
+
+    // Trigger style refresh
+    lv_obj_report_style_change(NULL);
+}
