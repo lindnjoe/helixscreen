@@ -82,6 +82,24 @@ class AmsBackendMock : public AmsBackend {
     AmsError start_drying(float temp_c, int duration_min, int fan_pct = -1) override;
     AmsError stop_drying() override;
 
+    // Endless spool
+    [[nodiscard]] helix::printer::EndlessSpoolCapabilities
+    get_endless_spool_capabilities() const override;
+    [[nodiscard]] std::vector<helix::printer::EndlessSpoolConfig>
+    get_endless_spool_config() const override;
+    AmsError set_endless_spool_backup(int slot_index, int backup_slot) override;
+
+    // Tool mapping
+    [[nodiscard]] helix::printer::ToolMappingCapabilities
+    get_tool_mapping_capabilities() const override;
+    [[nodiscard]] std::vector<int> get_tool_mapping() const override;
+
+    // Device actions
+    [[nodiscard]] std::vector<helix::printer::DeviceSection> get_device_sections() const override;
+    [[nodiscard]] std::vector<helix::printer::DeviceAction> get_device_actions() const override;
+    AmsError execute_device_action(const std::string& action_id,
+                                   const std::any& value = {}) override;
+
     // ========================================================================
     // Mock-specific methods (for testing)
     // ========================================================================
@@ -173,6 +191,45 @@ class AmsBackendMock : public AmsBackend {
      * @return true if simulating a tool changer
      */
     [[nodiscard]] bool is_tool_changer_mode() const;
+
+    /**
+     * @brief Set whether endless spool is supported
+     * @param supported true to enable endless spool support
+     *
+     * When disabled, get_endless_spool_capabilities() returns supported=false.
+     */
+    void set_endless_spool_supported(bool supported);
+
+    /**
+     * @brief Set whether endless spool configuration is editable
+     * @param editable true for AFC-style (editable), false for Happy Hare-style (read-only)
+     *
+     * When editable=false, set_endless_spool_backup() returns NOT_SUPPORTED.
+     */
+    void set_endless_spool_editable(bool editable);
+
+    /**
+     * @brief Set mock device sections for testing
+     * @param sections Device sections to return from get_device_sections()
+     */
+    void set_device_sections(std::vector<helix::printer::DeviceSection> sections);
+
+    /**
+     * @brief Set mock device actions for testing
+     * @param actions Device actions to return from get_device_actions()
+     */
+    void set_device_actions(std::vector<helix::printer::DeviceAction> actions);
+
+    /**
+     * @brief Get the last executed device action (for test verification)
+     * @return Pair of (action_id, value) from last execute_device_action() call
+     */
+    [[nodiscard]] std::pair<std::string, std::any> get_last_executed_action() const;
+
+    /**
+     * @brief Clear the last executed action state
+     */
+    void clear_last_executed_action();
 
   private:
     /**
@@ -287,4 +344,16 @@ class AmsBackendMock : public AmsBackend {
 
     // Tool changer mode (alternative to filament system simulation)
     bool tool_changer_mode_ = false; ///< Simulate tool changer instead of filament system
+
+    // Endless spool simulation state
+    bool endless_spool_supported_ = true; ///< Whether endless spool is supported
+    bool endless_spool_editable_ = true;  ///< Whether config is editable (AFC) vs read-only (HH)
+    std::vector<helix::printer::EndlessSpoolConfig>
+        endless_spool_configs_; ///< Per-slot backup config
+
+    // Device actions mock state
+    std::vector<helix::printer::DeviceSection> mock_device_sections_;
+    std::vector<helix::printer::DeviceAction> mock_device_actions_;
+    std::string last_action_id_;
+    std::any last_action_value_;
 };

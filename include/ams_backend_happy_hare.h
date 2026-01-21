@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <string>
 
 // Forward declaration
 class MoonrakerAPI;
@@ -96,9 +97,37 @@ class AmsBackendHappyHare : public AmsBackend {
     AmsError disable_bypass() override;
     [[nodiscard]] bool is_bypass_active() const override;
 
+    // Endless Spool support (read-only - configured in Happy Hare config)
+    [[nodiscard]] helix::printer::EndlessSpoolCapabilities
+    get_endless_spool_capabilities() const override;
+    [[nodiscard]] std::vector<helix::printer::EndlessSpoolConfig>
+    get_endless_spool_config() const override;
+    AmsError set_endless_spool_backup(int slot_index, int backup_slot) override;
+
+    // Tool Mapping support
+    /**
+     * @brief Get tool mapping capabilities for Happy Hare
+     *
+     * Happy Hare supports tool-to-gate mapping via MMU_TTG_MAP G-code.
+     *
+     * @return Capabilities with supported=true, editable=true
+     */
+    [[nodiscard]] helix::printer::ToolMappingCapabilities
+    get_tool_mapping_capabilities() const override;
+
+    /**
+     * @brief Get current tool-to-slot mapping
+     *
+     * Returns the tool_to_slot_map from system_info_ (populated from ttg_map).
+     *
+     * @return Vector where index=tool, value=slot
+     */
+    [[nodiscard]] std::vector<int> get_tool_mapping() const override;
+
   protected:
     // Allow test helper access to private members
     friend class AmsBackendHappyHareTestHelper;
+    friend class AmsBackendHappyHareEndlessSpoolHelper;
 
   private:
     /**

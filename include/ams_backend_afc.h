@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 // Forward declaration
@@ -113,6 +114,59 @@ class AmsBackendAfc : public AmsBackend {
         return true;
     }
 
+    // Endless Spool support
+    /**
+     * @brief Get endless spool capabilities for AFC
+     *
+     * AFC supports per-slot backup configuration via SET_RUNOUT G-code.
+     *
+     * @return Capabilities with supported=true, editable=true
+     */
+    [[nodiscard]] helix::printer::EndlessSpoolCapabilities
+    get_endless_spool_capabilities() const override;
+
+    /**
+     * @brief Get endless spool configuration for all lanes
+     *
+     * Returns the backup slot configuration for each lane.
+     *
+     * @return Vector of configs, one per lane
+     */
+    [[nodiscard]] std::vector<helix::printer::EndlessSpoolConfig>
+    get_endless_spool_config() const override;
+
+    /**
+     * @brief Set backup slot for endless spool
+     *
+     * Sends SET_RUNOUT G-code to configure which lane will be used as backup
+     * when the specified lane runs out of filament.
+     *
+     * @param slot_index Source lane (0 to lane_names_.size()-1)
+     * @param backup_slot Backup lane (-1 to disable)
+     * @return AmsError with result
+     */
+    AmsError set_endless_spool_backup(int slot_index, int backup_slot) override;
+
+    // Tool Mapping support
+    /**
+     * @brief Get tool mapping capabilities for AFC
+     *
+     * AFC supports per-lane tool assignment via SET_MAP G-code.
+     *
+     * @return Capabilities with supported=true, editable=true
+     */
+    [[nodiscard]] helix::printer::ToolMappingCapabilities
+    get_tool_mapping_capabilities() const override;
+
+    /**
+     * @brief Get current tool-to-slot mapping
+     *
+     * Returns the tool_to_slot_map from system_info_.
+     *
+     * @return Vector where index=tool, value=slot
+     */
+    [[nodiscard]] std::vector<int> get_tool_mapping() const override;
+
     /**
      * @brief Set discovered lane and hub names from PrinterCapabilities
      *
@@ -128,9 +182,42 @@ class AmsBackendAfc : public AmsBackend {
     void set_discovered_lanes(const std::vector<std::string>& lane_names,
                               const std::vector<std::string>& hub_names) override;
 
+    // Device-Specific Actions
+    /**
+     * @brief Get available device sections for AFC backend
+     *
+     * AFC exposes calibration and speed settings sections.
+     *
+     * @return Vector of DeviceSection for UI grouping
+     */
+    [[nodiscard]] std::vector<helix::printer::DeviceSection> get_device_sections() const override;
+
+    /**
+     * @brief Get available device actions for AFC backend
+     *
+     * Returns AFC-specific actions including:
+     * - Calibration wizard
+     * - Bowden length configuration
+     * - Speed multipliers (forward/reverse)
+     *
+     * @return Vector of DeviceAction for UI rendering
+     */
+    [[nodiscard]] std::vector<helix::printer::DeviceAction> get_device_actions() const override;
+
+    /**
+     * @brief Execute an AFC-specific device action
+     *
+     * @param action_id Action identifier from get_device_actions()
+     * @param value Optional value for sliders/toggles
+     * @return AmsError indicating success or failure
+     */
+    AmsError execute_device_action(const std::string& action_id,
+                                   const std::any& value = {}) override;
+
   protected:
     // Allow test helper access to private members
     friend class AmsBackendAfcTestHelper;
+    friend class AmsBackendAfcEndlessSpoolHelper;
 
   private:
     /**
@@ -326,4 +413,8 @@ class AmsBackendAfc : public AmsBackend {
 
     // Path visualization state
     PathSegment error_segment_{PathSegment::NONE}; ///< Inferred error location
+
+    // Endless spool configuration
+    std::vector<helix::printer::EndlessSpoolConfig>
+        endless_spool_configs_; ///< Per-lane backup config
 };

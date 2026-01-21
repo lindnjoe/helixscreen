@@ -709,6 +709,16 @@ AmsError AmsBackendHappyHare::set_tool_mapping(int tool_number, int slot_index) 
         if (slot_index < 0 || slot_index >= system_info_.total_slots) {
             return AmsErrorHelper::invalid_slot(slot_index, system_info_.total_slots - 1);
         }
+
+        // Check if another tool already maps to this slot
+        for (size_t i = 0; i < system_info_.tool_to_slot_map.size(); ++i) {
+            if (i != static_cast<size_t>(tool_number) &&
+                system_info_.tool_to_slot_map[i] == slot_index) {
+                spdlog::warn("[AMS HappyHare] Tool {} will share slot {} with tool {}", tool_number,
+                             slot_index, i);
+                break;
+            }
+        }
     }
 
     // Send MMU_TTG_MAP command to update tool-to-gate mapping (Happy Hare uses "gate" in its API)
@@ -766,4 +776,70 @@ AmsError AmsBackendHappyHare::disable_bypass() {
 bool AmsBackendHappyHare::is_bypass_active() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return system_info_.current_slot == -2;
+}
+
+// ============================================================================
+// Endless Spool Operations (Read-Only)
+// ============================================================================
+
+helix::printer::EndlessSpoolCapabilities
+AmsBackendHappyHare::get_endless_spool_capabilities() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // Happy Hare uses group-based endless spool configured in mmu_vars.cfg
+    // UI can read but not modify the configuration
+    return {true, false, "Happy Hare group-based"};
+}
+
+std::vector<helix::printer::EndlessSpoolConfig>
+AmsBackendHappyHare::get_endless_spool_config() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    std::vector<helix::printer::EndlessSpoolConfig> configs;
+
+    // Need at least one unit with slots
+    if (system_info_.units.empty()) {
+        return configs;
+    }
+
+    // Iterate through slots and find backup slots based on endless_spool_group
+    for (const auto& slot : system_info_.units[0].slots) {
+        helix::printer::EndlessSpoolConfig config;
+        config.slot_index = slot.slot_index;
+        config.backup_slot = -1; // Default: no backup
+
+        if (slot.endless_spool_group >= 0) {
+            // Find another slot in the same group
+            for (const auto& other : system_info_.units[0].slots) {
+                if (other.slot_index != slot.slot_index &&
+                    other.endless_spool_group == slot.endless_spool_group) {
+                    config.backup_slot = other.slot_index;
+                    break; // Use first match
+                }
+            }
+        }
+        configs.push_back(config);
+    }
+
+    return configs;
+}
+
+AmsError AmsBackendHappyHare::set_endless_spool_backup(int slot_index, int backup_slot) {
+    // Happy Hare endless spool is configured in mmu_vars.cfg, not via runtime G-code
+    (void)slot_index;
+    (void)backup_slot;
+    return AmsErrorHelper::not_supported("Endless spool configuration");
+}
+
+// ============================================================================
+// Tool Mapping Operations
+// ============================================================================
+
+helix::printer::ToolMappingCapabilities AmsBackendHappyHare::get_tool_mapping_capabilities() const {
+    // Happy Hare supports tool-to-gate mapping via MMU_TTG_MAP G-code
+    return {true, true, "Tool-to-gate mapping via MMU_TTG_MAP"};
+}
+
+std::vector<int> AmsBackendHappyHare::get_tool_mapping() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return system_info_.tool_to_slot_map;
 }

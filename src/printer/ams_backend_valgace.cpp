@@ -142,12 +142,18 @@ SlotInfo AmsBackendValgACE::get_slot_info(int slot_index) const {
 
     // ValgACE is a single-unit system
     if (system_info_.units.empty()) {
-        return SlotInfo{};
+        SlotInfo empty;
+        empty.slot_index = -1;
+        empty.global_index = -1;
+        return empty;
     }
 
     const auto& unit = system_info_.units[0];
     if (slot_index < 0 || slot_index >= static_cast<int>(unit.slots.size())) {
-        return SlotInfo{};
+        SlotInfo empty;
+        empty.slot_index = -1;
+        empty.global_index = -1;
+        return empty;
     }
     return unit.slots[static_cast<size_t>(slot_index)];
 }
@@ -311,6 +317,16 @@ AmsError AmsBackendValgACE::set_tool_mapping(int tool_number, int slot_index) {
     (void)tool_number;
     (void)slot_index;
     return AmsErrorHelper::not_supported("Tool mapping");
+}
+
+helix::printer::ToolMappingCapabilities AmsBackendValgACE::get_tool_mapping_capabilities() const {
+    // ValgACE has fixed 1:1 mapping - not configurable
+    return {false, false, ""};
+}
+
+std::vector<int> AmsBackendValgACE::get_tool_mapping() const {
+    // ValgACE has fixed 1:1 mapping - return empty (not supported)
+    return {};
 }
 
 // ============================================================================
@@ -812,4 +828,26 @@ bool AmsBackendValgACE::interruptible_sleep(int ms) {
     std::unique_lock<std::mutex> lock(stop_mutex_);
     return !stop_cv_.wait_for(lock, std::chrono::milliseconds(ms),
                               [this] { return stop_requested_.load(); });
+}
+
+// ============================================================================
+// Device Actions (stub - not yet exposed)
+// ============================================================================
+
+std::vector<helix::printer::DeviceSection> AmsBackendValgACE::get_device_sections() const {
+    // ValgACE doesn't expose device-specific actions yet
+    // Future: could expose dryer settings here
+    return {};
+}
+
+std::vector<helix::printer::DeviceAction> AmsBackendValgACE::get_device_actions() const {
+    // ValgACE doesn't expose device-specific actions yet
+    return {};
+}
+
+AmsError AmsBackendValgACE::execute_device_action(const std::string& action_id,
+                                                  const std::any& value) {
+    (void)action_id;
+    (void)value;
+    return AmsErrorHelper::not_supported("Device actions");
 }

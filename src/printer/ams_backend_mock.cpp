@@ -155,6 +155,15 @@ AmsBackendMock::AmsBackendMock(int slot_count) {
         filament_segment_ = PathSegment::NOZZLE; // Filament is fully loaded to nozzle
     }
 
+    // Initialize endless spool configs for all slots (no backup by default)
+    endless_spool_configs_.reserve(slot_count);
+    for (int i = 0; i < slot_count; ++i) {
+        helix::printer::EndlessSpoolConfig config;
+        config.slot_index = i;
+        config.backup_slot = -1; // No backup
+        endless_spool_configs_.push_back(config);
+    }
+
     // Make slot index 3 (4th slot) empty for realistic demo
     if (slot_count > 3) {
         auto* slot = system_info_.get_slot_global(3);
@@ -162,6 +171,31 @@ AmsBackendMock::AmsBackendMock(int slot_count) {
             slot->status = SlotStatus::EMPTY;
         }
     }
+
+    // Initialize default device sections (AFC-like)
+    mock_device_sections_ = {
+        {"calibration", "Calibration", "wrench", 0},
+        {"speed", "Speed Settings", "speedometer", 1},
+    };
+
+    // Initialize default device actions
+    using helix::printer::ActionType;
+    mock_device_actions_ = {
+        // Calibration section
+        {"calibration_wizard", "Run Calibration Wizard", "play", "calibration",
+         "Interactive calibration for all lanes", ActionType::BUTTON, {}, {}, 0, 100, "", -1, true,
+         ""},
+        {"bowden_length", "Bowden Length", "ruler", "calibration",
+         "Distance from hub to toolhead", ActionType::SLIDER, 450.0f, {}, 100.0f, 1000.0f, "mm", -1,
+         true, ""},
+        // Speed section
+        {"speed_fwd", "Forward Multiplier", "fast-forward", "speed",
+         "Speed multiplier for forward moves", ActionType::SLIDER, 1.0f, {}, 0.5f, 2.0f, "x", -1,
+         true, ""},
+        {"speed_rev", "Reverse Multiplier", "rewind", "speed",
+         "Speed multiplier for reverse moves", ActionType::SLIDER, 1.0f, {}, 0.5f, 2.0f, "x", -1,
+         true, ""},
+    };
 
     spdlog::debug("[AmsBackendMock] Created with {} slots", slot_count);
 }
@@ -1158,6 +1192,169 @@ void AmsBackendMock::schedule_completion(AmsAction action, const std::string& co
         emit_event(complete_event, slot_index >= 0 ? std::to_string(slot_index) : "");
         emit_event(EVENT_STATE_CHANGED);
     });
+}
+
+// ============================================================================
+// Endless spool implementation
+// ============================================================================
+
+void AmsBackendMock::set_endless_spool_supported(bool supported) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    endless_spool_supported_ = supported;
+    // Update system_info to reflect the new capability
+    system_info_.supports_endless_spool = supported;
+    spdlog::debug("[AmsBackendMock] Endless spool supported set to {}", supported);
+}
+
+void AmsBackendMock::set_endless_spool_editable(bool editable) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    endless_spool_editable_ = editable;
+    spdlog::debug("[AmsBackendMock] Endless spool editable set to {}", editable);
+}
+
+helix::printer::EndlessSpoolCapabilities AmsBackendMock::get_endless_spool_capabilities() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    helix::printer::EndlessSpoolCapabilities caps;
+    caps.supported = endless_spool_supported_;
+    caps.editable = endless_spool_supported_ && endless_spool_editable_;
+    if (caps.supported) {
+        caps.description =
+            caps.editable ? "Per-slot backup (AFC-style)" : "Group-based (Happy Hare-style)";
+    }
+    return caps;
+}
+
+std::vector<helix::printer::EndlessSpoolConfig> AmsBackendMock::get_endless_spool_config() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return endless_spool_configs_;
+}
+
+AmsError AmsBackendMock::set_endless_spool_backup(int slot_index, int backup_slot) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Check if endless spool is supported
+    if (!endless_spool_supported_) {
+        return AmsErrorHelper::not_supported("Endless spool");
+    }
+
+    // Check if editable
+    if (!endless_spool_editable_) {
+        return AmsErrorHelper::not_supported("Endless spool configuration");
+    }
+
+    // Validate slot_index
+    if (slot_index < 0 || slot_index >= system_info_.total_slots) {
+        return AmsErrorHelper::invalid_slot(slot_index, system_info_.total_slots - 1);
+    }
+
+    // Cannot set slot as its own backup
+    if (backup_slot == slot_index) {
+        return AmsError(AmsResult::INVALID_SLOT,
+                        "Cannot set slot " + std::to_string(slot_index) + " as its own backup",
+                        "Invalid backup configuration", "Select a different slot as backup");
+    }
+
+    // Validate backup_slot (must be -1 or valid slot index)
+    if (backup_slot != -1 && (backup_slot < 0 || backup_slot >= system_info_.total_slots)) {
+        return AmsErrorHelper::invalid_slot(backup_slot, system_info_.total_slots - 1);
+    }
+
+    // Update the config
+    if (slot_index < static_cast<int>(endless_spool_configs_.size())) {
+        endless_spool_configs_[slot_index].backup_slot = backup_slot;
+        spdlog::info("[AmsBackendMock] Set slot {} backup to {}", slot_index, backup_slot);
+    }
+
+    return AmsErrorHelper::success();
+}
+
+// ============================================================================
+// Tool mapping implementation
+// ============================================================================
+
+helix::printer::ToolMappingCapabilities AmsBackendMock::get_tool_mapping_capabilities() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Tool changers don't support tool mapping (tools ARE slots)
+    if (tool_changer_mode_) {
+        return {false, false, ""};
+    }
+
+    // Filament systems support editable tool mapping
+    return {true, true, "Mock tool-to-slot mapping"};
+}
+
+std::vector<int> AmsBackendMock::get_tool_mapping() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Tool changers don't support tool mapping (tools ARE slots)
+    if (tool_changer_mode_) {
+        return {};
+    }
+
+    return system_info_.tool_to_slot_map;
+}
+
+// ============================================================================
+// Factory method implementations (in ams_backend.cpp, but included here for mock)
+// ============================================================================
+
+// ============================================================================
+// Device actions implementation
+// ============================================================================
+
+std::vector<helix::printer::DeviceSection> AmsBackendMock::get_device_sections() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return mock_device_sections_;
+}
+
+std::vector<helix::printer::DeviceAction> AmsBackendMock::get_device_actions() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return mock_device_actions_;
+}
+
+AmsError AmsBackendMock::execute_device_action(const std::string& action_id, const std::any& value) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Store for test verification
+    last_action_id_ = action_id;
+    last_action_value_ = value;
+
+    // Find the action to verify it exists
+    for (const auto& action : mock_device_actions_) {
+        if (action.id == action_id) {
+            if (!action.enabled) {
+                return AmsErrorHelper::not_supported(action.disable_reason);
+            }
+            spdlog::info("[AMS Mock] Executed device action: {} with value type: {}", action_id,
+                         value.has_value() ? value.type().name() : "none");
+            return AmsErrorHelper::success();
+        }
+    }
+
+    return AmsErrorHelper::not_supported("Unknown action: " + action_id);
+}
+
+void AmsBackendMock::set_device_sections(std::vector<helix::printer::DeviceSection> sections) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    mock_device_sections_ = std::move(sections);
+}
+
+void AmsBackendMock::set_device_actions(std::vector<helix::printer::DeviceAction> actions) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    mock_device_actions_ = std::move(actions);
+}
+
+std::pair<std::string, std::any> AmsBackendMock::get_last_executed_action() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return {last_action_id_, last_action_value_};
+}
+
+void AmsBackendMock::clear_last_executed_action() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    last_action_id_.clear();
+    last_action_value_.reset();
 }
 
 // ============================================================================

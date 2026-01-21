@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<!-- Copyright (C) 2025-2026 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- AMS Behavior Settings Overlay Panel -->
+<!-- Sub-panel for configuring AMS behavior settings (bypass mode, auto-heat) -->
+<component>
+  <view name="ams_settings_behavior"
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Behavior" bg_color="#app_bg_color">
+    <!-- Content Area (scrollable) -->
+    <lv_obj name="overlay_content"
+            width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_md" scrollable="true" scroll_dir="ver"
+            style_border_width="0" flex_flow="column" style_pad_gap="#space_sm">
+      <!-- Description text (hidden when no features available) -->
+      <text_small name="description"
+                  width="100%" text="Configure AMS system behavior settings." style_text_color="#text_secondary">
+        <bind_flag_if_eq subject="ams_behavior_has_features" flag="hidden" ref_value="0"/>
+      </text_small>
+      <!-- ================================================================== -->
+      <!-- Bypass Mode Row (hidden when not supported)                         -->
+      <!-- ================================================================== -->
+      <ui_card name="bypass_card"
+               width="100%" height="content" style_radius="#border_radius" style_pad_all="#space_md" flex_flow="row"
+               style_flex_main_place="space_between" style_flex_cross_place="center">
+        <!-- Left side: Icon + Label/Description -->
+        <lv_obj width="content"
+                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
+                style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false" flex_grow="1">
+          <icon src="arrow_left_right" size="sm" variant="secondary"/>
+          <lv_obj width="content"
+                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
+                  style_pad_gap="#space_xs" scrollable="false">
+            <text_body text="Bypass Mode" style_text_color="#text_primary"/>
+            <text_small text="Feed filament directly to extruder" style_text_color="#text_secondary"/>
+          </lv_obj>
+        </lv_obj>
+        <!-- Right side: Switch toggle -->
+        <lv_switch name="bypass_toggle" width="50" height="28">
+          <bind_state_if_eq subject="ams_behavior_bypass_active" state="checked" ref_value="1"/>
+          <event_cb trigger="value_changed" callback="on_ams_behavior_bypass_toggled"/>
+        </lv_switch>
+        <!-- Hide when bypass not supported -->
+        <bind_flag_if_eq subject="ams_behavior_supports_bypass" flag="hidden" ref_value="0"/>
+      </ui_card>
+      <!-- ================================================================== -->
+      <!-- Auto-Heat Info Row (shown when supported)                           -->
+      <!-- ================================================================== -->
+      <ui_card name="auto_heat_card"
+               width="100%" height="content" style_radius="#border_radius" style_pad_all="#space_md" flex_flow="row"
+               style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <!-- Left side: Icon -->
+        <icon src="fire" size="sm" variant="secondary"/>
+        <!-- Middle: Label/Description -->
+        <lv_obj width="content"
+                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
+                style_pad_gap="#space_xs" scrollable="false" flex_grow="1">
+          <text_body text="Auto-Heat on Load" style_text_color="#text_primary"/>
+          <text_small text="Extruder heats automatically based on material" style_text_color="#text_secondary"/>
+        </lv_obj>
+        <!-- Right side: Status indicator (always enabled when shown) -->
+        <icon src="check_circle" size="sm" variant="primary"/>
+        <!-- Hide when auto-heat not supported -->
+        <bind_flag_if_eq subject="ams_behavior_supports_auto_heat" flag="hidden" ref_value="0"/>
+      </ui_card>
+      <!-- ================================================================== -->
+      <!-- No features message (shown when neither feature is supported)       -->
+      <!-- ================================================================== -->
+      <ui_card name="no_features_card"
+               width="100%" height="content" style_radius="#border_radius" style_pad_all="#space_lg" flex_flow="column"
+               style_flex_cross_place="center" style_pad_gap="#space_sm">
+        <bind_flag_if_eq subject="ams_behavior_has_features" flag="hidden" ref_value="1"/>
+        <icon src="info" size="lg" variant="secondary"/>
+        <text_body name="no_features_text"
+                   width="100%" text="No behavior settings available for this backend."
+                   style_text_color="#text_secondary" style_text_align="center"/>
+      </ui_card>
+    </lv_obj>
+  </view>
+</component>

@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <string>
 #include <vector>
 
 // Forward declaration
@@ -113,10 +114,20 @@ class AmsBackendToolChanger : public AmsBackend {
     AmsError set_slot_info(int slot_index, const SlotInfo& info) override;
     AmsError set_tool_mapping(int tool_number, int slot_index) override;
 
+    // Tool mapping - Tool changers have fixed mapping (tools ARE slots)
+    [[nodiscard]] helix::printer::ToolMappingCapabilities
+    get_tool_mapping_capabilities() const override;
+    [[nodiscard]] std::vector<int> get_tool_mapping() const override;
+
     // Bypass mode (not applicable for tool changers)
     AmsError enable_bypass() override;
     AmsError disable_bypass() override;
     [[nodiscard]] bool is_bypass_active() const override;
+
+    // Device Actions (stub - not applicable for tool changers)
+    [[nodiscard]] std::vector<helix::printer::DeviceSection> get_device_sections() const override;
+    [[nodiscard]] std::vector<helix::printer::DeviceAction> get_device_actions() const override;
+    AmsError execute_device_action(const std::string& action_id, const std::any& value = {}) override;
 
   private:
     /**

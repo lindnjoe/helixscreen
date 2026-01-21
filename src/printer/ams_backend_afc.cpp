@@ -26,7 +26,7 @@ AmsBackendAfc::AmsBackendAfc(MoonrakerAPI* api, MoonrakerClient* client)
     system_info_.action = AmsAction::IDLE;
     system_info_.total_slots = 0;
     // AFC capabilities - may vary by configuration
-    system_info_.supports_endless_spool = false;
+    system_info_.supports_endless_spool = true;
     system_info_.supports_spoolman = true;
     system_info_.supports_tool_mapping = true;
     system_info_.supports_bypass = true; // AFC supports bypass via bypass_state
@@ -945,6 +945,16 @@ void AmsBackendAfc::initialize_lanes(const std::vector<std::string>& lane_names)
         system_info_.tool_to_slot_map.push_back(i);
     }
 
+    // Initialize endless spool configs (no backup by default)
+    endless_spool_configs_.clear();
+    endless_spool_configs_.reserve(lane_count);
+    for (int i = 0; i < lane_count; ++i) {
+        helix::printer::EndlessSpoolConfig config;
+        config.slot_index = i;
+        config.backup_slot = -1; // No backup by default
+        endless_spool_configs_.push_back(config);
+    }
+
     lanes_initialized_ = true;
 }
 
@@ -1239,6 +1249,7 @@ AmsError AmsBackendAfc::set_slot_info(int slot_index, const SlotInfo& info) {
 }
 
 AmsError AmsBackendAfc::set_tool_mapping(int tool_number, int slot_index) {
+    std::string lane_name; // Declare outside lock for use after release
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
 
@@ -1251,6 +1262,16 @@ AmsError AmsBackendAfc::set_tool_mapping(int tool_number, int slot_index) {
 
         if (slot_index < 0 || slot_index >= system_info_.total_slots) {
             return AmsErrorHelper::invalid_slot(slot_index, system_info_.total_slots - 1);
+        }
+
+        // Check if another tool already maps to this slot
+        for (size_t i = 0; i < system_info_.tool_to_slot_map.size(); ++i) {
+            if (i != static_cast<size_t>(tool_number) &&
+                system_info_.tool_to_slot_map[i] == slot_index) {
+                spdlog::warn("[AMS AFC] Tool {} will share slot {} with tool {}", tool_number,
+                             slot_index, i);
+                break;
+            }
         }
 
         // Update local mapping
@@ -1268,11 +1289,13 @@ AmsError AmsBackendAfc::set_tool_mapping(int tool_number, int slot_index) {
         if (slot) {
             slot->mapped_tool = tool_number;
         }
+
+        // Get lane name while holding the lock (lane_names_ access)
+        lane_name = get_lane_name(slot_index);
     }
 
     // AFC may use a G-code command to set tool mapping
     // This varies by AFC version/configuration
-    std::string lane_name = get_lane_name(slot_index);
     if (!lane_name.empty()) {
         std::ostringstream cmd;
         cmd << "AFC_MAP TOOL=" << tool_number << " LANE=" << lane_name;
@@ -1331,4 +1354,228 @@ AmsError AmsBackendAfc::disable_bypass() {
 bool AmsBackendAfc::is_bypass_active() const {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     return bypass_active_;
+}
+
+// ============================================================================
+// Endless Spool Operations
+// ============================================================================
+
+helix::printer::EndlessSpoolCapabilities AmsBackendAfc::get_endless_spool_capabilities() const {
+    // AFC supports per-slot backup configuration via SET_RUNOUT G-code
+    return {true, true, "AFC per-slot backup"};
+}
+
+// ============================================================================
+// Tool Mapping Operations
+// ============================================================================
+
+helix::printer::ToolMappingCapabilities AmsBackendAfc::get_tool_mapping_capabilities() const {
+    // AFC supports per-lane tool assignment via SET_MAP G-code
+    return {true, true, "Per-lane tool assignment via SET_MAP"};
+}
+
+std::vector<int> AmsBackendAfc::get_tool_mapping() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return system_info_.tool_to_slot_map;
+}
+
+std::vector<helix::printer::EndlessSpoolConfig> AmsBackendAfc::get_endless_spool_config() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return endless_spool_configs_;
+}
+
+AmsError AmsBackendAfc::set_endless_spool_backup(int slot_index, int backup_slot) {
+    std::string lane_name;
+    std::string backup_lane_name;
+    int lane_count = 0;
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+        lane_count = static_cast<int>(lane_names_.size());
+
+        // Validate slot_index (0 to lane_names_.size()-1)
+        if (slot_index < 0 || slot_index >= lane_count) {
+            return AmsErrorHelper::invalid_slot(slot_index, lane_count > 0 ? lane_count - 1 : 0);
+        }
+
+        // Validate backup_slot (-1 or 0 to lane_names_.size()-1, not equal to slot_index)
+        if (backup_slot != -1) {
+            if (backup_slot < 0 || backup_slot >= lane_count) {
+                return AmsErrorHelper::invalid_slot(backup_slot,
+                                                    lane_count > 0 ? lane_count - 1 : 0);
+            }
+            if (backup_slot == slot_index) {
+                return AmsError(AmsResult::INVALID_SLOT, "Cannot use slot as its own backup",
+                                "A slot cannot be set as its own endless spool backup",
+                                "Select a different backup slot");
+            }
+        }
+
+        // Get lane names
+        lane_name = lane_names_[slot_index];
+        if (backup_slot >= 0) {
+            backup_lane_name = lane_names_[backup_slot];
+        }
+
+        // Update cached config
+        if (slot_index < static_cast<int>(endless_spool_configs_.size())) {
+            endless_spool_configs_[slot_index].backup_slot = backup_slot;
+        }
+    }
+
+    // Validate lane names to prevent command injection
+    if (!MoonrakerAPI::is_safe_gcode_param(lane_name)) {
+        spdlog::warn("[AMS AFC] Unsafe lane name characters in endless spool config");
+        return AmsError(AmsResult::MAPPING_ERROR, "Invalid lane name",
+                        "Lane name contains invalid characters", "Check AFC configuration");
+    }
+    if (backup_slot >= 0 && !MoonrakerAPI::is_safe_gcode_param(backup_lane_name)) {
+        spdlog::warn("[AMS AFC] Unsafe backup lane name characters");
+        return AmsError(AmsResult::MAPPING_ERROR, "Invalid backup lane name",
+                        "Backup lane name contains invalid characters", "Check AFC configuration");
+    }
+
+    // Build and send G-code command
+    // SET_RUNOUT LANE={lane_name} RUNOUT_LANE={backup_lane_name}
+    // If backup_slot == -1, send empty RUNOUT_LANE= to disable
+    std::string gcode;
+    if (backup_slot >= 0) {
+        gcode = fmt::format("SET_RUNOUT LANE={} RUNOUT_LANE={}", lane_name, backup_lane_name);
+        spdlog::info("[AMS AFC] Setting endless spool backup: {} -> {}", lane_name,
+                     backup_lane_name);
+    } else {
+        gcode = fmt::format("SET_RUNOUT LANE={} RUNOUT_LANE=", lane_name);
+        spdlog::info("[AMS AFC] Disabling endless spool backup for {}", lane_name);
+    }
+
+    return execute_gcode(gcode);
+}
+
+// ============================================================================
+// Device Actions (AFC-specific calibration and speed settings)
+// ============================================================================
+
+std::vector<helix::printer::DeviceSection> AmsBackendAfc::get_device_sections() const {
+    return {{"calibration", "Calibration", "wrench", 0},
+            {"speed", "Speed Settings", "speedometer", 1}};
+}
+
+std::vector<helix::printer::DeviceAction> AmsBackendAfc::get_device_actions() const {
+    using helix::printer::ActionType;
+    using helix::printer::DeviceAction;
+
+    return {// Calibration section
+            DeviceAction{
+                "calibration_wizard",
+                "Run Calibration Wizard",
+                "play",
+                "calibration",
+                "Interactive calibration for all lanes",
+                ActionType::BUTTON,
+                {}, // no value for button
+                {}, // no options
+                0,
+                0,  // min/max not used
+                "", // no unit
+                -1, // system-wide
+                true,
+                "" // enabled
+            },
+            DeviceAction{"bowden_length",
+                         "Bowden Length",
+                         "ruler",
+                         "calibration",
+                         "Distance from hub to toolhead",
+                         ActionType::SLIDER,
+                         450.0f, // default value
+                         {},     // no options
+                         100.0f,
+                         1000.0f, // min/max mm
+                         "mm",
+                         -1, // system-wide
+                         true,
+                         ""},
+            // Speed section
+            DeviceAction{"speed_fwd",
+                         "Forward Multiplier",
+                         "fast-forward",
+                         "speed",
+                         "Speed multiplier for forward moves",
+                         ActionType::SLIDER,
+                         1.0f, // default
+                         {},
+                         0.5f,
+                         2.0f, // min/max
+                         "x",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"speed_rev",
+                         "Reverse Multiplier",
+                         "rewind",
+                         "speed",
+                         "Speed multiplier for reverse moves",
+                         ActionType::SLIDER,
+                         1.0f,
+                         {},
+                         0.5f,
+                         2.0f,
+                         "x",
+                         -1,
+                         true,
+                         ""}};
+}
+
+AmsError AmsBackendAfc::execute_device_action(const std::string& action_id, const std::any& value) {
+    spdlog::info("[AMS AFC] Executing device action: {}", action_id);
+
+    if (action_id == "calibration_wizard") {
+        return execute_gcode("AFC_CALIBRATION");
+    } else if (action_id == "bowden_length") {
+        if (!value.has_value()) {
+            return AmsError(AmsResult::WRONG_STATE, "Bowden length value required", "Missing value",
+                            "Provide a bowden length value");
+        }
+        try {
+            float length = std::any_cast<float>(value);
+            if (length < 100.0f || length > 1000.0f) {
+                return AmsError(AmsResult::WRONG_STATE, "Bowden length must be 100-1000mm",
+                                "Invalid value", "Enter a length between 100 and 1000mm");
+            }
+            // AFC uses SET_BOWDEN_LENGTH UNIT={unit_name} LENGTH={mm}
+            // For simplicity, we'll use the first unit
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
+            if (!system_info_.units.empty()) {
+                std::string unit_name = system_info_.units[0].name;
+                return execute_gcode("SET_BOWDEN_LENGTH UNIT=" + unit_name +
+                                     " LENGTH=" + std::to_string(static_cast<int>(length)));
+            }
+            return AmsErrorHelper::not_supported("No AFC units configured");
+        } catch (const std::bad_any_cast&) {
+            return AmsError(AmsResult::WRONG_STATE, "Invalid bowden length type",
+                            "Invalid value type", "Provide a numeric value");
+        }
+    } else if (action_id == "speed_fwd" || action_id == "speed_rev") {
+        if (!value.has_value()) {
+            return AmsError(AmsResult::WRONG_STATE, "Speed multiplier value required",
+                            "Missing value", "Provide a speed multiplier value");
+        }
+        try {
+            float multiplier = std::any_cast<float>(value);
+            if (multiplier < 0.5f || multiplier > 2.0f) {
+                return AmsError(AmsResult::WRONG_STATE, "Speed multiplier must be 0.5-2.0x",
+                                "Invalid value", "Enter a multiplier between 0.5 and 2.0");
+            }
+            // AFC uses SET_LONG_MOVE_SPEED with FWD and REV parameters
+            // We'll set just the one being changed
+            std::string param = (action_id == "speed_fwd") ? "FWD" : "REV";
+            return execute_gcode("SET_LONG_MOVE_SPEED " + param + "=" + std::to_string(multiplier));
+        } catch (const std::bad_any_cast&) {
+            return AmsError(AmsResult::WRONG_STATE, "Invalid speed multiplier type",
+                            "Invalid value type", "Provide a numeric value");
+        }
+    }
+
+    return AmsErrorHelper::not_supported("Unknown action: " + action_id);
 }
