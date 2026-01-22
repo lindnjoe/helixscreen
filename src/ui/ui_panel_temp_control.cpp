@@ -436,6 +436,82 @@ void TempControlPanel::deinit_subjects() {
     spdlog::debug("[TempPanel] Subjects deinitialized");
 }
 
+// ============================================================================
+// LIFECYCLE HOOKS
+// ============================================================================
+
+void NozzleTempPanelLifecycle::on_activate() {
+    if (panel_) {
+        panel_->on_nozzle_panel_activate();
+    }
+}
+
+void NozzleTempPanelLifecycle::on_deactivate() {
+    if (panel_) {
+        panel_->on_nozzle_panel_deactivate();
+    }
+}
+
+void BedTempPanelLifecycle::on_activate() {
+    if (panel_) {
+        panel_->on_bed_panel_activate();
+    }
+}
+
+void BedTempPanelLifecycle::on_deactivate() {
+    if (panel_) {
+        panel_->on_bed_panel_deactivate();
+    }
+}
+
+NozzleTempPanelLifecycle* TempControlPanel::get_nozzle_lifecycle() {
+    return &nozzle_lifecycle_;
+}
+
+BedTempPanelLifecycle* TempControlPanel::get_bed_lifecycle() {
+    return &bed_lifecycle_;
+}
+
+void TempControlPanel::on_nozzle_panel_activate() {
+    spdlog::debug("[TempPanel] Nozzle panel activated");
+
+    // Refresh display with current values
+    update_nozzle_display();
+    update_nozzle_status();
+
+    // Replay history to graph if it exists
+    if (nozzle_graph_) {
+        replay_nozzle_history_to_graph();
+    }
+}
+
+void TempControlPanel::on_nozzle_panel_deactivate() {
+    spdlog::debug("[TempPanel] Nozzle panel deactivated");
+
+    // Clear pending selection when panel is closed
+    nozzle_pending_ = -1;
+}
+
+void TempControlPanel::on_bed_panel_activate() {
+    spdlog::debug("[TempPanel] Bed panel activated");
+
+    // Refresh display with current values
+    update_bed_display();
+    update_bed_status();
+
+    // Replay history to graph if it exists
+    if (bed_graph_) {
+        replay_bed_history_to_graph();
+    }
+}
+
+void TempControlPanel::on_bed_panel_deactivate() {
+    spdlog::debug("[TempPanel] Bed panel deactivated");
+
+    // Clear pending selection when panel is closed
+    bed_pending_ = -1;
+}
+
 ui_temp_graph_t* TempControlPanel::create_temp_graph(lv_obj_t* chart_area,
                                                      const heater_config_t* config, int target_temp,
                                                      int* series_id_out) {

@@ -876,6 +876,8 @@ void ControlsPanel::handle_temperatures_clicked() {
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "nozzle_temp_panel", nullptr));
         if (nozzle_temp_panel_) {
             temp_control_panel_->setup_nozzle_panel(nozzle_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                nozzle_temp_panel_, temp_control_panel_->get_nozzle_lifecycle());
             // Panel starts hidden via XML hidden="true" attribute
         } else {
             NOTIFY_ERROR("Failed to load temperature panel");
@@ -901,6 +903,8 @@ void ControlsPanel::handle_nozzle_temp_clicked() {
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "nozzle_temp_panel", nullptr));
         if (nozzle_temp_panel_) {
             temp_control_panel_->setup_nozzle_panel(nozzle_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                nozzle_temp_panel_, temp_control_panel_->get_nozzle_lifecycle());
         } else {
             NOTIFY_ERROR("Failed to load nozzle temperature panel");
             return;
@@ -925,6 +929,8 @@ void ControlsPanel::handle_bed_temp_clicked() {
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "bed_temp_panel", nullptr));
         if (bed_temp_panel_) {
             temp_control_panel_->setup_bed_panel(bed_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                bed_temp_panel_, temp_control_panel_->get_bed_lifecycle());
         } else {
             NOTIFY_ERROR("Failed to load bed temperature panel");
             return;

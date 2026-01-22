@@ -9,6 +9,7 @@
 #include "ui_temp_graph.h"
 
 #include "lvgl/lvgl.h"
+#include "panel_lifecycle.h"
 #include "subject_managed_panel.h"
 #include "ui/temperature_observer_bundle.h"
 
@@ -20,6 +21,45 @@
 // Forward declarations
 class PrinterState;
 class MoonrakerAPI;
+class TempControlPanel;
+
+/**
+ * @brief Lifecycle wrapper for nozzle temperature panel
+ *
+ * Thin wrapper that implements IPanelLifecycle and delegates to TempControlPanel.
+ * Register this with NavigationManager to receive lifecycle callbacks.
+ */
+class NozzleTempPanelLifecycle : public IPanelLifecycle {
+  public:
+    explicit NozzleTempPanelLifecycle(TempControlPanel* panel) : panel_(panel) {}
+    const char* get_name() const override {
+        return "Nozzle Temperature";
+    }
+    void on_activate() override;
+    void on_deactivate() override;
+
+  private:
+    TempControlPanel* panel_;
+};
+
+/**
+ * @brief Lifecycle wrapper for bed temperature panel
+ *
+ * Thin wrapper that implements IPanelLifecycle and delegates to TempControlPanel.
+ * Register this with NavigationManager to receive lifecycle callbacks.
+ */
+class BedTempPanelLifecycle : public IPanelLifecycle {
+  public:
+    explicit BedTempPanelLifecycle(TempControlPanel* panel) : panel_(panel) {}
+    const char* get_name() const override {
+        return "Bed Temperature";
+    }
+    void on_activate() override;
+    void on_deactivate() override;
+
+  private:
+    TempControlPanel* panel_;
+};
 
 /**
  * @brief Temperature Control Panel - manages nozzle and bed temperature UI
@@ -59,6 +99,50 @@ class TempControlPanel {
     void set_api(MoonrakerAPI* api) {
         api_ = api;
     }
+
+    //
+    // === Lifecycle Hooks (called by wrapper classes) ===
+    //
+
+    /**
+     * @brief Called when nozzle temperature panel becomes visible
+     *
+     * Refreshes display and replays graph history.
+     */
+    void on_nozzle_panel_activate();
+
+    /**
+     * @brief Called when nozzle temperature panel is hidden
+     */
+    void on_nozzle_panel_deactivate();
+
+    /**
+     * @brief Called when bed temperature panel becomes visible
+     *
+     * Refreshes display and replays graph history.
+     */
+    void on_bed_panel_activate();
+
+    /**
+     * @brief Called when bed temperature panel is hidden
+     */
+    void on_bed_panel_deactivate();
+
+    /**
+     * @brief Get lifecycle wrapper for nozzle panel
+     *
+     * Returns a pointer to the internal lifecycle wrapper. The wrapper is owned
+     * by TempControlPanel and valid for the lifetime of this object.
+     */
+    NozzleTempPanelLifecycle* get_nozzle_lifecycle();
+
+    /**
+     * @brief Get lifecycle wrapper for bed panel
+     *
+     * Returns a pointer to the internal lifecycle wrapper. The wrapper is owned
+     * by TempControlPanel and valid for the lifetime of this object.
+     */
+    BedTempPanelLifecycle* get_bed_lifecycle();
 
     /**
      * @brief Setup a compact combined temperature graph for the filament panel
@@ -211,6 +295,10 @@ class TempControlPanel {
 
     // Subjects initialized flag
     bool subjects_initialized_ = false;
+
+    // Lifecycle wrappers (owned by this object)
+    NozzleTempPanelLifecycle nozzle_lifecycle_{this};
+    BedTempPanelLifecycle bed_lifecycle_{this};
 
     // Helper to replay buffered history to graph when panel opens
     void replay_nozzle_history_to_graph();

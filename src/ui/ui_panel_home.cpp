@@ -619,6 +619,8 @@ void HomePanel::handle_temp_clicked() {
         if (nozzle_temp_panel_) {
             // Setup via injected TempControlPanel
             temp_control_panel_->setup_nozzle_panel(nozzle_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                nozzle_temp_panel_, temp_control_panel_->get_nozzle_lifecycle());
 
             // Initially hidden
             lv_obj_add_flag(nozzle_temp_panel_, LV_OBJ_FLAG_HIDDEN);

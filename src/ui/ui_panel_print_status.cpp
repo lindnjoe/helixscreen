@@ -10,6 +10,7 @@
 #include "ui_gcode_viewer.h"
 #include "ui_modal.h"
 #include "ui_nav.h"
+#include "ui_nav_manager.h"
 #include "ui_panel_common.h"
 #include "ui_panel_temp_control.h"
 #include "ui_subject_registry.h"
@@ -730,6 +731,8 @@ void PrintStatusPanel::handle_nozzle_card_click() {
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "nozzle_temp_panel", nullptr));
         if (nozzle_temp_panel_) {
             temp_control_panel_->setup_nozzle_panel(nozzle_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                nozzle_temp_panel_, temp_control_panel_->get_nozzle_lifecycle());
             lv_obj_add_flag(nozzle_temp_panel_, LV_OBJ_FLAG_HIDDEN);
             spdlog::info("[{}] Nozzle temp panel created and initialized", get_name());
         } else {
@@ -761,6 +764,8 @@ void PrintStatusPanel::handle_bed_card_click() {
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "bed_temp_panel", nullptr));
         if (bed_temp_panel_) {
             temp_control_panel_->setup_bed_panel(bed_temp_panel_, parent_screen_);
+            NavigationManager::instance().register_overlay_instance(
+                bed_temp_panel_, temp_control_panel_->get_bed_lifecycle());
             lv_obj_add_flag(bed_temp_panel_, LV_OBJ_FLAG_HIDDEN);
             spdlog::info("[{}] Bed temp panel created and initialized", get_name());
         } else {

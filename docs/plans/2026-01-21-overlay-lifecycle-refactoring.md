@@ -1,7 +1,7 @@
 # Overlay Lifecycle Refactoring Plan
 
 **Created:** 2026-01-21
-**Status:** Phase 1 Complete
+**Status:** ✅ COMPLETE
 **Scope:** Refactor legacy overlays to inherit from `OverlayBase` for proper lifecycle management
 
 ## Background
@@ -109,19 +109,14 @@ All 6 overlays refactored in parallel. Key fixes from code review:
 - `on_activate()` triggers `populate_hardware_issues()`
 - Modal dialog cleanup on `on_deactivate()`
 
-### Phase 2: Temperature Panels (Deferred)
+### Phase 2: Temperature Panels ✅ COMPLETE
 
-**Recommendation:** Start with Option C (defer), revisit after Phase 1 complete.
+Implemented Option B: Thin lifecycle wrappers delegating to TempControlPanel.
 
-The temperature panels work correctly today - the warning is cosmetic. The refactoring is architectural and high-risk. Better to:
-1. Complete settings overlay refactoring
-2. Gain confidence with OverlayBase patterns
-3. Then revisit temp panel architecture with fresh perspective
-
-If Phase 2 proceeds, key questions to answer first:
-- Can graph registration become panel-local? (Simplifies split)
-- Should subjects move to panel classes? (PrinterState already publishes temps)
-- Can XML creation move to panels? (Consumers shouldn't own XML)
+- Created `NozzleTempPanelLifecycle` and `BedTempPanelLifecycle` wrapper classes
+- Added lifecycle methods to TempControlPanel (`on_*_panel_activate/deactivate`)
+- Registered temp panels in ControlsPanel, HomePanel, PrintStatusPanel
+- ~2 hours as estimated (vs original 12-15 hour estimate for full split)
 
 ---
 
