@@ -528,30 +528,38 @@ $(TEST_FIXTURES_OBJ): $(TEST_DIR)/test_fixtures.cpp
 
 # Compile LVGL UI test fixture (full UI integration test fixture)
 # Uses DEPFLAGS to track header dependencies
+# Emits .ccj fragment for incremental compile_commands.json generation
 $(LVGL_UI_TEST_FIXTURE_OBJ): $(TEST_DIR)/lvgl_ui_test_fixture.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(CYAN)[UI-FIXTURE]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(TEST_DIR) $(INCLUDES) -c $< -o $@
+	$(call emit-compile-command,$(CXX),$(CXXFLAGS) -I$(TEST_DIR) $(INCLUDES),$<,$@)
 
 # Compile test sources
 # Uses DEPFLAGS to track header dependencies for incremental rebuilds
+# Emits .ccj fragment for incremental compile_commands.json generation
 $(OBJ_DIR)/tests/%.o: $(TEST_UNIT_DIR)/%.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[TEST]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(TEST_DIR) $(INCLUDES) -c $< -o $@
+	$(call emit-compile-command,$(CXX),$(CXXFLAGS) -I$(TEST_DIR) $(INCLUDES),$<,$@)
 
 # Compile application subdirectory test sources
+# Emits .ccj fragment for incremental compile_commands.json generation
 $(OBJ_DIR)/tests/application/%.o: $(TEST_UNIT_DIR)/application/%.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[TEST-APP]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(TEST_DIR) -I$(TEST_UNIT_DIR)/application $(INCLUDES) -c $< -o $@
+	$(call emit-compile-command,$(CXX),$(CXXFLAGS) -I$(TEST_DIR) -I$(TEST_UNIT_DIR)/application $(INCLUDES),$<,$@)
 
 # Compile mock sources
 # Uses DEPFLAGS to track header dependencies
+# Emits .ccj fragment for incremental compile_commands.json generation
 $(OBJ_DIR)/tests/mocks/%.o: $(TEST_MOCK_DIR)/%.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(YELLOW)[MOCK]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(TEST_MOCK_DIR) $(INCLUDES) -c $< -o $@
+	$(call emit-compile-command,$(CXX),$(CXXFLAGS) -I$(TEST_MOCK_DIR) $(INCLUDES),$<,$@)
 
 # Dynamic card instantiation test
 TEST_CARDS_BIN := $(BIN_DIR)/test_dynamic_cards

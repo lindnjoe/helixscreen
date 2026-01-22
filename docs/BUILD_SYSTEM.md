@@ -356,8 +356,8 @@ make help
 # Apply patches manually (usually automatic)
 make apply-patches
 
-# Generate IDE/LSP support
-make compile_commands
+# IDE/LSP support (auto-generated after builds, or manually)
+make compile_commands    # Merge existing fragments (~1-2s)
 ```
 
 ### Build Configuration Options
@@ -942,7 +942,8 @@ sudo dnf install librsvg2-tools
 
 ### Development Targets
 
-- **`compile_commands`** - Generate `compile_commands.json` for IDE/LSP (requires `bear`)
+- **`compile_commands`** - Merge compile command fragments into `compile_commands.json` (~1-2s)
+- **`compile_commands_full`** - Full regeneration via compiledb/bear (slow, use if fragments corrupted)
 - **`check-deps`** - Verify all build dependencies are installed
 - **`apply-patches`** - Manually apply submodule patches (usually automatic)
 - **`icon`** - Generate macOS .icns icon from logo (requires `imagemagick`, `iconutil`)
@@ -975,7 +976,7 @@ Before building, the system automatically checks for required dependencies:
 - `sdl2`, `spdlog`, `libhv` - Auto-detected and built only if not system-installed
 
 **Optional:**
-- `bear` - For generating `compile_commands.json`
+- `compiledb` or `bear` - Only for `compile_commands_full` (normal builds auto-generate)
 - `imagemagick` - For screenshot conversion and icon generation
 - `iconutil` - For macOS .icns icon generation (macOS only, built-in)
 
@@ -1000,6 +1001,57 @@ All dependencies satisfied!
 ```
 
 If dependencies are missing, the check provides installation instructions.
+
+## IDE/LSP Support (compile_commands.json)
+
+The build system uses **incremental compile command generation** for fast IDE integration.
+
+### How It Works
+
+1. **During compilation**: Each `.o` file generates a `.ccj` (compile command JSON) fragment alongside it
+2. **After build**: Fragments are automatically merged into `compile_commands.json`
+3. **Adding new files**: Just compile them - fragments are created automatically
+
+This replaces the slow `compiledb make -n -B` approach (which did a full dry-run) with instant merges.
+
+### Usage
+
+```bash
+# Normal workflow - compile_commands.json is auto-updated after every build
+make -j
+
+# Manual merge (if you want to update without building)
+make compile_commands      # ~1-2 seconds for ~1000 files
+
+# Full regeneration (slow, use only if fragments are corrupted)
+make compile_commands_full
+```
+
+### Fragment Storage
+
+- Fragments are stored as `.ccj` files next to `.o` files in `build/obj/`
+- They're automatically cleaned with `make clean`
+- They're gitignored (inside `build/`)
+
+### Troubleshooting
+
+**compile_commands.json has missing entries:**
+```bash
+# Ensure all targets are built
+make -j && make test-build
+make compile_commands
+```
+
+**JSON validation errors:**
+```bash
+# Check if JSON is valid
+python3 -m json.tool compile_commands.json > /dev/null
+
+# If corrupted, do a full regeneration
+make compile_commands_full
+```
+
+---
 
 ## Dependency Management
 
