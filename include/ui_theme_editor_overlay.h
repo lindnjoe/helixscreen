@@ -181,12 +181,6 @@ class ThemeEditorOverlay : public OverlayBase {
 
 /**
  * @brief Get global ThemeEditorOverlay instance
- * @return Reference to singleton instance
- * @throws std::runtime_error if not initialized
+ * @return Reference to singleton instance (auto-initializes on first access)
  */
 ThemeEditorOverlay& get_theme_editor_overlay();
-
-/**
- * @brief Initialize global ThemeEditorOverlay instance
- */
-void init_theme_editor_overlay();

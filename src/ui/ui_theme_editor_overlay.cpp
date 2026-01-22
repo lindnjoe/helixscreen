@@ -26,11 +26,8 @@
 // GLOBAL INSTANCE
 // ============================================================================
 
-DEFINE_GLOBAL_OVERLAY_STORAGE(ThemeEditorOverlay, g_theme_editor_overlay, get_theme_editor_overlay)
-
-void init_theme_editor_overlay() {
-    INIT_GLOBAL_OVERLAY(ThemeEditorOverlay, g_theme_editor_overlay);
-}
+// Auto-initializes on first access (no constructor args needed)
+DEFINE_GLOBAL_PANEL(ThemeEditorOverlay, g_theme_editor_overlay, get_theme_editor_overlay)
 
 // ============================================================================
 // CONSTRUCTOR / DESTRUCTOR
