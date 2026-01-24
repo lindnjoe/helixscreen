@@ -41,10 +41,10 @@
           <icon src="power" size="sm"/>
           <text_body text="Power"/>
         </lv_obj>
-        <lv_switch name="dryer_power_switch">
+        <ui_switch name="dryer_power_switch" size="small">
           <bind_state_if_eq subject="dryer_active" state="checked" ref_value="1"/>
           <event_cb trigger="value_changed" callback="dryer_power_toggled_cb"/>
-        </lv_switch>
+        </ui_switch>
       </lv_obj>
       <!-- Temperature Section -->
       <lv_obj width="100%"

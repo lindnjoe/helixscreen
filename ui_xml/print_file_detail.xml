@@ -158,10 +158,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="can_show_bed_mesh" flag="hidden" ref_value="0"/>
             <text_body text="Auto Bed Mesh"/>
-            <lv_switch name="bed_mesh_checkbox" width="50" height="28">
+            <ui_switch name="bed_mesh_checkbox" size="small">
               <bind_state_if_eq subject="preprint_bed_mesh" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_bed_mesh_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <lv_obj name="qgl_row"
                   width="100%" height="content" flex_flow="row" style_flex_main_place="space_between"
@@ -169,10 +169,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="can_show_qgl" flag="hidden" ref_value="0"/>
             <text_body text="Quad Gantry Level"/>
-            <lv_switch name="qgl_checkbox" width="50" height="28">
+            <ui_switch name="qgl_checkbox" size="small">
               <bind_state_if_eq subject="preprint_qgl" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_qgl_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <lv_obj name="z_tilt_row"
                   width="100%" height="content" flex_flow="row" style_flex_main_place="space_between"
@@ -180,10 +180,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="can_show_z_tilt" flag="hidden" ref_value="0"/>
             <text_body text="Z-Tilt Adjust"/>
-            <lv_switch name="z_tilt_checkbox" width="50" height="28">
+            <ui_switch name="z_tilt_checkbox" size="small">
               <bind_state_if_eq subject="preprint_z_tilt" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_z_tilt_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <lv_obj name="nozzle_clean_row"
                   width="100%" height="content" flex_flow="row" style_flex_main_place="space_between"
@@ -191,10 +191,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="can_show_nozzle_clean" flag="hidden" ref_value="0"/>
             <text_body text="Clean Nozzle"/>
-            <lv_switch name="nozzle_clean_checkbox" width="50" height="28">
+            <ui_switch name="nozzle_clean_checkbox" size="small">
               <bind_state_if_eq subject="preprint_nozzle_clean" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_nozzle_clean_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <lv_obj name="purge_line_row"
                   width="100%" height="content" flex_flow="row" style_flex_main_place="space_between"
@@ -202,10 +202,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="can_show_purge_line" flag="hidden" ref_value="0"/>
             <text_body text="Nozzle Priming"/>
-            <lv_switch name="purge_line_checkbox" width="50" height="28">
+            <ui_switch name="purge_line_checkbox" size="small">
               <bind_state_if_eq subject="preprint_purge_line" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_purge_line_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <!-- Recording options (visibility controlled by plugin availability) -->
           <lv_obj name="timelapse_row"
@@ -214,10 +214,10 @@
                   scrollable="false">
             <bind_flag_if_eq subject="printer_has_timelapse" flag="hidden" ref_value="0"/>
             <text_body text="Record Timelapse"/>
-            <lv_switch name="timelapse_checkbox" width="50" height="28">
+            <ui_switch name="timelapse_checkbox" size="small">
               <bind_state_if_eq subject="preprint_timelapse" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_preprint_timelapse_toggled"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
         </ui_card>
 

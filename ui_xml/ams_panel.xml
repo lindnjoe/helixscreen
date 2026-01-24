@@ -205,10 +205,10 @@
               <text_body text="Bypass"/>
             </lv_obj>
             <!-- Right side: toggle switch - state bound to ams_bypass_active subject -->
-            <lv_switch name="bypass_switch">
+            <ui_switch name="bypass_switch" size="small">
               <bind_state_if_eq subject="ams_bypass_active" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="ams_bypass_toggled_cb"/>
-            </lv_switch>
+            </ui_switch>
           </lv_obj>
           <!-- Unload Button (full width) - hidden for tool changers (use context menu Mount/Unmount instead) -->
           <lv_button name="btn_unload"

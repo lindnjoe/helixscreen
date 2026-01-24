@@ -33,10 +33,10 @@
           </lv_obj>
         </lv_obj>
         <!-- Right side: Switch toggle -->
-        <lv_switch name="sync_toggle" width="50" height="28">
+        <ui_switch name="sync_toggle" size="small">
           <bind_state_if_eq subject="ams_spoolman_sync_enabled" state="checked" ref_value="1"/>
           <event_cb trigger="value_changed" callback="on_ams_spoolman_sync_toggled"/>
-        </lv_switch>
+        </ui_switch>
       </ui_card>
       <!-- ================================================================== -->
       <!-- Refresh Interval Row                                                -->

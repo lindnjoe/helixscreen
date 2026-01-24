@@ -30,9 +30,9 @@
           </lv_obj>
         </lv_obj>
         <!-- Toggle Switch -->
-        <lv_switch name="retraction_enabled_switch">
+        <ui_switch name="retraction_enabled_switch" size="small">
           <event_cb trigger="value_changed" callback="on_retraction_enabled_changed"/>
-        </lv_switch>
+        </ui_switch>
       </lv_obj>
       <!-- Divider -->
       <divider_horizontal opacity="60"/>

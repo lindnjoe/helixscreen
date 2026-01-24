@@ -28,9 +28,9 @@
       <text_small name="description" text="$description" style_text_color="#text_secondary"/>
     </lv_obj>
     <!-- Right side: Switch toggle -->
-    <lv_switch name="toggle" width="50" height="28">
+    <ui_switch name="toggle" size="small">
       <bind_state_if_eq subject="$subject" state="checked" ref_value="1"/>
       <event_cb trigger="value_changed" callback="$callback"/>
-    </lv_switch>
+    </ui_switch>
   </view>
 </component>
