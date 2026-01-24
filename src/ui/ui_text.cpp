@@ -172,6 +172,21 @@ static void* ui_text_xs_create(lv_xml_parser_state_t* state, const char** attrs)
     return create_semantic_label(state, attrs, "font_xs", "text_secondary");
 }
 
+/**
+ * Create callback for text_button widget
+ *
+ * Button text with body font, primary text color, and center alignment default.
+ * Used inside lv_button elements to provide consistent button label styling.
+ */
+static void* ui_text_button_create(lv_xml_parser_state_t* state, const char** attrs) {
+    lv_obj_t* label = create_semantic_label(state, attrs, "font_body", "text_primary");
+    if (label) {
+        // Default to center alignment for button labels
+        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    }
+    return label;
+}
+
 void ui_text_init() {
     // Register custom text widgets for XML usage
     // All widgets share the same apply function (ui_text_apply) which handles
@@ -182,10 +197,12 @@ void ui_text_init() {
     lv_xml_register_widget("text_xs", ui_text_xs_create, ui_text_apply);
     // text_tiny is an alias for text_xs (same size, just a more intuitive name)
     lv_xml_register_widget("text_tiny", ui_text_xs_create, ui_text_apply);
+    // text_button: centered body text for button labels (eliminates manual align/color overrides)
+    lv_xml_register_widget("text_button", ui_text_button_create, ui_text_apply);
 
     spdlog::debug(
         "[ui_text] Registered semantic text widgets: text_heading, text_body, text_small, "
-        "text_xs, text_tiny");
+        "text_xs, text_tiny, text_button");
 }
 
 void ui_text_set_stroke(lv_obj_t* label, int32_t width, lv_color_t color, lv_opa_t opa) {

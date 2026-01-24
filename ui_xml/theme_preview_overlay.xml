@@ -1,18 +1,46 @@
 <?xml version="1.0"?>
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<!-- Theme Preview Overlay -->
+<!-- Theme Explorer Overlay - Primary theme selection and preview interface -->
+<!-- Navigation: Settings → Display → Theme → (this) → Edit Colors (optional) -->
 <component>
   <view name="theme_preview_overlay"
-        extends="overlay_panel" width="#overlay_panel_width_full" title="Theme Preview" bg_color="#app_bg_color">
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Theme" bg_color="#app_bg_color"
+        hide_action_button="false" action_button_text="Apply" action_button_callback="on_apply_theme_clicked"
+        action_button_height="#button_height" action_button_pad="#space_md">
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" style_border_width="0"
             flex_flow="column" style_pad_gap="#space_md" scrollable="true" scroll_dir="ver">
-      <text_body text="Explore how the Nord palette shapes text, controls, and status colors."
+      <!-- Theme Selection Controls -->
+      <lv_obj name="theme_controls_row"
+              width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_md"
+              style_bg_opa="0" style_border_width="0" style_flex_cross_place="center" scrollable="false">
+        <!-- Theme Preset Dropdown -->
+        <lv_obj width="0" height="content" flex_grow="1" flex_flow="column" style_bg_opa="0"
+                style_border_width="0" style_pad_all="0" style_pad_gap="#space_xs" scrollable="false">
+          <text_small text="Theme Preset" style_text_color="#text_secondary"/>
+          <lv_dropdown name="theme_preset_dropdown"
+                       width="100%" height="#input_height" style_radius="#border_radius"
+                       style_border_width="1" style_border_color="#border_muted">
+            <event_cb trigger="value_changed" callback="on_theme_preset_changed"/>
+          </lv_dropdown>
+        </lv_obj>
+        <!-- Dark/Light Mode Toggle -->
+        <lv_obj width="content" height="content" flex_flow="column" style_bg_opa="0"
+                style_border_width="0" style_pad_all="0" style_pad_gap="#space_xs" scrollable="false">
+          <text_small text="Dark Mode" style_text_color="#text_secondary"/>
+          <ui_switch name="preview_dark_mode_toggle" size="small" checked="true">
+            <event_cb trigger="value_changed" callback="on_preview_dark_mode_toggled"/>
+          </ui_switch>
+        </lv_obj>
+      </lv_obj>
+      <text_body text="Explore how the selected palette shapes text, controls, and status colors."
                  style_text_color="#text_secondary" long_mode="wrap"/>
+      <!-- Preview Cards Row -->
       <lv_obj name="preview_row"
               width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_md" style_bg_opa="0"
               style_border_width="0" scrollable="false">
+        <!-- Typography Preview Card -->
         <lv_obj name="preview_typography_card"
                 width="0" height="content" flex_grow="3" flex_flow="column" style_bg_color="#card_bg" style_bg_opa="255"
                 style_radius="#border_radius" style_pad_all="#space_md" style_pad_gap="#space_md" style_border_width="1"
@@ -58,6 +86,7 @@
             <icon src="light" size="xs" variant="primary"/>
           </lv_obj>
         </lv_obj>
+        <!-- Actions Preview Card -->
         <lv_obj name="preview_actions_card"
                 width="0" height="content" flex_grow="2" flex_flow="column" style_bg_color="#card_bg" style_bg_opa="255"
                 style_radius="#border_radius" style_pad_all="#space_md" style_pad_gap="#space_md" style_border_width="1"
@@ -74,12 +103,12 @@
             <lv_button width="0"
                        height="#button_height_sm" flex_grow="1" style_radius="#border_radius_small"
                        style_bg_color="#primary_color" style_border_width="0" style_shadow_width="0">
-              <text_body text="Primary" align="center" style_text_color="#text_primary"/>
+              <text_button text="Primary"/>
             </lv_button>
             <lv_button width="0"
                        height="#button_height_sm" flex_grow="1" style_radius="#border_radius_small"
                        style_bg_color="#secondary_color" style_border_width="0" style_shadow_width="0">
-              <text_body text="Secondary" align="center" style_text_color="#text_primary"/>
+              <text_button text="Secondary"/>
             </lv_button>
           </lv_obj>
           <lv_obj width="100%"
@@ -88,23 +117,13 @@
             <lv_button width="0"
                        height="#button_height_sm" flex_grow="1" style_radius="#border_radius_small"
                        style_bg_color="#warning_color" style_border_width="0" style_shadow_width="0">
-              <text_body text="Warning" align="center" style_text_color="#text_primary"/>
+              <text_button text="Warning"/>
             </lv_button>
             <lv_button width="0"
                        height="#button_height_sm" flex_grow="1" style_radius="#border_radius_small"
                        style_bg_color="#error_color" style_border_width="0" style_shadow_width="0">
-              <text_body text="Danger" align="center" style_text_color="#text_primary"/>
+              <text_button text="Danger"/>
             </lv_button>
-          </lv_obj>
-          <divider_horizontal opacity="20"/>
-          <lv_obj width="100%"
-                  height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_bg_opa="0"
-                  style_border_width="0" style_flex_main_place="space_between" style_flex_cross_place="center"
-                  scrollable="false">
-            <text_body text="Dark Mode" style_text_color="#text_primary"/>
-            <ui_switch name="preview_dark_mode_toggle" size="small" checked="true">
-              <event_cb trigger="value_changed" callback="on_preview_dark_mode_toggled"/>
-            </ui_switch>
           </lv_obj>
           <divider_horizontal opacity="20"/>
           <lv_obj width="100%"
@@ -147,6 +166,7 @@
           </lv_obj>
         </lv_obj>
       </lv_obj>
+      <!-- Background Preview -->
       <lv_obj name="preview_background"
               width="100%" height="content" style_bg_color="#app_bg_color" style_bg_opa="255" style_border_width="1"
               style_border_color="#theme_grey" style_radius="#border_radius" style_pad_all="#space_md"
@@ -155,6 +175,14 @@
         <text_small text="Surfaces inherit app background tokens for light and dark modes."
                     style_text_color="#text_secondary" long_mode="wrap"/>
       </lv_obj>
+      <!-- Edit Colors Button -->
+      <lv_button name="edit_colors_btn"
+                 width="100%" height="#button_height" style_radius="#border_radius" style_bg_color="#secondary_color"
+                 style_bg_opa="255" style_border_width="0" style_shadow_width="0" scroll_on_focus="false">
+        <event_cb trigger="clicked" callback="on_edit_colors_clicked"/>
+        <text_button text="Edit Colors"/>
+      </lv_button>
+      <info_note icon="info" text="Theme changes apply after restart."/>
     </lv_obj>
   </view>
 </component>
