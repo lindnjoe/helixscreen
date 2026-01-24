@@ -32,6 +32,7 @@ extern "C" {
  * @param screen_bg Screen background color (from globals.xml variant)
  * @param card_bg Card background color (from globals.xml variant)
  * @param surface_control Control surface color for buttons/inputs (mode-aware)
+ * @param focus_color Focus ring color for accessibility
  * @param border_radius Border radius for buttons/cards (from globals.xml)
  * @return Initialized theme, or NULL on failure
  *
@@ -49,7 +50,7 @@ extern "C" {
 lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
                             lv_color_t secondary_color, lv_color_t text_primary_color, bool is_dark,
                             const lv_font_t* base_font, lv_color_t screen_bg, lv_color_t card_bg,
-                            lv_color_t surface_control, int32_t border_radius);
+                            lv_color_t surface_control, lv_color_t focus_color, int32_t border_radius);
 
 /**
  * @brief Update theme colors in-place without recreating the theme
@@ -66,9 +67,11 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
  * @param card_bg Card/panel background color
  * @param surface_control Control surface color for buttons/inputs
  * @param text_primary_color Primary text color
+ * @param focus_color Focus ring color for accessibility
  */
 void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t card_bg,
-                              lv_color_t surface_control, lv_color_t text_primary_color);
+                              lv_color_t surface_control, lv_color_t text_primary_color,
+                              lv_color_t focus_color);
 
 /**
  * @brief Update all theme colors for live preview

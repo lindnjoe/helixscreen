@@ -22,6 +22,7 @@ typedef struct {
     lv_style_t checkbox_indicator_style; // Checkbox checkmark font (MDI icons)
     lv_style_t switch_indicator_style;   // Switch checked state (accent color)
     lv_style_t switch_knob_style;        // Switch knob (handle) color
+    lv_style_t focus_ring_style;         // Focus ring for accessibility (outline)
     bool is_dark_mode;                   // Track theme mode for context
 } helix_theme_t;
 
@@ -66,13 +67,15 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
     // Apply global disabled state styling (50% opacity for all widgets)
     lv_obj_add_style(obj, &helix->disabled_style, LV_PART_MAIN | LV_STATE_DISABLED);
 
-    // Apply button styling (grey background + radius preservation)
+    // Apply button styling (grey background + radius preservation + focus ring)
 #if LV_USE_BUTTON
     if (lv_obj_check_type(obj, &lv_button_class)) {
         // Default button style: grey background
         lv_obj_add_style(obj, &helix->button_style, LV_PART_MAIN);
         // Preserve radius on press
         lv_obj_add_style(obj, &helix->pressed_style, LV_PART_MAIN | LV_STATE_PRESSED);
+        // Focus ring for accessibility
+        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
     }
 #endif
 
@@ -81,6 +84,8 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
     if (lv_obj_check_type(obj, &lv_textarea_class)) {
         // Remove default card background, add our custom input background
         lv_obj_add_style(obj, &helix->input_bg_style, LV_PART_MAIN);
+        // Focus ring for accessibility
+        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
     }
 #endif
 
@@ -90,6 +95,8 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
         lv_obj_add_style(obj, &helix->input_bg_style, LV_PART_MAIN);
         // Set MDI font for the dropdown indicator (chevron symbol)
         lv_obj_add_style(obj, &helix->dropdown_indicator_style, LV_PART_INDICATOR);
+        // Focus ring for accessibility
+        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
     }
     // Dropdown list uses input bg style to match dropdown button appearance
     if (lv_obj_check_type(obj, &lv_dropdownlist_class)) {
@@ -125,6 +132,15 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
         lv_obj_add_style(obj, &helix->switch_indicator_style, LV_PART_INDICATOR | LV_STATE_CHECKED);
         // Apply text_light color to switch knob for visibility against track
         lv_obj_add_style(obj, &helix->switch_knob_style, LV_PART_KNOB);
+        // Focus ring for accessibility
+        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
+    }
+#endif
+
+#if LV_USE_SLIDER
+    // Focus ring for sliders
+    if (lv_obj_check_type(obj, &lv_slider_class)) {
+        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
     }
 #endif
 }
@@ -132,7 +148,7 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
 lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
                             lv_color_t secondary_color, lv_color_t text_primary_color, bool is_dark,
                             const lv_font_t* base_font, lv_color_t screen_bg, lv_color_t card_bg,
-                            lv_color_t surface_control, int32_t border_radius) {
+                            lv_color_t surface_control, lv_color_t focus_color, int32_t border_radius) {
     // Clean up previous theme instance if exists
     if (helix_theme_instance) {
         lv_style_reset(&helix_theme_instance->input_bg_style);
@@ -143,6 +159,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
         lv_style_reset(&helix_theme_instance->checkbox_indicator_style);
         lv_style_reset(&helix_theme_instance->switch_indicator_style);
         lv_style_reset(&helix_theme_instance->switch_knob_style);
+        lv_style_reset(&helix_theme_instance->focus_ring_style);
         free(helix_theme_instance);
         helix_theme_instance = NULL;
     }
@@ -237,6 +254,14 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
     lv_style_init(&helix_theme_instance->switch_knob_style);
     lv_style_set_bg_color(&helix_theme_instance->switch_knob_style, text_primary_color);
 
+    // Initialize focus ring style for accessibility
+    // Uses outline (not border) to avoid layout shift
+    lv_style_init(&helix_theme_instance->focus_ring_style);
+    lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
+    lv_style_set_outline_width(&helix_theme_instance->focus_ring_style, 2);
+    lv_style_set_outline_opa(&helix_theme_instance->focus_ring_style, LV_OPA_COVER);
+    lv_style_set_outline_pad(&helix_theme_instance->focus_ring_style, 2);
+
     // CRITICAL: Now we need to patch the default theme's color fields
     // This is necessary because LVGL's default theme bakes colors into pre-computed
     // styles during init. We must update both the theme color fields AND the styles.
@@ -295,7 +320,8 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
 }
 
 void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t card_bg,
-                              lv_color_t surface_control, lv_color_t text_primary_color) {
+                              lv_color_t surface_control, lv_color_t text_primary_color,
+                              lv_color_t focus_color) {
     if (!helix_theme_instance) {
         return;
     }
@@ -313,6 +339,9 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
 
     // Update switch knob color
     lv_style_set_bg_color(&helix_theme_instance->switch_knob_style, text_primary_color);
+
+    // Update focus ring color
+    lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
 
     // Update LVGL default theme's internal styles
     // This is the same private API access pattern used in theme_core_init
@@ -403,6 +432,10 @@ void theme_core_preview_colors(bool is_dark, const char* colors[16], int32_t bor
     // Update switch indicator with accent color (colors[8] is primary accent)
     lv_color_t accent_color = lv_color_hex(strtoul(colors[8] + 1, NULL, 16));
     lv_style_set_bg_color(&helix_theme_instance->switch_indicator_style, accent_color);
+
+    // Update focus ring color (colors[15] is focus)
+    lv_color_t focus_color = lv_color_hex(strtoul(colors[15] + 1, NULL, 16));
+    lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
 
     // Update default theme internal styles (private API access)
     typedef struct {

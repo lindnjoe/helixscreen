@@ -607,6 +607,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     const char* card_bg_str = lv_xml_get_const(nullptr, "card_bg");
     const char* surface_control_str = lv_xml_get_const(nullptr, "surface_control");
     const char* text_primary_str = lv_xml_get_const(nullptr, "text_primary");
+    const char* focus_str = lv_xml_get_const(nullptr, "focus");
 
     if (!screen_bg_str || !card_bg_str || !surface_control_str || !text_primary_str) {
         spdlog::error("[Theme] Failed to read auto-registered color constants");
@@ -617,6 +618,8 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     lv_color_t card_bg = theme_manager_parse_hex_color(card_bg_str);
     lv_color_t surface_control = theme_manager_parse_hex_color(surface_control_str);
     lv_color_t text_primary_color = theme_manager_parse_hex_color(text_primary_str);
+    // Default to primary color if focus token not available
+    lv_color_t focus_color = focus_str ? theme_manager_parse_hex_color(focus_str) : primary_color;
 
     // Read border radius from globals.xml
     const char* border_radius_str = lv_xml_get_const(nullptr, "border_radius");
@@ -629,7 +632,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     // Initialize custom HelixScreen theme (wraps LVGL default theme)
     current_theme =
         theme_core_init(display, primary_color, secondary_color, text_primary_color, use_dark_mode,
-                        base_font, screen_bg, card_bg, surface_control, border_radius);
+                        base_font, screen_bg, card_bg, surface_control, focus_color, border_radius);
 
     if (current_theme) {
         lv_display_set_theme(display, current_theme);
@@ -697,6 +700,7 @@ void theme_manager_toggle_dark_mode() {
     const char* card_bg_str = get_themed_color("card_bg", nullptr);
     const char* surface_control_str = get_themed_color("card_alt", "surface_control");
     const char* text_primary_str = get_themed_color("text", "text_primary");
+    const char* focus_str = get_themed_color("focus", nullptr);
 
     if (!screen_bg_str || !card_bg_str || !surface_control_str || !text_primary_str) {
         spdlog::error("[Theme] Failed to read color constants for {} mode",
@@ -708,13 +712,16 @@ void theme_manager_toggle_dark_mode() {
     lv_color_t card_bg = theme_manager_parse_hex_color(card_bg_str);
     lv_color_t surface_control = theme_manager_parse_hex_color(surface_control_str);
     lv_color_t text_primary_color = theme_manager_parse_hex_color(text_primary_str);
+    // Default to primary accent color (#5e81ac) if focus token not available
+    lv_color_t focus_color = focus_str ? theme_manager_parse_hex_color(focus_str)
+                                       : lv_color_hex(0x5e81ac);
 
     spdlog::debug("[Theme] New colors: screen={}, card={}, surface={}, text={}", screen_bg_str,
                   card_bg_str, surface_control_str, text_primary_str);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
     theme_core_update_colors(new_use_dark_mode, screen_bg, card_bg, surface_control,
-                             text_primary_color);
+                             text_primary_color, focus_color);
 
     // Force style refresh on entire widget tree for local/inline styles
     theme_manager_refresh_widget_tree(lv_screen_active());
