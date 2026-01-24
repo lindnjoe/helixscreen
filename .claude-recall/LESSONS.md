@@ -14,8 +14,8 @@
 > 
 
 
-### [L008] [***--|+----] Design tokens mandatory
-- **Uses**: 8 | **Velocity**: 0.51 | **Learned**: 2025-12-14 | **Last**: 2026-01-22 | **Category**: pattern | **Type**: informational
+### [L008] [***--|-----] Design tokens mandatory
+- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-22 | **Category**: pattern | **Type**: informational
 > No hardcoded colors or spacing. Use #card_bg, #space_md, text_body etc. Check globals.xml for available tokens
 
 
@@ -59,8 +59,8 @@
 > LVGL observer callbacks use C-style function signatures (lv_observer_t*, lv_subject_t*) - NOT lambdas. Must pass user_data via lv_observer_get_user_data(observer). Also: lv_subject_set_*() from non-main threads must use ui_async_call() to avoid render-phase assertions.
 
 
-### [L031] [****-|+----] XML no recompile
-- **Uses**: 17 | **Velocity**: 0.51 | **Learned**: 2025-12-27 | **Last**: 2026-01-22 | **Category**: gotcha | **Type**: constraint
+### [L031] [****-|-----] XML no recompile
+- **Uses**: 17 | **Velocity**: 0.01 | **Learned**: 2025-12-27 | **Last**: 2026-01-22 | **Category**: gotcha | **Type**: constraint
 > 
 
 
@@ -79,8 +79,8 @@
 > All XML event_cb callback names must be globally unique using on_<component>_<action> pattern. LVGL's XML callback registry is a flat global namespace with no scoping. Generic names like on_modal_ok_clicked cause collisions when multiple components register handlers.
 
 
-### [L040] [**---|-----] Inline XML attrs override bind_style
-- **Uses**: 3 | **Velocity**: 0.01 | **Learned**: 2025-12-30 | **Last**: 2025-12-30 | **Category**: gotcha | **Type**: constraint
+### [L040] [**---|+----] Inline XML attrs override bind_style
+- **Uses**: 4 | **Velocity**: 0.51 | **Learned**: 2025-12-30 | **Last**: 2026-01-23 | **Category**: gotcha | **Type**: constraint
 > When using bind_style for reactive visual changes, inline style attributes (style_bg_color, style_text_color, etc.) have higher priority in LVGL's style cascade. bind_style cannot override them. Solution: use TWO bind_styles (one per state) with NO inline styling for properties you want to change reactively.
 
 
@@ -94,8 +94,8 @@
 > Use Sonnet (not Haiku) for architectural-level code reviews, structural changes, or final comprehensive reviews. Haiku is fine for quick single-file spot-checks with clear pass/fail criteria.
 
 
-### [L045] [*----|-----] LVGL dropdown options
-- **Uses**: 2 | **Velocity**: 0.25 | **Learned**: 2026-01-06 | **Last**: 2026-01-22 | **Category**: correction | **Type**: constraint
+### [L045] [**---|-----] LVGL dropdown options
+- **Uses**: 3 | **Velocity**: 0.04 | **Learned**: 2026-01-06 | **Last**: 2026-01-23 | **Category**: correction | **Type**: constraint
 > LVGL dropdowns do NOT support bind_options in XML. Always use lv_dropdown_set_options() directly in C++ code to set dropdown options dynamically. All other dropdowns in the codebase follow this pattern.
 
 
@@ -119,8 +119,8 @@
 > When context compacts mid-session, agent outputs are summarized away but full content is preserved in the session JSONL. To recover: 1) Find current session file in ~/.claude/projects/<project>/<session-id>.jsonl (use ls -lt to find most recent), 2) Search for agent outputs: grep "tool_result.*agentId" <file>.jsonl, 3) Search for distinctive keywords from lost work to extract full analysis. The JSONL is append-only so nothing is truly lost - compaction only affects Claude's active context window.
 
 
-### [L051] [*----|-----] LVGL timer lifetime safety
-- **Uses**: 2 | **Velocity**: 0.01 | **Learned**: 2026-01-08 | **Last**: 2026-01-08 | **Category**: gotcha | **Type**: constraint
+### [L051] [**---|-----] LVGL timer lifetime safety
+- **Uses**: 3 | **Velocity**: 0.02 | **Learned**: 2026-01-08 | **Last**: 2026-01-23 | **Category**: gotcha | **Type**: constraint
 > When using lv_timer_create with object pointer as user_data, wrap in struct that captures alive_guard. Check alive_guard BEFORE dereferencing object pointer to prevent use-after-free if object destroyed during timer delay.
 
 
