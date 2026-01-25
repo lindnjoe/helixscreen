@@ -1,6 +1,9 @@
 # Sensor Framework Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> Use superpowers:subagent-driven-development for parallel task execution where tasks are independent.
+
+**Branch:** `sensor-framework`
 
 **Goal:** Build a unified sensor management framework supporting switch, width, color, humidity, probe, and accelerometer sensors with TDD.
 
