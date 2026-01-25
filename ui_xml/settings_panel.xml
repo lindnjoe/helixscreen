@@ -49,7 +49,7 @@
             width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_led" flag="hidden" ref_value="0"/>
       <setting_toggle_row name="row_led_light"
-                          label="LED Light" icon="light" description="Toggle printer LED strip"
+                          label="LED on at Start" icon="light" description="Turn on LED when printer starts"
                           callback="on_led_light_changed"/>
     </lv_obj>
     <!-- Firmware Retraction Settings (hidden if no firmware_retraction capability) -->

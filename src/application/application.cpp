@@ -1319,6 +1319,9 @@ bool Application::connect_moonraker() {
             if (c->app->m_plugin_manager) {
                 c->app->m_plugin_manager->on_moonraker_connected();
             }
+
+            // Apply LED startup preference (turn on LED if user preference is enabled)
+            SettingsManager::instance().apply_led_startup_preference();
         });
     });
 

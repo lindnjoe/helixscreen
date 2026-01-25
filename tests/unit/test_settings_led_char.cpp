@@ -217,6 +217,7 @@ TEST_CASE("Settings LED: subject update guard", "[settings][led]") {
         bool has_api = false;
         std::string configured_led;
         bool command_was_sent = false;
+        bool config_led_on_at_start = false;
 
         // New behavior: only update state if command can be sent
         bool set_led_enabled(bool enabled) {
@@ -227,7 +228,23 @@ TEST_CASE("Settings LED: subject update guard", "[settings][led]") {
 
             led_enabled = enabled;
             command_was_sent = true;
+            // Persist to config
+            config_led_on_at_start = enabled;
             return true;
+        }
+
+        // Apply startup preference - called after connection established
+        bool apply_led_startup_preference() {
+            if (!config_led_on_at_start) {
+                return false; // Nothing to do
+            }
+            // Turn LED on if preference is enabled
+            if (has_api && !configured_led.empty()) {
+                led_enabled = true;
+                command_was_sent = true;
+                return true;
+            }
+            return false;
         }
     };
 
@@ -267,5 +284,93 @@ TEST_CASE("Settings LED: subject update guard", "[settings][led]") {
         REQUIRE(result);
         REQUIRE(mgr.led_enabled); // Updated
         REQUIRE(mgr.command_was_sent);
+    }
+
+    SECTION("set_led_enabled persists preference to config") {
+        mgr.has_api = true;
+        mgr.configured_led = "caselight";
+        mgr.config_led_on_at_start = false;
+
+        mgr.set_led_enabled(true);
+        REQUIRE(mgr.config_led_on_at_start == true);
+
+        mgr.set_led_enabled(false);
+        REQUIRE(mgr.config_led_on_at_start == false);
+    }
+}
+
+// ============================================================================
+// Test: LED Startup Preference
+// ============================================================================
+
+TEST_CASE("Settings LED: startup preference", "[settings][led]") {
+    struct LedStartupManager {
+        bool led_enabled = false;
+        bool has_api = false;
+        std::string configured_led;
+        bool command_was_sent = false;
+        bool config_led_on_at_start = false;
+
+        bool apply_led_startup_preference() {
+            if (!config_led_on_at_start) {
+                return false; // Nothing to do
+            }
+            if (has_api && !configured_led.empty()) {
+                led_enabled = true;
+                command_was_sent = true;
+                return true;
+            }
+            return false;
+        }
+    };
+
+    LedStartupManager mgr;
+
+    SECTION("does nothing when preference is off") {
+        mgr.has_api = true;
+        mgr.configured_led = "caselight";
+        mgr.config_led_on_at_start = false;
+
+        bool result = mgr.apply_led_startup_preference();
+
+        REQUIRE_FALSE(result);
+        REQUIRE_FALSE(mgr.led_enabled);
+        REQUIRE_FALSE(mgr.command_was_sent);
+    }
+
+    SECTION("turns LED on when preference is enabled") {
+        mgr.has_api = true;
+        mgr.configured_led = "caselight";
+        mgr.config_led_on_at_start = true;
+
+        bool result = mgr.apply_led_startup_preference();
+
+        REQUIRE(result);
+        REQUIRE(mgr.led_enabled);
+        REQUIRE(mgr.command_was_sent);
+    }
+
+    SECTION("does nothing when preference on but no API") {
+        mgr.has_api = false;
+        mgr.configured_led = "caselight";
+        mgr.config_led_on_at_start = true;
+
+        bool result = mgr.apply_led_startup_preference();
+
+        REQUIRE_FALSE(result);
+        REQUIRE_FALSE(mgr.led_enabled);
+        REQUIRE_FALSE(mgr.command_was_sent);
+    }
+
+    SECTION("does nothing when preference on but no LED configured") {
+        mgr.has_api = true;
+        mgr.configured_led = "";
+        mgr.config_led_on_at_start = true;
+
+        bool result = mgr.apply_led_startup_preference();
+
+        REQUIRE_FALSE(result);
+        REQUIRE_FALSE(mgr.led_enabled);
+        REQUIRE_FALSE(mgr.command_was_sent);
     }
 }

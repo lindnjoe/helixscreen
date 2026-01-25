@@ -316,12 +316,20 @@ class SettingsManager {
     /**
      * @brief Set LED enabled state
      *
-     * Updates subject and sends Moonraker command if client is connected.
-     * Note: Does NOT persist - LED state is ephemeral.
+     * Updates subject, sends Moonraker command, and persists startup preference.
+     * The LED state is saved as "LED on at start" preference.
      *
      * @param enabled true to turn on, false to turn off
      */
     void set_led_enabled(bool enabled);
+
+    /**
+     * @brief Apply LED startup preference from config
+     *
+     * Reads /output/led_on_at_start from config and turns LED on if enabled.
+     * Call this after Moonraker connection is established and LED name is configured.
+     */
+    void apply_led_startup_preference();
 
     // =========================================================================
     // INPUT SETTINGS (require restart)

@@ -474,7 +474,25 @@ void SettingsManager::set_led_enabled(bool enabled) {
     // 2. Send command to printer
     send_led_command(enabled);
 
-    // Note: LED state is NOT persisted - it's ephemeral
+    // 3. Persist startup preference to config
+    Config* config = Config::get_instance();
+    config->set<bool>("/output/led_on_at_start", enabled);
+    config->save();
+}
+
+void SettingsManager::apply_led_startup_preference() {
+    Config* config = Config::get_instance();
+    bool led_on_at_start = config->get<bool>("/output/led_on_at_start", false);
+
+    if (led_on_at_start) {
+        spdlog::info("[SettingsManager] Applying LED startup preference: ON");
+        // Update subject to reflect state
+        lv_subject_set_int(&led_enabled_subject_, 1);
+        // Send command to turn LED on
+        send_led_command(true);
+    } else {
+        spdlog::debug("[SettingsManager] LED startup preference: OFF (no action needed)");
+    }
 }
 
 void SettingsManager::send_led_command(bool enabled) {
