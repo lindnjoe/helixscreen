@@ -177,11 +177,56 @@ Added `unblank_display()` and `blank_display()` methods to `DisplayBackendFbdev`
 This should eliminate the need for shell script backlight hacks and work
 regardless of ForgeX display mode setting.
 
+## Screen Dimming Fix (2026-01-25)
+
+### The Problem
+After HelixScreen runs for ~3 seconds, the screen dims to 10% brightness.
+
+**Root cause**: ForgeX's `headless.cfg` has a `reset_screen` delayed_gcode that runs
+3 seconds after Klipper starts:
+
+```ini
+[delayed_gcode reset_screen]
+initial_duration: 3
+gcode:
+    RUN_SHELL_COMMAND CMD=screen PARAMS='draw_splash'
+    _BACKLIGHT S={printer.mod_params.variables.backlight_eco}
+```
+
+The `_BACKLIGHT` macro calls `screen.sh backlight {value}`, which sets backlight
+to `backlight_eco` (typically 10%).
+
+**Location**: `/data/.mod/.forge-x/root/printer_data/config/mod/macros/headless.cfg`
+
+### The Fix
+Patch `/opt/config/mod/.shell/screen.sh` to skip backlight commands when
+HelixScreen is active (indicated by `/tmp/helixscreen_active` flag file).
+
+**Patch applied to screen.sh** (in `backlight)` case):
+```bash
+backlight)
+    # Skip if HelixScreen is controlling the display
+    if [ -f /tmp/helixscreen_active ]; then
+        exit 0
+    fi
+    value=$2
+    ...
+```
+
+**Installer handles this automatically**:
+- `install.sh` patches screen.sh during ForgeX installation
+- `install.sh --uninstall` removes the patch
+
+### Flag File
+- `/tmp/helixscreen_active` - created by init script on start, removed on stop
+- Tells ForgeX scripts to leave display alone while HelixScreen is running
+
 ## Common Issues
 
 1. **Garbled display**: Usually wrong FB format or something drawing over it
 2. **Black screen**: Backlight not enabled
 3. **ForgeX messages over UI**: S99root's `logged --send-to-screen` output after our init
+4. **Screen dims after ~3 seconds**: ForgeX delayed_gcode - see "Screen Dimming Fix" above
 
 ## Build Notes
 

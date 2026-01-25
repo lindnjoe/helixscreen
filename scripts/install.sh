@@ -216,6 +216,103 @@ configure_forgex_display() {
     return 1
 }
 
+# Patch ForgeX screen.sh to skip backlight control when HelixScreen is active
+# ForgeX's headless.cfg runs a delayed_gcode that dims the backlight 3 seconds after
+# Klipper starts. This patch makes screen.sh check for /tmp/helixscreen_active flag.
+patch_forgex_screen_sh() {
+    local screen_sh="/opt/config/mod/.shell/screen.sh"
+
+    if [ ! -f "$screen_sh" ]; then
+        log_info "ForgeX screen.sh not found, skipping patch"
+        return 1
+    fi
+
+    # Check if already patched
+    if grep -q "helixscreen_active" "$screen_sh" 2>/dev/null; then
+        log_info "ForgeX screen.sh already patched"
+        return 0
+    fi
+
+    # Find the backlight) case and add our guard
+    if ! grep -q "^[[:space:]]*backlight)" "$screen_sh"; then
+        log_info "Could not find backlight case in screen.sh"
+        return 1
+    fi
+
+    log_info "Patching ForgeX screen.sh to respect HelixScreen backlight control..."
+
+    # Use awk to insert our check after "backlight)" line (BusyBox compatible)
+    local tmp_file="${screen_sh}.tmp"
+    awk '
+    /^[[:space:]]*backlight\)/ {
+        print
+        print "        # Skip if HelixScreen is controlling the display"
+        print "        if [ -f /tmp/helixscreen_active ]; then"
+        print "            exit 0"
+        print "        fi"
+        next
+    }
+    { print }
+    ' "$screen_sh" > "$tmp_file"
+
+    if [ -s "$tmp_file" ] && grep -q "helixscreen_active" "$tmp_file" 2>/dev/null; then
+        $SUDO mv "$tmp_file" "$screen_sh"
+        $SUDO chmod +x "$screen_sh"
+        log_success "ForgeX screen.sh patched"
+        return 0
+    else
+        rm -f "$tmp_file"
+        log_warn "Failed to patch ForgeX screen.sh"
+        return 1
+    fi
+}
+
+# Remove HelixScreen patch from ForgeX screen.sh (for uninstall)
+unpatch_forgex_screen_sh() {
+    local screen_sh="/opt/config/mod/.shell/screen.sh"
+
+    if [ ! -f "$screen_sh" ]; then
+        return 1
+    fi
+
+    # Check if patched
+    if ! grep -q "helixscreen_active" "$screen_sh" 2>/dev/null; then
+        log_info "ForgeX screen.sh not patched, nothing to remove"
+        return 0
+    fi
+
+    log_info "Removing HelixScreen patch from ForgeX screen.sh..."
+
+    # Use awk to remove only our specific block (BusyBox compatible)
+    # Match and skip: comment line, if line with helixscreen_active, exit 0, fi
+    local tmp_file="${screen_sh}.tmp"
+    awk '
+    /# Skip if HelixScreen is controlling the display/ { skip=1; next }
+    /if \[ -f \/tmp\/helixscreen_active \]; then/ { skip=1; next }
+    skip && /^[[:space:]]*exit 0[[:space:]]*$/ { next }
+    skip && /^[[:space:]]*fi[[:space:]]*$/ { skip=0; next }
+    { print }
+    ' "$screen_sh" > "$tmp_file"
+
+    if [ -s "$tmp_file" ]; then
+        $SUDO mv "$tmp_file" "$screen_sh"
+        $SUDO chmod +x "$screen_sh"
+    else
+        rm -f "$tmp_file"
+        log_warn "Failed to unpatch ForgeX screen.sh"
+        return 1
+    fi
+
+    # Verify removal
+    if grep -q "helixscreen_active" "$screen_sh" 2>/dev/null; then
+        log_warn "Could not fully remove patch from screen.sh"
+        return 1
+    fi
+
+    log_success "ForgeX screen.sh patch removed"
+    return 0
+}
+
 # Disable stock FlashForge UI in auto_run.sh
 # The stock firmware UI (ffstartup-arm/firmwareExe) is started by /opt/auto_run.sh
 # which runs AFTER init scripts. We comment out the line to prevent it starting.
@@ -895,6 +992,8 @@ uninstall() {
         fi
         # Restore stock FlashForge UI in auto_run.sh
         restore_stock_firmware_ui || true
+        # Remove HelixScreen patch from screen.sh
+        unpatch_forgex_screen_sh || true
         # Re-enable GuppyScreen init script
         if [ -f "/opt/config/mod/.root/S80guppyscreen" ]; then
             $SUDO chmod +x "/opt/config/mod/.root/S80guppyscreen" 2>/dev/null || true
@@ -1110,6 +1209,8 @@ main() {
         configure_forgex_display || true
         # Also disable stock FlashForge UI in auto_run.sh (runs after init scripts)
         disable_stock_firmware_ui || true
+        # Patch screen.sh to skip backlight control when HelixScreen is active
+        patch_forgex_screen_sh || true
     fi
 
     # Stop competing UIs (GuppyScreen, KlipperScreen, FeatherScreen, etc.)
