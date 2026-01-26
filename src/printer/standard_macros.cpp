@@ -57,7 +57,7 @@ const std::map<StandardMacroSlot, std::string> FALLBACK_MACROS = {
     {StandardMacroSlot::Pause,          ""},
     {StandardMacroSlot::Resume,         ""},
     {StandardMacroSlot::Cancel,         ""},
-    {StandardMacroSlot::BedMesh,        ""},
+    {StandardMacroSlot::BedMesh,        "HELIX_BED_MESH_IF_NEEDED"},
     {StandardMacroSlot::BedLevel,       ""},
     {StandardMacroSlot::CleanNozzle,    "HELIX_CLEAN_NOZZLE"},
     {StandardMacroSlot::HeatSoak,       ""},

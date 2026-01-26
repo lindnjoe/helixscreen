@@ -326,7 +326,7 @@ TEST_CASE("StandardMacros - HELIX fallbacks", "[standard_macros]") {
 
     helix::PrinterDiscovery hardware;
     json objects = {"extruder", "gcode_macro HELIX_BED_LEVEL_IF_NEEDED",
-                    "gcode_macro HELIX_CLEAN_NOZZLE"};
+                    "gcode_macro HELIX_CLEAN_NOZZLE", "gcode_macro HELIX_BED_MESH_IF_NEEDED"};
     hardware.parse_objects(objects);
 
     macros.init(hardware);
@@ -349,6 +349,13 @@ TEST_CASE("StandardMacros - HELIX fallbacks", "[standard_macros]") {
         REQUIRE(clean_nozzle.get_source() == MacroSource::FALLBACK);
     }
 
+    SECTION("BedMesh has HELIX fallback when installed") {
+        const auto& bed_mesh = macros.get(StandardMacroSlot::BedMesh);
+        REQUIRE(bed_mesh.fallback_macro == "HELIX_BED_MESH_IF_NEEDED");
+        REQUIRE_FALSE(bed_mesh.is_empty());
+        REQUIRE(bed_mesh.get_source() == MacroSource::FALLBACK);
+    }
+
     SECTION("Other slots have no fallbacks") {
         REQUIRE(macros.get(StandardMacroSlot::LoadFilament).fallback_macro.empty());
         REQUIRE(macros.get(StandardMacroSlot::UnloadFilament).fallback_macro.empty());
@@ -356,7 +363,6 @@ TEST_CASE("StandardMacros - HELIX fallbacks", "[standard_macros]") {
         REQUIRE(macros.get(StandardMacroSlot::Pause).fallback_macro.empty());
         REQUIRE(macros.get(StandardMacroSlot::Resume).fallback_macro.empty());
         REQUIRE(macros.get(StandardMacroSlot::Cancel).fallback_macro.empty());
-        REQUIRE(macros.get(StandardMacroSlot::BedMesh).fallback_macro.empty());
         REQUIRE(macros.get(StandardMacroSlot::BedLevel).fallback_macro.empty());
         REQUIRE(macros.get(StandardMacroSlot::HeatSoak).fallback_macro.empty());
     }
