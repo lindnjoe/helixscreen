@@ -1292,9 +1292,16 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     // Compute knob color: brighter of primary vs tertiary
     lv_color_t knob_color = theme_compute_more_saturated(primary, tertiary);
 
-    // Labels - set text color
+    // Labels - set text color (but icons get accent color)
     if (lv_obj_check_type(obj, &lv_label_class)) {
-        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        const char* obj_name = lv_obj_get_name(obj);
+        if (obj_name && strstr(obj_name, "icon") != nullptr) {
+            // Icons with "icon" in name get accent color (more saturated of primary/secondary)
+            lv_color_t accent_color = theme_compute_more_saturated(primary, secondary);
+            lv_obj_set_style_text_color(obj, accent_color, LV_PART_MAIN);
+        } else {
+            lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        }
         return;
     }
 
