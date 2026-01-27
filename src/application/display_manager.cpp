@@ -119,7 +119,11 @@ bool DisplayManager::init(const Config& config) {
     // Configure scroll behavior and sleep-aware wrapper
     if (m_pointer) {
         configure_scroll(config.scroll_throw, config.scroll_limit);
+#ifndef HELIX_DISPLAY_SDL
+        // Only install on embedded - SDL's event handler identifies the mouse device
+        // by checking if read_cb == sdl_mouse_read, which our wrapper breaks
         install_sleep_aware_input_wrapper();
+#endif
     }
 
     // Create keyboard input device (optional)
@@ -364,6 +368,11 @@ void DisplayManager::wake_display() {
         if (m_backend) {
             m_backend->unblank_display();
         }
+
+        // Reset LVGL's inactivity timer so we don't immediately go back to sleep.
+        // When touch is absorbed by sleep_aware_read_cb, LVGL doesn't register activity,
+        // so without this the display would wake and immediately sleep again.
+        lv_display_trigger_activity(nullptr);
     }
 
     // Restore configured brightness from settings
