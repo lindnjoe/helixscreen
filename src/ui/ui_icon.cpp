@@ -145,8 +145,8 @@ static void apply_variant(lv_obj_t* obj, IconVariant variant) {
         color = theme_manager_get_color("text_muted");
         break;
     case IconVariant::ACCENT:
-        // Accent color (red)
-        color = theme_manager_get_color("primary");
+        // Accent color: more saturated of primary vs secondary
+        color = theme_get_accent_color();
         break;
     case IconVariant::DISABLED:
         // Primary text color at 50% opacity

@@ -258,6 +258,7 @@ class DisplaySettingsOverlay : public OverlayBase {
     static void on_apply_theme_clicked(lv_event_t* e);
     static void on_edit_colors_clicked(lv_event_t* e);
     static void on_preview_dark_mode_toggled(lv_event_t* e);
+    static void on_preview_open_modal(lv_event_t* e);
 
   public:
     /**

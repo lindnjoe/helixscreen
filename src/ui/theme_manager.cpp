@@ -71,7 +71,7 @@ static const char* darken_hex_color(const char* hex_str, float percent) {
  * Uses standard luminance formula: 0.299*R + 0.587*G + 0.114*B
  * @return Brightness value 0-255
  */
-static int color_brightness(lv_color_t color) {
+int theme_compute_brightness(lv_color_t color) {
     uint32_t c = lv_color_to_u32(color);
     uint8_t r = (c >> 16) & 0xFF;
     uint8_t g = (c >> 8) & 0xFF;
@@ -82,8 +82,79 @@ static int color_brightness(lv_color_t color) {
 /**
  * @brief Return the brighter of two colors
  */
+lv_color_t theme_compute_brighter_color(lv_color_t a, lv_color_t b) {
+    return theme_compute_brightness(a) >= theme_compute_brightness(b) ? a : b;
+}
+
+/**
+ * @brief Compute saturation of a color (0-255)
+ *
+ * Uses HSV saturation: (max - min) / max * 255
+ * Returns 0 for grayscale colors, higher for more vivid colors.
+ */
+int theme_compute_saturation(lv_color_t c) {
+    int max_val =
+        c.red > c.green ? (c.red > c.blue ? c.red : c.blue) : (c.green > c.blue ? c.green : c.blue);
+    int min_val =
+        c.red < c.green ? (c.red < c.blue ? c.red : c.blue) : (c.green < c.blue ? c.green : c.blue);
+    if (max_val == 0)
+        return 0;
+    return (max_val - min_val) * 255 / max_val;
+}
+
+/**
+ * @brief Return the more saturated of two colors
+ *
+ * Useful for accent colors where you want the more vivid/colorful option
+ * rather than the literally brighter one.
+ */
+lv_color_t theme_compute_more_saturated(lv_color_t a, lv_color_t b) {
+    return theme_compute_saturation(a) >= theme_compute_saturation(b) ? a : b;
+}
+
+// Internal helpers for backward compatibility
+static int color_brightness(lv_color_t color) {
+    return theme_compute_brightness(color);
+}
+
 static lv_color_t brighter_color(lv_color_t a, lv_color_t b) {
-    return color_brightness(a) >= color_brightness(b) ? a : b;
+    return theme_compute_brighter_color(a, b);
+}
+
+static lv_color_t more_saturated_color(lv_color_t a, lv_color_t b) {
+    return theme_compute_more_saturated(a, b);
+}
+
+lv_color_t theme_get_knob_color() {
+    // Knob color: more saturated of primary vs tertiary (for switch/slider handles)
+    const char* primary_str = lv_xml_get_const(nullptr, "primary");
+    const char* tertiary_str = lv_xml_get_const(nullptr, "tertiary");
+
+    if (!primary_str) {
+        spdlog::warn("[Theme] theme_get_knob_color: missing 'primary' constant");
+        return lv_color_hex(0x5e81ac); // Fallback to Nord blue
+    }
+
+    lv_color_t primary = theme_manager_parse_hex_color(primary_str);
+    lv_color_t tertiary = tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : primary;
+
+    return theme_compute_more_saturated(primary, tertiary);
+}
+
+lv_color_t theme_get_accent_color() {
+    // Accent color: more saturated of primary vs secondary (for icon accents)
+    const char* primary_str = lv_xml_get_const(nullptr, "primary");
+    const char* secondary_str = lv_xml_get_const(nullptr, "secondary");
+
+    if (!primary_str) {
+        spdlog::warn("[Theme] theme_get_accent_color: missing 'primary' constant");
+        return lv_color_hex(0x5e81ac); // Fallback to Nord blue
+    }
+
+    lv_color_t primary = theme_manager_parse_hex_color(primary_str);
+    lv_color_t secondary = secondary_str ? theme_manager_parse_hex_color(secondary_str) : primary;
+
+    return theme_compute_more_saturated(primary, secondary);
 }
 
 /**
@@ -624,13 +695,11 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     const char* border_width_str = lv_xml_get_const(nullptr, "border_width");
     int32_t border_width = border_width_str ? atoi(border_width_str) : 1;
 
-    // Compute knob color: brighter of secondary vs tertiary for slider/switch handles
-    // Note: We use secondary/tertiary (accent colors), not primary (which may be neutral in some
-    // themes)
+    // Compute knob color: brighter of primary vs tertiary for slider/switch handles
     const char* tertiary_str = lv_xml_get_const(nullptr, "tertiary");
     lv_color_t tertiary_color =
-        tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : secondary_color;
-    lv_color_t knob_color = brighter_color(secondary_color, tertiary_color);
+        tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : primary_color;
+    lv_color_t knob_color = more_saturated_color(primary_color, tertiary_color);
 
     // Initialize custom HelixScreen theme (wraps LVGL default theme)
     current_theme = theme_core_init(
@@ -731,10 +800,10 @@ void theme_manager_toggle_dark_mode() {
     // Default to card_alt if border token not available
     lv_color_t border_color = border_str ? theme_manager_parse_hex_color(border_str) : card_alt;
 
-    // Compute knob color: brighter of secondary vs tertiary
+    // Compute knob color: brighter of primary vs tertiary
     lv_color_t tertiary_color =
-        tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : secondary_color;
-    lv_color_t knob_color = brighter_color(secondary_color, tertiary_color);
+        tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : primary_color;
+    lv_color_t knob_color = more_saturated_color(primary_color, tertiary_color);
 
     spdlog::debug("[Theme] New colors: screen={}, card={}, card_alt={}, text={}", screen_bg_str,
                   card_bg_str, card_alt_str, text_str);
@@ -820,6 +889,9 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     lv_color_t warning = theme_manager_parse_hex_color(palette->warning.c_str());
     lv_color_t danger = theme_manager_parse_hex_color(palette->danger.c_str());
     lv_color_t info = theme_manager_parse_hex_color(palette->info.c_str());
+
+    // Knob color: brighter of primary vs tertiary (for switch/slider handles)
+    lv_color_t knob_color = more_saturated_color(primary, tertiary);
 
     // ========================================================================
     // OVERLAY BACKGROUNDS - Update BOTH theme_preview_overlay AND theme_settings_overlay
@@ -1053,38 +1125,46 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     }
 
     // ========================================================================
-    // SLIDER - track (border), indicator (secondary), knob (primary)
+    // ICONS - accent variant uses brighter of primary vs secondary
+    // ========================================================================
+    lv_color_t accent_color = more_saturated_color(primary, secondary);
+    lv_obj_t* icon = lv_obj_find_by_name(root, "preview_icon_typography");
+    if (icon) {
+        lv_obj_set_style_text_color(icon, accent_color, LV_PART_MAIN);
+    }
+    icon = lv_obj_find_by_name(root, "preview_icon_actions");
+    if (icon) {
+        lv_obj_set_style_text_color(icon, accent_color, LV_PART_MAIN);
+    }
+
+    // ========================================================================
+    // SLIDER - track (border), indicator (secondary), knob (brighter of primary/tertiary)
     // ========================================================================
     lv_obj_t* slider = lv_obj_find_by_name(root, "preview_intensity_slider");
     if (slider) {
-        // Track (unfilled portion) - uses border color
         lv_obj_set_style_bg_color(slider, border, LV_PART_MAIN);
-        // Indicator (filled portion) - uses secondary accent color
         lv_obj_set_style_bg_color(slider, secondary, LV_PART_INDICATOR);
-        // Knob - uses primary accent color
-        lv_obj_set_style_bg_color(slider, primary, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(slider, knob_color, LV_PART_KNOB);
         lv_obj_set_style_shadow_color(slider, app_bg, LV_PART_KNOB);
     }
 
     // ========================================================================
-    // SWITCH - track (OFF state)=border, indicator (ON)=secondary, knob=primary
+    // SWITCH - track=border, indicator=secondary, knob=brighter of primary/tertiary
     // ========================================================================
     lv_obj_t* sw = lv_obj_find_by_name(root, "preview_switch");
     if (sw) {
         lv_obj_set_style_bg_color(sw, border, LV_PART_MAIN);
         lv_obj_set_style_bg_color(sw, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_set_style_bg_color(sw, primary, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(sw, knob_color, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(sw, knob_color, LV_PART_KNOB | LV_STATE_CHECKED);
     }
     sw = lv_obj_find_by_name(root, "preview_dark_mode_toggle");
     if (sw) {
-        // Find the actual switch inside the ui_switch wrapper
-        lv_obj_t* inner_switch = lv_obj_find_by_name(sw, "switch");
-        if (inner_switch) {
-            lv_obj_set_style_bg_color(inner_switch, border, LV_PART_MAIN);
-            lv_obj_set_style_bg_color(inner_switch, secondary,
-                                      LV_PART_INDICATOR | LV_STATE_CHECKED);
-            lv_obj_set_style_bg_color(inner_switch, primary, LV_PART_KNOB);
-        }
+        // ui_switch creates lv_switch directly (no wrapper), so sw IS the switch
+        lv_obj_set_style_bg_color(sw, border, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(sw, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(sw, knob_color, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(sw, knob_color, LV_PART_KNOB | LV_STATE_CHECKED);
     }
 
     // ========================================================================
@@ -1147,6 +1227,151 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     }
 
     spdlog::trace("[Theme] Refreshed preview elements");
+}
+
+// ============================================================================
+// Palette Application Functions (for DRY preview styling)
+// ============================================================================
+
+/**
+ * Helper to update button label text with contrast-aware color
+ * text_light = dark text for light backgrounds
+ * text_dark = light text for dark backgrounds
+ */
+static void apply_button_text_contrast(lv_obj_t* btn, lv_color_t text_light, lv_color_t text_dark) {
+    if (!btn)
+        return;
+
+    // Get button's background color
+    lv_color_t bg_color = lv_obj_get_style_bg_color(btn, LV_PART_MAIN);
+    uint8_t lum = lv_color_luminance(bg_color);
+
+    // Pick text color based on luminance (same threshold as text_button component)
+    lv_color_t text_color = (lum > 140) ? text_light : text_dark;
+
+    // Check for disabled state - use muted color
+    bool btn_disabled = lv_obj_has_state(btn, LV_STATE_DISABLED);
+    if (btn_disabled) {
+        // Blend toward gray for disabled state
+        text_color = lv_color_mix(text_color, lv_color_hex(0x888888), 128);
+    }
+
+    // Update all label children in the button
+    uint32_t count = lv_obj_get_child_count(btn);
+    for (uint32_t i = 0; i < count; i++) {
+        lv_obj_t* child = lv_obj_get_child(btn, i);
+        if (lv_obj_check_type(child, &lv_label_class)) {
+            lv_obj_set_style_text_color(child, text_color, LV_PART_MAIN);
+        }
+        // Also check nested containers (some buttons have container > label structure)
+        uint32_t nested_count = lv_obj_get_child_count(child);
+        for (uint32_t j = 0; j < nested_count; j++) {
+            lv_obj_t* nested = lv_obj_get_child(child, j);
+            if (lv_obj_check_type(nested, &lv_label_class)) {
+                lv_obj_set_style_text_color(nested, text_color, LV_PART_MAIN);
+            }
+        }
+    }
+}
+
+void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette,
+                                   lv_color_t text_light, lv_color_t text_dark) {
+    if (!obj)
+        return;
+
+    // Parse palette colors
+    lv_color_t app_bg = theme_manager_parse_hex_color(palette.app_bg.c_str());
+    lv_color_t card_bg = theme_manager_parse_hex_color(palette.card_bg.c_str());
+    lv_color_t card_alt = theme_manager_parse_hex_color(palette.card_alt.c_str());
+    lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
+    lv_color_t text_primary = theme_manager_parse_hex_color(palette.text.c_str());
+    lv_color_t primary = theme_manager_parse_hex_color(palette.primary.c_str());
+    lv_color_t secondary = theme_manager_parse_hex_color(palette.secondary.c_str());
+    lv_color_t tertiary = theme_manager_parse_hex_color(palette.tertiary.c_str());
+
+    // Compute knob color: brighter of primary vs tertiary
+    lv_color_t knob_color = theme_compute_more_saturated(primary, tertiary);
+
+    // Labels - set text color
+    if (lv_obj_check_type(obj, &lv_label_class)) {
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        return;
+    }
+
+    // Buttons - set background and text contrast
+    if (lv_obj_check_type(obj, &lv_button_class)) {
+        // Don't change button background - that's set by specific widget naming
+        // Just update text contrast based on current background
+        apply_button_text_contrast(obj, text_light, text_dark);
+        return;
+    }
+
+    // Switches - track, indicator, knob (knob same color for both DEFAULT and CHECKED)
+    if (lv_obj_check_type(obj, &lv_switch_class)) {
+        lv_obj_set_style_bg_color(obj, border, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB | LV_STATE_CHECKED);
+        return;
+    }
+
+    // Sliders - track, indicator, knob
+    if (lv_obj_check_type(obj, &lv_slider_class)) {
+        lv_obj_set_style_bg_color(obj, border, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB);
+        lv_obj_set_style_shadow_color(obj, app_bg, LV_PART_KNOB);
+        return;
+    }
+
+    // Dropdowns - background, border, text
+    if (lv_obj_check_type(obj, &lv_dropdown_class)) {
+        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        return;
+    }
+
+    // Textareas - background, text
+    if (lv_obj_check_type(obj, &lv_textarea_class)) {
+        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        return;
+    }
+
+    // Generic containers - check for card naming convention
+    const char* obj_name = lv_obj_get_name(obj);
+    if (obj_name) {
+        // Cards with "card" in the name get card_bg background
+        if (strstr(obj_name, "card") != nullptr) {
+            lv_obj_set_style_bg_color(obj, card_bg, LV_PART_MAIN);
+            lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
+        }
+        // Background containers get app_bg
+        else if (strstr(obj_name, "background") != nullptr) {
+            lv_obj_set_style_bg_color(obj, app_bg, LV_PART_MAIN);
+        }
+        // Header containers get app_bg
+        else if (strstr(obj_name, "header") != nullptr) {
+            lv_obj_set_style_bg_color(obj, app_bg, LV_PART_MAIN);
+        }
+    }
+}
+
+void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette,
+                                 lv_color_t text_light, lv_color_t text_dark) {
+    if (!root)
+        return;
+
+    // Apply to this widget
+    theme_apply_palette_to_widget(root, palette, text_light, text_dark);
+
+    // Recurse into children
+    uint32_t child_count = lv_obj_get_child_count(root);
+    for (uint32_t i = 0; i < child_count; i++) {
+        lv_obj_t* child = lv_obj_get_child(root, i);
+        theme_apply_palette_to_tree(child, palette, text_light, text_dark);
+    }
 }
 
 /**

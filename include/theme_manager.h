@@ -17,11 +17,8 @@
 
 #include "lvgl/lvgl.h"
 
-// Forward declare
-namespace helix {
-struct ThemeData;
-enum class ThemeModeSupport;
-} // namespace helix
+// Include theme_loader for ModePalette and ThemeData definitions
+#include "theme_loader.h"
 
 // Theme colors: Use theme_manager_get_color() to retrieve from globals.xml
 // Available tokens: primary_color, text_primary, text_secondary, success_color, etc.
@@ -212,6 +209,99 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
  * @return LVGL color object
  */
 lv_color_t theme_manager_parse_hex_color(const char* hex_str);
+
+/**
+ * @brief Compute perceived brightness of a color
+ *
+ * Uses standard luminance formula: 0.299*R + 0.587*G + 0.114*B
+ *
+ * @param color LVGL color to analyze
+ * @return Brightness value 0-255
+ */
+int theme_compute_brightness(lv_color_t color);
+
+/**
+ * @brief Return the brighter of two colors
+ *
+ * Compares perceived brightness using theme_compute_brightness().
+ * Used for computing switch/slider knob colors.
+ *
+ * @param a First color
+ * @param b Second color
+ * @return Whichever color has higher perceived brightness
+ */
+lv_color_t theme_compute_brighter_color(lv_color_t a, lv_color_t b);
+
+/**
+ * @brief Compute saturation of a color (0-255)
+ *
+ * Uses HSV saturation formula. Returns 0 for grayscale, higher for vivid colors.
+ */
+int theme_compute_saturation(lv_color_t c);
+
+/**
+ * @brief Return the more saturated of two colors
+ *
+ * Useful for accent colors where you want the more vivid/colorful option.
+ */
+lv_color_t theme_compute_more_saturated(lv_color_t a, lv_color_t b);
+
+/**
+ * @brief Get the computed knob color for switches/sliders
+ *
+ * Returns the more saturated of primary vs tertiary colors from the current theme.
+ * Used for switch and slider handle styling to ensure consistent appearance.
+ *
+ * @return Knob color (more saturated of primary/tertiary)
+ */
+lv_color_t theme_get_knob_color();
+
+/**
+ * @brief Get the computed accent color for icons
+ *
+ * Returns the more saturated of primary vs secondary colors from the current theme.
+ * Used for icon accent variant styling to ensure consistent appearance.
+ *
+ * @return Accent color (more saturated of primary/secondary)
+ */
+lv_color_t theme_get_accent_color();
+
+/**
+ * @brief Apply palette colors to a single widget based on its type
+ *
+ * Styles the widget appropriately for its class type using colors from the
+ * provided ModePalette. This enables preview panels to show colors from a
+ * different palette than the app's current active theme.
+ *
+ * Widget types handled:
+ * - Labels: text color
+ * - Buttons: background color (accent), text contrast
+ * - Switches: track (border), indicator (secondary), knob (brighter of primary/tertiary)
+ * - Sliders: track (border), indicator (secondary), knob (brighter of primary/tertiary)
+ * - Dropdowns: background (card_alt), border, text
+ * - Textareas: background (card_alt), text
+ *
+ * @param obj Widget to style
+ * @param palette Colors to apply
+ * @param text_light Light text color (for contrast on dark backgrounds)
+ * @param text_dark Dark text color (for contrast on light backgrounds)
+ */
+void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette,
+                                   lv_color_t text_light, lv_color_t text_dark);
+
+/**
+ * @brief Apply palette colors to all widgets in a tree
+ *
+ * Recursively walks the widget tree and applies palette colors to each
+ * widget based on its type. Handles backgrounds, text, and input widgets.
+ *
+ * @param root Root widget of the tree to style
+ * @param palette Colors to apply
+ * @param text_light Light text color (for button contrast)
+ * @param text_dark Dark text color (for button contrast)
+ */
+void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette,
+                                 lv_color_t text_light, lv_color_t text_dark);
 
 /**
  * @brief Get themed color by base name

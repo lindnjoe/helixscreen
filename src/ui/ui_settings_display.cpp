@@ -9,6 +9,7 @@
 #include "ui_settings_display.h"
 
 #include "ui_event_safety.h"
+#include "ui_modal.h"
 #include "ui_nav_manager.h"
 #include "ui_theme_editor_overlay.h"
 #include "ui_utils.h"
@@ -86,6 +87,7 @@ void DisplaySettingsOverlay::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_theme_settings_clicked", on_theme_settings_clicked);
     lv_xml_register_event_cb(nullptr, "on_preview_dark_mode_toggled", on_preview_dark_mode_toggled);
     lv_xml_register_event_cb(nullptr, "on_edit_colors_clicked", on_edit_colors_clicked);
+    lv_xml_register_event_cb(nullptr, "on_preview_open_modal", on_preview_open_modal);
 
     // Apply button uses header_bar's action_button mechanism
     // The overlay_panel passes action_button_callback through, so we need to register it
@@ -564,22 +566,19 @@ void DisplaySettingsOverlay::on_preview_dark_mode_toggled(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
-// Helper to recursively update text colors within an object tree
-static void update_text_colors_recursive(lv_obj_t* obj, lv_color_t text_primary) {
-    if (!obj)
-        return;
+void DisplaySettingsOverlay::on_preview_open_modal(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[DisplaySettingsOverlay] on_preview_open_modal");
+    LV_UNUSED(e);
 
-    // Check if this object has text (labels, buttons with text, etc.)
-    if (lv_obj_check_type(obj, &lv_label_class)) {
-        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
-    }
+    // Show a sample modal with lorem ipsum
+    ui_modal_show_confirmation(
+        "Sample Dialog",
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod "
+        "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
+        "veniam, quis nostrud exercitation ullamco laboris.",
+        ModalSeverity::Info, "OK", nullptr, nullptr, nullptr);
 
-    // Recurse into children
-    uint32_t child_count = lv_obj_get_child_count(obj);
-    for (uint32_t i = 0; i < child_count; i++) {
-        lv_obj_t* child = lv_obj_get_child(obj, i);
-        update_text_colors_recursive(child, text_primary);
-    }
+    LVGL_SAFE_EVENT_CB_END();
 }
 
 // Helper to update button label text with contrast-aware color
@@ -653,7 +652,6 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         return;
     }
 
-    // Apply colors to preview cards using dual-palette system
     // Select palette based on mode toggle (fall back if mode not supported)
     const helix::ModePalette* palette = nullptr;
     if (is_dark && theme.supports_dark()) {
@@ -665,193 +663,72 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         palette = theme.supports_dark() ? &theme.dark : &theme.light;
     }
 
-    lv_color_t card_bg = theme_manager_parse_hex_color(palette->card_bg.c_str());
-    lv_color_t app_bg = theme_manager_parse_hex_color(palette->app_bg.c_str());
+    // Button text contrast colors - we need BOTH palettes for contrast calculation
+    // text_light = dark text for light backgrounds (from light palette)
+    // text_dark = light text for dark backgrounds (from dark palette)
     lv_color_t text_primary = theme_manager_parse_hex_color(palette->text.c_str());
-    // Update overlay background color
-    lv_obj_set_style_bg_color(theme_explorer_overlay_, app_bg, LV_PART_MAIN);
+    lv_color_t text_light = theme.supports_light()
+                                ? theme_manager_parse_hex_color(theme.light.text.c_str())
+                                : text_primary;
+    lv_color_t text_dark = theme.supports_dark()
+                               ? theme_manager_parse_hex_color(theme.dark.text.c_str())
+                               : text_primary;
 
-    // Update preview card backgrounds
-    lv_obj_t* typography_card =
-        lv_obj_find_by_name(theme_explorer_overlay_, "preview_typography_card");
-    lv_obj_t* actions_card = lv_obj_find_by_name(theme_explorer_overlay_, "preview_actions_card");
-    lv_obj_t* background_card = lv_obj_find_by_name(theme_explorer_overlay_, "preview_background");
+    // Apply palette to entire widget tree (handles labels, switches, sliders, dropdowns, etc.)
+    theme_apply_palette_to_tree(theme_explorer_overlay_, *palette, text_light, text_dark);
 
-    if (typography_card) {
-        lv_obj_set_style_bg_color(typography_card, card_bg, LV_PART_MAIN);
-        update_text_colors_recursive(typography_card, text_primary);
-    }
-    if (actions_card) {
-        lv_obj_set_style_bg_color(actions_card, card_bg, LV_PART_MAIN);
-        update_text_colors_recursive(actions_card, text_primary);
-    }
-    if (background_card) {
-        lv_obj_set_style_bg_color(background_card, app_bg, LV_PART_MAIN);
-        update_text_colors_recursive(background_card, text_primary);
-    }
-
-    // Update header action buttons text (background updated later with accent colors)
-    lv_obj_t* action_btn_2 = lv_obj_find_by_name(theme_explorer_overlay_, "action_button_2");
-    if (action_btn_2) {
-        update_text_colors_recursive(action_btn_2, text_primary);
-    }
-    lv_obj_t* action_btn = lv_obj_find_by_name(theme_explorer_overlay_, "action_button");
-    if (action_btn) {
-        update_text_colors_recursive(action_btn, text_primary);
-    }
-
-    // Also update the content area text
-    lv_obj_t* overlay_content = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_content");
-    if (overlay_content) {
-        update_text_colors_recursive(overlay_content, text_primary);
-    }
-
-    // Update header bar for complete preview
-    lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
-    if (header) {
-        // Header background should use app_bg, not card_bg
-        lv_obj_set_style_bg_color(header, app_bg, LV_PART_MAIN);
-
-        // Back button icon - ensure transparent background
-        lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
-        if (back_btn) {
-            lv_obj_set_style_text_color(back_btn, text_primary, LV_PART_MAIN);
-            lv_obj_set_style_bg_opa(back_btn, LV_OPA_TRANSP, LV_PART_MAIN);
-        }
-
-        // Header title
-        lv_obj_t* title = lv_obj_find_by_name(header, "header_title");
-        if (title) {
-            lv_obj_set_style_text_color(title, text_primary, LV_PART_MAIN);
-        }
-
-        // Action button (Apply) - update text color
-        lv_obj_t* action_btn = lv_obj_find_by_name(header, "action_button");
-        if (action_btn && !lv_obj_has_flag(action_btn, LV_OBJ_FLAG_HIDDEN)) {
-            update_text_colors_recursive(action_btn, text_primary);
-        }
-    }
-
-    // Update input widgets (dropdowns, textarea) - use card_alt for input backgrounds
-    lv_color_t card_alt = theme_manager_parse_hex_color(palette->card_alt.c_str());
-    lv_color_t border_color = theme_manager_parse_hex_color(palette->border.c_str());
-
-    lv_obj_t* preset_dropdown =
-        lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown");
-    if (preset_dropdown) {
-        lv_obj_set_style_bg_color(preset_dropdown, card_alt, LV_PART_MAIN);
-        lv_obj_set_style_border_color(preset_dropdown, border_color, LV_PART_MAIN);
-        lv_obj_set_style_text_color(preset_dropdown, text_primary, LV_PART_MAIN);
-    }
-
-    lv_obj_t* preview_dropdown = lv_obj_find_by_name(theme_explorer_overlay_, "preview_dropdown");
-    if (preview_dropdown) {
-        lv_obj_set_style_bg_color(preview_dropdown, card_alt, LV_PART_MAIN);
-        lv_obj_set_style_text_color(preview_dropdown, text_primary, LV_PART_MAIN);
-    }
-
-    lv_obj_t* textarea = lv_obj_find_by_name(theme_explorer_overlay_, "preview_text_input");
-    if (textarea) {
-        lv_obj_set_style_bg_color(textarea, card_alt, LV_PART_MAIN);
-        lv_obj_set_style_text_color(textarea, text_primary, LV_PART_MAIN);
-    }
-
-    // Update slider and switch colors
+    // Parse accent colors for specific named buttons
     lv_color_t primary = theme_manager_parse_hex_color(palette->primary.c_str());
     lv_color_t secondary = theme_manager_parse_hex_color(palette->secondary.c_str());
     lv_color_t tertiary = theme_manager_parse_hex_color(palette->tertiary.c_str());
     lv_color_t warning = theme_manager_parse_hex_color(palette->warning.c_str());
     lv_color_t danger = theme_manager_parse_hex_color(palette->danger.c_str());
+    lv_color_t app_bg = theme_manager_parse_hex_color(palette->app_bg.c_str());
 
-    // Button text contrast colors - we need BOTH palettes for contrast calculation
-    // text_light = dark text for light backgrounds (from light palette)
-    // text_dark = light text for dark backgrounds (from dark palette)
-    lv_color_t text_light = theme.supports_light()
-                                ? theme_manager_parse_hex_color(theme.light.text.c_str())
-                                : text_primary; // fallback
-    lv_color_t text_dark = theme.supports_dark()
-                               ? theme_manager_parse_hex_color(theme.dark.text.c_str())
-                               : text_primary; // fallback
+    // Update overlay root background (tree walker doesn't know this is the root)
+    lv_obj_set_style_bg_color(theme_explorer_overlay_, app_bg, LV_PART_MAIN);
 
-    lv_obj_t* slider = lv_obj_find_by_name(theme_explorer_overlay_, "preview_intensity_slider");
-    if (slider) {
-        lv_obj_set_style_bg_color(slider, border_color, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(slider, secondary, LV_PART_INDICATOR);
-        lv_obj_set_style_bg_color(slider, primary, LV_PART_KNOB);
-        lv_obj_set_style_shadow_color(slider, app_bg, LV_PART_KNOB);
-    }
+    // Update specific accent-colored buttons (bg set by name, text contrast automatic)
+    struct ButtonColorMapping {
+        const char* name;
+        lv_color_t color;
+    };
+    ButtonColorMapping button_mappings[] = {
+        {"example_btn_primary", primary},   {"example_btn_secondary", secondary},
+        {"example_btn_tertiary", tertiary}, {"example_btn_warning", warning},
+        {"example_btn_danger", danger},
+    };
 
-    // Calculate OFF state knob color (same logic as ui_switch.cpp)
-    // Dark mode: lighter surface (card_alt) for contrast; Light mode: darker surface (card_bg)
-    lv_color_t off_knob_color;
-    if (is_dark) {
-        off_knob_color = lv_color_mix(card_alt, border_color, 178); // 70% card_alt
-    } else {
-        off_knob_color = lv_color_mix(card_bg, border_color, 178); // 70% card_bg
+    for (const auto& mapping : button_mappings) {
+        lv_obj_t* btn = lv_obj_find_by_name(theme_explorer_overlay_, mapping.name);
+        if (btn) {
+            lv_obj_set_style_bg_color(btn, mapping.color, LV_PART_MAIN);
+            // Refresh text contrast after changing background
+            theme_apply_palette_to_widget(btn, *palette, text_light, text_dark);
+        }
     }
 
-    lv_obj_t* preview_switch = lv_obj_find_by_name(theme_explorer_overlay_, "preview_switch");
-    if (preview_switch) {
-        lv_obj_set_style_bg_color(preview_switch, border_color, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(preview_switch, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_set_style_bg_color(preview_switch, off_knob_color, LV_PART_KNOB);
-        lv_obj_set_style_bg_color(preview_switch, primary, LV_PART_KNOB | LV_STATE_CHECKED);
-    }
-
-    // Update the dark mode toggle switch itself (it's a ui_switch directly, not a container)
-    lv_obj_t* dark_mode_toggle =
-        lv_obj_find_by_name(theme_explorer_overlay_, "preview_dark_mode_toggle");
-    if (dark_mode_toggle) {
-        lv_obj_set_style_bg_color(dark_mode_toggle, border_color, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(dark_mode_toggle, secondary,
-                                  LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_set_style_bg_color(dark_mode_toggle, off_knob_color, LV_PART_KNOB);
-        lv_obj_set_style_bg_color(dark_mode_toggle, primary, LV_PART_KNOB | LV_STATE_CHECKED);
-    }
-
-    // Update preview action buttons (Primary, Secondary, Tertiary, Warning, Danger)
-    lv_obj_t* btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_primary");
-    if (btn) {
-        lv_obj_set_style_bg_color(btn, primary, LV_PART_MAIN);
-        update_button_text_contrast(btn, text_light, text_dark);
-    }
-    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_secondary");
-    if (btn) {
-        lv_obj_set_style_bg_color(btn, secondary, LV_PART_MAIN);
-        update_button_text_contrast(btn, text_light, text_dark);
-    }
-    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_tertiary");
-    if (btn) {
-        lv_obj_set_style_bg_color(btn, tertiary, LV_PART_MAIN);
-        update_button_text_contrast(btn, text_light, text_dark);
-    }
-    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_warning");
-    if (btn) {
-        lv_obj_set_style_bg_color(btn, warning, LV_PART_MAIN);
-        update_button_text_contrast(btn, text_light, text_dark);
-    }
-    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_danger");
-    if (btn) {
-        lv_obj_set_style_bg_color(btn, danger, LV_PART_MAIN);
-        update_button_text_contrast(btn, text_light, text_dark);
-    }
-
-    // Update header action button backgrounds (Edit=secondary, Apply=primary)
-    // Note: 'header' already defined earlier in function
-    {
+    // Update header action buttons (Edit=secondary, Apply=primary)
+    lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
+    if (header) {
         lv_obj_t* edit_btn = lv_obj_find_by_name(header, "action_button_2");
         if (edit_btn) {
             lv_obj_set_style_bg_color(edit_btn, secondary, LV_PART_MAIN);
-            update_button_text_contrast(edit_btn, text_light, text_dark);
+            theme_apply_palette_to_widget(edit_btn, *palette, text_light, text_dark);
         }
         lv_obj_t* apply_btn = lv_obj_find_by_name(header, "action_button");
         if (apply_btn) {
             lv_obj_set_style_bg_color(apply_btn, primary, LV_PART_MAIN);
-            update_button_text_contrast(apply_btn, text_light, text_dark);
+            theme_apply_palette_to_widget(apply_btn, *palette, text_light, text_dark);
+        }
+        // Back button icon - ensure transparent background
+        lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
+        if (back_btn) {
+            lv_obj_set_style_bg_opa(back_btn, LV_OPA_TRANSP, LV_PART_MAIN);
         }
     }
 
-    // Update status icons - find by searching from the status icons label
+    // Update status icons with semantic colors
     lv_obj_t* status_label =
         lv_obj_find_by_name(theme_explorer_overlay_, "preview_label_status_icons");
     if (status_label) {

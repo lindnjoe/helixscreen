@@ -124,8 +124,6 @@ Tasks:
 **Theme System Enhancements:**
 - Added `button_radius` and `card_radius` XML constants from theme JSON `border_radius`
 - Added `border_width` to theme system - buttons now get borders from theme
-- Added `knob_color` computation: brighter of secondary vs tertiary for slider/switch handles
-- Updated `theme_core_init`, `theme_core_update_colors`, `theme_core_preview_colors` with new params
 - Preview buttons/cards now use `#button_radius` and `#card_radius` instead of `#border_radius`
 
 **ChatGPT Theme:**
@@ -135,9 +133,39 @@ Tasks:
   - Light: primary=#FFFEFF (neutral), secondary=#3C46FF (blue), tertiary=#0285FF, border=#DAD9DA
   - border_radius=28 (pill buttons), shadow_intensity=30
 
-**Known Issue:**
-- Knob color logic (brighter of secondary/tertiary) not quite working - knobs still gray
-- Need to debug why the computed color isn't being applied
+#### Session 2026-01-27 Continued - Knob/Icon Color Fix & DRY Refactor
+
+**Knob Color Fix (RESOLVED):**
+- Changed from `brighter_color()` to `more_saturated_color()` - picks vivid accent over neutral
+- Knobs use: `more_saturated_color(primary, tertiary)`
+- Fixed ui_switch.cpp to set BOTH DEFAULT and CHECKED state knobs
+- Fixed theme_manager_refresh_preview_elements for preview_dark_mode_toggle (was looking for wrong child)
+
+**Icon Accent Fix:**
+- Icons with `variant="accent"` now use `more_saturated_color(primary, secondary)`
+- Fixed icons disappearing in light mode (near-white primary vs blue secondary)
+
+**Theme Preview UI Tweaks:**
+- Removed "Typography" header, moved "Heading" up (shorter card layout)
+- Added tertiary "Open" button that opens sample modal with lorem ipsum and OK/Cancel
+
+**DRY Refactor (theme_manager.h/cpp):**
+- Added `theme_compute_saturation()` - compute HSV saturation (0-255)
+- Added `theme_compute_more_saturated()` - return more vivid of two colors
+- Added `theme_get_knob_color()` - returns `more_saturated(primary, tertiary)` from current theme
+- Added `theme_get_accent_color()` - returns `more_saturated(primary, secondary)` from current theme
+- Added `theme_apply_palette_to_widget()` - style ANY widget type from palette
+- Added `theme_apply_palette_to_tree()` - walk tree and apply palette to all widgets
+- Cleaned up ui_switch.cpp and ui_icon.cpp to use new helpers
+
+**Files Modified:**
+- include/theme_manager.h - new helper declarations
+- include/ui_settings_display.h - on_preview_open_modal callback
+- src/ui/theme_manager.cpp - saturation helpers, tree walker, preview element updates
+- src/ui/ui_icon.cpp - use theme_get_accent_color()
+- src/ui/ui_switch.cpp - use theme_get_knob_color()
+- src/ui/ui_settings_display.cpp - modal callback, include ui_modal.h
+- ui_xml/theme_preview_overlay.xml - layout changes, Open button, named icons
 
 #### QA Progress
 - [x] ayu - DONE

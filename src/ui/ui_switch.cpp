@@ -188,47 +188,36 @@ static void ui_switch_xml_apply(lv_xml_parser_state_t* state, const char** attrs
     // LV_PART_KNOB - The sliding handle (drawn last, on top)
     //   - Circular button that slides left/right
     //   - Always visible in both states
+    // Get accent colors for switch styling
     const char* primary_str = lv_xml_get_const(NULL, "primary");
-    if (primary_str) {
-        lv_color_t primary = theme_manager_parse_hex_color(primary_str);
+    const char* tertiary_str = lv_xml_get_const(NULL, "tertiary");
+    const char* secondary_str = lv_xml_get_const(NULL, "secondary");
 
-        // CHECKED state: primary color, 40% track / 100% knob opacity
-        lv_obj_set_style_bg_color(obj, primary, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    if (secondary_str) {
+        lv_color_t secondary = theme_manager_parse_hex_color(secondary_str);
+        // CHECKED state indicator: secondary accent color, 40% opacity
+        lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_set_style_bg_opa(obj, 102, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    }
 
-        lv_obj_set_style_bg_color(obj, primary, LV_PART_KNOB | LV_STATE_CHECKED);
+    if (primary_str && tertiary_str) {
+        // Knob color: more saturated of primary vs tertiary
+        lv_color_t knob_color = theme_get_knob_color();
+
+        // CHECKED state knob: saturated accent color
+        lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB | LV_STATE_CHECKED);
         lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_KNOB | LV_STATE_CHECKED);
     }
 
-    // UNCHECKED state: 40% track opacity, knob contrasts with background
+    // UNCHECKED state: 40% track opacity
+    // Knob color comes from theme_core's switch_knob_style (brighter of secondary/tertiary)
     lv_obj_set_style_bg_opa(obj, 102, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    // Get track color and use theme surface colors for mode-aware knob
-    lv_color_t track_color = lv_obj_get_style_bg_color(obj, LV_PART_MAIN);
-    bool is_dark = theme_manager_is_dark_mode();
-
-    const char* card_bg_str = lv_xml_get_const(NULL, "card_bg");
-    const char* card_alt_str = lv_xml_get_const(NULL, "card_alt");
-
-    lv_color_t knob_color;
-    if (is_dark && card_alt_str) {
-        // Dark mode: use card_alt (lighter surface) for visible knob contrast against track
-        lv_color_t card_alt_color = theme_manager_parse_hex_color(card_alt_str);
-        knob_color = lv_color_mix(card_alt_color, track_color, LV_OPA_70);
-    } else if (!is_dark && card_bg_str) {
-        // Light mode: use card_bg (darker surface) for visible knob against light track
-        lv_color_t card_bg_color = theme_manager_parse_hex_color(card_bg_str);
-        knob_color = lv_color_mix(card_bg_color, track_color, LV_OPA_70);
-    } else {
-        // Fallback
-        knob_color = lv_color_mix(lv_color_white(), track_color, LV_OPA_50);
-    }
-    lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_KNOB | LV_STATE_DEFAULT);
 
     // DISABLED state: mode-aware styling using theme colors for proper contrast
     // Light mode: mix toward dark theme colors; Dark mode: mix toward light theme colors
-    // (is_dark already defined above)
+    lv_color_t track_color = lv_obj_get_style_bg_color(obj, LV_PART_MAIN);
+    bool is_dark = theme_manager_is_dark_mode();
 
     // Get theme colors for mixing (preserves theme warmth/coolness)
     const char* dark_color_str = lv_xml_get_const(NULL, "card_alt");

@@ -51,10 +51,15 @@
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_bg_opa="0"
                   style_border_width="0" style_flex_cross_place="center" scrollable="false">
-            <icon src="tune" size="sm" variant="accent"/>
-            <text_heading name="preview_heading_typography" text="Typography"/>
+            <icon name="preview_icon_typography" src="tune" size="sm" variant="accent"/>
+            <text_heading name="preview_sample_heading" text="Heading" flex_grow="1"/>
+            <lv_button name="preview_open_button" width="content" height="#button_height_sm" style_bg_color="#tertiary"
+                       style_radius="#button_radius" style_pad_left="#space_lg" style_pad_right="#space_lg"
+                       style_pad_top="#space_sm" style_pad_bottom="#space_sm">
+              <event_cb trigger="clicked" callback="on_preview_open_modal"/>
+              <text_button text="Open" style_text_color="#text"/>
+            </lv_button>
           </lv_obj>
-          <text_heading name="preview_sample_heading" text="Heading"/>
           <text_body name="preview_sample_body" width="100%" text="Body text supports longer guidance while staying readable." long_mode="wrap"/>
           <text_small name="preview_sample_small" text="Small labels help keep controls calm and focused." style_text_color="#text_muted"/>
           <divider_horizontal opacity="30"/>
@@ -99,7 +104,7 @@
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_bg_opa="0"
                   style_border_width="0" style_flex_cross_place="center" scrollable="false">
-            <icon src="check_circle" size="sm" variant="accent"/>
+            <icon name="preview_icon_actions" src="check_circle" size="sm" variant="accent"/>
             <text_heading name="preview_heading_actions" text="Actions"/>
           </lv_obj>
           <lv_obj width="100%"
