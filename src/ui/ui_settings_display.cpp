@@ -330,15 +330,13 @@ void DisplaySettingsOverlay::handle_theme_preset_changed(int index) {
 
 void DisplaySettingsOverlay::handle_explorer_theme_changed(int index) {
     // Preview selected theme without saving globally
-    std::string themes_dir = helix::get_themes_directory();
-    auto themes = helix::discover_themes(themes_dir);
-
-    if (index < 0 || index >= static_cast<int>(themes.size())) {
+    // Use cached theme list (populated when explorer opens)
+    if (index < 0 || index >= static_cast<int>(cached_themes_.size())) {
         spdlog::error("[{}] Invalid theme index {}", get_name(), index);
         return;
     }
 
-    std::string theme_name = themes[index].filename;
+    std::string theme_name = cached_themes_[index].filename;
     helix::ThemeData theme = helix::load_theme_from_file(theme_name);
 
     if (!theme.is_valid()) {
@@ -394,11 +392,16 @@ void DisplaySettingsOverlay::handle_theme_settings_clicked() {
                 // Revert preview to current theme on close
                 theme_manager_revert_preview();
                 lv_obj_safe_delete(theme_explorer_overlay_);
+                // Clear cache so next open picks up filesystem changes
+                cached_themes_.clear();
             });
     }
 
     // Initialize theme preset dropdown
     init_theme_preset_dropdown(theme_explorer_overlay_);
+
+    // Cache the theme list to avoid re-parsing on every toggle/selection
+    cached_themes_ = helix::discover_themes(helix::get_themes_directory());
 
     // Remember original theme for Apply button state and preview
     original_theme_index_ = SettingsManager::instance().get_theme_index();
@@ -577,15 +580,13 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
 
     int selected_index = lv_dropdown_get_selected(dropdown);
 
-    // Load theme colors - use theme name, let loader find correct path (user or defaults)
-    auto themes = helix::discover_themes(helix::get_themes_directory());
-
-    if (selected_index < 0 || selected_index >= static_cast<int>(themes.size())) {
+    // Use cached theme list (populated when explorer opens)
+    if (selected_index < 0 || selected_index >= static_cast<int>(cached_themes_.size())) {
         return;
     }
 
     // Pass just the theme name - load_theme_from_file() handles path resolution
-    helix::ThemeData theme = helix::load_theme_from_file(themes[selected_index].filename);
+    helix::ThemeData theme = helix::load_theme_from_file(cached_themes_[selected_index].filename);
 
     if (!theme.is_valid()) {
         return;
