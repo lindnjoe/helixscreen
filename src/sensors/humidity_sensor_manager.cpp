@@ -138,7 +138,8 @@ void HumiditySensorManager::update_from_status(const nlohmann::json& status) {
             }
 
             // Check for state change
-            if (state.humidity != old_state.humidity || state.temperature != old_state.temperature ||
+            if (state.humidity != old_state.humidity ||
+                state.temperature != old_state.temperature ||
                 state.pressure != old_state.pressure) {
                 any_changed = true;
                 spdlog::debug(

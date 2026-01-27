@@ -30,8 +30,10 @@ struct HumiditySensorConfig {
 
     HumiditySensorConfig() = default;
 
-    HumiditySensorConfig(std::string klipper_name_, std::string sensor_name_, HumiditySensorType type_)
-        : klipper_name(std::move(klipper_name_)), sensor_name(std::move(sensor_name_)), type(type_) {}
+    HumiditySensorConfig(std::string klipper_name_, std::string sensor_name_,
+                         HumiditySensorType type_)
+        : klipper_name(std::move(klipper_name_)), sensor_name(std::move(sensor_name_)),
+          type(type_) {}
 };
 
 /// @brief Runtime state for a humidity sensor

@@ -3,10 +3,10 @@
 
 #pragma once
 
+#include "humidity_sensor_types.h"
 #include "lvgl.h"
 #include "sensor_registry.h"
 #include "subject_managed_panel.h"
-#include "humidity_sensor_types.h"
 
 #include <map>
 #include <mutex>
@@ -145,7 +145,8 @@ class HumiditySensorManager : public ISensorManager {
      * @param role The sensor role to query
      * @return State copy if sensor assigned to role, empty optional otherwise
      */
-    [[nodiscard]] std::optional<HumiditySensorState> get_sensor_state(HumiditySensorRole role) const;
+    [[nodiscard]] std::optional<HumiditySensorState>
+    get_sensor_state(HumiditySensorRole role) const;
 
     /**
      * @brief Check if a sensor is available (exists and enabled)
