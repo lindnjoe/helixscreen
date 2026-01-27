@@ -8,7 +8,6 @@
 
 #include "ui_settings_sensors.h"
 
-#include "theme_manager.h"
 #include "ui_event_safety.h"
 #include "ui_nav_manager.h"
 #include "ui_utils.h"
@@ -21,6 +20,7 @@
 #include "printer_hardware.h"
 #include "probe_sensor_manager.h"
 #include "static_panel_registry.h"
+#include "theme_manager.h"
 #include "width_sensor_manager.h"
 
 #include <spdlog/spdlog.h>
@@ -38,8 +38,8 @@ static std::unique_ptr<SensorSettingsOverlay> g_sensor_settings_overlay;
 SensorSettingsOverlay& get_sensor_settings_overlay() {
     if (!g_sensor_settings_overlay) {
         g_sensor_settings_overlay = std::make_unique<SensorSettingsOverlay>();
-        StaticPanelRegistry::instance().register_destroy("SensorSettingsOverlay",
-                                                         []() { g_sensor_settings_overlay.reset(); });
+        StaticPanelRegistry::instance().register_destroy(
+            "SensorSettingsOverlay", []() { g_sensor_settings_overlay.reset(); });
     }
     return *g_sensor_settings_overlay;
 }
@@ -136,7 +136,8 @@ void SensorSettingsOverlay::on_deactivate() {
 // SWITCH SENSORS (Filament Runout/Motion)
 // ============================================================================
 
-std::vector<helix::FilamentSensorConfig> SensorSettingsOverlay::get_standalone_switch_sensors() const {
+std::vector<helix::FilamentSensorConfig>
+SensorSettingsOverlay::get_standalone_switch_sensors() const {
     auto& mgr = helix::FilamentSensorManager::instance();
     auto all_sensors = mgr.get_sensors();
 
@@ -190,9 +191,11 @@ void SensorSettingsOverlay::populate_switch_sensors() {
         const char* attrs[] = {
             "sensor_name", sensor.sensor_name.c_str(), "sensor_type",
             sensor.type == helix::FilamentSensorType::MOTION ? "motion" : "switch", nullptr};
-        auto* row = static_cast<lv_obj_t*>(lv_xml_create(sensors_list, "filament_sensor_row", attrs));
+        auto* row =
+            static_cast<lv_obj_t*>(lv_xml_create(sensors_list, "filament_sensor_row", attrs));
         if (!row) {
-            spdlog::error("[{}] Failed to create sensor row for {}", get_name(), sensor.sensor_name);
+            spdlog::error("[{}] Failed to create sensor row for {}", get_name(),
+                          sensor.sensor_name);
             continue;
         }
 
