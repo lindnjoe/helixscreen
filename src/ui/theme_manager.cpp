@@ -901,6 +901,9 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     // Knob color: brighter of primary vs tertiary (for switch/slider handles)
     lv_color_t knob_color = more_saturated_color(primary, tertiary);
 
+    // Theme geometry properties
+    int32_t border_radius = theme.properties.border_radius;
+
     // ========================================================================
     // OVERLAY BACKGROUNDS - Update BOTH theme_preview_overlay AND theme_settings_overlay
     // ========================================================================
@@ -1004,16 +1007,19 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     if (card) {
         lv_obj_set_style_bg_color(card, card_bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(card, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(card, border_radius, LV_PART_MAIN);
     }
     card = lv_obj_find_by_name(root, "preview_actions_card");
     if (card) {
         lv_obj_set_style_bg_color(card, card_bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(card, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(card, border_radius, LV_PART_MAIN);
     }
     card = lv_obj_find_by_name(root, "preview_background");
     if (card) {
         lv_obj_set_style_bg_color(card, app_bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(card, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(card, border_radius, LV_PART_MAIN);
     }
 
     // ========================================================================
@@ -1060,31 +1066,44 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     lv_obj_t* btn = lv_obj_find_by_name(root, "example_btn_primary");
     if (btn) {
         lv_obj_set_style_bg_color(btn, primary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     btn = lv_obj_find_by_name(root, "example_btn_secondary");
     if (btn) {
         lv_obj_set_style_bg_color(btn, secondary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     btn = lv_obj_find_by_name(root, "example_btn_tertiary");
     if (btn) {
         lv_obj_set_style_bg_color(btn, tertiary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     btn = lv_obj_find_by_name(root, "example_btn_warning");
     if (btn) {
         lv_obj_set_style_bg_color(btn, warning, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     btn = lv_obj_find_by_name(root, "example_btn_danger");
     if (btn) {
         lv_obj_set_style_bg_color(btn, danger, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     // Header action buttons - button_2 (Edit) uses secondary, button (Apply) uses primary
     btn = lv_obj_find_by_name(root, "action_button_2");
     if (btn) {
         lv_obj_set_style_bg_color(btn, secondary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
     btn = lv_obj_find_by_name(root, "action_button");
     if (btn) {
         lv_obj_set_style_bg_color(btn, primary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
+    }
+    // Preview "Open" button uses tertiary
+    btn = lv_obj_find_by_name(root, "preview_open_button");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, tertiary, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, border_radius, LV_PART_MAIN);
     }
 
     // ========================================================================
@@ -1094,21 +1113,25 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     if (aurora) {
         lv_obj_set_style_bg_color(aurora, danger, LV_PART_MAIN);
         lv_obj_set_style_border_color(aurora, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(aurora, border_radius, LV_PART_MAIN);
     }
     aurora = lv_obj_find_by_name(root, "aurora_1");
     if (aurora) {
         lv_obj_set_style_bg_color(aurora, warning, LV_PART_MAIN);
         lv_obj_set_style_border_color(aurora, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(aurora, border_radius, LV_PART_MAIN);
     }
     aurora = lv_obj_find_by_name(root, "aurora_2");
     if (aurora) {
         lv_obj_set_style_bg_color(aurora, success, LV_PART_MAIN);
         lv_obj_set_style_border_color(aurora, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(aurora, border_radius, LV_PART_MAIN);
     }
     aurora = lv_obj_find_by_name(root, "aurora_3");
     if (aurora) {
         lv_obj_set_style_bg_color(aurora, info, LV_PART_MAIN);
         lv_obj_set_style_border_color(aurora, border, LV_PART_MAIN);
+        lv_obj_set_style_radius(aurora, border_radius, LV_PART_MAIN);
     }
 
     // ========================================================================
@@ -1119,17 +1142,20 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
         lv_obj_set_style_bg_color(dropdown, card_alt, LV_PART_MAIN);
         lv_obj_set_style_border_color(dropdown, border, LV_PART_MAIN);
         lv_obj_set_style_text_color(dropdown, text_color, LV_PART_MAIN);
+        lv_obj_set_style_radius(dropdown, border_radius, LV_PART_MAIN);
     }
     dropdown = lv_obj_find_by_name(root, "preview_dropdown");
     if (dropdown) {
         lv_obj_set_style_bg_color(dropdown, card_alt, LV_PART_MAIN);
         lv_obj_set_style_text_color(dropdown, text_color, LV_PART_MAIN);
+        lv_obj_set_style_radius(dropdown, border_radius, LV_PART_MAIN);
     }
 
     lv_obj_t* textarea = lv_obj_find_by_name(root, "preview_text_input");
     if (textarea) {
         lv_obj_set_style_bg_color(textarea, card_alt, LV_PART_MAIN);
         lv_obj_set_style_text_color(textarea, text_color, LV_PART_MAIN);
+        lv_obj_set_style_radius(textarea, border_radius, LV_PART_MAIN);
     }
 
     // ========================================================================

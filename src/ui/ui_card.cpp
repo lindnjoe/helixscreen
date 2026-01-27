@@ -49,6 +49,10 @@ static void* ui_card_xml_create(lv_xml_parser_state_t* state, const char** attrs
     // 6. Padding: 16px default
     lv_obj_set_style_pad_all(obj, 16, LV_PART_MAIN);
 
+    // 7. Border radius: theme-aware via theme_manager_get_spacing
+    int32_t radius = theme_manager_get_spacing("border_radius");
+    lv_obj_set_style_radius(obj, radius, LV_PART_MAIN);
+
     spdlog::trace("[Card] Created ui_card with theme-aware defaults");
     return (void*)obj;
 }
