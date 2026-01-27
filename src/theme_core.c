@@ -19,7 +19,8 @@ typedef struct {
     lv_style_t pressed_style;            // Global pressed state style (preserve radius)
     lv_style_t button_style;             // Default button style (grey background)
     lv_style_t dropdown_indicator_style; // Dropdown indicator font (MDI icons)
-    lv_style_t checkbox_indicator_style; // Checkbox checkmark font (MDI icons)
+    lv_style_t checkbox_box_style;       // Checkbox indicator box (border, bg)
+    lv_style_t checkbox_indicator_style; // Checkbox checkmark font + color (MDI icons)
     lv_style_t checkbox_text_style;      // Checkbox label text color
     lv_style_t switch_track_style;       // Switch track (OFF state background)
     lv_style_t switch_indicator_style;   // Switch checked state (accent color)
@@ -30,7 +31,9 @@ typedef struct {
     lv_style_t slider_knob_style;        // Slider knob with shadow
     lv_style_t slider_disabled_style;    // Slider disabled state (50% opacity)
     lv_style_t dropdown_selected_style;  // Dropdown selected item highlight
-    bool is_dark_mode;                   // Track theme mode for context
+    lv_color_t
+        dropdown_accent_color; // Accent color for dropdown selection (stored for apply callback)
+    bool is_dark_mode;         // Track theme mode for context
 } helix_theme_t;
 
 // Static theme instance (singleton pattern matching LVGL's approach)
@@ -108,8 +111,41 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
     // Dropdown list uses input bg style to match dropdown button appearance
     if (lv_obj_check_type(obj, &lv_dropdownlist_class)) {
         lv_obj_add_style(obj, &helix->input_bg_style, LV_PART_MAIN);
-        // Selected item highlight
-        lv_obj_add_style(obj, &helix->dropdown_selected_style, LV_PART_SELECTED);
+
+        // Text color based on accent luminance (same logic as text_button)
+        uint8_t lum = lv_color_luminance(helix->dropdown_accent_color);
+        lv_color_t selected_text = (lum > 140) ? lv_color_black() : lv_color_white();
+
+        // LVGL dropdown uses multiple state combinations for selection highlight:
+        // - LV_STATE_CHECKED: the currently selected item
+        // - LV_STATE_PRESSED: item being hovered/pressed
+        // - LV_STATE_CHECKED | LV_STATE_PRESSED: selected item being pressed
+        // Must set styles for ALL combinations with LV_PART_SELECTED
+
+        // Base SELECTED part
+        lv_obj_set_style_bg_color(obj, helix->dropdown_accent_color, LV_PART_SELECTED);
+        lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_SELECTED);
+        lv_obj_set_style_text_color(obj, selected_text, LV_PART_SELECTED);
+
+        // CHECKED state (selected item)
+        lv_obj_set_style_bg_color(obj, helix->dropdown_accent_color,
+                                  LV_PART_SELECTED | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_SELECTED | LV_STATE_CHECKED);
+        lv_obj_set_style_text_color(obj, selected_text, LV_PART_SELECTED | LV_STATE_CHECKED);
+
+        // PRESSED state (hovered item)
+        lv_obj_set_style_bg_color(obj, helix->dropdown_accent_color,
+                                  LV_PART_SELECTED | LV_STATE_PRESSED);
+        lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_SELECTED | LV_STATE_PRESSED);
+        lv_obj_set_style_text_color(obj, selected_text, LV_PART_SELECTED | LV_STATE_PRESSED);
+
+        // CHECKED + PRESSED state (selected item being pressed)
+        lv_obj_set_style_bg_color(obj, helix->dropdown_accent_color,
+                                  LV_PART_SELECTED | LV_STATE_CHECKED | LV_STATE_PRESSED);
+        lv_obj_set_style_bg_opa(obj, LV_OPA_COVER,
+                                LV_PART_SELECTED | LV_STATE_CHECKED | LV_STATE_PRESSED);
+        lv_obj_set_style_text_color(obj, selected_text,
+                                    LV_PART_SELECTED | LV_STATE_CHECKED | LV_STATE_PRESSED);
     }
 #endif
 
@@ -126,11 +162,13 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
 #endif
 
 #if LV_USE_CHECKBOX
-    // Checkbox theming: text color and indicator (checkmark) font
+    // Checkbox theming: box style, checkmark, and label text color
     if (lv_obj_check_type(obj, &lv_checkbox_class)) {
         // Text label color - uses theme text color
         lv_obj_add_style(obj, &helix->checkbox_text_style, LV_PART_MAIN);
-        // MDI font for checkmark symbol (LV_SYMBOL_OK isn't in our fonts)
+        // Indicator box (unchecked and checked) - border + inverted bg
+        lv_obj_add_style(obj, &helix->checkbox_box_style, LV_PART_INDICATOR);
+        // Checkmark (checked state only) - MDI font + accent color
         lv_obj_add_style(obj, &helix->checkbox_indicator_style,
                          LV_PART_INDICATOR | LV_STATE_CHECKED);
     }
@@ -174,7 +212,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
                             const lv_font_t* base_font, lv_color_t screen_bg, lv_color_t card_bg,
                             lv_color_t surface_control, lv_color_t focus_color,
                             lv_color_t border_color, int32_t border_radius, int32_t border_width,
-                            lv_color_t knob_color) {
+                            lv_color_t knob_color, lv_color_t accent_color) {
     // Clean up previous theme instance if exists
     if (helix_theme_instance) {
         lv_style_reset(&helix_theme_instance->input_bg_style);
@@ -182,6 +220,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
         lv_style_reset(&helix_theme_instance->pressed_style);
         lv_style_reset(&helix_theme_instance->button_style);
         lv_style_reset(&helix_theme_instance->dropdown_indicator_style);
+        lv_style_reset(&helix_theme_instance->checkbox_box_style);
         lv_style_reset(&helix_theme_instance->checkbox_indicator_style);
         lv_style_reset(&helix_theme_instance->checkbox_text_style);
         lv_style_reset(&helix_theme_instance->switch_track_style);
@@ -275,11 +314,19 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
     lv_style_init(&helix_theme_instance->dropdown_indicator_style);
     lv_style_set_text_font(&helix_theme_instance->dropdown_indicator_style, &mdi_icons_24);
 
-    // Initialize checkbox indicator style with MDI icon font
-    // Checkbox uses LV_SYMBOL_OK for checkmark, but our fonts don't include it.
-    // Override to use MDI check icon (same fix used in ui_step_progress.cpp)
+    // Initialize checkbox box style (the indicator square)
+    // Box has border color and text_primary background (inverted for contrast)
+    lv_style_init(&helix_theme_instance->checkbox_box_style);
+    lv_style_set_border_color(&helix_theme_instance->checkbox_box_style, border_color);
+    lv_style_set_border_width(&helix_theme_instance->checkbox_box_style, 1);
+    lv_style_set_bg_color(&helix_theme_instance->checkbox_box_style, text_primary_color);
+    lv_style_set_bg_opa(&helix_theme_instance->checkbox_box_style, LV_OPA_COVER);
+
+    // Initialize checkbox indicator style (checked state with checkmark)
+    // MDI font for checkmark symbol + accent color for the check
     lv_style_init(&helix_theme_instance->checkbox_indicator_style);
     lv_style_set_text_font(&helix_theme_instance->checkbox_indicator_style, &mdi_icons_16);
+    lv_style_set_text_color(&helix_theme_instance->checkbox_indicator_style, accent_color);
 
     // Initialize checkbox text style - ensure label uses theme text color
     lv_style_init(&helix_theme_instance->checkbox_text_style);
@@ -328,10 +375,13 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
     lv_style_init(&helix_theme_instance->slider_disabled_style);
     lv_style_set_opa(&helix_theme_instance->slider_disabled_style, LV_OPA_50);
 
-    // Initialize dropdown selected item style - uses card_alt for selection highlight
+    // Initialize dropdown selected item style - uses accent_color (more saturated of
+    // primary/secondary)
     lv_style_init(&helix_theme_instance->dropdown_selected_style);
-    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, accent_color);
     lv_style_set_bg_opa(&helix_theme_instance->dropdown_selected_style, LV_OPA_COVER);
+    // Store accent color for use in apply callback (local style override)
+    helix_theme_instance->dropdown_accent_color = accent_color;
 
     // CRITICAL: Now we need to patch the default theme's color fields
     // This is necessary because LVGL's default theme bakes colors into pre-computed
@@ -394,7 +444,7 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
                               lv_color_t surface_control, lv_color_t text_primary_color,
                               lv_color_t focus_color, lv_color_t primary_color,
                               lv_color_t secondary_color, lv_color_t border_color,
-                              lv_color_t knob_color) {
+                              lv_color_t knob_color, lv_color_t accent_color) {
     if (!helix_theme_instance) {
         return;
     }
@@ -409,8 +459,11 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
     // Update button style colors (text_color handled by text_button auto-contrast)
     lv_style_set_bg_color(&helix_theme_instance->button_style, surface_control);
 
-    // Update checkbox text color
+    // Update checkbox styles
     lv_style_set_text_color(&helix_theme_instance->checkbox_text_style, text_primary_color);
+    lv_style_set_border_color(&helix_theme_instance->checkbox_box_style, border_color);
+    lv_style_set_bg_color(&helix_theme_instance->checkbox_box_style, text_primary_color);
+    lv_style_set_text_color(&helix_theme_instance->checkbox_indicator_style, accent_color);
 
     // Update switch colors (track=border, indicator=secondary, knob=computed brighter color)
     lv_style_set_bg_color(&helix_theme_instance->switch_track_style, border_color);
@@ -426,8 +479,9 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
     lv_style_set_bg_color(&helix_theme_instance->slider_knob_style, knob_color);
     lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
 
-    // Update dropdown selected item style
-    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, surface_control);
+    // Update dropdown selected item style - uses accent_color (more saturated of primary/secondary)
+    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, accent_color);
+    helix_theme_instance->dropdown_accent_color = accent_color;
 
     // Update LVGL default theme's internal styles
     // This is the same private API access pattern used in theme_core_init
@@ -512,6 +566,7 @@ void theme_core_preview_colors(bool is_dark, const char* colors[16], int32_t bor
     lv_style_set_radius(&helix_theme_instance->pressed_style, border_radius);
 
     // Parse accent colors: colors[8]=primary, colors[9]=secondary, colors[10]=tertiary
+    lv_color_t primary_accent = lv_color_hex(strtoul(colors[8] + 1, NULL, 16));
     lv_color_t secondary_accent = lv_color_hex(strtoul(colors[9] + 1, NULL, 16));
     lv_color_t tertiary_accent = lv_color_hex(strtoul(colors[10] + 1, NULL, 16));
 
@@ -545,8 +600,33 @@ void theme_core_preview_colors(bool is_dark, const char* colors[16], int32_t bor
     lv_style_set_bg_color(&helix_theme_instance->slider_knob_style, knob_accent);
     lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
 
-    // Update dropdown selected item style
-    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, card_alt);
+    // Update dropdown selected item style - uses more saturated of primary/secondary for highlight
+    // Compute saturation for both colors to pick the more vivid one
+    int pri_sat =
+        (primary_accent.red > primary_accent.green)
+            ? (primary_accent.red > primary_accent.blue ? primary_accent.red : primary_accent.blue)
+            : (primary_accent.green > primary_accent.blue ? primary_accent.green
+                                                          : primary_accent.blue);
+    int pri_min =
+        (primary_accent.red < primary_accent.green)
+            ? (primary_accent.red < primary_accent.blue ? primary_accent.red : primary_accent.blue)
+            : (primary_accent.green < primary_accent.blue ? primary_accent.green
+                                                          : primary_accent.blue);
+    int sec_sat = (secondary_accent.red > secondary_accent.green)
+                      ? (secondary_accent.red > secondary_accent.blue ? secondary_accent.red
+                                                                      : secondary_accent.blue)
+                      : (secondary_accent.green > secondary_accent.blue ? secondary_accent.green
+                                                                        : secondary_accent.blue);
+    int sec_min = (secondary_accent.red < secondary_accent.green)
+                      ? (secondary_accent.red < secondary_accent.blue ? secondary_accent.red
+                                                                      : secondary_accent.blue)
+                      : (secondary_accent.green < secondary_accent.blue ? secondary_accent.green
+                                                                        : secondary_accent.blue);
+    int pri_range = pri_sat - pri_min;
+    int sec_range = sec_sat - sec_min;
+    lv_color_t dropdown_accent = (pri_range >= sec_range) ? primary_accent : secondary_accent;
+    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, dropdown_accent);
+    helix_theme_instance->dropdown_accent_color = dropdown_accent;
 
     // Update default theme internal styles (private API access)
     typedef struct {

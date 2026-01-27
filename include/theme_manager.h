@@ -304,6 +304,16 @@ void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palet
                                  lv_color_t text_light, lv_color_t text_dark);
 
 /**
+ * @brief Apply palette to any open dropdown lists on the screen
+ *
+ * Dropdown lists are created as screen-level popups, not children of their
+ * dropdown widget. This function finds and styles any open dropdown lists.
+ *
+ * @param palette Color palette to apply
+ */
+void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette);
+
+/**
  * @brief Get themed color by base name
  *
  * Retrieves color from globals.xml with automatic _light/_dark

@@ -677,6 +677,9 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     // Apply palette to entire widget tree (handles labels, switches, sliders, dropdowns, etc.)
     theme_apply_palette_to_tree(theme_explorer_overlay_, *palette, text_light, text_dark);
 
+    // Style any open dropdown lists (they're screen-level popups, not in overlay tree)
+    theme_apply_palette_to_screen_dropdowns(*palette);
+
     // Parse accent colors for specific named buttons
     lv_color_t primary = theme_manager_parse_hex_color(palette->primary.c_str());
     lv_color_t secondary = theme_manager_parse_hex_color(palette->secondary.c_str());

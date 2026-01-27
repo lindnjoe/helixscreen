@@ -191,14 +191,11 @@ static void ui_switch_xml_apply(lv_xml_parser_state_t* state, const char** attrs
     // Get accent colors for switch styling
     const char* primary_str = lv_xml_get_const(NULL, "primary");
     const char* tertiary_str = lv_xml_get_const(NULL, "tertiary");
-    const char* secondary_str = lv_xml_get_const(NULL, "secondary");
 
-    if (secondary_str) {
-        lv_color_t secondary = theme_manager_parse_hex_color(secondary_str);
-        // CHECKED state indicator: secondary accent color, 40% opacity
-        lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_set_style_bg_opa(obj, 102, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    }
+    // CHECKED state indicator: secondary accent color, 40% opacity
+    lv_color_t secondary = theme_manager_get_color("secondary");
+    lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_opa(obj, 102, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     if (primary_str && tertiary_str) {
         // Knob color: more saturated of primary vs tertiary

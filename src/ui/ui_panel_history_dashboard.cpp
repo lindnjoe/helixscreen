@@ -502,11 +502,8 @@ void HistoryDashboardPanel::create_trend_chart() {
     // Hide division lines for sparkline effect
     lv_chart_set_div_line_count(trend_chart_, 0, 0);
 
-    // Series line style - use secondary color (gold) for visibility
-    // Must resolve XML constant first, then parse the hex string
-    const char* secondary_str = lv_xml_get_const(nullptr, "success");
-    lv_color_t line_color = secondary_str ? theme_manager_parse_hex_color(secondary_str)
-                                          : lv_color_hex(0xD4A84B); // Fallback gold
+    // Series line style - use success color (gold) for visibility
+    lv_color_t line_color = theme_manager_get_color("success");
     lv_obj_set_style_line_width(trend_chart_, 2, LV_PART_ITEMS);
     lv_obj_set_style_line_color(trend_chart_, line_color, LV_PART_ITEMS);
 
@@ -731,11 +728,7 @@ void HistoryDashboardPanel::update_filament_chart(const std::vector<PrintHistory
 
     // Generate complementary palette from theme's primary color
     // This creates visually harmonious colors that fit the theme
-    lv_color_t primary = lv_color_hex(0xB83232); // Fallback red
-    const char* primary_str = lv_xml_get_const(nullptr, "primary");
-    if (primary_str) {
-        primary = theme_manager_parse_hex_color(primary_str);
-    }
+    lv_color_t primary = theme_manager_get_color("primary");
 
     // Convert primary to HSV to generate palette
     lv_color_hsv_t primary_hsv = lv_color_to_hsv(primary);
@@ -764,13 +757,8 @@ void HistoryDashboardPanel::update_filament_chart(const std::vector<PrintHistory
         return lv_color_hsv_to_rgb(new_hue, sat, val);
     };
 
-    // Get theme colors for text (use primary for labels/amounts to match stats)
-    // Must use lv_xml_get_const() to resolve theme-aware constants
-    lv_color_t text = lv_color_hex(0xE6E8F0); // Fallback (text_dark)
-    const char* text_str = lv_xml_get_const(nullptr, "text");
-    if (text_str) {
-        text = theme_manager_parse_hex_color(text_str);
-    }
+    // Get theme color for text labels
+    lv_color_t text = theme_manager_get_color("text");
 
     // Create labeled bar rows
     for (const auto& [type, amount] : sorted_types) {

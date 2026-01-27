@@ -302,7 +302,7 @@ static void apply_current_slot_highlight(AmsSlotData* data, int current_slot) {
 
     if (is_active) {
         // Active slot: glowing border effect
-        lv_color_t primary = theme_manager_parse_hex_color(lv_xml_get_const(NULL, "primary"));
+        lv_color_t primary = theme_manager_get_color("primary");
 
         // Border highlight on spool area only
         lv_obj_set_style_border_color(highlight_target, primary, LV_PART_MAIN);

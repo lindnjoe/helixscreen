@@ -695,16 +695,20 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     const char* border_width_str = lv_xml_get_const(nullptr, "border_width");
     int32_t border_width = border_width_str ? atoi(border_width_str) : 1;
 
-    // Compute knob color: brighter of primary vs tertiary for slider/switch handles
+    // Compute knob color: more saturated of primary vs tertiary for slider/switch handles
     const char* tertiary_str = lv_xml_get_const(nullptr, "tertiary");
     lv_color_t tertiary_color =
         tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : primary_color;
     lv_color_t knob_color = more_saturated_color(primary_color, tertiary_color);
 
+    // Compute accent color: more saturated of primary vs secondary for checkbox checkmarks
+    lv_color_t accent_color = more_saturated_color(primary_color, secondary_color);
+
     // Initialize custom HelixScreen theme (wraps LVGL default theme)
-    current_theme = theme_core_init(
-        display, primary_color, secondary_color, text_color, use_dark_mode, base_font, screen_bg,
-        card_bg, card_alt, focus_color, border_color, border_radius, border_width, knob_color);
+    current_theme =
+        theme_core_init(display, primary_color, secondary_color, text_color, use_dark_mode,
+                        base_font, screen_bg, card_bg, card_alt, focus_color, border_color,
+                        border_radius, border_width, knob_color, accent_color);
 
     if (current_theme) {
         lv_display_set_theme(display, current_theme);
@@ -800,17 +804,21 @@ void theme_manager_toggle_dark_mode() {
     // Default to card_alt if border token not available
     lv_color_t border_color = border_str ? theme_manager_parse_hex_color(border_str) : card_alt;
 
-    // Compute knob color: brighter of primary vs tertiary
+    // Compute knob color: more saturated of primary vs tertiary
     lv_color_t tertiary_color =
         tertiary_str ? theme_manager_parse_hex_color(tertiary_str) : primary_color;
     lv_color_t knob_color = more_saturated_color(primary_color, tertiary_color);
+
+    // Compute accent color: more saturated of primary vs secondary for checkbox checkmarks
+    lv_color_t accent_color = more_saturated_color(primary_color, secondary_color);
 
     spdlog::debug("[Theme] New colors: screen={}, card={}, card_alt={}, text={}", screen_bg_str,
                   card_bg_str, card_alt_str, text_str);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
     theme_core_update_colors(new_use_dark_mode, screen_bg, card_bg, card_alt, text_color,
-                             focus_color, primary_color, secondary_color, border_color, knob_color);
+                             focus_color, primary_color, secondary_color, border_color, knob_color,
+                             accent_color);
 
     // Force style refresh on entire widget tree for local/inline styles
     theme_manager_refresh_widget_tree(lv_screen_active());
@@ -1285,6 +1293,7 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     lv_color_t card_alt = theme_manager_parse_hex_color(palette.card_alt.c_str());
     lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
     lv_color_t text_primary = theme_manager_parse_hex_color(palette.text.c_str());
+    lv_color_t text_muted = theme_manager_parse_hex_color(palette.text_muted.c_str());
     lv_color_t primary = theme_manager_parse_hex_color(palette.primary.c_str());
     lv_color_t secondary = theme_manager_parse_hex_color(palette.secondary.c_str());
     lv_color_t tertiary = theme_manager_parse_hex_color(palette.tertiary.c_str());
@@ -1292,24 +1301,54 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     // Compute knob color: brighter of primary vs tertiary
     lv_color_t knob_color = theme_compute_more_saturated(primary, tertiary);
 
-    // Labels - set text color (but icons get accent color)
+    // Get object name for pattern matching
+    const char* obj_name = lv_obj_get_name(obj);
+
+    // Dividers - just lv_obj with "divider" in name, style bg_color
+    if (obj_name && strstr(obj_name, "divider") != nullptr) {
+        lv_obj_set_style_bg_color(obj, border, LV_PART_MAIN);
+        return;
+    }
+
+    // Labels - icons get accent, muted labels get text_muted, others get text_primary
     if (lv_obj_check_type(obj, &lv_label_class)) {
-        const char* obj_name = lv_obj_get_name(obj);
         if (obj_name && strstr(obj_name, "icon") != nullptr) {
             // Icons with "icon" in name get accent color (more saturated of primary/secondary)
             lv_color_t accent_color = theme_compute_more_saturated(primary, secondary);
             lv_obj_set_style_text_color(obj, accent_color, LV_PART_MAIN);
+        } else if (obj_name &&
+                   (strstr(obj_name, "label") != nullptr ||
+                    strstr(obj_name, "description") != nullptr ||
+                    strstr(obj_name, "heading") != nullptr ||
+                    strstr(obj_name, "small") != nullptr || strstr(obj_name, "muted") != nullptr)) {
+            // Labels/descriptions/headings/small text use muted color
+            lv_obj_set_style_text_color(obj, text_muted, LV_PART_MAIN);
         } else {
             lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
         }
         return;
     }
 
-    // Buttons - set background and text contrast
+    // Buttons - set border color and text contrast
     if (lv_obj_check_type(obj, &lv_button_class)) {
+        // Update border color to match preview theme
+        lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
         // Don't change button background - that's set by specific widget naming
         // Just update text contrast based on current background
         apply_button_text_contrast(obj, text_light, text_dark);
+        return;
+    }
+
+    // Checkboxes - box border, inverted bg, accent checkmark
+    if (lv_obj_check_type(obj, &lv_checkbox_class)) {
+        // Label text color
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        // Indicator box - border and inverted background
+        lv_obj_set_style_border_color(obj, border, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_color(obj, text_primary, LV_PART_INDICATOR);
+        // Checkmark color (accent = more saturated of primary/secondary)
+        lv_color_t accent_color = theme_compute_more_saturated(primary, secondary);
+        lv_obj_set_style_text_color(obj, accent_color, LV_PART_INDICATOR | LV_STATE_CHECKED);
         return;
     }
 
@@ -1346,8 +1385,18 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
         return;
     }
 
+    // Dropdown lists (popup menus) - bg=elevated, selected=more_saturated(primary, secondary)
+    if (lv_obj_check_type(obj, &lv_dropdownlist_class)) {
+        lv_color_t dropdown_accent = theme_compute_more_saturated(primary, secondary);
+        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, dropdown_accent, LV_PART_SELECTED);
+        lv_obj_set_style_bg_color(obj, dropdown_accent, LV_PART_MAIN | LV_STATE_PRESSED);
+        return;
+    }
+
     // Generic containers - check for card naming convention
-    const char* obj_name = lv_obj_get_name(obj);
     if (obj_name) {
         // Cards with "card" in the name get card_bg background
         if (strstr(obj_name, "card") != nullptr) {
@@ -1378,6 +1427,38 @@ void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palet
     for (uint32_t i = 0; i < child_count; i++) {
         lv_obj_t* child = lv_obj_get_child(root, i);
         theme_apply_palette_to_tree(child, palette, text_light, text_dark);
+    }
+}
+
+void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) {
+    // Style any open dropdown lists (they're screen-level popups, not in overlay tree)
+    lv_color_t card_alt = theme_manager_parse_hex_color(palette.card_alt.c_str());
+    lv_color_t text_color = theme_manager_parse_hex_color(palette.text.c_str());
+    lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
+    lv_color_t primary = theme_manager_parse_hex_color(palette.primary.c_str());
+    lv_color_t secondary = theme_manager_parse_hex_color(palette.secondary.c_str());
+
+    // Use more saturated of primary/secondary for highlight (avoids white/gray primaries)
+    lv_color_t dropdown_accent = theme_compute_more_saturated(primary, secondary);
+
+    // Text color for selected based on accent luminance
+    uint8_t lum = lv_color_luminance(dropdown_accent);
+    lv_color_t selected_text = (lum > 140) ? lv_color_black() : lv_color_white();
+
+    lv_obj_t* screen = lv_screen_active();
+    uint32_t child_count = lv_obj_get_child_count(screen);
+    for (uint32_t i = 0; i < child_count; i++) {
+        lv_obj_t* child = lv_obj_get_child(screen, i);
+        if (lv_obj_check_type(child, &lv_dropdownlist_class)) {
+            lv_obj_set_style_bg_color(child, card_alt, LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(child, LV_OPA_COVER, LV_PART_MAIN);
+            lv_obj_set_style_text_color(child, text_color, LV_PART_MAIN);
+            lv_obj_set_style_border_color(child, border, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(child, dropdown_accent, LV_PART_SELECTED);
+            lv_obj_set_style_bg_opa(child, LV_OPA_COVER, LV_PART_SELECTED);
+            lv_obj_set_style_text_color(child, selected_text, LV_PART_SELECTED);
+            lv_obj_set_style_bg_color(child, dropdown_accent, LV_PART_MAIN | LV_STATE_PRESSED);
+        }
     }
 }
 
