@@ -116,6 +116,9 @@ void register_xml_components() {
     // Core UI components
     lv_xml_register_component_from_file("A:ui_xml/icon.xml");
     lv_xml_register_component_from_file("A:ui_xml/filament_sensor_indicator.xml");
+    lv_xml_register_component_from_file("A:ui_xml/humidity_indicator.xml");
+    lv_xml_register_component_from_file("A:ui_xml/width_indicator.xml");
+    lv_xml_register_component_from_file("A:ui_xml/probe_indicator.xml");
     lv_xml_register_component_from_file("A:ui_xml/filament_sensor_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/temp_display.xml");
     lv_xml_register_component_from_file("A:ui_xml/header_bar.xml");
@@ -273,6 +276,7 @@ void register_xml_components() {
     lv_xml_register_component_from_file("A:ui_xml/wizard_ams_identify.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_led_select.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_filament_sensor_select.xml");
+    lv_xml_register_component_from_file("A:ui_xml/wizard_probe_sensor_select.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_input_shaper.xml");
     lv_xml_register_component_from_file("A:ui_xml/wizard_summary.xml");
 
