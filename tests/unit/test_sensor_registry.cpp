@@ -233,7 +233,8 @@ TEST_CASE("SensorRegistry save_config handles empty registry", "[sensors]") {
 // Multi-Source Discovery Tests
 // ============================================================================
 
-TEST_CASE("SensorRegistry discover_all calls all three discovery methods", "[sensors][multi-source]") {
+TEST_CASE("SensorRegistry discover_all calls all three discovery methods",
+          "[sensors][multi-source]") {
     SensorRegistry registry;
 
     auto mock = std::make_unique<MockSensorManager>("test");
@@ -279,12 +280,16 @@ TEST_CASE("ISensorManager default discover methods are no-ops", "[sensors][inter
 
     class MinimalManager : public ISensorManager {
       public:
-        std::string category_name() const override { return "minimal"; }
+        std::string category_name() const override {
+            return "minimal";
+        }
         // Note: NOT overriding discover_from_config or discover_from_moonraker
         void discover(const std::vector<std::string>& /*objects*/) override {}
         void update_from_status(const nlohmann::json& /*status*/) override {}
         void load_config(const nlohmann::json& /*config*/) override {}
-        nlohmann::json save_config() const override { return {}; }
+        nlohmann::json save_config() const override {
+            return {};
+        }
     };
 
     SensorRegistry registry;

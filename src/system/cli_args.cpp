@@ -137,6 +137,7 @@ static void print_help(const char* program_name) {
     printf("    --real-ethernet    Use real Ethernet hardware (requires --test)\n");
     printf("    --real-moonraker   Connect to real printer (requires --test)\n");
     printf("    --real-files       Use real files from printer (requires --test)\n");
+    printf("    --real-sensors     Use real sensor data (requires --test)\n");
     printf("    --disconnected     Simulate disconnected state (requires --test)\n");
     printf("    --no-ams           Don't create mock AMS (enables runout modal testing)\n");
     printf("    --test-history     Enable test history API data\n");
@@ -445,6 +446,8 @@ bool parse_cli_args(int argc, char** argv, CliArgs& args, int& screen_width, int
             config.use_real_moonraker = true;
         } else if (strcmp(argv[i], "--real-files") == 0) {
             config.use_real_files = true;
+        } else if (strcmp(argv[i], "--real-sensors") == 0) {
+            config.use_real_sensors = true;
         } else if (strcmp(argv[i], "--disconnected") == 0) {
             config.simulate_disconnect = true;
         } else if (strcmp(argv[i], "--no-ams") == 0) {
@@ -641,7 +644,7 @@ bool parse_cli_args(int argc, char** argv, CliArgs& args, int& screen_width, int
 
     // Validate test mode flags
     if ((config.use_real_wifi || config.use_real_ethernet || config.use_real_moonraker ||
-         config.use_real_files) &&
+         config.use_real_files || config.use_real_sensors) &&
         !config.test_mode) {
         printf("Error: --real-* flags require --test mode\n");
         printf("Use --help for more information\n");

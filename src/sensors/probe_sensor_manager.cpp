@@ -163,6 +163,19 @@ void ProbeSensorManager::update_from_status(const nlohmann::json& status) {
     }
 }
 
+void ProbeSensorManager::inject_mock_sensors(std::vector<std::string>& objects,
+                                              nlohmann::json& /*config_keys*/,
+                                              nlohmann::json& /*moonraker_info*/) {
+    // Probe sensors are discovered from Klipper objects
+    objects.emplace_back("probe");
+    spdlog::debug("[ProbeSensorManager] Injected mock sensors: probe");
+}
+
+void ProbeSensorManager::inject_mock_status(nlohmann::json& status) {
+    // Probe reports last_z_result (and optionally z_offset)
+    status["probe"] = {{"last_z_result", 0.0f}};
+}
+
 void ProbeSensorManager::load_config(const nlohmann::json& config) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 

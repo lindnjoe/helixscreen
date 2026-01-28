@@ -35,8 +35,9 @@ struct RuntimeConfig {
     bool use_real_moonraker =
         false;                   ///< Use real Moonraker client (--real-moonraker, requires --test)
     bool use_real_files = false; ///< Use real file listing (--real-files, requires --test)
-    bool use_real_ams = false;   ///< Use real AMS backend (--real-ams, requires --test)
+    bool use_real_ams = false;     ///< Use real AMS backend (--real-ams, requires --test)
     bool disable_mock_ams = false; ///< Don't create mock AMS (--no-ams, requires --test)
+    bool use_real_sensors = false; ///< Use real sensor data (--real-sensors, requires --test)
 
     bool simulate_disconnect =
         false; ///< Simulate disconnected state for testing (--disconnected, requires --test)
@@ -166,6 +167,14 @@ struct RuntimeConfig {
      */
     bool should_mock_mdns() const {
         return test_mode;
+    }
+
+    /**
+     * @brief Check if sensors should use mock data
+     * @return true if test mode is enabled and real sensors are not requested
+     */
+    bool should_mock_sensors() const {
+        return test_mode && !use_real_sensors;
     }
 
     /**

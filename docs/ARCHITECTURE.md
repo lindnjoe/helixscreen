@@ -765,6 +765,34 @@ void WiFiManager::handle_scan_complete(const std::string& data) {
 
 **Key insight:** If you're in a callback from libhv, std::thread, or any networking library, assume you're on a background thread and use `ui_async_call()`.
 
+## Sensor Framework
+
+HelixScreen's sensor framework provides a unified architecture for discovering,
+configuring, and displaying sensor data from multiple sources.
+
+### Discovery Architecture
+
+Sensors come from three different sources:
+
+| Source | Discovery Method | Example Sensors |
+|--------|------------------|-----------------|
+| Klipper objects | `printer.objects.list` | Humidity, Probe, Width, Switch |
+| Klipper config | `configfile.config` | Accelerometers |
+| Moonraker API | Moonraker endpoints | Color sensors (TD-1) |
+
+### Manager Pattern
+
+Each sensor category has a singleton manager implementing `ISensorManager`.
+Managers implement only the discovery methods for their data source.
+
+### Threading Model
+
+⚠️ Moonraker callbacks run on libhv's thread, NOT the main LVGL thread.
+
+- `discover*()`, `load_config()`, `set_sensor_*()` → Main thread only
+- `update_from_status()` → Thread-safe (mutex + ui_async_call)
+- `save_config()` → Thread-safe (read-only with mutex)
+
 ## LVGL Configuration
 
 ### Required Features

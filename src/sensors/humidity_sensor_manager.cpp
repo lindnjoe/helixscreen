@@ -170,6 +170,23 @@ void HumiditySensorManager::update_from_status(const nlohmann::json& status) {
     }
 }
 
+void HumiditySensorManager::inject_mock_sensors(std::vector<std::string>& objects,
+                                                 nlohmann::json& /*config_keys*/,
+                                                 nlohmann::json& /*moonraker_info*/) {
+    // Humidity sensors are discovered from Klipper objects
+    objects.emplace_back("bme280 chamber");
+    objects.emplace_back("htu21d dryer");
+    spdlog::debug("[HumiditySensorManager] Injected mock sensors: bme280 chamber, htu21d dryer");
+}
+
+void HumiditySensorManager::inject_mock_status(nlohmann::json& status) {
+    // BME280 has humidity, temperature, pressure
+    status["bme280 chamber"] = {
+        {"humidity", 45.0f}, {"temperature", 25.0f}, {"pressure", 1013.25f}};
+    // HTU21D has humidity and temperature (no pressure)
+    status["htu21d dryer"] = {{"humidity", 15.0f}, {"temperature", 55.0f}};
+}
+
 void HumiditySensorManager::load_config(const nlohmann::json& config) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 

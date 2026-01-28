@@ -181,17 +181,15 @@ TEST_CASE_METHOD(ColorSensorTestFixture, "ColorSensorManager - discovery", "[col
     }
 
     SECTION("Re-discovery replaces sensor list") {
-        json response1 = {
-            {"result",
-             {{"status", "ok"},
-              {"devices", {{"DEVICE_A", {{"td", nullptr}, {"color", nullptr}}}}}}}};
+        json response1 = {{"result",
+                           {{"status", "ok"},
+                            {"devices", {{"DEVICE_A", {{"td", nullptr}, {"color", nullptr}}}}}}}};
         mgr().discover_from_moonraker(response1);
         REQUIRE(mgr().get_sensors()[0].device_id == "DEVICE_A");
 
-        json response2 = {
-            {"result",
-             {{"status", "ok"},
-              {"devices", {{"DEVICE_B", {{"td", nullptr}, {"color", nullptr}}}}}}}};
+        json response2 = {{"result",
+                           {{"status", "ok"},
+                            {"devices", {{"DEVICE_B", {{"td", nullptr}, {"color", nullptr}}}}}}}};
         mgr().discover_from_moonraker(response2);
 
         REQUIRE(mgr().sensor_count() == 1);
