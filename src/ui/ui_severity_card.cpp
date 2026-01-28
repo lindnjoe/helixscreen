@@ -8,6 +8,7 @@
 #include "lvgl/src/xml/lv_xml_parser.h"
 #include "lvgl/src/xml/lv_xml_widget.h"
 #include "lvgl/src/xml/parsers/lv_xml_obj_parser.h"
+#include "theme_core.h"
 #include "theme_manager.h"
 
 #include <spdlog/spdlog.h>
@@ -45,6 +46,23 @@ static const char* severity_to_icon(const char* severity) {
         return LV_SYMBOL_OK; // F00C - check
     }
     return "\xEF\x81\x9A"; // F05A - circle-info (i in circle)
+}
+
+/**
+ * Get the shared severity style for a given severity string.
+ * These styles are managed by theme_core and update automatically when theme changes.
+ */
+static lv_style_t* get_severity_style(const char* severity) {
+    if (!severity || strcmp(severity, "info") == 0) {
+        return theme_core_get_severity_info_style();
+    } else if (strcmp(severity, "error") == 0) {
+        return theme_core_get_severity_danger_style();
+    } else if (strcmp(severity, "warning") == 0) {
+        return theme_core_get_severity_warning_style();
+    } else if (strcmp(severity, "success") == 0) {
+        return theme_core_get_severity_success_style();
+    }
+    return theme_core_get_severity_info_style();
 }
 
 /**
@@ -95,9 +113,12 @@ static void severity_card_xml_apply(lv_xml_parser_state_t* state, const char** a
     // Apply standard lv_obj properties from XML first
     lv_xml_obj_apply(state, attrs);
 
-    // Apply severity-based border color immediately
-    lv_color_t severity_color = ui_severity_get_color(severity);
-    lv_obj_set_style_border_color(obj, severity_color, LV_PART_MAIN);
+    // Apply severity-based border color via shared style
+    // Using shared styles enables automatic theme reactivity via LVGL's style system
+    lv_style_t* style = get_severity_style(severity);
+    if (style) {
+        lv_obj_add_style(obj, style, LV_PART_MAIN);
+    }
 
     spdlog::trace("[SeverityCard] Applied severity='{}', stored for finalize", severity);
 }
