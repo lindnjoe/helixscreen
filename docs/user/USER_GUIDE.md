@@ -140,7 +140,7 @@ Tap **Start Print** to begin. The UI switches to the Print Status panel.
 
 ## During a Print
 
-The Print Status panel shows live print progress.
+The Print Status panel shows live print progress and provides tools to adjust print parameters on the fly.
 
 ### Progress Display
 
@@ -158,11 +158,6 @@ The Print Status panel shows live print progress.
 **Cancel:** Stop the print (confirmation required)
 - Prompts "Are you sure?" to prevent accidents
 
-**Z-Offset Adjustment:** Fine-tune first layer
-- Tap +/- buttons to adjust in small increments
-- Changes applied immediately
-- Persists for the entire print
-
 ### Exclude Object
 
 If your slicer supports it (OrcaSlicer, SuperSlicer):
@@ -177,6 +172,95 @@ Live temperature graphs show:
 - Target lines for reference
 - History over time
 
+### Print Tune Overlay
+
+The Print Tune overlay lets you make real-time adjustments to your print without stopping it. Access it by tapping the **Tune** button on the Print Status panel.
+
+**Available Adjustments:**
+
+| Parameter | Range | What It Does |
+|-----------|-------|--------------|
+| Speed % | 10-300% | Overall print speed multiplier |
+| Flow % | 75-125% | Extrusion rate multiplier |
+| Fan % | 0-100% | Part cooling fan speed |
+
+**How to use:**
+1. Tap the **Tune** button during an active print
+2. Adjust sliders or tap the percentage to enter an exact value
+3. Changes apply immediately to the running print
+4. Tap outside the overlay or the **X** button to close
+
+**When to use each adjustment:**
+
+- **Speed %:** Slow down for intricate details or speed up for infill. Lower to 50-70% if you see layer separation or poor adhesion on overhangs.
+- **Flow %:** Increase (105-110%) if you see gaps between extrusion lines (under-extrusion). Decrease (95-98%) if you see blobs or over-packed lines (over-extrusion).
+- **Fan %:** Increase for better bridging and overhang quality. Decrease or disable for ABS/ASA to prevent warping and layer separation.
+
+**Note:** All Tune adjustments are temporary and only affect the current print. The next print starts with your slicer's original values.
+
+### Z-Offset / Baby Steps
+
+Fine-tune your first layer height while printing to achieve the perfect squish. This is especially useful during the first few layers when you can see if the nozzle is too close or too far from the bed.
+
+**How to access:**
+1. During a print, locate the **Z-Offset** section on the Print Status panel
+2. Use the adjustment buttons to raise or lower the nozzle
+
+**Adjustment increments:**
+- **-0.05mm:** Larger step, nozzle closer to bed (more squish)
+- **-0.01mm:** Fine step, nozzle slightly closer
+- **+0.01mm:** Fine step, nozzle slightly higher
+- **+0.05mm:** Larger step, nozzle further from bed (less squish)
+
+**Signs you need to adjust:**
+
+| Symptom | Problem | Solution |
+|---------|---------|----------|
+| Lines not sticking, curling up | Nozzle too high | Tap **-0.01** or **-0.05** |
+| Rough first layer, scratching sounds | Nozzle too low | Tap **+0.01** or **+0.05** |
+| Filament squished flat, see-through gaps | Nozzle too high | Tap **-0.01** to close gaps |
+| Ridges, elephant foot on first layer | Nozzle too low | Tap **+0.01** or **+0.05** |
+
+**Saving your Z-Offset:**
+
+By default, Z-offset changes are temporary and reset after the print completes. To make your adjustment permanent:
+
+1. Get the first layer looking good with baby step adjustments
+2. Tap the **Save Z-Offset** button
+3. The new offset is written to your Klipper configuration
+4. Future prints will use this as the starting point
+
+**Tip:** Make small adjustments (0.01mm) and wait for the printer to complete a few extrusion moves before judging the result. Changes take effect on the next movement command.
+
+### Pressure Advance Tuning
+
+If your printer has Pressure Advance configured in Klipper, you can fine-tune the PA value during a print. This is accessed through the **Tune** overlay.
+
+**How to access:**
+1. Tap the **Tune** button during a print
+2. Scroll down to find the **Pressure Advance** section (only visible if PA is enabled in your Klipper config)
+3. Adjust the value using the slider or tap to enter an exact number
+
+**What Pressure Advance does:**
+
+Pressure Advance compensates for the delay between extruder movement and actual filament flow. Higher values reduce corner bulging and improve sharp corners, but too high causes gaps at the start of lines.
+
+**Typical values by material:**
+- **PLA:** 0.02 - 0.06
+- **PETG:** 0.04 - 0.10
+- **ABS/ASA:** 0.03 - 0.08
+- **TPU:** 0.10 - 0.20 (or disabled)
+
+**When to adjust during a print:**
+
+- **Bulging corners, rounded edges:** Increase PA by 0.01-0.02
+- **Gaps at line starts, weak corners:** Decrease PA by 0.01-0.02
+- **Switching filament brands:** Fine-tune PA since different manufacturers have varying flow characteristics
+
+**Tip:** Run a proper PA calibration test (tower or line method) for your baseline value. Use in-print adjustments only for minor tweaks when you notice issues mid-print.
+
+**Note:** Like other Tune adjustments, PA changes during a print are temporary. To save a PA value permanently, update your slicer's filament profile or your Klipper configuration.
+
 ---
 
 ## Controls Panel
@@ -187,7 +271,7 @@ The Controls Panel provides access to all printer adjustments, organized into ca
 
 ### Motion Controls
 
-![Motion Controls](../images/user/motion.png)
+![Motion Controls](../images/user/controls-motion.png)
 
 **Jog Pad:** Move print head manually
 - X/Y crosshair for horizontal movement
@@ -203,7 +287,7 @@ The Controls Panel provides access to all printer adjustments, organized into ca
 
 ### Temperature Controls
 
-![Temperature Panel](../images/user/temperature.png)
+![Temperature Controls](../images/user/controls-temperature.png)
 
 **Nozzle Panel:**
 - Current temperature display
@@ -302,36 +386,94 @@ Access settings via the **Gear icon** in the navigation bar.
 
 ### Display Settings
 
-- **Theme:** Dark or Light mode
+Tap **Display** to open the full display settings overlay:
+
 - **Brightness:** Display backlight level (0-100%)
-- **Sleep timeout:** Screen dimming delay (1-30 minutes, or Never)
-- **Scroll sensitivity:** Adjust touch scrolling responsiveness
+- **Dim timeout:** When the screen dims to save power (30s, 1m, 2m, 5m, or Never)
+- **Sleep timeout:** When the screen turns off completely (1m, 2m, 5m, 10m, or Never)
+- **Time format:** 12-hour or 24-hour clock display
+- **Bed mesh render:** Auto, 3D, or 2D visualization mode
+
+**Theme Settings:** Tap **Theme** to open the theme explorer:
+- Browse available themes (built-in and custom)
+- Preview themes with live dark/light mode toggle
+- Tap **Apply** to save your selection (restart required for full effect)
+- Tap **Edit** to customize colors in the theme editor
 
 ### Sound Settings
 
 - **Enable sounds:** Toggle all sound effects
 - **Test beep:** Plays a test tone (M300 command)
+- **Completion alert:** Choose how to be notified when prints finish (Off, Notification, or Alert)
 
 ### Network Settings
 
 - **WiFi:** Connect to wireless networks
-- **Moonraker:** Change printer connection
+- **Moonraker:** Change printer connection address
+
+### Sensor Settings
+
+Tap **Sensors** to manage all printer sensors:
+
+**Filament sensors:** Enable or disable runout detection for each sensor. Choose the sensor role:
+- **Runout:** Pauses print when filament runs out
+- **Motion:** Detects filament movement (for clog detection)
+- **Ignore:** Sensor is present but not monitored
+
+**Other sensors:** View detected sensors including:
+- Accelerometers (for Input Shaper)
+- Probe sensors (BLTouch, eddy current, etc.)
+- Humidity sensors
+- Width sensors
+- Color sensors
+
+### Touch Calibration
+
+> **Note:** This option only appears on touchscreen displays, not in the desktop simulator.
+
+Tap **Touch Calibration** to recalibrate your touchscreen if taps register in the wrong location.
+
+**How to calibrate:**
+1. Tap the crosshairs that appear on screen (usually 4-5 points)
+2. Tap as accurately as possible in the center of each target
+3. Calibration saves automatically when complete
+
+The settings row shows "Calibrated" or "Not calibrated" status.
+
+### Hardware Health
+
+Tap **Hardware Health** to see detected hardware issues:
+
+**Issue categories:**
+- **Critical:** Required hardware missing (e.g., heater, probe)
+- **Warning:** Expected hardware not found
+- **Info:** Newly discovered hardware
+- **Session:** Hardware that changed since last session
+
+**Actions for non-critical issues:**
+- **Ignore:** Mark hardware as optional (won't warn again)
+- **Save:** Add to expected hardware list (will warn if removed later)
+
+Use this when you add/remove hardware to keep HelixScreen's expectations accurate.
 
 ### Safety Settings
 
-- **E-Stop confirmation:** Require confirmation before emergency stop
+- **E-Stop confirmation:** Require tap-and-hold confirmation before emergency stop
 
-### Calibration
+### Machine Limits
 
-- **Bed mesh:** Enter mesh calibration panel
-- **Z-offset:** Calibrate Z probe offset
-- **PID tuning:** Tune heater PID values
+Tap **Machine Limits** to adjust motion limits:
 
-### Advanced
+- Maximum velocity, acceleration, and jerk for each axis
+- These override your Klipper config for the current session
+- Use when testing or troubleshooting motion issues
 
+### Other Settings
+
+- **Macro buttons:** Configure quick-access macro shortcuts
+- **Plugins:** View and manage installed plugins
 - **Factory reset:** Clear all settings and run wizard again
-- **Restart Klipper:** Restart Klipper firmware
-- **About:** Version information
+- **About:** Version information (tap 7 times for memory debug mode)
 
 ---
 

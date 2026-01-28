@@ -152,9 +152,12 @@ static void print_help(const char* program_name) {
     printf("  --render-2d          Force 2D layer renderer (fast, no 3D)\n");
     printf("  --render-3d          Force 3D TinyGL renderer\n");
     printf("\nAvailable panels:\n");
-    printf("  home, controls, motion, nozzle-temp, bed-temp, bed-mesh, ams, spoolman,\n");
-    printf("  zoffset, pid, extrusion, print-status, filament, settings, advanced,\n");
-    printf("  print-select, step-test, test, gcode-test, glyphs\n");
+    printf("  Base: home, controls, filament, settings, advanced, print-select\n");
+    printf("  Controls: motion, nozzle-temp, bed-temp, extrusion, fan, bed-mesh, pid\n");
+    printf("  Settings: display, sensors, touch-cal, hardware-health, network, theme\n");
+    printf("  Advanced: zoffset, screws, input-shaper, spoolman, history-dashboard, macros\n");
+    printf("  Print: print-status, print-tune\n");
+    printf("  Dev: ams, step-test, test, gcode-test, glyphs\n");
     printf("\nScreen sizes:\n");
     printf("  tiny   = %dx%d\n", UI_SCREEN_TINY_W, UI_SCREEN_TINY_H);
     printf("  small  = %dx%d (default)\n", UI_SCREEN_SMALL_W, UI_SCREEN_SMALL_H);
@@ -240,6 +243,31 @@ static bool parse_panel_arg(const char* panel_arg, CliArgs& args) {
     } else if (strcmp(panel_arg, "edit-theme") == 0 || strcmp(panel_arg, "theme-edit") == 0) {
         args.initial_panel = UI_PANEL_SETTINGS;
         args.overlays.theme_edit = true;
+    }
+    // Settings overlays (for screenshot automation)
+    else if (strcmp(panel_arg, "display") == 0 || strcmp(panel_arg, "display-settings") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.display_settings = true;
+    } else if (strcmp(panel_arg, "sensors") == 0 || strcmp(panel_arg, "sensor-settings") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.sensor_settings = true;
+    } else if (strcmp(panel_arg, "touch-cal") == 0 || strcmp(panel_arg, "touch-calibration") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.touch_calibration = true;
+    } else if (strcmp(panel_arg, "hardware-health") == 0 || strcmp(panel_arg, "hardware") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.hardware_health = true;
+    } else if (strcmp(panel_arg, "network") == 0 || strcmp(panel_arg, "network-settings") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.network_settings = true;
+    }
+    // Advanced overlays
+    else if (strcmp(panel_arg, "macros") == 0) {
+        args.initial_panel = UI_PANEL_ADVANCED;
+        args.overlays.macros = true;
+    } else if (strcmp(panel_arg, "print-tune") == 0 || strcmp(panel_arg, "tune") == 0) {
+        args.overlays.print_status = true; // Needs print running
+        args.overlays.print_tune = true;
     } else {
         // Try base panel lookup
         auto panel_id = panel_name_to_id(panel_arg);

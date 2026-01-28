@@ -46,6 +46,7 @@
 #include "ui_nav.h"
 #include "ui_nav_manager.h"
 #include "ui_notification_manager.h"
+#include "ui_overlay_network_settings.h"
 #include "ui_panel_ams.h"
 #include "ui_panel_bed_mesh.h"
 #include "ui_panel_calibration_pid.h"
@@ -56,6 +57,7 @@
 #include "ui_panel_history_dashboard.h"
 #include "ui_panel_home.h"
 #include "ui_panel_input_shaper.h"
+#include "ui_panel_macros.h"
 #include "ui_panel_memory_stats.h"
 #include "ui_panel_motion.h"
 #include "ui_panel_print_select.h"
@@ -66,13 +68,17 @@
 #include "ui_panel_step_test.h"
 #include "ui_panel_temp_control.h"
 #include "ui_panel_test.h"
+#include "ui_print_tune_overlay.h"
 #include "ui_printer_status_icon.h"
 #include "ui_settings_display.h"
+#include "ui_settings_hardware_health.h"
+#include "ui_settings_sensors.h"
 #include "ui_severity_card.h"
 #include "ui_switch.h"
 #include "ui_temp_display.h"
 #include "ui_theme_editor_overlay.h"
 #include "ui_toast.h"
+#include "ui_touch_calibration_overlay.h"
 #include "ui_utils.h"
 #include "ui_wizard.h"
 #include "ui_wizard_ams_identify.h"
@@ -1238,6 +1244,66 @@ void Application::create_overlays() {
             theme_editor.load_theme(current_theme);
             ui_nav_push_overlay(editor_panel);
             spdlog::info("[Application] Opened theme editor overlay via CLI");
+        }
+    }
+
+    // Settings overlays (for CLI screenshot automation)
+    if (m_args.overlays.display_settings) {
+        auto& overlay = helix::settings::get_display_settings_overlay();
+        overlay.show(m_screen);
+        spdlog::info("[Application] Opened display settings overlay via CLI");
+    }
+
+    if (m_args.overlays.sensor_settings) {
+        auto& overlay = helix::settings::get_sensor_settings_overlay();
+        overlay.show(m_screen);
+        spdlog::info("[Application] Opened sensor settings overlay via CLI");
+    }
+
+    if (m_args.overlays.touch_calibration) {
+        auto& overlay = helix::ui::get_touch_calibration_overlay();
+        overlay.init_subjects();
+        lv_obj_t* panel_obj = overlay.create(m_screen);
+        if (panel_obj) {
+            ui_nav_push_overlay(panel_obj);
+            spdlog::info("[Application] Opened touch calibration overlay via CLI");
+        }
+    }
+
+    if (m_args.overlays.hardware_health) {
+        auto& overlay = helix::settings::get_hardware_health_overlay();
+        overlay.show(m_screen);
+        spdlog::info("[Application] Opened hardware health overlay via CLI");
+    }
+
+    if (m_args.overlays.network_settings) {
+        auto& overlay = get_network_settings_overlay();
+        overlay.init_subjects();
+        lv_obj_t* panel_obj = overlay.create(m_screen);
+        if (panel_obj) {
+            ui_nav_push_overlay(panel_obj);
+            spdlog::info("[Application] Opened network settings overlay via CLI");
+        }
+    }
+
+    if (m_args.overlays.macros) {
+        auto& overlay = get_global_macros_panel();
+        overlay.register_callbacks();
+        overlay.init_subjects();
+        lv_obj_t* panel_obj = overlay.create(m_screen);
+        if (panel_obj) {
+            ui_nav_push_overlay(panel_obj);
+            spdlog::info("[Application] Opened macros overlay via CLI");
+        }
+    }
+
+    if (m_args.overlays.print_tune) {
+        auto& overlay = get_print_tune_overlay();
+        overlay.init_subjects();
+        lv_obj_t* panel_obj = overlay.create(m_screen);
+        if (panel_obj) {
+            ui_nav_push_overlay(panel_obj);
+            spdlog::info("[Application] Opened print tune overlay via CLI");
         }
     }
 

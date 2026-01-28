@@ -52,6 +52,17 @@ struct OverlayFlags {
     bool theme = false;      // Theme preview overlay (for testing/screenshots)
     bool theme_edit = false; // Theme editor overlay
 
+    // Settings overlays (for CLI screenshot automation)
+    bool display_settings = false;
+    bool sensor_settings = false;
+    bool touch_calibration = false;
+    bool hardware_health = false;
+    bool network_settings = false;
+
+    // Advanced overlays
+    bool macros = false;
+    bool print_tune = false;
+
     /** @brief Check if any overlay requiring Moonraker data is requested */
     bool needs_moonraker() const {
         return motion || nozzle_temp || bed_temp || extrusion || fan || print_status || bed_mesh ||
