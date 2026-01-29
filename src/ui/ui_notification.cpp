@@ -52,31 +52,36 @@ static bool is_main_thread() {
 // Helper structures and callbacks for background thread marshaling
 // ============================================================================
 
+// Fixed-size async data structs - eliminates malloc+strdup overhead
+// Sizes match NotificationHistoryEntry for consistency
 struct AsyncMessageData {
-    char* title; // Can be nullptr for no title
-    char* message;
+    char title[64]; // Empty string if no title
+    char message[256];
     ToastSeverity severity;
     uint32_t duration_ms;
+    bool has_title;
 };
 
 struct AsyncErrorData {
-    char* title;
-    char* message;
+    char title[64];
+    char message[256];
     bool modal;
+    bool has_title;
 };
 
 // Async callbacks for lv_async_call (called on main thread)
 static void async_message_callback(void* user_data) {
     AsyncMessageData* data = (AsyncMessageData*)user_data;
-    if (data && data->message) {
+    if (data && data->message[0] != '\0') {
         // Format display message with title if present
-        std::string display_msg;
-        if (data->title) {
-            display_msg = std::string(data->title) + ": " + data->message;
+        char display_buf[320]; // title + ": " + message
+        if (data->has_title) {
+            snprintf(display_buf, sizeof(display_buf), "%s: %s", data->title, data->message);
         } else {
-            display_msg = data->message;
+            strncpy(display_buf, data->message, sizeof(display_buf) - 1);
+            display_buf[sizeof(display_buf) - 1] = '\0';
         }
-        ui_toast_show(data->severity, display_msg.c_str(), data->duration_ms);
+        ui_toast_show(data->severity, display_buf, data->duration_ms);
 
         // Add to history
         NotificationHistoryEntry entry = {};
@@ -85,7 +90,7 @@ static void async_message_callback(void* user_data) {
         entry.was_modal = false;
         entry.was_read = false;
 
-        if (data->title) {
+        if (data->has_title) {
             strncpy(entry.title, data->title, sizeof(entry.title) - 1);
             entry.title[sizeof(entry.title) - 1] = '\0';
         } else {
@@ -96,17 +101,14 @@ static void async_message_callback(void* user_data) {
 
         NotificationHistory::instance().add(entry);
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
-
-        free(data->title);
-        free(data->message);
     }
-    free(data);
+    delete data;
 }
 
 static void async_error_callback(void* user_data) {
     AsyncErrorData* data = (AsyncErrorData*)user_data;
-    if (data && data->message) {
-        if (data->modal && data->title) {
+    if (data && data->message[0] != '\0') {
+        if (data->modal && data->has_title) {
             // Check if a modal with the same title is already showing
             lv_obj_t* existing_modal = ui_modal_get_top();
             if (existing_modal) {
@@ -117,9 +119,7 @@ static void async_error_callback(void* user_data) {
                     if (existing_title && strcmp(existing_title, data->title) == 0) {
                         spdlog::debug("[Notification] Skipping duplicate modal (async): '{}'",
                                       data->title);
-                        free(data->title);
-                        free(data->message);
-                        free(data);
+                        delete data;
                         return;
                     }
                 }
@@ -152,7 +152,7 @@ static void async_error_callback(void* user_data) {
         entry.was_modal = data->modal;
         entry.was_read = false;
 
-        if (data->title) {
+        if (data->has_title) {
             strncpy(entry.title, data->title, sizeof(entry.title) - 1);
             entry.title[sizeof(entry.title) - 1] = '\0';
         } else {
@@ -164,11 +164,8 @@ static void async_error_callback(void* user_data) {
 
         NotificationHistory::instance().add(entry);
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
-
-        free(data->title);
-        free(data->message);
     }
-    free(data);
+    delete data;
 }
 
 // ============================================================================
@@ -211,20 +208,16 @@ void ui_notification_info(const char* message) {
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
     } else {
         // Background thread: marshal to main thread
-        AsyncMessageData* data = (AsyncMessageData*)malloc(sizeof(AsyncMessageData));
+        auto* data = new (std::nothrow) AsyncMessageData{};
         if (!data) {
             spdlog::error("[Notification] Failed to allocate memory for async notification");
             return;
         }
 
-        data->message = strdup(message);
-        if (!data->message) {
-            free(data);
-            spdlog::error("[Notification] Failed to duplicate message for async notification");
-            return;
-        }
-
-        data->title = nullptr;
+        strncpy(data->message, message, sizeof(data->message) - 1);
+        data->message[sizeof(data->message) - 1] = '\0';
+        data->title[0] = '\0';
+        data->has_title = false;
         data->severity = ToastSeverity::INFO;
         data->duration_ms = 4000;
 
@@ -255,20 +248,16 @@ void ui_notification_success(const char* message) {
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
     } else {
         // Background thread: marshal to main thread
-        AsyncMessageData* data = (AsyncMessageData*)malloc(sizeof(AsyncMessageData));
+        auto* data = new (std::nothrow) AsyncMessageData{};
         if (!data) {
             spdlog::error("[Notification] Failed to allocate memory for async notification");
             return;
         }
 
-        data->message = strdup(message);
-        if (!data->message) {
-            free(data);
-            spdlog::error("[Notification] Failed to duplicate message for async notification");
-            return;
-        }
-
-        data->title = nullptr;
+        strncpy(data->message, message, sizeof(data->message) - 1);
+        data->message[sizeof(data->message) - 1] = '\0';
+        data->title[0] = '\0';
+        data->has_title = false;
         data->severity = ToastSeverity::SUCCESS;
         data->duration_ms = 4000;
 
@@ -299,20 +288,16 @@ void ui_notification_warning(const char* message) {
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
     } else {
         // Background thread: marshal to main thread
-        AsyncMessageData* data = (AsyncMessageData*)malloc(sizeof(AsyncMessageData));
+        auto* data = new (std::nothrow) AsyncMessageData{};
         if (!data) {
             spdlog::error("[Notification] Failed to allocate memory for async notification");
             return;
         }
 
-        data->message = strdup(message);
-        if (!data->message) {
-            free(data);
-            spdlog::error("[Notification] Failed to duplicate message for async notification");
-            return;
-        }
-
-        data->title = nullptr;
+        strncpy(data->message, message, sizeof(data->message) - 1);
+        data->message[sizeof(data->message) - 1] = '\0';
+        data->title[0] = '\0';
+        data->has_title = false;
         data->severity = ToastSeverity::WARNING;
         data->duration_ms = 5000;
 
@@ -357,22 +342,17 @@ static void show_titled_notification(const char* title, const char* message, Toa
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
     } else {
         // Background thread: marshal to main thread
-        AsyncMessageData* data = (AsyncMessageData*)malloc(sizeof(AsyncMessageData));
+        auto* data = new (std::nothrow) AsyncMessageData{};
         if (!data) {
             spdlog::error("[Notification] Failed to allocate memory for async notification");
             return;
         }
 
-        data->title = strdup(title);
-        data->message = strdup(message);
-        if (!data->title || !data->message) {
-            free(data->title);
-            free(data->message);
-            free(data);
-            spdlog::error("[Notification] Failed to duplicate strings for async notification");
-            return;
-        }
-
+        strncpy(data->title, title, sizeof(data->title) - 1);
+        data->title[sizeof(data->title) - 1] = '\0';
+        strncpy(data->message, message, sizeof(data->message) - 1);
+        data->message[sizeof(data->message) - 1] = '\0';
+        data->has_title = true;
         data->severity = severity;
         data->duration_ms = duration_ms;
 
@@ -457,7 +437,7 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
         ui_status_bar_update_notification_count(NotificationHistory::instance().get_unread_count());
     } else {
         // Background thread: marshal to main thread
-        AsyncErrorData* data = (AsyncErrorData*)malloc(sizeof(AsyncErrorData));
+        auto* data = new (std::nothrow) AsyncErrorData{};
         if (!data) {
             spdlog::error("[Notification] Failed to allocate memory for async error notification");
             return;
@@ -465,26 +445,17 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
 
         // Copy title (can be nullptr)
         if (title) {
-            data->title = strdup(title);
-            if (!data->title) {
-                free(data);
-                spdlog::error(
-                    "[Notification] Failed to duplicate title for async error notification");
-                return;
-            }
+            strncpy(data->title, title, sizeof(data->title) - 1);
+            data->title[sizeof(data->title) - 1] = '\0';
+            data->has_title = true;
         } else {
-            data->title = nullptr;
+            data->title[0] = '\0';
+            data->has_title = false;
         }
 
         // Copy message
-        data->message = strdup(message);
-        if (!data->message) {
-            free(data->title);
-            free(data);
-            spdlog::error(
-                "[Notification] Failed to duplicate message for async error notification");
-            return;
-        }
+        strncpy(data->message, message, sizeof(data->message) - 1);
+        data->message[sizeof(data->message) - 1] = '\0';
 
         data->modal = modal;
 
