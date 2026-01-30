@@ -244,22 +244,18 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
             lv_label_set_text(data->label, text);
         }
     } else if (has_icon) {
-        // Icon only: center the icon
+        // Icon only: center the icon, no label needed
         data->icon = create_button_icon(btn, icon_name);
         if (data->icon) {
             lv_obj_center(data->icon);
         }
-
-        // Create hidden label to maintain data structure
-        data->label = lv_label_create(btn);
-        lv_label_set_text(data->label, "");
-        lv_obj_add_flag(data->label, LV_OBJ_FLAG_HIDDEN);
-    } else {
-        // Text only: center the label (original behavior)
+    } else if (has_text) {
+        // Text only: center the label
         data->label = lv_label_create(btn);
         lv_label_set_text(data->label, text);
         lv_obj_center(data->label);
     }
+    // else: No icon, no text - leave button empty for XML children
 
     // Store user data on button
     lv_obj_set_user_data(btn, data);
