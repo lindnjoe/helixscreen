@@ -8,7 +8,7 @@
         extends="ui_dialog" width="70%" height="content" align="center" flex_flow="column" style_flex_main_place="start"
         style_pad_gap="0">
     <!-- Header row with icon + title -->
-    <modal_header icon_src="alert_octagon" icon_variant="error" title="Factory Reset"/>
+    <modal_header icon_src="alert_octagon" icon_variant="danger" title="Factory Reset"/>
     <!-- Message content area -->
     <lv_obj name="content_container"
             width="100%" height="content" style_min_height="60" style_bg_opa="0" style_border_width="0"

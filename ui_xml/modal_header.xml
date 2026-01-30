@@ -2,7 +2,7 @@
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- Reusable modal header component (icon + title) -->
-<!-- Usage: <modal_header icon_src="alert" icon_variant="error" title="Factory Reset"/> -->
+<!-- Usage: <modal_header icon_src="alert" icon_variant="danger" title="Factory Reset"/> -->
 <component>
   <api>
     <prop name="icon_src" type="string" default=""/>

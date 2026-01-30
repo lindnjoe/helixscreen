@@ -181,7 +181,7 @@
                 <bind_flag_if_not_eq subject="printer_icon_state" flag="hidden" ref_value="1"/>
               </icon>
               <!-- Error (red) - state 2 -->
-              <icon name="printer_icon_error" src="printer_3d" size="#icon_size_card" variant="error" hidden="true">
+              <icon name="printer_icon_error" src="printer_3d" size="#icon_size_card" variant="danger" hidden="true">
                 <bind_flag_if_not_eq subject="printer_icon_state" flag="hidden" ref_value="2"/>
               </icon>
               <!-- Disconnected (gray) - state 3 (default) -->

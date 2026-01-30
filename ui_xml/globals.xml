@@ -16,6 +16,8 @@
     <px name="nav_padding" value="16"/>
     <!-- border_radius is responsive: _small/_medium/_large registered as border_radius based on screen size -->
     <px name="border_radius_small" value="4"/>
+    <px name="border_radius_medium" value="9"/>
+    <px name="border_radius_large" value="12"/>
     <!-- Static small radius for elements that always want 4px regardless of screen size -->
     <px name="border_radius_sm" value="4"/>
 
@@ -132,7 +134,10 @@
     <px name="button_height_sm_large" value="48"/>
     <px name="button_height_sm" value="40"/>
 
-    <px name="button_height_normal" value="56"/>
+    <!-- button_height is responsive: _small/_medium/_large registered as button_height based on screen size -->
+    <px name="button_height_small" value="48"/>
+    <px name="button_height_medium" value="52"/>
+    <px name="button_height_large" value="72"/>
 
     <px name="button_height_lg_small" value="64"/>
     <px name="button_height_lg_medium" value="70"/>

@@ -86,7 +86,7 @@
             <bind_flag_if_not_eq subject="history_detail_status_code" flag="hidden" ref_value="1"/>
           </icon>
           <!-- Error icon (status=2) -->
-          <icon name="status_icon_error" src="alert" size="sm" variant="error" hidden="true">
+          <icon name="status_icon_error" src="alert" size="sm" variant="danger" hidden="true">
             <bind_flag_if_not_eq subject="history_detail_status_code" flag="hidden" ref_value="2"/>
           </icon>
           <!-- In Progress icon (status=3) -->

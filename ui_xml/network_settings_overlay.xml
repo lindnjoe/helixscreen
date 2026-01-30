@@ -76,7 +76,7 @@
                 <icon src="check_circle" size="sm" variant="success"/>
                 <text_body name="ssid_label" bind_text="connected_ssid"/>
                 <lv_obj height="1" flex_grow="1" scrollable="false"/>
-                <icon src="wifi_strength_4" size="sm" variant="accent"/>
+                <icon src="wifi_strength_4" size="sm" variant="primary"/>
               </lv_obj>
               <!-- IP Address -->
               <lv_obj width="100%"

@@ -48,7 +48,7 @@
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_bg_opa="0"
                   style_border_width="0" style_flex_cross_place="center" scrollable="false">
-            <icon name="preview_icon_typography" src="tune" size="sm" variant="accent"/>
+            <icon name="preview_icon_typography" src="tune" size="sm" variant="primary"/>
             <text_heading name="preview_sample_heading" text="Heading" flex_grow="1"/>
             <ui_button name="preview_open_button"
                        width="content" height="#button_height_sm" text="Open" variant="tertiary">
@@ -94,7 +94,7 @@
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_bg_opa="0"
                   style_border_width="0" style_flex_cross_place="center" scrollable="false">
-            <icon name="preview_icon_actions" src="check_circle" size="sm" variant="accent"/>
+            <icon name="preview_icon_actions" src="check_circle" size="sm" variant="primary"/>
             <text_heading name="preview_heading_actions" text="Actions"/>
           </lv_obj>
           <lv_obj width="100%"
