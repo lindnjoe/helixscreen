@@ -35,7 +35,7 @@
       </lv_obj>
     </ui_card>
     <!-- Separator -->
-    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted" style_border_width="0"/>
+    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted"/>
     <!-- ============================================================ -->
     <!-- SPOOL VISUALIZATION TESTS - Pseudo-3D Canvas vs Flat Ring    -->
     <!-- ============================================================ -->
@@ -62,7 +62,7 @@
     </ui_card>
     <text_small text="Fill: 100% / 75% / 40% / 10%"/>
     <!-- Separator -->
-    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted" style_border_width="0"/>
+    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted"/>
     <!-- ============================================================ -->
     <!-- PROGRESS BAR TESTS - Understanding lv_bar behavior           -->
     <!-- ============================================================ -->
@@ -117,7 +117,7 @@
       <lv_bar name="test_bar_thin" width="60%" height="8" min_value="0" max_value="100" value="50" style_radius="4"/>
     </ui_card>
     <!-- Separator -->
-    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted" style_border_width="0"/>
+    <lv_obj width="100%" height="2" style_bg_opa="100" style_bg_color="#text_muted"/>
     <!-- Test Row 1: Small Label + Switch -->
     <ui_card width="100%"
              height="56" style_radius="#border_radius" style_pad_all="#space_lg" style_pad_gap="#space_md"
@@ -180,7 +180,7 @@
     </ui_card>
     <!-- NEW: Keyboard test -->
     <lv_label text="Keyboard Test (Gboard-style)" style_text_font="#font_heading" style_margin_top="10"/>
-    <ui_card width="100%" height="120" style_radius="#border_radius" style_pad_all="#space_lg">
+    <ui_card width="100%" height="120" style_pad_all="#space_lg">
       <lv_textarea name="keyboard_test_textarea"
                    width="100%" height="100%" placeholder="Tap to show keyboard..." one_line="false" max_length="200"/>
     </ui_card>

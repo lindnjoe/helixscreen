@@ -20,6 +20,6 @@
     <!-- Middle: Label -->
     <text_body name="label" text="$label" flex_grow="1"/>
     <!-- Right side: Value (secondary color) -->
-    <text_body name="value" text="$value" style_text_color="#text_muted"/>
+    <text_muted name="value" text="$value"/>
   </view>
 </component>

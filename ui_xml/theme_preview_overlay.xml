@@ -37,9 +37,8 @@
           </ui_switch>
         </lv_obj>
       </lv_obj>
-      <text_body name="preview_description"
-                 text="Explore how the selected palette shapes text, controls, and status colors."
-                 style_text_color="#text_muted" long_mode="wrap"/>
+      <text_muted name="preview_description"
+                  text="Explore how the selected palette shapes text, controls, and status colors." long_mode="wrap"/>
       <!-- Preview Cards Row -->
       <lv_obj name="preview_row"
               width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_md" style_bg_opa="0"

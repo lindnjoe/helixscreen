@@ -23,7 +23,7 @@
               scrollable="false">
         <icon src="console" size="xl" variant="secondary"/>
         <text_heading text="No History" style_text_align="center"/>
-        <text_body text="G-code commands will appear here" style_text_color="#text_muted" style_text_align="center"/>
+        <text_muted text="G-code commands will appear here" style_text_align="center"/>
       </lv_obj>
       <!-- G-code input row -->
       <lv_obj name="input_row"

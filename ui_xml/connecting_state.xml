@@ -12,6 +12,6 @@
         style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
         style_pad_gap="#space_md" scrollable="false">
     <spinner size="lg"/>
-    <text_body text="$text" style_text_color="#text_muted"/>
+    <text_muted text="$text"/>
   </view>
 </component>

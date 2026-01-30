@@ -37,7 +37,7 @@
         <!-- Section icon (only shown if icon prop is set) -->
         <icon name="section_icon" src="$icon" size="sm" variant="muted"/>
         <!-- Section title (uppercase style with letter-spacing for hierarchy) -->
-        <text_body text="$title" style_text_color="#text_muted" style_text_letter_space="1"/>
+        <text_muted text="$title" style_text_letter_space="1"/>
       </lv_obj>
       <ui_button name="section_action_button"
                  width="$action_button_width" height="$action_button_height" icon="$action_button_icon"

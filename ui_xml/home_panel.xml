@@ -334,7 +334,7 @@
           </divider_vertical>
 
           <!-- AMS status indicator - visibility bound to ams_slot_count subject -->
-          <lv_obj height="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0">
+          <lv_obj height="100%" flex_grow="1" style_pad_all="0">
             <bind_flag_if_eq subject="ams_slot_count" flag="hidden" ref_value="0"/>
             <!-- ams_mini_status auto-binds to AmsState and handles its own click -->
             <ams_mini_status/>

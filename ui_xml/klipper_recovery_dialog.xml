@@ -20,9 +20,9 @@
         <!-- Title -->
         <text_heading width="100%" text="Printer Shutdown" style_text_align="center"/>
         <!-- Message -->
-        <text_body width="100%"
-                   text="Klipper has entered shutdown state. This may be due to an emergency stop, thermal runaway, or configuration error."
-                   long_mode="wrap" style_text_align="center" style_text_color="#text_muted"/>
+        <text_muted width="100%"
+                    text="Klipper has entered shutdown state. This may be due to an emergency stop, thermal runaway, or configuration error."
+                    long_mode="wrap" style_text_align="center"/>
       </lv_obj>
       <!-- Horizontal divider above buttons -->
       <divider_horizontal/>

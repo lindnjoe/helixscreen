@@ -31,8 +31,8 @@
   </consts>
   <view name="card_root"
         extends="ui_card" height="#card_height" style_flex_basis="#card_base_width" flex_grow="1"
-        style_min_width="#card_min_width" style_max_width="#card_max_width" style_radius="#border_radius"
-        style_pad_all="0" style_clip_corner="true" clickable="true">
+        style_min_width="#card_min_width" style_max_width="#card_max_width" style_pad_all="0" style_clip_corner="true"
+        clickable="true">
     <!-- Pre-rendered gradient background (LVGL native .bin for instant blitting) -->
     <lv_image name="gradient_bg"
               width="#card_base_width" height="#card_height" src="A:assets/images/gradient-card-medium.bin"/>

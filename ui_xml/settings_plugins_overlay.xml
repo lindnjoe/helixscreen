@@ -13,10 +13,9 @@
       <!-- ================================================================== -->
       <!-- STATUS CARD - Shows overall plugin status -->
       <!-- ================================================================== -->
-      <lv_obj name="status_card"
-              width="100%" height="content" style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius"
-              style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="row"
-              style_flex_cross_place="center" style_pad_gap="#space_md">
+      <ui_card name="status_card"
+               width="100%" height="content" style_border_width="0" style_pad_all="#space_lg" scrollable="false"
+               flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_md">
         <!-- Status icon - shows plugin icon -->
         <lv_obj name="status_icon_container"
                 width="48" height="48" style_bg_color="#primary" style_bg_opa="255" style_radius="24"
@@ -31,7 +30,7 @@
           <text_heading name="status_title" bind_text="plugins_status_title"/>
           <text_small name="status_detail" bind_text="plugins_status_detail"/>
         </lv_obj>
-      </lv_obj>
+      </ui_card>
       <!-- ================================================================== -->
       <!-- LOADED PLUGINS SECTION (green) - Successfully loaded plugins -->
       <!-- ================================================================== -->

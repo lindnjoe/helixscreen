@@ -18,7 +18,7 @@
               scrollable="false">
         <icon src="power_plug" size="xl" variant="secondary"/>
         <text_heading text="No Power Devices" style_text_align="center"/>
-        <text_body text="Configure devices in Moonraker" style_text_color="#text_muted" style_text_align="center"/>
+        <text_muted text="Configure devices in Moonraker" style_text_align="center"/>
       </lv_obj>
       <!-- Status message at bottom -->
       <text_small name="status_message" width="100%" bind_text="power_status" text="" style_text_align="center"/>

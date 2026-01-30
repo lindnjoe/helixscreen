@@ -22,7 +22,7 @@
               scrollable="false">
         <icon src="code_tags" size="xl" variant="secondary"/>
         <text_heading text="No Macros Found" style_text_align="center"/>
-        <text_body text="Define macros in your printer.cfg" style_text_color="#text_muted" style_text_align="center"/>
+        <text_muted text="Define macros in your printer.cfg" style_text_align="center"/>
       </lv_obj>
     </lv_obj>
   </view>

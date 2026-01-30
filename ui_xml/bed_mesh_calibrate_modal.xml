@@ -21,9 +21,8 @@
       <!-- Title -->
       <text_heading width="100%" text="Probing Bed Mesh" style_text_align="center"/>
       <!-- Progress text -->
-      <text_body name="probe_progress_text"
-                 width="100%" bind_text="bed_mesh_probe_text" text="Initializing..." style_text_align="center"
-                 style_text_color="#text_muted"/>
+      <text_muted name="probe_progress_text"
+                  width="100%" bind_text="bed_mesh_probe_text" text="Initializing..." style_text_align="center"/>
       <!-- Progress bar -->
       <lv_bar name="probe_progress_bar"
               width="90%" height="12" bind_value="bed_mesh_probe_progress" min_value="0" max_value="100"
@@ -74,9 +73,9 @@
       <!-- Title -->
       <text_heading width="100%" text="Calibration Failed" style_text_align="center"/>
       <!-- Error message (bound to subject) -->
-      <text_body name="error_message_label"
-                 width="100%" bind_text="bed_mesh_error_message" text="An error occurred during calibration."
-                 long_mode="wrap" style_text_align="center" style_text_color="#text_muted"/>
+      <text_muted name="error_message_label"
+                  width="100%" bind_text="bed_mesh_error_message" text="An error occurred during calibration."
+                  long_mode="wrap" style_text_align="center"/>
     </lv_obj>
     <!-- Horizontal divider above buttons -->
     <divider_horizontal/>

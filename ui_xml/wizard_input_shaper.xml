@@ -20,7 +20,7 @@
              flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center">
 
       <!-- Info section -->
-      <lv_obj width="100%" flex_flow="column" style_bg_opa="0" style_pad_gap="#space_sm">
+      <lv_obj width="100%" flex_flow="column" style_pad_gap="#space_sm">
         <text_body width="100%"
                    text="Input shaping reduces vibration artifacts (ringing) in your prints." style_text_align="center"/>
         <text_small width="100%"
@@ -29,7 +29,7 @@
       </lv_obj>
 
       <!-- Status display -->
-      <lv_obj width="100%" flex_flow="column" style_bg_opa="0" style_pad_gap="#space_sm" style_pad_top="#space_lg">
+      <lv_obj width="100%" flex_flow="column" style_pad_gap="#space_sm" style_pad_top="#space_lg">
         <text_body width="100%" bind_text="wizard_input_shaper_status" style_text_align="center"/>
 
         <!-- Progress bar (visible during calibration) -->
@@ -41,10 +41,10 @@
       </lv_obj>
 
       <!-- Spacer -->
-      <lv_obj flex_grow="1" style_bg_opa="0"/>
+      <lv_obj flex_grow="1"/>
 
       <!-- Action buttons -->
-      <lv_obj width="100%" flex_flow="row" style_bg_opa="0" style_pad_gap="#space_md" style_flex_main_place="center">
+      <lv_obj width="100%" flex_flow="row" style_pad_gap="#space_md" style_flex_main_place="center">
 
         <!-- Skip button -->
         <ui_button name="skip_calibration_btn"

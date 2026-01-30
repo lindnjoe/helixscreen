@@ -35,15 +35,15 @@
             height="content" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg" flex_flow="row"
             style_flex_main_place="space_between" style_pad_gap="#space_sm">
       <!-- Load button -->
-      <ui_button name="btn_load_filament" height="#button_height" flex_grow="1" icon="arrow_down" text="Load">
+      <ui_button name="btn_load_filament" flex_grow="1" icon="arrow_down" text="Load">
         <event_cb trigger="clicked" callback="on_runout_load_filament"/>
       </ui_button>
       <!-- Unload button -->
-      <ui_button name="btn_unload_filament" height="#button_height" flex_grow="1" icon="arrow_up" text="Unload">
+      <ui_button name="btn_unload_filament" flex_grow="1" icon="arrow_up" text="Unload">
         <event_cb trigger="clicked" callback="on_runout_unload_filament"/>
       </ui_button>
       <!-- Purge button -->
-      <ui_button name="btn_purge" height="#button_height" flex_grow="1" icon="filament" text="Purge">
+      <ui_button name="btn_purge" flex_grow="1" icon="filament" text="Purge">
         <event_cb trigger="clicked" callback="on_runout_purge"/>
       </ui_button>
     </lv_obj>

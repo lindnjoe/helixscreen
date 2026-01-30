@@ -148,7 +148,7 @@
         </ui_card>
 
         <!-- Options card - flex_grow ensures it expands to fit all checkboxes -->
-        <ui_card name="options_card" width="100%" flex_grow="1" style_radius="#border_radius" flex_flow="column">
+        <ui_card name="options_card" width="100%" flex_grow="1" flex_flow="column">
           <!-- Pre-print G-code modification options -->
           <!-- Visibility: can_show_* = helix_plugin_installed AND printer_has_* -->
           <!-- Toggle rows: label on left, switch on right -->

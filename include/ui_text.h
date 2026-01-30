@@ -21,10 +21,11 @@
  * semantic meaning, reading from globals.xml theme constants.
  *
  * Available widgets:
- * - <text_heading>: Section headings, large text (20/26/28 + header_text)
+ * - <text_heading>: Section headings, large text (20/26/28 + text_muted)
  * - <text_body>:    Standard body text (14/18/20 + text_primary)
- * - <text_small>:   Small/helper text (12/16/18 + text_secondary)
- * - <text_xs>:      Extra-small text (10/12/14 + text_secondary) for compact metadata
+ * - <text_muted>:   Muted body text (14/18/20 + text_muted) for secondary content
+ * - <text_small>:   Small/helper text (12/16/18 + text_muted)
+ * - <text_xs>:      Extra-small text (10/12/14 + text_muted) for compact metadata
  *
  * All widgets inherit standard lv_label attributes (text, width, align, etc.)
  *
@@ -39,7 +40,7 @@
 
 /**
  * Initialize semantic text widgets for XML usage
- * Registers custom widgets: text_heading, text_body, text_small, text_xs
+ * Registers custom widgets: text_heading, text_body, text_muted, text_small, text_xs
  *
  * Call this after globals.xml is registered but before creating UI.
  */

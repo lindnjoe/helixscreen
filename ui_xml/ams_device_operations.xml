@@ -45,7 +45,7 @@
         </lv_obj>
 
         <!-- Divider -->
-        <lv_obj width="100%" height="1" style_bg_color="#text_muted" style_bg_opa="30" style_border_width="0"/>
+        <lv_obj width="100%" height="1" style_bg_color="#text_muted" style_bg_opa="30"/>
 
         <!-- Bypass Mode Row (hidden when not supported) -->
         <lv_obj name="bypass_row"
@@ -155,8 +155,7 @@
                style_flex_cross_place="center" style_pad_gap="#space_sm">
         <bind_flag_if_eq subject="ams_device_ops_has_backend" flag="hidden" ref_value="1"/>
         <icon src="info" size="lg" variant="secondary"/>
-        <text_body name="no_backend_text"
-                   width="100%" text="No AMS system connected." style_text_color="#text_muted" style_text_align="center"/>
+        <text_muted name="no_backend_text" width="100%" text="No AMS system connected." style_text_align="center"/>
       </ui_card>
 
     </lv_obj>

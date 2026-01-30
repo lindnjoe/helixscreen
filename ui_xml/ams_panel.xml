@@ -185,7 +185,7 @@
           <!-- Step progress widget created dynamically by AmsPanel -->
         </lv_obj>
         <!-- Flex spacer - pushes action buttons to bottom of column -->
-        <lv_obj width="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_grow="1"/>
+        <lv_obj width="1" style_pad_all="0" scrollable="false" flex_grow="1"/>
         <!-- Action Buttons -->
         <lv_obj width="100%"
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#space_sm"
@@ -210,17 +210,17 @@
             </ui_switch>
           </lv_obj>
           <!-- Unload Button (full width) - hidden for tool changers (use context menu Mount/Unmount instead) -->
-          <ui_button name="btn_unload" width="100%" height="#button_height" icon="tray_arrow_up" text="Unload">
+          <ui_button name="btn_unload" width="100%" icon="tray_arrow_up" text="Unload">
             <bind_flag_if_eq subject="ams_type" flag="hidden" ref_value="4"/>
             <bind_state_if_eq subject="ams_filament_loaded" state="disabled" ref_value="0"/>
             <event_cb trigger="clicked" callback="ams_unload_clicked_cb"/>
           </ui_button>
           <!-- Reset Button (full width) -->
-          <ui_button name="btn_reset" width="100%" height="#button_height" icon="refresh" text="Reset">
+          <ui_button name="btn_reset" width="100%" icon="refresh" text="Reset">
             <event_cb trigger="clicked" callback="ams_reset_clicked_cb"/>
           </ui_button>
           <!-- Settings Button (full width) -->
-          <ui_button name="btn_settings" width="100%" height="#button_height" icon="settings" text="Settings">
+          <ui_button name="btn_settings" width="100%" icon="settings" text="Settings">
             <event_cb trigger="clicked" callback="on_ams_panel_settings_clicked"/>
           </ui_button>
         </lv_obj>

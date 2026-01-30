@@ -179,7 +179,7 @@
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
                   style_pad_gap="#space_sm" style_flex_cross_place="center" scrollable="false">
             <icon src="video" size="sm" variant="primary"/>
-            <text_body text="Timelapse Available" style_text_color="#text_muted"/>
+            <text_muted text="Timelapse Available"/>
           </lv_obj>
           <!-- View Timelapse button -->
           <ui_button name="view_timelapse_btn"
@@ -188,17 +188,17 @@
           </ui_button>
         </lv_obj>
         <!-- Spacer to push buttons to bottom -->
-        <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false"/>
+        <lv_obj width="100%" flex_grow="1" scrollable="false"/>
         <!-- Action buttons row -->
         <lv_obj name="button_row"
                 width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
                 style_pad_gap="#space_sm" flex_flow="row" scrollable="false">
           <!-- Delete button (secondary style) -->
-          <ui_button name="delete_button" height="#button_height" text="Delete" variant="success" flex_grow="1">
+          <ui_button name="delete_button" text="Delete" variant="success" flex_grow="1">
             <event_cb trigger="clicked" callback="history_detail_delete"/>
           </ui_button>
           <!-- Reprint button (primary, disabled if file doesn't exist) -->
-          <ui_button name="reprint_button" height="#button_height" text="Reprint" flex_grow="1">
+          <ui_button name="reprint_button" text="Reprint" flex_grow="1">
             <event_cb trigger="clicked" callback="history_detail_reprint"/>
             <bind_state_if_eq subject="history_detail_can_reprint" state="disabled" ref_value="0"/>
           </ui_button>

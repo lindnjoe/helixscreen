@@ -57,7 +57,7 @@
         <ui_button name="btn_2" width="30%" height="#keypad_btn_height" text="2"/>
         <ui_button name="btn_3" width="30%" height="#keypad_btn_height" text="3"/>
         <!-- Row 4: spacer, 0, backspace -->
-        <lv_obj width="30%" height="#keypad_btn_height" style_bg_opa="0" style_border_width="0"/>
+        <lv_obj width="30%" height="#keypad_btn_height"/>
         <ui_button name="btn_0" width="30%" height="#keypad_btn_height" text="0"/>
         <ui_button name="btn_backspace" width="30%" height="#keypad_btn_height" icon="backspace" text=""/>
       </lv_obj>

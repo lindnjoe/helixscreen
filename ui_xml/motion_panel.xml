@@ -101,19 +101,19 @@
                   height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" flex_flow="row"
                   style_pad_gap="#space_xs">
             <text_small text="X:"/>
-            <text_small name="pos_x" bind_text="motion_pos_x" style_text_color="#text"/>
+            <text_small name="pos_x" bind_text="motion_pos_x"/>
           </lv_obj>
           <lv_obj width="100%"
                   height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" flex_flow="row"
                   style_pad_gap="#space_xs">
             <text_small text="Y:"/>
-            <text_small name="pos_y" bind_text="motion_pos_y" style_text_color="#text"/>
+            <text_small name="pos_y" bind_text="motion_pos_y"/>
           </lv_obj>
           <lv_obj width="100%"
                   height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" flex_flow="row"
                   style_pad_gap="#space_xs">
             <text_small text="Z:"/>
-            <text_small name="pos_z" bind_text="motion_pos_z" style_text_color="#text"/>
+            <text_small name="pos_z" bind_text="motion_pos_z"/>
           </lv_obj>
         </lv_obj>
         <!-- Z-Axis Button Group (responsive: uses flex_grow to fill available space) -->

@@ -196,6 +196,10 @@ static void* ui_text_body_create(lv_xml_parser_state_t* state, const char** attr
     return create_semantic_label(state, attrs, "font_body", TextStyleType::PRIMARY);
 }
 
+static void* ui_text_muted_create(lv_xml_parser_state_t* state, const char** attrs) {
+    return create_semantic_label(state, attrs, "font_body", TextStyleType::MUTED);
+}
+
 static void* ui_text_small_create(lv_xml_parser_state_t* state, const char** attrs) {
     return create_semantic_label(state, attrs, "font_small", TextStyleType::MUTED);
 }
@@ -274,6 +278,7 @@ void ui_text_init() {
     // standard label attributes plus custom stroke_* attributes
     lv_xml_register_widget("text_heading", ui_text_heading_create, ui_text_apply);
     lv_xml_register_widget("text_body", ui_text_body_create, ui_text_apply);
+    lv_xml_register_widget("text_muted", ui_text_muted_create, ui_text_apply);
     lv_xml_register_widget("text_small", ui_text_small_create, ui_text_apply);
     lv_xml_register_widget("text_xs", ui_text_xs_create, ui_text_apply);
     // text_tiny is an alias for text_xs (same size, just a more intuitive name)
@@ -282,8 +287,8 @@ void ui_text_init() {
     lv_xml_register_widget("text_button", ui_text_button_create, ui_text_button_apply);
 
     spdlog::debug(
-        "[ui_text] Registered semantic text widgets: text_heading, text_body, text_small, "
-        "text_xs, text_tiny, text_button");
+        "[ui_text] Registered semantic text widgets: text_heading, text_body, text_muted, "
+        "text_small, text_xs, text_tiny, text_button");
 }
 
 void ui_text_set_stroke(lv_obj_t* label, int32_t width, lv_color_t color, lv_opa_t opa) {

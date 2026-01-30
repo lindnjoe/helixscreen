@@ -66,7 +66,7 @@
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
                    flex_flow="column" style_flex_cross_place="start">
             <text_small text="Total Prints"/>
-            <text_heading name="stat_total_prints" text="0" style_text_color="#text" bind_text="stat_total_prints"/>
+            <text_heading name="stat_total_prints" text="0" bind_text="stat_total_prints"/>
           </ui_card>
           <ui_card name="card_success_rate"
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
@@ -79,13 +79,13 @@
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
                    flex_flow="column" style_flex_cross_place="start">
             <text_small text="Print Time"/>
-            <text_heading name="stat_print_time" text="0h" style_text_color="#text" bind_text="stat_print_time"/>
+            <text_heading name="stat_print_time" text="0h" bind_text="stat_print_time"/>
           </ui_card>
           <ui_card name="card_filament"
                    width="48%" height="content" style_radius="#border_radius" style_pad_all="#space_xs"
                    flex_flow="column" style_flex_cross_place="start">
             <text_small text="Filament Used"/>
-            <text_heading name="stat_filament" text="0m" style_text_color="#text" bind_text="stat_filament"/>
+            <text_heading name="stat_filament" text="0m" bind_text="stat_filament"/>
           </ui_card>
         </lv_obj>
         <!-- Right: Filament by Type Chart with Labels -->
@@ -109,7 +109,7 @@
         <lv_obj width="100%"
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
-          <text_body text="Prints Trend" style_text_color="#text_muted"/>
+          <text_muted text="Prints Trend"/>
           <text_small name="trend_period" text="Last 7 days" bind_text="trend_period"/>
         </lv_obj>
         <!-- Chart container - will be populated by C++ -->
@@ -121,7 +121,7 @@
       <centered_column name="empty_state" flex_grow="1" style_pad_all="#space_xl" hidden="true">
         <bind_flag_if_not_eq subject="history_has_jobs" flag="hidden" ref_value="0"/>
         <icon src="clock" size="xl" variant="secondary"/>
-        <text_body width="100%" text="No print history yet" style_text_color="#text_muted" style_text_align="center"/>
+        <text_muted width="100%" text="No print history yet" style_text_align="center"/>
         <text_small width="100%" text="Your completed prints will appear here" style_text_align="center"/>
       </centered_column>
       <!-- Flex shim to push button to bottom (hidden when empty state is shown) -->

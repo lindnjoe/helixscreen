@@ -175,7 +175,7 @@
         </lv_obj>
       </lv_obj>
       <!-- Spacer to push info to bottom -->
-      <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false"/>
+      <lv_obj width="100%" flex_grow="1" scrollable="false"/>
       <!-- Info Note at bottom -->
       <lv_obj width="100%"
               height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"

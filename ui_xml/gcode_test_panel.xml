@@ -6,7 +6,7 @@
     <!-- Main Layout: Left (viewer + sliders) + Right (controls) -->
     <lv_obj width="100%" height="100%" flex_flow="row" style_pad_all="0" style_pad_gap="0">
       <!-- Left: Viewer + Sliders (70%) -->
-      <lv_obj height="100%" flex_grow="7" flex_flow="column" style_border_width="0" style_pad_all="0" style_pad_gap="0">
+      <lv_obj height="100%" flex_grow="7" flex_flow="column" style_pad_all="0" style_pad_gap="0">
         <!-- 3D Viewer -->
         <gcode_viewer name="gcode_viewer" width="100%" flex_grow="1" style_bg_color="0x000000" style_border_width="0"/>
         <!-- Lighting Controls Bar (bottom) -->
@@ -38,9 +38,9 @@
               height="100%" flex_grow="3" scrollable="false" flex_flow="column" style_bg_color="#card_bg"
               style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
         <!-- View Presets Section -->
-        <lv_obj width="100%"
-                height="content" flex_flow="column" style_bg_color="#card_bg" style_radius="#border_radius"
-                style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
+        <ui_card width="100%"
+                 height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+                 style_border_width="0">
           <text_body text="View Presets"/>
           <!-- Row 1 -->
           <lv_obj width="100%"
@@ -55,22 +55,22 @@
             <ui_button name="btn_side" flex_grow="1" text="Side"/>
             <ui_button name="btn_reset" flex_grow="1" text="Reset"/>
           </lv_obj>
-        </lv_obj>
+        </ui_card>
         <!-- Zoom Section -->
-        <lv_obj width="100%"
-                height="content" flex_flow="column" style_bg_color="#card_bg" style_radius="#border_radius"
-                style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
+        <ui_card width="100%"
+                 height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+                 style_border_width="0">
           <text_body text="Zoom"/>
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
             <ui_button name="btn_zoom_in" flex_grow="1" text="+"/>
             <ui_button name="btn_zoom_out" flex_grow="1" text="-"/>
           </lv_obj>
-        </lv_obj>
+        </ui_card>
         <!-- Layer Progress Section (Ghost Layer Test) -->
-        <lv_obj width="100%"
-                height="content" flex_flow="column" style_bg_color="#card_bg" style_radius="#border_radius"
-                style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
+        <ui_card width="100%"
+                 height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+                 style_border_width="0">
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_border_width="0"
                   style_flex_cross_place="center">
@@ -90,25 +90,25 @@
             <text_small text="Ghost:"/>
             <lv_dropdown name="ghost_mode_dropdown" flex_grow="1" options="Stipple Solid"/>
           </lv_obj>
-        </lv_obj>
+        </ui_card>
         <!-- File Section -->
-        <lv_obj width="100%"
-                height="content" flex_flow="column" style_bg_color="#card_bg" style_radius="#border_radius"
-                style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
+        <ui_card width="100%"
+                 height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+                 style_border_width="0">
           <text_body text="File"/>
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
             <ui_button name="btn_load_test" flex_grow="1" text="Browse"/>
             <ui_button name="btn_clear" flex_grow="1" text="Clear"/>
           </lv_obj>
-        </lv_obj>
+        </ui_card>
         <!-- Statistics Section (flex_grow to fill remaining space) -->
-        <lv_obj width="100%"
-                flex_grow="1" flex_flow="column" style_bg_color="#card_bg" style_radius="#border_radius"
-                style_pad_all="#space_xs" style_pad_gap="#space_xs" style_border_width="0">
+        <ui_card width="100%"
+                 flex_grow="1" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+                 style_border_width="0">
           <text_body text="File Info"/>
           <text_small name="stats_label" width="100%" flex_grow="1" text="Loading..." long_mode="wrap"/>
-        </lv_obj>
+        </ui_card>
       </lv_obj>
     </lv_obj>
   </view>

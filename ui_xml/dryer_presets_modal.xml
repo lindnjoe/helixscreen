@@ -58,11 +58,9 @@
             <event_cb trigger="clicked" callback="dryer_temp_minus_cb"/>
           </ui_button>
           <!-- Temperature value display -->
-          <lv_obj width="80"
-                  height="#stepper_btn_size" style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius"
-                  style_border_width="0" style_pad_all="0" scrollable="false">
+          <ui_card width="80" height="#stepper_btn_size" style_border_width="0" style_pad_all="0" scrollable="false">
             <text_heading name="temp_value" bind_text="dryer_modal_temp_text" align="center"/>
-          </lv_obj>
+          </ui_card>
           <!-- Plus button -->
           <ui_button name="btn_temp_plus" width="#stepper_btn_size" height="#stepper_btn_size" icon="plus">
             <event_cb trigger="clicked" callback="dryer_temp_plus_cb"/>
@@ -83,11 +81,9 @@
             <event_cb trigger="clicked" callback="dryer_duration_minus_cb"/>
           </ui_button>
           <!-- Duration value display -->
-          <lv_obj width="100"
-                  height="#stepper_btn_size" style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius"
-                  style_border_width="0" style_pad_all="0" scrollable="false">
+          <ui_card width="100" height="#stepper_btn_size" style_border_width="0" style_pad_all="0" scrollable="false">
             <text_heading name="duration_value" bind_text="dryer_modal_duration_text" align="center"/>
-          </lv_obj>
+          </ui_card>
           <!-- Plus button -->
           <ui_button name="btn_duration_plus" width="#stepper_btn_size" height="#stepper_btn_size" icon="plus">
             <event_cb trigger="clicked" callback="dryer_duration_plus_cb"/>

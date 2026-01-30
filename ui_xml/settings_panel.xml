@@ -148,32 +148,31 @@
         <icon name="row_icon" src="info" size="sm" variant="secondary" clickable="false" event_bubble="true"/>
         <text_body name="label"
                    text="Version" style_text_color="#text" flex_grow="1" clickable="false" event_bubble="true"/>
-        <text_body name="value"
-                   bind_text="version_value" style_text_color="#text_muted" clickable="false" event_bubble="true"/>
+        <text_muted name="value" bind_text="version_value" clickable="false" event_bubble="true"/>
       </lv_obj>
       <event_cb trigger="clicked" callback="on_version_clicked"/>
     </ui_button>
     <!-- Printer Name -->
     <setting_info_row name="row_printer" label="Printer" icon="printer_3d">
-      <text_body name="value" bind_text="printer_value" style_text_color="#text_muted"/>
+      <text_muted name="value" bind_text="printer_value"/>
     </setting_info_row>
     <!-- Printer Host -->
     <setting_info_row name="row_printer_host" label="Host" icon="lan">
-      <text_body name="value" bind_text="printer_host_value" style_text_color="#text_muted"/>
+      <text_muted name="value" bind_text="printer_host_value"/>
     </setting_info_row>
     <!-- Klipper Version -->
     <setting_info_row name="row_klipper" label="Klipper" icon="toy_brick_outline">
-      <text_body name="value" text="—" style_text_color="#text_muted"/>
+      <text_muted name="value" text="—"/>
     </setting_info_row>
     <!-- Moonraker Version -->
     <setting_info_row name="row_moonraker" label="Moonraker" icon="toy_brick_outline">
-      <text_body name="value" text="—" style_text_color="#text_muted"/>
+      <text_muted name="value" text="—"/>
     </setting_info_row>
     <!-- Total Print Hours -->
     <setting_info_row name="row_print_hours" label="Print Hours" icon="clock">
       <text_body name="value" bind_text="print_hours_value" style_text_color="#text_muted"/>
     </setting_info_row>
     <!-- Bottom padding for scroll -->
-    <lv_obj width="100%" height="#space_lg" style_bg_opa="0" style_border_width="0" scrollable="false"/>
+    <lv_obj width="100%" height="#space_lg" scrollable="false"/>
   </view>
 </component>

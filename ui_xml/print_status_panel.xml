@@ -86,7 +86,7 @@
                   style_pad_bottom="#space_sm" flex_flow="row" style_flex_main_place="center"
                   style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
             <icon src="check_circle" size="md" variant="text"/>
-            <text_heading text="Print Complete!" style_text_color="#text"/>
+            <text_heading text="Print Complete!"/>
           </lv_obj>
         </lv_obj>
 
@@ -105,7 +105,7 @@
                   style_pad_bottom="#space_sm" flex_flow="row" style_flex_main_place="center"
                   style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
             <icon src="cancel" size="md" variant="text"/>
-            <text_heading text="Print Cancelled" style_text_color="#text"/>
+            <text_heading text="Print Cancelled"/>
           </lv_obj>
         </lv_obj>
 

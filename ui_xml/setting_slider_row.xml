@@ -42,7 +42,7 @@
         </text_body>
       </lv_obj>
       <!-- Right side: Current value (bind to subject when available) -->
-      <text_body name="value_label" text="$value" style_text_color="#text_muted"/>
+      <text_muted name="value_label" text="$value"/>
     </lv_obj>
     <!-- Description (if provided) -->
     <text_small name="description" text="$description"/>

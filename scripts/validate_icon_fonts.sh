@@ -122,12 +122,14 @@ XML_DIR="ui_xml"
 # Extract all icon names from XML files (icon="name" attributes)
 # - Exclude XML comments (lines containing <!--)
 # - Exclude *_icon="..." patterns (like hide_action_button_icon="true")
+# - Exclude $var patterns (component props like icon="$action_button_icon")
 extract_xml_icons() {
     grep -h 'icon="' "$XML_DIR"/*.xml 2>/dev/null |
     grep -v '<!--' |
     grep -v '_icon=' |
     grep -oE 'icon="[^"]+"' |
     sed -E 's/icon="([^"]+)"/\1/' |
+    grep -v '^\$' |
     sort -u
 }
 
