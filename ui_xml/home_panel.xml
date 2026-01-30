@@ -156,9 +156,7 @@
 
 
       <!-- Status Card - Column layout with status row on top, info row below -->
-      <ui_card name="status_card"
-               height="100%" flex_grow="2" flex_flow="column"
-               style_pad_gap="#space_sm">
+      <ui_card name="status_card" height="100%" flex_grow="2" flex_flow="column" style_pad_gap="#space_sm">
 
         <!-- Top Row: [AMS if available] + Printer Status + Notification -->
         <!-- Uses flex_grow="1" like bottom row so divider height="80%" works correctly -->
@@ -197,9 +195,9 @@
           <!-- Network status - icon on top, label below (centered) -->
           <!-- Icons switch based on home_network_icon_state: 0=disconnected, 1-4=wifi strength, 5=ethernet -->
           <!-- Note: Uses different subject than navigation_bar's network_icon_state (simpler 3-state) -->
-          <ui_button name="network_btn" height="100%" variant="ghost" flex_grow="1"
-                     flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
-                     style_flex_track_place="center">
+          <ui_button name="network_btn"
+                     height="100%" variant="ghost" flex_grow="1" flex_flow="column" style_flex_main_place="center"
+                     style_flex_cross_place="center" style_flex_track_place="center">
             <event_cb trigger="clicked" callback="network_clicked_cb"/>
             <!-- Disconnected (state 0) -->
             <icon name="net_disconnected" src="wifi_off" size="#icon_size_card" variant="disabled">
@@ -307,9 +305,9 @@
           <!-- Temperature display - icon on top, text below -->
           <!-- Icon color controlled by HeatingIconAnimator (gradient + pulse while heating) -->
           <!-- Disabled when not connected (state != 2) using LVGL's native disabled state -->
-          <ui_button name="temp_btn" height="100%" variant="ghost" flex_grow="1"
-                     flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
-                     style_flex_track_place="center">
+          <ui_button name="temp_btn"
+                     height="100%" variant="ghost" flex_grow="1" flex_flow="column" style_flex_main_place="center"
+                     style_flex_cross_place="center" style_flex_track_place="center">
             <bind_state_if_not_eq subject="printer_connection_state" state="disabled" ref_value="2"/>
             <event_cb trigger="clicked" callback="temp_clicked_cb"/>
             <icon name="temp_icon" src="heater" size="#icon_size_card" variant="secondary"/>
