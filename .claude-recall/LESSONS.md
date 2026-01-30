@@ -14,9 +14,9 @@
 > 
 
 
-### [L008] [***--|-----] Design tokens mandatory
-- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-22 | **Category**: pattern | **Type**: informational
-> No hardcoded colors or spacing. Use #card_bg, #space_md, text_body etc. Check globals.xml for available tokens
+### [L008] [***--|-----] Design tokens and semantic widgets
+- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-30 | **Category**: pattern | **Type**: informational
+> No hardcoded colors or spacing. Prefer semantic widgets (ui_card, ui_button, text_*, divider_*) which apply tokens automatically. Don't redundantly specify their built-in defaults (e.g., style_radius on ui_card, button_height on ui_button). See docs/LVGL9_XML_GUIDE.md "Custom Semantic Widgets" for defaults.
 
 
 ### [L009] [****-|-----] Icon font sync workflow
@@ -44,8 +44,8 @@
 > Use centidegrees (int) for temperature subjects to preserve 0.1C resolution. Float subjects lose precision in LVGL binding
 
 
-### [L025] [***--|-----] Button content centering
-- **Uses**: 7 | **Velocity**: 0.01 | **Learned**: 2025-12-21 | **Last**: 2025-12-31 | **Category**: pattern | **Type**: constraint
+### [L025] [***--|+----] Button content centering
+- **Uses**: 8 | **Velocity**: 0.86 | **Learned**: 2025-12-21 | **Last**: 2026-01-30 | **Category**: pattern | **Type**: constraint
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
 
 
@@ -135,17 +135,17 @@
 
 
 ### [L056] [*----|-----] lv_subject_t no shallow copy
-- **Uses**: 2 | **Velocity**: 0.1 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 2 | **Velocity**: 0.09 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
 > lv_subject_t must NEVER be shallow-copied in move constructors/assignment. The struct contains internal state that becomes invalid when copied. In move operations, reinitialize the subject in the moved-to object instead of copying.
 
 
 ### [L057] [*----|-----] Subject deinit before destruction
-- **Uses**: 2 | **Velocity**: 0.1 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 2 | **Velocity**: 0.09 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
 > Classes owning lv_subject_t members must call lv_subject_deinit() in their destructor. Without deinit, observers attached to the subject leak and may fire after destruction causing use-after-free.
 
 
 ### [L058] [**---|-----] Re-stage clang-formatted files after commit
-- **Uses**: 3 | **Velocity**: 0.23 | **Learned**: 2026-01-19 | **Last**: 2026-01-25 | **Category**: workflow | **Type**: informational
+- **Uses**: 3 | **Velocity**: 0.2 | **Learned**: 2026-01-19 | **Last**: 2026-01-25 | **Category**: workflow | **Type**: informational
 > Pre-commit hook auto-formats files but doesn't re-stage them. After committing, check git status for modified files and amend if they're just formatting changes.
 
 

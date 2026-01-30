@@ -570,6 +570,72 @@ All support `bind_text`, `align`, `style_text_color`, etc.
 <spinner size="sm"/>
 ```
 
+### Custom Semantic Widgets
+
+HelixScreen provides semantic widgets with built-in defaults. **Don't redundantly specify defaults!**
+
+#### ui_card
+
+Container with card styling from `theme_core`.
+
+```xml
+<!-- ✅ CORRECT - Minimal, uses defaults -->
+<ui_card name="my_card" width="100%" height="200">
+    <text_body text="Card content"/>
+</ui_card>
+
+<!-- ❌ WRONG - Redundant, border_radius is already a default -->
+<ui_card style_radius="#border_radius">
+```
+
+**Built-in defaults:** `card_bg` background, `border_radius` corners, border from theme
+
+#### ui_button
+
+Semantic button with variant-based styling and auto-contrast text.
+
+```xml
+<!-- Primary action button -->
+<ui_button variant="primary" text="Save"/>
+
+<!-- Secondary button -->
+<ui_button variant="secondary" text="Cancel"/>
+
+<!-- Ghost (transparent) for toolbars -->
+<ui_button variant="ghost" icon="settings"/>
+
+<!-- Destructive action -->
+<ui_button variant="destructive" text="Delete"/>
+
+<!-- Icon + text -->
+<ui_button variant="primary" icon="check" text="Confirm"/>
+```
+
+**Variants:** `primary`, `secondary`, `ghost`, `destructive`
+
+**Built-in defaults:** Responsive `button_height` (48/52/72px), `border_radius`, auto-contrast text color
+
+#### divider_vertical / divider_horizontal
+
+Visual separators with theme-aware colors.
+
+```xml
+<divider_vertical height="80%"/>
+<divider_horizontal width="100%"/>
+```
+
+**Built-in defaults:** 1px width/height, `text_secondary` color at 50% opacity
+
+#### Widget Defaults Quick Reference
+
+| Widget | Don't Specify (Built-in) |
+|--------|--------------------------|
+| `ui_card` | `style_radius`, `style_bg_color`, `style_border_*` |
+| `ui_button` | `style_radius`, `style_bg_color`, `style_height`, text color |
+| `text_*` | `style_text_font`, `style_text_color` |
+| `icon` | Font selection |
+| `divider_*` | `style_bg_color`, width/height (1px) |
+
 ---
 
 ## Responsive Design
