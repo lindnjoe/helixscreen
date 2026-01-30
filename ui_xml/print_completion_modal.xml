@@ -53,12 +53,9 @@
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="0"
             flex_flow="row">
       <!-- OK button -->
-      <lv_button name="btn_ok"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_ok" height="100%" flex_grow="1" style_radius="0" text="OK">
         <event_cb trigger="clicked" callback="on_print_complete_ok"/>
-        <text_button text="OK"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

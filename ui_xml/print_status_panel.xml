@@ -214,33 +214,22 @@
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
-            <lv_button name="btn_light"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" flex_flow="row"
-                       style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                       style_pad_gap="#space_xs">
+            <ui_button name="btn_light"
+                       height="#button_height_lg" flex_grow="1" text="Light" bind_icon="light_button_icon">
               <event_cb trigger="clicked" callback="on_print_status_light"/>
-              <lv_label name="light_icon" bind_text="light_button_icon" style_text_font="mdi_icons_24" align="center"/>
-              <text_body text="Light"/>
-            </lv_button>
+            </ui_button>
             <!-- Timelapse button: only visible when Moonraker-Timelapse plugin installed -->
-            <lv_button name="btn_timelapse"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" flex_flow="row"
-                       style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                       style_pad_gap="#space_xs">
+            <ui_button name="btn_timelapse"
+                       height="#button_height_lg" flex_grow="1" bind_icon="timelapse_button_icon"
+                       bind_text="timelapse_button_label">
               <event_cb trigger="clicked" callback="on_print_status_timelapse"/>
               <bind_flag_if_eq subject="printer_has_timelapse" flag="hidden" ref_value="0"/>
-              <lv_label name="timelapse_icon"
-                        bind_text="timelapse_button_icon" style_text_font="mdi_icons_24" align="center"/>
-              <text_body name="timelapse_label" bind_text="timelapse_button_label"/>
-            </lv_button>
-            <lv_button name="btn_pause"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" flex_flow="row"
-                       style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                       style_pad_gap="#space_xs">
+            </ui_button>
+            <ui_button name="btn_pause"
+                       height="#button_height_lg" flex_grow="1" bind_icon="pause_button_icon"
+                       bind_text="pause_button_label">
               <event_cb trigger="clicked" callback="on_print_status_pause"/>
-              <lv_label name="pause_icon" bind_text="pause_button_icon" style_text_font="mdi_icons_24" align="center"/>
-              <text_body name="pause_label" bind_text="pause_button_label"/>
-            </lv_button>
+            </ui_button>
           </lv_obj>
 
           <!-- Row 2: Tune, Cancel -->
@@ -248,34 +237,21 @@
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
-            <lv_button name="btn_tune"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" flex_flow="row"
-                       style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                       style_pad_gap="#space_xs">
+            <ui_button name="btn_tune" height="#button_height_lg" flex_grow="1" icon="tune" text="Tune">
               <event_cb trigger="clicked" callback="on_print_status_tune"/>
-              <icon src="tune" size="sm"/>
-              <text_body text="Tune"/>
-            </lv_button>
+            </ui_button>
             <!-- Cancel button: hidden when outcome == CANCELLED (2) -->
-            <lv_button name="btn_cancel"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" style_bg_color="#danger"
-                       flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                       style_flex_track_place="center" style_pad_gap="#space_xs">
+            <ui_button name="btn_cancel"
+                       height="#button_height_lg" flex_grow="1" variant="danger" icon="stop" text="Cancel">
               <bind_flag_if_eq subject="print_outcome" flag="hidden" ref_value="2"/>
               <event_cb trigger="clicked" callback="on_print_status_cancel"/>
-              <icon src="stop" size="sm" variant="text"/>
-              <text_body text="Cancel"/>
-            </lv_button>
+            </ui_button>
             <!-- Reprint button: shown only when outcome == CANCELLED (2) -->
-            <lv_button name="btn_reprint"
-                       height="#button_height_lg" flex_grow="1" style_border_width="0" style_bg_color="#primary"
-                       flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                       style_flex_track_place="center" style_pad_gap="#space_xs" hidden="true">
+            <ui_button name="btn_reprint"
+                       height="#button_height_lg" flex_grow="1" icon="refresh" text="Reprint" hidden="true">
               <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="2"/>
               <event_cb trigger="clicked" callback="on_print_status_reprint"/>
-              <icon src="refresh" size="sm" variant="text"/>
-              <text_body text="Reprint"/>
-            </lv_button>
+            </ui_button>
           </lv_obj>
         </lv_obj>
 

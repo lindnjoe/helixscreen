@@ -216,12 +216,9 @@
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="#space_md" flex_flow="row"
             style_flex_main_place="center" scrollable="false">
       <!-- Reset button - restores to original config values from API -->
-      <lv_button name="btn_reset"
-                 width="150" height="100%" style_radius="6" style_bg_color="#card_bg" style_border_width="1"
-                 style_border_color="#border" style_shadow_width="0" clickable="true">
-        <text_button text="Reset"/>
+      <ui_button name="btn_reset" width="150" height="100%" text="Reset">
         <event_cb trigger="clicked" callback="on_limits_reset"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

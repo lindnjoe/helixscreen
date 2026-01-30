@@ -40,11 +40,9 @@
         <!-- Spool count -->
         <text_small name="spool_count_text" text="" bind_text="spoolman_spool_count"/>
         <!-- Refresh button -->
-        <lv_button name="refresh_btn"
-                   width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="#space_sm">
-          <icon src="refresh" size="sm" variant="secondary"/>
+        <ui_button name="refresh_btn" variant="ghost" icon="refresh">
           <event_cb trigger="clicked" callback="on_spoolman_refresh_clicked"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
     </lv_obj>
   </view>

@@ -31,29 +31,17 @@
                 width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
                 style_pad_gap="#space_sm" scrollable="false">
           <!-- Home Button -->
-          <lv_button name="btn_home"
-                     height="44" flex_grow="1" style_radius="#border_radius" style_border_width="0" flex_flow="column"
-                     style_flex_main_place="center" style_flex_cross_place="center">
+          <ui_button name="btn_home" height="44" icon="home" text="Home" flex_grow="1">
             <event_cb trigger="clicked" callback="on_ams_device_ops_home"/>
-            <icon src="home" size="sm"/>
-            <text_small text="Home" style_pad_top="#space_xxs"/>
-          </lv_button>
+          </ui_button>
           <!-- Recover Button -->
-          <lv_button name="btn_recover"
-                     height="44" flex_grow="1" style_radius="#border_radius" style_border_width="0" flex_flow="column"
-                     style_flex_main_place="center" style_flex_cross_place="center">
+          <ui_button name="btn_recover" height="44" icon="refresh" text="Recover" flex_grow="1">
             <event_cb trigger="clicked" callback="on_ams_device_ops_recover"/>
-            <icon src="refresh" size="sm"/>
-            <text_small text="Recover" style_pad_top="#space_xxs"/>
-          </lv_button>
+          </ui_button>
           <!-- Abort Button -->
-          <lv_button name="btn_abort"
-                     height="44" flex_grow="1" style_radius="#border_radius" style_border_width="0" flex_flow="column"
-                     style_flex_main_place="center" style_flex_cross_place="center">
+          <ui_button name="btn_abort" height="44" icon="stop" text="Abort" flex_grow="1">
             <event_cb trigger="clicked" callback="on_ams_device_ops_abort"/>
-            <icon src="stop" size="sm"/>
-            <text_small text="Abort" style_pad_top="#space_xxs"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
 
         <!-- Divider -->

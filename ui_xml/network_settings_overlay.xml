@@ -167,20 +167,11 @@
         <!-- ============================================================== -->
         <!-- Network Test Button (at bottom of left column) -->
         <!-- ============================================================== -->
-        <lv_button name="test_network_btn"
-                   width="100%" height="content" style_radius="#border_radius" style_border_width="0"
-                   style_pad_ver="#space_sm">
+        <ui_button name="test_network_btn" width="100%" height="content" icon="lan" text="Test Network">
           <!-- Disable when no network connected -->
           <bind_state_if_eq subject="any_network_connected" state="disabled" ref_value="0"/>
-          <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                  style_pad_gap="#space_sm" clickable="false">
-            <icon src="lan" size="sm" variant="primary"/>
-            <text_body text="Test Network"/>
-          </lv_obj>
           <event_cb trigger="clicked" callback="on_test_network_clicked"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
       <!-- Vertical Divider -->
       <divider_vertical/>
@@ -202,9 +193,7 @@
             <text_small name="network_count_label" bind_text="network_count"/>
           </lv_obj>
           <!-- Refresh Button -->
-          <lv_button name="refresh_btn"
-                     width="content" height="36" style_radius="#border_radius" style_border_width="0"
-                     style_pad_left="#space_lg" style_pad_right="#space_lg">
+          <ui_button name="refresh_btn" width="content" height="36">
             <bind_state_if_eq subject="wifi_scanning" state="disabled" ref_value="1"/>
             <bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
             <lv_obj width="content"
@@ -220,7 +209,7 @@
               </spinner>
             </lv_obj>
             <event_cb trigger="clicked" callback="on_refresh_clicked"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
         <!-- Networks List Container (scrollable) -->
         <lv_obj name="networks_list"
@@ -252,19 +241,10 @@
           </lv_obj>
         </lv_obj>
         <!-- Add Hidden Network Button -->
-        <lv_button name="add_other_btn"
-                   width="100%" height="content" style_radius="#border_radius" style_border_width="0"
-                   style_pad_ver="#space_sm">
+        <ui_button name="add_other_btn" width="100%" height="content" icon="wifi" text="Add Hidden Network">
           <bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
-          <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                  style_pad_gap="#space_sm" clickable="false">
-            <icon src="wifi" size="sm" variant="primary"/>
-            <text_body text="Add Hidden Network"/>
-          </lv_obj>
           <event_cb trigger="clicked" callback="on_add_other_clicked"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
     </lv_obj>
   </view>

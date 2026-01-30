@@ -45,25 +45,15 @@
           <!-- Row 1 -->
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
-            <lv_button name="btn_travels" flex_grow="1" flag_checkable="true">
-              <text_button text="Travels"/>
-            </lv_button>
-            <lv_button name="btn_top" flex_grow="1">
-              <text_button text="Top"/>
-            </lv_button>
-            <lv_button name="btn_front" flex_grow="1">
-              <text_button text="Front"/>
-            </lv_button>
+            <ui_button name="btn_travels" flex_grow="1" flag_checkable="true" text="Travels"/>
+            <ui_button name="btn_top" flex_grow="1" text="Top"/>
+            <ui_button name="btn_front" flex_grow="1" text="Front"/>
           </lv_obj>
           <!-- Row 2 -->
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
-            <lv_button name="btn_side" flex_grow="1">
-              <text_button text="Side"/>
-            </lv_button>
-            <lv_button name="btn_reset" flex_grow="1">
-              <text_button text="Reset"/>
-            </lv_button>
+            <ui_button name="btn_side" flex_grow="1" text="Side"/>
+            <ui_button name="btn_reset" flex_grow="1" text="Reset"/>
           </lv_obj>
         </lv_obj>
         <!-- Zoom Section -->
@@ -73,12 +63,8 @@
           <text_body text="Zoom"/>
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
-            <lv_button name="btn_zoom_in" flex_grow="1">
-              <text_button text="+"/>
-            </lv_button>
-            <lv_button name="btn_zoom_out" flex_grow="1">
-              <text_button text="-"/>
-            </lv_button>
+            <ui_button name="btn_zoom_in" flex_grow="1" text="+"/>
+            <ui_button name="btn_zoom_out" flex_grow="1" text="-"/>
           </lv_obj>
         </lv_obj>
         <!-- Layer Progress Section (Ghost Layer Test) -->
@@ -102,8 +88,7 @@
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0"
                   style_flex_cross_place="center">
             <text_small text="Ghost:"/>
-            <lv_dropdown name="ghost_mode_dropdown" flex_grow="1" options="Stipple
-Solid"/>
+            <lv_dropdown name="ghost_mode_dropdown" flex_grow="1" options="Stipple Solid"/>
           </lv_obj>
         </lv_obj>
         <!-- File Section -->
@@ -113,12 +98,8 @@ Solid"/>
           <text_body text="File"/>
           <lv_obj width="100%"
                   height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm" style_border_width="0">
-            <lv_button name="btn_load_test" flex_grow="1">
-              <text_button text="Browse"/>
-            </lv_button>
-            <lv_button name="btn_clear" flex_grow="1">
-              <text_button text="Clear"/>
-            </lv_button>
+            <ui_button name="btn_load_test" flex_grow="1" text="Browse"/>
+            <ui_button name="btn_clear" flex_grow="1" text="Clear"/>
           </lv_obj>
         </lv_obj>
         <!-- Statistics Section (flex_grow to fill remaining space) -->

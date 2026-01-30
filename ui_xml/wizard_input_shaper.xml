@@ -47,20 +47,16 @@
       <lv_obj width="100%" flex_flow="row" style_bg_opa="0" style_pad_gap="#space_md" style_flex_main_place="center">
 
         <!-- Skip button -->
-        <lv_button name="skip_calibration_btn"
-                   width="#wizard_button_width" height="#button_height" style_bg_color="#card_bg"
-                   style_radius="#border_radius">
-          <text_body text="Skip for now"/>
+        <ui_button name="skip_calibration_btn"
+                   width="#wizard_button_width" height="#button_height" text="Skip for now" variant="ghost">
           <event_cb trigger="clicked" callback="on_skip_is_calibration"/>
-        </lv_button>
+        </ui_button>
 
         <!-- Start calibration button -->
-        <lv_button name="start_calibration_btn"
-                   width="#wizard_button_width" height="#button_height" style_bg_color="#primary"
-                   style_radius="#border_radius">
-          <text_body text="Start Calibration"/>
+        <ui_button name="start_calibration_btn"
+                   width="#wizard_button_width" height="#button_height" text="Start Calibration">
           <event_cb trigger="clicked" callback="on_start_is_calibration"/>
-        </lv_button>
+        </ui_button>
 
       </lv_obj>
 

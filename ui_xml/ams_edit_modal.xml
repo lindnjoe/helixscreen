@@ -26,12 +26,9 @@
         <text_small name="spoolman_id_label" text="" hidden="true"/>
       </lv_obj>
       <!-- Close button -->
-      <lv_button name="btn_close"
-                 width="40" height="40" style_radius="#border_radius" style_bg_opa="0" style_border_width="0"
-                 style_shadow_width="0" clickable="true">
+      <ui_button name="btn_close" width="40" height="40" icon="close" variant="ghost">
         <event_cb trigger="clicked" callback="ams_edit_modal_close_cb"/>
-        <icon src="close" size="sm" variant="secondary" align="center"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- Horizontal divider -->
     <divider_horizontal/>
@@ -94,29 +91,23 @@
                     style_flex_cross_place="center" style_pad_gap="#space_xs" scrollable="false">
               <text_body name="remaining_pct_label" text="75%"/>
               <!-- Edit button (shown when edit_remaining_mode=0) -->
-              <lv_button name="btn_remaining_edit"
-                         width="#icon_button_size" height="#icon_button_size" style_radius="#border_radius"
-                         style_bg_opa="0" style_border_width="0" style_shadow_width="0" clickable="true">
+              <ui_button name="btn_remaining_edit"
+                         width="#icon_button_size" height="#icon_button_size" icon="tune" variant="ghost">
                 <bind_flag_if_eq subject="edit_remaining_mode" flag="hidden" ref_value="1"/>
-                <icon src="tune" size="sm" variant="primary" align="center"/>
                 <event_cb trigger="clicked" callback="ams_edit_remaining_edit_cb"/>
-              </lv_button>
+              </ui_button>
               <!-- Accept button (shown when edit_remaining_mode=1) -->
-              <lv_button name="btn_remaining_accept"
-                         width="#icon_button_size" height="#icon_button_size" style_radius="#border_radius"
-                         style_bg_opa="0" style_border_width="0" style_shadow_width="0" clickable="true" hidden="true">
+              <ui_button name="btn_remaining_accept"
+                         width="#icon_button_size" height="#icon_button_size" icon="check" variant="ghost" hidden="true">
                 <bind_flag_if_eq subject="edit_remaining_mode" flag="hidden" ref_value="0"/>
-                <icon src="check" size="sm" variant="success" align="center"/>
                 <event_cb trigger="clicked" callback="ams_edit_remaining_accept_cb"/>
-              </lv_button>
+              </ui_button>
               <!-- Cancel button (shown when edit_remaining_mode=1) -->
-              <lv_button name="btn_remaining_cancel"
-                         width="#icon_button_size" height="#icon_button_size" style_radius="#border_radius"
-                         style_bg_opa="0" style_border_width="0" style_shadow_width="0" clickable="true" hidden="true">
+              <ui_button name="btn_remaining_cancel"
+                         width="#icon_button_size" height="#icon_button_size" icon="close" variant="ghost" hidden="true">
                 <bind_flag_if_eq subject="edit_remaining_mode" flag="hidden" ref_value="0"/>
-                <icon src="close" size="sm" variant="error" align="center"/>
                 <event_cb trigger="clicked" callback="ams_edit_remaining_cancel_cb"/>
-              </lv_button>
+              </ui_button>
             </lv_obj>
           </lv_obj>
           <!-- Progress bar (shown when edit_remaining_mode=0) -->
@@ -154,18 +145,11 @@
           </lv_obj>
         </lv_obj>
         <!-- Sync to Spoolman button (hidden if not linked) -->
-        <lv_button name="btn_sync_spoolman"
-                   width="100%" height="#button_height_sm" style_radius="#border_radius" style_bg_color="#card_bg"
-                   style_border_width="0" style_shadow_width="0" hidden="true" clickable="true">
-          <lv_obj width="100%"
-                  height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xs"
-                  scrollable="false" clickable="false">
-            <icon src="refresh" size="sm" variant="text"/>
-            <text_body text="Sync to Spoolman"/>
-          </lv_obj>
+        <ui_button name="btn_sync_spoolman"
+                   width="100%" height="#button_height_sm" icon="refresh" text="Sync to Spoolman" variant="secondary"
+                   hidden="true">
           <event_cb trigger="clicked" callback="ams_edit_sync_spoolman_cb"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
     </lv_obj>
     <!-- Horizontal divider above buttons -->
@@ -175,21 +159,15 @@
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
             scrollable="false">
       <!-- Reset button -->
-      <lv_button name="btn_reset"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
-        <text_button text="Reset" style_text_color="#text_muted"/>
+      <ui_button name="btn_reset" height="100%" text="Reset" flex_grow="1">
         <event_cb trigger="clicked" callback="ams_edit_reset_cb"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Save button -->
-      <lv_button name="btn_save"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
-        <text_button name="btn_save_label" text="Close"/>
+      <ui_button name="btn_save" height="100%" text="Close" flex_grow="1">
         <event_cb trigger="clicked" callback="ams_edit_save_cb"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

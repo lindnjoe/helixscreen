@@ -567,7 +567,8 @@ TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: icon_position right puts icon af
     lv_obj_delete(btn);
 }
 
-TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: icon has auto-contrast color", "[ui-button][icon]") {
+TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: icon has auto-contrast color",
+                 "[ui-button][icon]") {
     const char* attrs[] = {"variant", "primary", "icon", "cog", "text", "Settings", nullptr};
     lv_obj_t* btn = static_cast<lv_obj_t*>(lv_xml_create(test_screen(), "ui_button", attrs));
     REQUIRE(btn != nullptr);
@@ -647,7 +648,8 @@ TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: unknown icon name does not crash
     lv_obj_delete(btn);
 }
 
-TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: text-only button still works", "[ui-button][icon]") {
+TEST_CASE_METHOD(LVGLUITestFixture, "ui_button: text-only button still works",
+                 "[ui-button][icon]") {
     // Ensure original text-only behavior is preserved
     const char* attrs[] = {"text", "Cancel", nullptr};
     lv_obj_t* btn = static_cast<lv_obj_t*>(lv_xml_create(test_screen(), "ui_button", attrs));

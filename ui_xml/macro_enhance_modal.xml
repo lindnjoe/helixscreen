@@ -139,20 +139,15 @@
       <!-- Only visible when show_operation == 1 (hide when 0) -->
       <bind_flag_if_eq subject="macro_enhance_show_operation" flag="hidden" ref_value="0"/>
       <!-- Skip button -->
-      <lv_button name="btn_skip"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
+      <ui_button name="btn_skip" height="100%" text="Keep Required" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_skip"/>
-        <text_button text="Keep Required"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Approve button -->
-      <lv_button name="btn_approve"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_color="#success">
+      <ui_button name="btn_approve" height="100%" text="Make Optional" variant="success" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_approve"/>
-        <text_button text="Make Optional"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- BUTTONS: Summary step (Cancel/Apply) -->
@@ -163,20 +158,15 @@
       <!-- Only visible when show_summary == 1 (hide when 0) -->
       <bind_flag_if_eq subject="macro_enhance_show_summary" flag="hidden" ref_value="0"/>
       <!-- Cancel button -->
-      <lv_button name="btn_cancel"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
+      <ui_button name="btn_cancel" height="100%" text="Cancel" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_cancel"/>
-        <text_button text="Cancel"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Apply button -->
-      <lv_button name="btn_apply"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_color="#success">
+      <ui_button name="btn_apply" height="100%" text="Apply Changes" variant="success" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_apply"/>
-        <text_button text="Apply Changes"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- BUTTONS: Applying state (disabled) -->
@@ -187,11 +177,7 @@
       <!-- Only visible when show_applying == 1 (hide when 0) -->
       <bind_flag_if_eq subject="macro_enhance_show_applying" flag="hidden" ref_value="0"/>
       <!-- Placeholder - buttons disabled during apply -->
-      <lv_button height="100%"
-                 flex_grow="1" clickable="false" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_opa="128">
-        <text_button text="Applying..." style_text_opa="128"/>
-      </lv_button>
+      <ui_button height="100%" text="Applying..." flex_grow="1" clickable="false" style_radius="0" style_bg_opa="128"/>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- BUTTONS: Success/Error state (Close) -->
@@ -203,11 +189,9 @@
       <!-- Note: We need OR logic, so we use a different approach -
            the C++ code will manage visibility for states 3 and 4 -->
       <!-- Close button -->
-      <lv_button name="btn_close"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
+      <ui_button name="btn_close" height="100%" text="Close" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_close"/>
-        <text_button text="Close"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

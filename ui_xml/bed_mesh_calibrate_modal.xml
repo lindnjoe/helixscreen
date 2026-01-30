@@ -29,18 +29,11 @@
               width="90%" height="12" bind_value="bed_mesh_probe_progress" min_value="0" max_value="100"
               style_bg_color="#card_bg" style_radius="#space_xs"/>
       <!-- E-Stop button (prominent, red) -->
-      <lv_button name="btn_emergency_stop"
-                 width="100%" height="#button_height_lg" style_radius="#border_radius" style_bg_color="#danger"
-                 style_border_width="0" style_shadow_width="0" style_margin_top="#space_sm" clickable="true">
+      <ui_button name="btn_emergency_stop"
+                 width="100%" height="#button_height_lg" variant="danger" icon="alert_octagon" text="EMERGENCY STOP"
+                 style_margin_top="#space_sm">
         <event_cb trigger="clicked" callback="on_bed_mesh_emergency_stop"/>
-        <lv_obj width="100%"
-                height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
-                scrollable="false" clickable="false">
-          <icon src="alert_octagon" size="md" variant="text"/>
-          <text_body text="EMERGENCY STOP"/>
-        </lv_obj>
-      </lv_button>
+      </ui_button>
       <!-- Warning text -->
       <text_small width="100%" text="Stops all motion. Requires firmware restart." style_text_align="center"/>
     </lv_obj>
@@ -95,12 +88,9 @@
             style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="1"/>
       <!-- Cancel button -->
-      <lv_button name="btn_cancel_probing"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_cancel_probing" height="100%" flex_grow="1" style_radius="0" text="Cancel">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_button text="Cancel"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- Button row: NAMING state (state=2) - Don't Save | Save -->
@@ -110,21 +100,16 @@
             style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="2"/>
       <!-- Don't Save button -->
-      <lv_button name="btn_dont_save"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_dont_save"
+                 height="100%" flex_grow="1" style_radius="0" text="Don't Save" text_color="#text_muted">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_button text="Don't Save" style_text_color="#text_muted"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Save button -->
-      <lv_button name="btn_save"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_save" height="100%" flex_grow="1" style_radius="0" text="Save">
         <event_cb trigger="clicked" callback="on_bed_mesh_save_profile"/>
-        <text_button text="Save"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- Button row: ERROR state (state=3) - Close only -->
@@ -134,12 +119,9 @@
             style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="3"/>
       <!-- Close button -->
-      <lv_button name="btn_close"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_close" height="100%" flex_grow="1" style_radius="0" text="Close">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_button text="Close"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

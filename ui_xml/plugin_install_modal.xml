@@ -84,21 +84,15 @@
             width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
             style_pad_gap="0" flex_flow="row">
       <!-- Not Now button -->
-      <lv_button name="btn_cancel"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_cancel" height="100%" text="Not Now" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
-        <text_button text="Not Now"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Install button -->
-      <lv_button name="btn_install"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_color="#success" clickable="true">
+      <ui_button name="btn_install" height="100%" text="Install Plugin" variant="success" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_plugin_install_clicked"/>
-        <text_button text="Install Plugin"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- Button row (REMOTE mode: Done / Copy Command) -->
@@ -107,21 +101,15 @@
             width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
             style_pad_gap="0" flex_flow="row" hidden="true">
       <!-- Done button -->
-      <lv_button name="btn_done"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_done" height="100%" text="Done" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
-        <text_button text="Done"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Copy Command button -->
-      <lv_button name="btn_copy"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_color="#success" clickable="true">
+      <ui_button name="btn_copy" height="100%" text="Copy Command" variant="success" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_plugin_copy_clicked"/>
-        <text_button text="Copy Command"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- ============================================================ -->
     <!-- Button row (RESULT mode: single OK button) -->
@@ -129,12 +117,9 @@
     <lv_obj name="result_button_row"
             width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
             style_pad_gap="0" flex_flow="row" hidden="true">
-      <lv_button name="btn_ok"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_ok" height="100%" text="OK" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="on_plugin_install_ok"/>
-        <text_button text="OK"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

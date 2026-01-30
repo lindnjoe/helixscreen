@@ -18,12 +18,10 @@
             style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
       <text_heading text="Dryer Control"/>
       <!-- Close button -->
-      <lv_button name="btn_close"
-                 width="40" height="40" style_radius="#border_radius" style_bg_opa="0" style_border_width="0"
-                 style_shadow_width="0" clickable="true">
+      <ui_button name="btn_close" width="40" height="40" variant="ghost">
         <event_cb trigger="clicked" callback="dryer_modal_close_cb"/>
         <icon src="close" size="sm" variant="secondary" align="center"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- Horizontal divider -->
     <divider_horizontal/>
@@ -56,12 +54,9 @@
                 style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
                 scrollable="false">
           <!-- Minus button -->
-          <lv_button name="btn_temp_minus"
-                     width="#stepper_btn_size" height="#stepper_btn_size" style_radius="#border_radius"
-                     style_border_width="0" style_shadow_width="0">
-            <icon src="minus" size="sm" align="center"/>
+          <ui_button name="btn_temp_minus" width="#stepper_btn_size" height="#stepper_btn_size" icon="minus">
             <event_cb trigger="clicked" callback="dryer_temp_minus_cb"/>
-          </lv_button>
+          </ui_button>
           <!-- Temperature value display -->
           <lv_obj width="80"
                   height="#stepper_btn_size" style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius"
@@ -69,12 +64,9 @@
             <text_heading name="temp_value" bind_text="dryer_modal_temp_text" align="center"/>
           </lv_obj>
           <!-- Plus button -->
-          <lv_button name="btn_temp_plus"
-                     width="#stepper_btn_size" height="#stepper_btn_size" style_radius="#border_radius"
-                     style_border_width="0" style_shadow_width="0">
-            <icon src="plus" size="sm" align="center"/>
+          <ui_button name="btn_temp_plus" width="#stepper_btn_size" height="#stepper_btn_size" icon="plus">
             <event_cb trigger="clicked" callback="dryer_temp_plus_cb"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
       </lv_obj>
       <!-- Duration Section -->
@@ -87,12 +79,9 @@
                 style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_sm"
                 scrollable="false">
           <!-- Minus button -->
-          <lv_button name="btn_duration_minus"
-                     width="#stepper_btn_size" height="#stepper_btn_size" style_radius="#border_radius"
-                     style_border_width="0" style_shadow_width="0">
-            <icon src="minus" size="sm" align="center"/>
+          <ui_button name="btn_duration_minus" width="#stepper_btn_size" height="#stepper_btn_size" icon="minus">
             <event_cb trigger="clicked" callback="dryer_duration_minus_cb"/>
-          </lv_button>
+          </ui_button>
           <!-- Duration value display -->
           <lv_obj width="100"
                   height="#stepper_btn_size" style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius"
@@ -100,12 +89,9 @@
             <text_heading name="duration_value" bind_text="dryer_modal_duration_text" align="center"/>
           </lv_obj>
           <!-- Plus button -->
-          <lv_button name="btn_duration_plus"
-                     width="#stepper_btn_size" height="#stepper_btn_size" style_radius="#border_radius"
-                     style_border_width="0" style_shadow_width="0">
-            <icon src="plus" size="sm" align="center"/>
+          <ui_button name="btn_duration_plus" width="#stepper_btn_size" height="#stepper_btn_size" icon="plus">
             <event_cb trigger="clicked" callback="dryer_duration_plus_cb"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
       </lv_obj>
       <!-- Presets Section -->

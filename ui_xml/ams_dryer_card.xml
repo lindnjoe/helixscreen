@@ -12,15 +12,11 @@
     <!-- Fail-safe: Start hidden (dryer unsupported). Binding clears hidden when dryer_supported != 0 -->
     <bind_flag_if_eq subject="dryer_supported" flag="hidden" ref_value="0"/>
     <!-- Inactive state: button with heat wave icon that opens modal -->
-    <lv_button name="btn_dryer_start"
-               width="100%" height="#button_height" style_radius="#border_radius" style_border_width="0"
-               style_shadow_width="0">
+    <ui_button name="btn_dryer_start" width="100%" icon="heat_wave" text="Dryer">
       <!-- Hidden when drying IS active -->
       <bind_flag_if_eq subject="dryer_active" flag="hidden" ref_value="1"/>
-      <icon src="heat_wave" size="sm" align="left_mid" style_translate_x="#space_sm"/>
-      <text_button text="Dryer"/>
       <event_cb trigger="clicked" callback="dryer_open_modal_cb"/>
-    </lv_button>
+    </ui_button>
     <!-- Active state: temp + progress + stop (shown when drying) -->
     <ui_card name="dryer_active_card"
              width="100%" height="content" style_radius="#border_radius" style_pad_all="#space_sm" flex_flow="column"
@@ -53,12 +49,9 @@
         </lv_obj>
       </lv_obj>
       <!-- Stop Button -->
-      <lv_button name="btn_stop_drying"
-                 width="100%" height="content" style_radius="#border_radius" style_border_width="0"
-                 style_shadow_width="0" style_bg_color="#danger">
-        <text_button text="Stop Drying"/>
+      <ui_button name="btn_stop_drying" width="100%" height="content" text="Stop Drying" variant="danger">
         <event_cb trigger="clicked" callback="dryer_stop_clicked_cb"/>
-      </lv_button>
+      </ui_button>
     </ui_card>
   </view>
 </component>

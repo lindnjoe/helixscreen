@@ -55,20 +55,15 @@
     <lv_obj name="button_row"
             width="90%" height="content" style_bg_opa="0" style_border_width="0" style_pad_top="20" style_pad_all="0"
             flex_flow="row" style_flex_main_place="space_evenly">
-      <lv_button name="btn_prev" width="140" height="#button_height_normal" style_radius="#border_radius">
-        <text_button text="Previous"/>
+      <ui_button name="btn_prev" width="140" text="Previous">
         <event_cb trigger="clicked" callback="on_step_test_prev"/>
-      </lv_button>
-      <lv_button name="btn_next"
-                 width="140" height="#button_height_normal" style_bg_color="#primary" style_radius="#border_radius">
-        <text_button text="Next"/>
+      </ui_button>
+      <ui_button name="btn_next" width="140" text="Next">
         <event_cb trigger="clicked" callback="on_step_test_next"/>
-      </lv_button>
-      <lv_button name="btn_complete"
-                 width="140" height="#button_height_normal" style_bg_color="#success" style_radius="#border_radius">
-        <text_button text="Complete"/>
+      </ui_button>
+      <ui_button name="btn_complete" width="140" text="Complete" variant="success">
         <event_cb trigger="clicked" callback="on_step_test_complete"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

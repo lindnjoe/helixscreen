@@ -58,33 +58,21 @@
                   text="$title" flex_grow="1" align="center" style_text_align="left" style_pad_left="#space_lg"
                   scrollable="false"/>
     <!-- Secondary action button (left of primary, hidden by default) -->
-    <lv_button name="action_button_2"
-               width="content" height="$action_button_height" style_min_width="90" style_radius="$action_button_radius"
-               style_bg_color="$action_button_2_bg_color" style_border_width="0" style_shadow_width="0"
-               style_pad_all="$action_button_pad" flex_flow="row" style_flex_main_place="center"
-               style_flex_cross_place="center" style_flex_track_place="center" scrollable="false"
-               hidden="$hide_action_button_2">
-      <text_button name="action_button_2_label" text="$action_button_2_text"/>
+    <ui_button name="action_button_2"
+               width="content" height="$action_button_height" style_min_width="90"
+               style_bg_color="$action_button_2_bg_color" hidden="$hide_action_button_2" text="$action_button_2_text">
       <event_cb trigger="clicked" callback="$action_button_2_callback"/>
-    </lv_button>
+    </ui_button>
     <!-- Primary action button (hidden by default, pass hide_action_button="false" to show) -->
     <!-- Supports both text (action_button_text) and icon (action_button_icon) modes -->
     <!-- For icon-only buttons like E-stop, use circular radius and custom bg_color -->
-    <lv_button name="action_button"
-               width="$action_button_width" height="$action_button_height" style_min_width="90"
-               style_radius="$action_button_radius" style_bg_color="$action_button_bg_color" style_border_width="0"
-               style_shadow_width="0" style_pad_all="$action_button_pad" flex_flow="row" style_flex_main_place="center"
-               style_flex_cross_place="center" style_pad_gap="#space_xs" scrollable="false" hidden="$hide_action_button">
+    <ui_button name="action_button"
+               width="$action_button_width" height="$action_button_height" style_radius="$action_button_radius"
+               style_bg_color="$action_button_bg_color" hidden="$hide_action_button" icon="$action_button_icon"
+               text="$action_button_text">
       <!-- Reactive disabled state binding (enabled when subject exists and is non-empty) -->
       <bind_state_if_eq subject="$action_button_disabled_subject" state="disabled" ref_value="1"/>
-      <lv_obj width="100%"
-              height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-              style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-              hidden="$hide_action_button_icon" scrollable="false">
-        <icon name="action_button_icon_widget" src="$action_button_icon" size="sm" color="$action_button_icon_color"/>
-      </lv_obj>
-      <text_button name="action_button_label" text="$action_button_text" hidden="$hide_action_button_text"/>
       <event_cb trigger="clicked" callback="$action_button_callback"/>
-    </lv_button>
+    </ui_button>
   </view>
 </component>

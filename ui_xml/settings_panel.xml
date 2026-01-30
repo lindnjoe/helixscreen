@@ -91,9 +91,7 @@
     <!-- Completion Alert Dropdown (Off/Notification/Alert) -->
     <setting_dropdown_row name="row_completion_alert"
                           label="Print Completion Alert" icon="notifications" description="Notify when print finishes"
-                          options="Off
-Notification
-Alert" callback="on_completion_alert_changed"/>
+                          options="Off Notification Alert" callback="on_completion_alert_changed"/>
     <!-- ================================================================== -->
     <!-- MOTION SECTION -->
     <!-- ================================================================== -->
@@ -140,10 +138,8 @@ Alert" callback="on_completion_alert_changed"/>
     <!-- ABOUT SECTION -->
     <!-- ================================================================== -->
     <setting_section_header title="ABOUT" icon="info"/>
-    <!-- Version Info - lv_button for native press feedback (7-tap secret to enable memory debug) -->
-    <lv_button name="row_version"
-               width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-               style_shadow_width="0" style_radius="0" scrollable="false">
+    <!-- Version Info - ui_button for native press feedback (7-tap secret to enable memory debug) -->
+    <ui_button name="row_version" width="100%" height="content" variant="ghost" style_radius="0">
       <lv_obj width="100%"
               height="content" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center"
               style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg"
@@ -156,7 +152,7 @@ Alert" callback="on_completion_alert_changed"/>
                    bind_text="version_value" style_text_color="#text_muted" clickable="false" event_bubble="true"/>
       </lv_obj>
       <event_cb trigger="clicked" callback="on_version_clicked"/>
-    </lv_button>
+    </ui_button>
     <!-- Printer Name -->
     <setting_info_row name="row_printer" label="Printer" icon="printer_3d">
       <text_body name="value" bind_text="printer_value" style_text_color="#text_muted"/>

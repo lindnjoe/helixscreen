@@ -3,6 +3,9 @@
 
 #include "ui_button.h"
 
+#include "ui_fonts.h"
+#include "ui_icon_codepoints.h"
+
 #include "lvgl/lvgl.h"
 #include "lvgl/src/xml/lv_xml.h"
 #include "lvgl/src/xml/lv_xml_parser.h"
@@ -11,8 +14,6 @@
 #include "lvgl/src/xml/parsers/lv_xml_obj_parser.h"
 #include "theme_core.h"
 #include "theme_manager.h"
-#include "ui_fonts.h"
-#include "ui_icon_codepoints.h"
 
 #include <spdlog/spdlog.h>
 
@@ -22,9 +23,9 @@ namespace {
 
 // User data stored on button to track icon/label positions
 struct UiButtonData {
-    lv_obj_t* icon;        // Icon widget (or nullptr if none)
-    lv_obj_t* label;       // Label widget (always present)
-    bool icon_on_right;    // true if icon is after text
+    lv_obj_t* icon;     // Icon widget (or nullptr if none)
+    lv_obj_t* label;    // Label widget (always present)
+    bool icon_on_right; // true if icon is after text
 };
 
 /**
@@ -271,8 +272,7 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
     update_button_text_contrast(btn);
 
     spdlog::trace("[ui_button] Created button variant='{}' text='{}' icon='{}' icon_pos='{}'",
-                  variant_str, text, icon_name ? icon_name : "",
-                  icon_on_right ? "right" : "left");
+                  variant_str, text, icon_name ? icon_name : "", icon_on_right ? "right" : "left");
 
     return btn;
 }

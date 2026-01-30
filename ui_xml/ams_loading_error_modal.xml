@@ -20,12 +20,9 @@
         <text_heading text="Loading Error"/>
       </lv_obj>
       <!-- Close button -->
-      <lv_button name="btn_close"
-                 width="40" height="40" style_radius="#border_radius" style_bg_opa="0" style_border_width="0"
-                 style_shadow_width="0" clickable="true">
+      <ui_button name="btn_close" width="40" height="40" icon="close" variant="ghost">
         <event_cb trigger="clicked" callback="ams_loading_error_close_cb"/>
-        <icon src="close" size="sm" variant="secondary" align="center"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- Horizontal divider -->
     <divider_horizontal/>
@@ -47,21 +44,15 @@
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
             scrollable="false">
       <!-- Cancel button -->
-      <lv_button name="btn_cancel"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
-        <text_button text="Close" style_text_color="#text_muted"/>
+      <ui_button name="btn_cancel" height="100%" text="Close" variant="secondary" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="ams_loading_error_cancel_cb"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Retry button -->
-      <lv_button name="btn_retry"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
-        <text_button text="Retry" style_text_color="#primary"/>
+      <ui_button name="btn_retry" height="100%" text="Retry" flex_grow="1" style_radius="0">
         <event_cb trigger="clicked" callback="ams_loading_error_retry_cb"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

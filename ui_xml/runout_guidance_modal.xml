@@ -35,32 +35,17 @@
             height="content" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg" flex_flow="row"
             style_flex_main_place="space_between" style_pad_gap="#space_sm">
       <!-- Load button -->
-      <lv_button name="btn_load_filament"
-                 height="#button_height" flex_grow="1" style_radius="#border_radius" style_border_width="1"
-                 style_border_color="#border" style_bg_color="#success" flex_flow="row" style_flex_main_place="center"
-                 style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_xs">
+      <ui_button name="btn_load_filament" height="#button_height" flex_grow="1" icon="arrow_down" text="Load">
         <event_cb trigger="clicked" callback="on_runout_load_filament"/>
-        <icon src="arrow_down" size="sm" variant="primary"/>
-        <text_button text="Load"/>
-      </lv_button>
+      </ui_button>
       <!-- Unload button -->
-      <lv_button name="btn_unload_filament"
-                 height="#button_height" flex_grow="1" style_radius="#border_radius" style_border_width="1"
-                 style_border_color="#border" style_bg_color="#success" flex_flow="row" style_flex_main_place="center"
-                 style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_xs">
+      <ui_button name="btn_unload_filament" height="#button_height" flex_grow="1" icon="arrow_up" text="Unload">
         <event_cb trigger="clicked" callback="on_runout_unload_filament"/>
-        <icon src="arrow_up" size="sm" variant="primary"/>
-        <text_button text="Unload"/>
-      </lv_button>
+      </ui_button>
       <!-- Purge button -->
-      <lv_button name="btn_purge"
-                 height="#button_height" flex_grow="1" style_radius="#border_radius" style_border_width="1"
-                 style_border_color="#border" style_bg_color="#success" flex_flow="row" style_flex_main_place="center"
-                 style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_xs">
+      <ui_button name="btn_purge" height="#button_height" flex_grow="1" icon="filament" text="Purge">
         <event_cb trigger="clicked" callback="on_runout_purge"/>
-        <icon src="filament" size="sm" variant="primary"/>
-        <text_button text="Purge"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- Horizontal divider above dismiss buttons -->
     <divider_horizontal/>
@@ -69,12 +54,9 @@
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="0"
             flex_flow="row">
       <bind_flag_if_eq subject="print_state_enum" flag="hidden" ref_value="2"/>
-      <lv_button name="btn_ok"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_ok" height="100%" flex_grow="1" style_radius="0" text="Close">
         <event_cb trigger="clicked" callback="on_runout_ok"/>
-        <text_button text="Close"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- PAUSED BUTTONS ROW (only when paused - hidden when print_state_enum != 2) -->
     <lv_obj width="100%"
@@ -82,21 +64,16 @@
             flex_flow="row">
       <bind_flag_if_not_eq subject="print_state_enum" flag="hidden" ref_value="2"/>
       <!-- Cancel Print button -->
-      <lv_button name="btn_cancel_print"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 style_bg_color="#danger" clickable="true">
+      <ui_button name="btn_cancel_print"
+                 height="100%" flex_grow="1" style_radius="0" variant="danger" text="Cancel Print">
         <event_cb trigger="clicked" callback="on_runout_cancel_print"/>
-        <text_button text="Cancel Print"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Resume Print button -->
-      <lv_button name="btn_resume"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_resume" height="100%" flex_grow="1" style_radius="0" text="Resume Print">
         <event_cb trigger="clicked" callback="on_runout_resume"/>
-        <text_button text="Resume Print"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

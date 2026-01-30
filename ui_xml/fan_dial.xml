@@ -42,14 +42,12 @@
             style_pad_all="0" scrollable="false" flex_flow="row"
             style_flex_main_place="space_evenly" style_flex_cross_place="center"
             style_pad_gap="#space_xs">
-      <lv_button name="btn_off" width="60" height="28" style_radius="#space_sm">
-        <text_small text="Off" align="center"/>
+      <ui_button name="btn_off" width="60" height="28" text="Off">
         <event_cb trigger="clicked" callback="on_fan_dial_off_clicked"/>
-      </lv_button>
-      <lv_button name="btn_on" width="60" height="28" style_radius="#space_sm">
-        <text_small text="On" align="center"/>
+      </ui_button>
+      <ui_button name="btn_on" width="60" height="28" text="On">
         <event_cb trigger="clicked" callback="on_fan_dial_on_clicked"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

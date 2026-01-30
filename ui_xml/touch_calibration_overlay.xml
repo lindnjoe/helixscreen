@@ -50,25 +50,22 @@
               style_pad_gap="#space_md" scrollable="false">
 
         <!-- Start button - visible only in IDLE (state=0) -->
-        <lv_button name="btn_start" width="200" height="#button_height">
+        <ui_button name="btn_start" width="200" height="#button_height" text="Start Calibration">
           <event_cb trigger="clicked" callback="on_touch_cal_start_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="0"/>
-          <text_button text="Start Calibration"/>
-        </lv_button>
+        </ui_button>
 
         <!-- Accept button - visible only in VERIFY (state=4) -->
-        <lv_button name="btn_accept" width="150" height="#button_height">
+        <ui_button name="btn_accept" width="150" height="#button_height" text="Accept">
           <event_cb trigger="clicked" callback="on_touch_cal_accept_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="4"/>
-          <text_button bind_text="touch_cal_accept_text"/>
-        </lv_button>
+        </ui_button>
 
         <!-- Retry button - visible only in VERIFY (state=4) -->
-        <lv_button name="btn_retry" width="150" height="#button_height" style_bg_color="#card_bg">
+        <ui_button name="btn_retry" width="150" height="#button_height" variant="secondary" text="Retry">
           <event_cb trigger="clicked" callback="on_touch_cal_retry_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="4"/>
-          <text_button text="Retry"/>
-        </lv_button>
+        </ui_button>
 
         <!-- Note: Skip button removed - only relevant for wizard (wizard_touch_calibration.xml) -->
       </lv_obj>

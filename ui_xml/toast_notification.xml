@@ -35,19 +35,14 @@
     <text_body name="toast_message"
                text="$message" flex_grow="1" long_mode="wrap" style_pad_left="#space_sm" style_pad_right="#space_sm"/>
     <!-- Action button (hidden by default, shown via toast_action_visible subject) -->
-    <lv_button name="toast_action_btn"
-               width="content" height="36" style_min_width="72" style_radius="#border_radius_small"
-               style_border_width="0" style_bg_color="#success" style_pad_left="#space_lg" style_pad_right="#space_lg"
-               hidden="true" clickable="true">
+    <ui_button name="toast_action_btn"
+               width="content" height="36" bind_text="toast_action_text" variant="success" style_min_width="72"
+               hidden="true">
       <bind_flag_if_eq subject="toast_action_visible" flag="hidden" ref_value="0"/>
-      <text_button name="toast_action_label" bind_text="toast_action_text"/>
-    </lv_button>
+    </ui_button>
     <!-- Close button -->
-    <lv_button name="toast_close_btn"
-               width="32" height="32" style_radius="#border_radius_small" style_border_width="0" style_bg_opa="0"
-               style_pad_all="0" clickable="true">
-      <lv_label text="#icon_xmark" style_text_font="mdi_icons_16" style_text_color="#text_muted" align="center"/>
+    <ui_button name="toast_close_btn" width="32" height="32" icon="xmark" variant="ghost">
       <event_cb trigger="clicked" callback="toast_close_btn_clicked"/>
-    </lv_button>
+    </ui_button>
   </view>
 </component>

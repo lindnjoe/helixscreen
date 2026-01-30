@@ -16,21 +16,15 @@
     <lv_obj width="100%"
             height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row">
       <!-- Secondary button -->
-      <lv_button name="btn_secondary"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_secondary" height="100%" flex_grow="1" style_radius="0" text="$secondary_text">
         <event_cb trigger="clicked" callback="$secondary_callback"/>
-        <text_button text="$secondary_text"/>
-      </lv_button>
+      </ui_button>
       <!-- Vertical divider -->
       <divider_vertical/>
       <!-- Primary button -->
-      <lv_button name="btn_primary"
-                 height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
+      <ui_button name="btn_primary" height="100%" flex_grow="1" style_radius="0" text="$primary_text">
         <event_cb trigger="clicked" callback="$primary_callback"/>
-        <text_button text="$primary_text"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

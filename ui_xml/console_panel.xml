@@ -32,15 +32,15 @@
         <!-- G-code text input -->
         <text_input name="gcode_input" height="100%" flex_grow="1" placeholder="Enter G-code command..." one_line="true"/>
         <!-- Send button -->
-        <lv_button name="send_btn" width="60" height="100%" style_bg_color="#primary" style_radius="#border_radius">
+        <ui_button name="send_btn" width="60" height="100%">
           <event_cb trigger="clicked" callback="on_console_send_clicked"/>
           <icon src="send" size="md" variant="primary"/>
-        </lv_button>
+        </ui_button>
         <!-- Clear button -->
-        <lv_button name="clear_btn" width="60" height="100%" style_bg_color="#card_alt" style_radius="#border_radius">
+        <ui_button name="clear_btn" width="60" height="100%" variant="secondary">
           <event_cb trigger="clicked" callback="on_console_clear_clicked"/>
           <icon src="delete" size="md" variant="secondary"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
     </lv_obj>
   </view>

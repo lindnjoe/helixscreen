@@ -45,43 +45,21 @@
               width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false" flex_flow="row_wrap"
               style_pad_row="#space_sm" style_pad_column="#space_xs" style_flex_main_place="space_evenly">
         <!-- Row 1 -->
-        <lv_button name="btn_7" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="7" align="center"/>
-        </lv_button>
-        <lv_button name="btn_8" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="8" align="center"/>
-        </lv_button>
-        <lv_button name="btn_9" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="9" align="center"/>
-        </lv_button>
+        <ui_button name="btn_7" width="30%" height="#keypad_btn_height" text="7"/>
+        <ui_button name="btn_8" width="30%" height="#keypad_btn_height" text="8"/>
+        <ui_button name="btn_9" width="30%" height="#keypad_btn_height" text="9"/>
         <!-- Row 2 -->
-        <lv_button name="btn_4" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="4" align="center"/>
-        </lv_button>
-        <lv_button name="btn_5" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="5" align="center"/>
-        </lv_button>
-        <lv_button name="btn_6" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="6" align="center"/>
-        </lv_button>
+        <ui_button name="btn_4" width="30%" height="#keypad_btn_height" text="4"/>
+        <ui_button name="btn_5" width="30%" height="#keypad_btn_height" text="5"/>
+        <ui_button name="btn_6" width="30%" height="#keypad_btn_height" text="6"/>
         <!-- Row 3 -->
-        <lv_button name="btn_1" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="1" align="center"/>
-        </lv_button>
-        <lv_button name="btn_2" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="2" align="center"/>
-        </lv_button>
-        <lv_button name="btn_3" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="3" align="center"/>
-        </lv_button>
+        <ui_button name="btn_1" width="30%" height="#keypad_btn_height" text="1"/>
+        <ui_button name="btn_2" width="30%" height="#keypad_btn_height" text="2"/>
+        <ui_button name="btn_3" width="30%" height="#keypad_btn_height" text="3"/>
         <!-- Row 4: spacer, 0, backspace -->
         <lv_obj width="30%" height="#keypad_btn_height" style_bg_opa="0" style_border_width="0"/>
-        <lv_button name="btn_0" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <text_heading text="0" align="center"/>
-        </lv_button>
-        <lv_button name="btn_backspace" width="30%" height="#keypad_btn_height" style_radius="#border_radius">
-          <lv_label text="#icon_backspace" style_text_font="#icon_font_md" align="center"/>
-        </lv_button>
+        <ui_button name="btn_0" width="30%" height="#keypad_btn_height" text="0"/>
+        <ui_button name="btn_backspace" width="30%" height="#keypad_btn_height" icon="backspace" text=""/>
       </lv_obj>
     </lv_obj>
   </view>

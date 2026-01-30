@@ -182,11 +182,10 @@
             <text_body text="Timelapse Available" style_text_color="#text_muted"/>
           </lv_obj>
           <!-- View Timelapse button -->
-          <lv_button name="view_timelapse_btn"
-                     width="100%" height="#button_height_sm" style_radius="#border_radius" style_bg_color="#app_bg">
-            <text_button text="View Timelapse"/>
+          <ui_button name="view_timelapse_btn"
+                     width="100%" height="#button_height_sm" text="View Timelapse" variant="secondary">
             <event_cb trigger="clicked" callback="history_detail_view_timelapse"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
         <!-- Spacer to push buttons to bottom -->
         <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false"/>
@@ -195,18 +194,14 @@
                 width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
                 style_pad_gap="#space_sm" flex_flow="row" scrollable="false">
           <!-- Delete button (secondary style) -->
-          <lv_button name="delete_button"
-                     height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#success">
-            <text_button text="Delete"/>
+          <ui_button name="delete_button" height="#button_height" text="Delete" variant="success" flex_grow="1">
             <event_cb trigger="clicked" callback="history_detail_delete"/>
-          </lv_button>
+          </ui_button>
           <!-- Reprint button (primary, disabled if file doesn't exist) -->
-          <lv_button name="reprint_button"
-                     height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#primary">
-            <text_button text="Reprint"/>
+          <ui_button name="reprint_button" height="#button_height" text="Reprint" flex_grow="1">
             <event_cb trigger="clicked" callback="history_detail_reprint"/>
             <bind_state_if_eq subject="history_detail_can_reprint" state="disabled" ref_value="0"/>
-          </lv_button>
+          </ui_button>
         </lv_obj>
       </lv_obj>
     </lv_obj>

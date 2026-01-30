@@ -61,13 +61,9 @@
         <text_small name="error_label" text="$error_message" style_text_color="#danger" long_mode="wrap" flex_grow="1"/>
       </lv_obj>
       <!-- Disable button -->
-      <lv_button name="disable_btn"
-                 width="content" height="32" style_bg_color="#danger" style_bg_opa="255"
-                 style_radius="#border_radius_small" style_pad_left="#space_md" style_pad_right="#space_md"
-                 style_pad_top="#space_xs" style_pad_bottom="#space_xs">
-        <text_small text="Disable" style_text_color="#text" align="center"/>
+      <ui_button name="disable_btn" variant="danger" text="Disable">
         <event_cb trigger="clicked" callback="on_plugin_card_disable_clicked"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
   </view>
 </component>

@@ -36,31 +36,20 @@
               style_pad_all="#space_xxs" flex_flow="row" style_pad_gap="0" scrollable="false">
 
         <!-- printer files -->
-        <lv_button name="source_printer_btn"
-                   width="content" height="#button_height_sm" style_radius="#space_xs" style_border_width="0"
-                   style_shadow_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg"
-                   style_pad_top="#space_xxs" style_pad_bottom="#space_xxs" scrollable="false">
+        <ui_button name="source_printer_btn" width="content" height="#button_height_sm" text="Printer">
           <event_cb trigger="clicked" callback="on_print_select_source_printer"/>
-          <text_small text="Printer" scrollable="false" align="center" style_text_color="#text"/>
-        </lv_button>
+        </ui_button>
 
         <!-- usb files (conditionally hidden) -->
-        <lv_button name="source_usb_btn"
-                   width="content" height="#button_height_sm" style_radius="#space_xs" style_border_width="0"
-                   style_shadow_width="0" style_pad_left="#space_lg" style_pad_right="#space_lg"
-                   style_pad_top="#space_xxs" style_pad_bottom="#space_xxs" scrollable="false">
+        <ui_button name="source_usb_btn" width="content" height="#button_height_sm" text="USB">
           <event_cb trigger="clicked" callback="on_print_select_source_usb"/>
-          <text_small text="USB" scrollable="false" align="center" style_text_color="#text"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
 
       <!-- View toggle button (icon-only, compact) -->
-      <lv_button name="view_toggle_btn"
-                 height="content" style_bg_opa="0" style_border_width="0" style_shadow_width="0"
-                 style_pad_all="#space_sm">
+      <ui_button name="view_toggle_btn" height="content" icon="list" variant="ghost">
         <event_cb trigger="clicked" callback="on_print_select_view_toggle"/>
-        <icon name="view_toggle_icon" src="list" size="sm" variant="primary"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- header -->
 
@@ -83,15 +72,11 @@
               style_pad_right="#nav_padding" style_pad_top="#space_xs" style_pad_bottom="#space_sm" flex_flow="row"
               style_flex_main_place="start" style_flex_cross_place="center">
         <!-- Filename header (flex-grow) -->
-        <lv_button name="header_filename"
-                   height="content" style_bg_opa="0" style_border_width="0" style_shadow_width="0"
-                   style_pad_all="#list_header_padding" flex_grow="1" flex_flow="row" style_flex_main_place="start"
-                   style_flex_cross_place="center">
+        <ui_button name="header_filename" height="content" text="Filename" variant="ghost" flex_grow="1">
           <event_cb trigger="clicked" callback="on_print_select_header_filename"/>
-          <text_body name="header_filename_label" text="Filename" style_text_align="left"/>
           <icon name="header_filename_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_filename_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
-        </lv_button>
+        </ui_button>
         <!-- Status header (non-sortable) -->
         <lv_obj name="header_status"
                 width="#col_status_width" height="content" style_bg_opa="0" style_border_width="0"
@@ -100,35 +85,23 @@
           <text_body name="header_status_label" text="Status" style_text_align="center"/>
         </lv_obj>
         <!-- Size header -->
-        <lv_button name="header_size"
-                   width="#col_size_width" height="content" style_bg_opa="0" style_border_width="0"
-                   style_shadow_width="0" style_pad_all="#list_header_padding" flex_flow="row"
-                   style_flex_main_place="start" style_flex_cross_place="center">
+        <ui_button name="header_size" width="#col_size_width" height="content" text="Size" variant="ghost">
           <event_cb trigger="clicked" callback="on_print_select_header_size"/>
-          <text_body name="header_size_label" text="Size" style_text_align="left"/>
           <icon name="header_size_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_size_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
-        </lv_button>
+        </ui_button>
         <!-- Modified header -->
-        <lv_button name="header_modified"
-                   width="#col_modified_width" height="content" style_bg_opa="0" style_border_width="0"
-                   style_shadow_width="0" style_pad_all="#list_header_padding" flex_flow="row"
-                   style_flex_main_place="start" style_flex_cross_place="center">
+        <ui_button name="header_modified" width="#col_modified_width" height="content" text="Modified" variant="ghost">
           <event_cb trigger="clicked" callback="on_print_select_header_modified"/>
-          <text_body name="header_modified_label" text="Modified" style_text_align="left"/>
           <icon name="header_modified_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_modified_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
-        </lv_button>
+        </ui_button>
         <!-- Print Time header -->
-        <lv_button name="header_print_time"
-                   width="#col_time_width" height="content" style_bg_opa="0" style_border_width="0"
-                   style_shadow_width="0" style_pad_all="#list_header_padding" flex_flow="row"
-                   style_flex_main_place="start" style_flex_cross_place="center">
+        <ui_button name="header_print_time" width="#col_time_width" height="content" text="Time" variant="ghost">
           <event_cb trigger="clicked" callback="on_print_select_header_print_time"/>
-          <text_body name="header_print_time_label" text="Time" style_text_align="left"/>
           <icon name="header_print_time_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_print_time_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
       <!-- Scrollable list rows container -->
       <lv_obj name="list_rows_container"

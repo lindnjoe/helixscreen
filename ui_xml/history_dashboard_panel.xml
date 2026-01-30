@@ -25,41 +25,31 @@
       <lv_obj width="100%"
               height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_bottom="#space_md"
               flex_flow="row" style_pad_gap="#space_xs" scrollable="false">
-        <lv_button name="filter_day"
-                   flex_grow="1" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_md">
+        <ui_button name="filter_day" text="Day" flex_grow="1">
           <bind_style name="filter_btn_selected" subject="history_filter_day_active" ref_value="1"/>
           <bind_style name="filter_btn_unselected" subject="history_filter_day_active" ref_value="0"/>
           <event_cb trigger="clicked" callback="history_filter_day_clicked"/>
-          <text_small name="filter_day_label" text="Day" style_text_color="#text" align="center"/>
-        </lv_button>
-        <lv_button name="filter_week"
-                   flex_grow="1" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_md">
+        </ui_button>
+        <ui_button name="filter_week" text="Week" flex_grow="1">
           <bind_style name="filter_btn_selected" subject="history_filter_week_active" ref_value="1"/>
           <bind_style name="filter_btn_unselected" subject="history_filter_week_active" ref_value="0"/>
           <event_cb trigger="clicked" callback="history_filter_week_clicked"/>
-          <text_small name="filter_week_label" text="Week" style_text_color="#text" align="center"/>
-        </lv_button>
-        <lv_button name="filter_month"
-                   flex_grow="1" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_md">
+        </ui_button>
+        <ui_button name="filter_month" text="Month" flex_grow="1">
           <bind_style name="filter_btn_selected" subject="history_filter_month_active" ref_value="1"/>
           <bind_style name="filter_btn_unselected" subject="history_filter_month_active" ref_value="0"/>
           <event_cb trigger="clicked" callback="history_filter_month_clicked"/>
-          <text_small name="filter_month_label" text="Month" style_text_color="#text" align="center"/>
-        </lv_button>
-        <lv_button name="filter_year"
-                   flex_grow="1" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_md">
+        </ui_button>
+        <ui_button name="filter_year" text="Year" flex_grow="1">
           <bind_style name="filter_btn_selected" subject="history_filter_year_active" ref_value="1"/>
           <bind_style name="filter_btn_unselected" subject="history_filter_year_active" ref_value="0"/>
           <event_cb trigger="clicked" callback="history_filter_year_clicked"/>
-          <text_small name="filter_year_label" text="Year" style_text_color="#text" align="center"/>
-        </lv_button>
-        <lv_button name="filter_all"
-                   flex_grow="1" style_radius="#border_radius" style_border_width="0" style_pad_all="#space_md">
+        </ui_button>
+        <ui_button name="filter_all" text="All" flex_grow="1">
           <bind_style name="filter_btn_selected" subject="history_filter_all_active" ref_value="1"/>
           <bind_style name="filter_btn_unselected" subject="history_filter_all_active" ref_value="0"/>
           <event_cb trigger="clicked" callback="history_filter_all_clicked"/>
-          <text_small name="filter_all_label" text="All" style_text_color="#text" align="center"/>
-        </lv_button>
+        </ui_button>
       </lv_obj>
       <!-- Top Row: Stats (left) + Filament Chart (right) - hidden when no jobs -->
       <lv_obj name="top_row"
@@ -140,14 +130,10 @@
         <bind_flag_if_eq subject="history_has_jobs" flag="hidden" ref_value="0"/>
       </lv_obj>
       <!-- View Full History Button (at bottom) -->
-      <lv_button name="btn_view_history"
-                 width="100%" height="#button_height_normal" style_radius="#border_radius" style_border_width="0"
-                 style_bg_color="#primary" flex_flow="row" style_flex_main_place="center"
-                 style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm">
-        <icon src="list" size="sm" variant="primary"/>
-        <text_body text="View Full History"/>
+      <ui_button name="btn_view_history"
+                 width="100%" height="#button_height_normal" icon="list" text="View Full History">
         <event_cb trigger="clicked" callback="history_view_full_clicked"/>
-      </lv_button>
+      </ui_button>
     </lv_obj>
     <!-- End overlay_content -->
   </view>
