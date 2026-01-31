@@ -72,9 +72,9 @@
               style_pad_right="#nav_padding" style_pad_top="#space_xs" style_pad_bottom="#space_sm" flex_flow="row"
               style_flex_main_place="start" style_flex_cross_place="center">
         <!-- Filename header (flex-grow) -->
-        <ui_button name="header_filename" height="content" text="Filename" variant="ghost" flex_grow="1"
-                   flex_flow="row" style_pad_column="#space_xs" style_flex_main_place="center"
-                   style_flex_cross_place="center">
+        <ui_button name="header_filename"
+                   height="content" text="Filename" variant="ghost" flex_grow="1" flex_flow="row"
+                   style_pad_column="#space_xs" style_flex_main_place="center" style_flex_cross_place="center">
           <event_cb trigger="clicked" callback="on_print_select_header_filename"/>
           <icon name="header_filename_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_filename_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
@@ -87,25 +87,25 @@
           <text_body name="header_status_label" text="Status" style_text_align="center"/>
         </lv_obj>
         <!-- Size header -->
-        <ui_button name="header_size" width="#col_size_width" height="content" text="Size" variant="ghost"
-                   flex_flow="row" style_pad_column="#space_xs" style_flex_main_place="center"
-                   style_flex_cross_place="center">
+        <ui_button name="header_size"
+                   width="#col_size_width" height="content" text="Size" variant="ghost" flex_flow="row"
+                   style_pad_column="#space_xs" style_flex_main_place="center" style_flex_cross_place="center">
           <event_cb trigger="clicked" callback="on_print_select_header_size"/>
           <icon name="header_size_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_size_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
         </ui_button>
         <!-- Modified header -->
-        <ui_button name="header_modified" width="#col_modified_width" height="content" text="Modified" variant="ghost"
-                   flex_flow="row" style_pad_column="#space_xs" style_flex_main_place="center"
-                   style_flex_cross_place="center">
+        <ui_button name="header_modified"
+                   width="#col_modified_width" height="content" text="Modified" variant="ghost" flex_flow="row"
+                   style_pad_column="#space_xs" style_flex_main_place="center" style_flex_cross_place="center">
           <event_cb trigger="clicked" callback="on_print_select_header_modified"/>
           <icon name="header_modified_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_modified_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>
         </ui_button>
         <!-- Print Time header -->
-        <ui_button name="header_print_time" width="#col_time_width" height="content" text="Time" variant="ghost"
-                   flex_flow="row" style_pad_column="#space_xs" style_flex_main_place="center"
-                   style_flex_cross_place="center">
+        <ui_button name="header_print_time"
+                   width="#col_time_width" height="content" text="Time" variant="ghost" flex_flow="row"
+                   style_pad_column="#space_xs" style_flex_main_place="center" style_flex_cross_place="center">
           <event_cb trigger="clicked" callback="on_print_select_header_print_time"/>
           <icon name="header_print_time_icon_up" src="arrow_up" size="xs" variant="primary" hidden="true"/>
           <icon name="header_print_time_icon_down" src="arrow_down" size="xs" variant="primary" hidden="true"/>

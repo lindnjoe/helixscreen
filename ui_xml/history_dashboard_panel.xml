@@ -130,8 +130,7 @@
         <bind_flag_if_eq subject="history_has_jobs" flag="hidden" ref_value="0"/>
       </lv_obj>
       <!-- View Full History Button (at bottom) -->
-      <ui_button name="btn_view_history"
-                 width="100%" icon="list" text="View Full History">
+      <ui_button name="btn_view_history" width="100%" icon="list" text="View Full History">
         <event_cb trigger="clicked" callback="history_view_full_clicked"/>
       </ui_button>
     </lv_obj>

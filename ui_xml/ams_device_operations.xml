@@ -20,16 +20,16 @@
 
         <!-- Quick Actions Header -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                style_pad_gap="#space_sm" scrollable="false">
           <icon src="flash" size="sm" variant="primary"/>
           <text_body text="Quick Actions"/>
         </lv_obj>
 
         <!-- Action Buttons Row: Home | Recover | Abort -->
         <lv_obj name="action_buttons_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_pad_gap="#space_sm" scrollable="false">
+                width="100%" height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_sm"
+                scrollable="false">
           <!-- Home Button -->
           <ui_button name="btn_home" height="44" icon="home" text="Home" flex_grow="1">
             <event_cb trigger="clicked" callback="on_ams_device_ops_home"/>
@@ -49,17 +49,16 @@
 
         <!-- Bypass Mode Row (hidden when not supported) -->
         <lv_obj name="bypass_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_main_place="space_between" style_flex_cross_place="center">
+                width="100%" height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+                style_flex_cross_place="center">
           <bind_flag_if_eq subject="ams_device_ops_supports_bypass" flag="hidden" ref_value="0"/>
           <!-- Left side: Icon + Label/Description -->
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false" flex_grow="1">
+                  height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                  style_pad_gap="#space_sm" scrollable="false" flex_grow="1">
             <icon src="arrow_left_right" size="sm" variant="secondary"/>
             <lv_obj width="content"
-                    height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                    style_pad_gap="#space_xs" scrollable="false">
+                    height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false">
               <text_body text="Bypass Mode"/>
               <text_small text="Feed filament directly to extruder"/>
             </lv_obj>
@@ -73,15 +72,15 @@
 
         <!-- Auto-Heat Info Row (shown when supported) -->
         <lv_obj name="auto_heat_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                width="100%" height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="start"
+                style_flex_cross_place="center" style_pad_gap="#space_sm">
           <bind_flag_if_eq subject="ams_device_ops_supports_auto_heat" flag="hidden" ref_value="0"/>
           <!-- Left side: Icon -->
           <icon src="fire" size="sm" variant="secondary"/>
           <!-- Middle: Label/Description -->
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                  style_pad_gap="#space_xs" scrollable="false" flex_grow="1">
+                  height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false"
+                  flex_grow="1">
             <text_body text="Auto-Heat on Load"/>
             <text_small text="Extruder heats automatically based on material"/>
           </lv_obj>
@@ -91,12 +90,12 @@
 
         <!-- Status Row -->
         <lv_obj name="status_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                width="100%" height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="start"
+                style_flex_cross_place="center" style_pad_gap="#space_sm">
           <icon src="info" size="sm" variant="secondary"/>
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                  style_pad_gap="#space_xs" scrollable="false" flex_grow="1">
+                  height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false"
+                  flex_grow="1">
             <text_body text="Status"/>
             <text_small name="status_label" bind_text="ams_device_ops_status"/>
           </lv_obj>
@@ -112,15 +111,15 @@
         <bind_flag_if_eq subject="ams_device_ops_has_calibration" flag="hidden" ref_value="0"/>
         <!-- Header -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                style_pad_gap="#space_sm" scrollable="false">
           <icon src="target" size="sm" variant="primary"/>
           <text_body text="Calibration"/>
         </lv_obj>
         <!-- Dynamic actions container (populated in C++) -->
         <lv_obj name="calibration_actions_container"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                flex_flow="column" style_pad_gap="#space_sm" scrollable="false">
+                width="100%" height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm"
+                scrollable="false">
           <!-- Dynamic calibration actions will be added here by C++ -->
         </lv_obj>
       </ui_card>
@@ -134,15 +133,15 @@
         <bind_flag_if_eq subject="ams_device_ops_has_speed" flag="hidden" ref_value="0"/>
         <!-- Header -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                style_pad_gap="#space_sm" scrollable="false">
           <icon src="speedometer" size="sm" variant="primary"/>
           <text_body text="Speed Settings"/>
         </lv_obj>
         <!-- Dynamic actions container (populated in C++) -->
         <lv_obj name="speed_actions_container"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                flex_flow="column" style_pad_gap="#space_sm" scrollable="false">
+                width="100%" height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm"
+                scrollable="false">
           <!-- Dynamic speed actions will be added here by C++ -->
         </lv_obj>
       </ui_card>

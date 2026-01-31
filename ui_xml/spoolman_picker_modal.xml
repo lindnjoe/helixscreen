@@ -16,8 +16,8 @@
         scrollable="false" style_max_height="#modal_max_height">
     <!-- Header row -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-            style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+            height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+            style_flex_cross_place="center" scrollable="false">
       <text_heading text="Select Filament"/>
       <ui_button name="btn_close" width="32" height="32" icon="close" variant="ghost">
         <event_cb trigger="clicked" callback="spoolman_picker_close_cb"/>
@@ -27,8 +27,8 @@
     <text_small name="slot_indicator" text="Assigning to Slot 1"/>
     <!-- Loading state -->
     <lv_obj name="loading_container"
-            width="100%" height="80" style_bg_opa="0" style_border_width="0" flex_flow="column"
-            style_flex_main_place="center" style_flex_cross_place="center" scrollable="false">
+            width="100%" height="80" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+            scrollable="false">
       <bind_flag_if_not_eq subject="ams_picker_state" flag="hidden" ref_value="0"/>
       <lv_spinner width="32"
                   height="32" style_arc_width_indicator="#input_border_width" style_arc_color="#primary"
@@ -42,9 +42,9 @@
     </lv_obj>
     <!-- Spool list (scrollable) -->
     <lv_obj name="spool_list"
-            width="100%" height="content" style_max_height="#list_max_height" style_bg_opa="0" style_border_width="0"
-            style_pad_all="0" style_pad_gap="#space_xs" flex_flow="column" style_flex_main_place="start"
-            style_flex_cross_place="start" scrollable="true" scroll_direction="y" overflow="scroll">
+            width="100%" height="content" style_max_height="#list_max_height" style_pad_all="0"
+            style_pad_gap="#space_xs" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start"
+            scrollable="true" scroll_direction="y" overflow="scroll">
       <bind_flag_if_not_eq subject="ams_picker_state" flag="hidden" ref_value="2"/>
       <!-- Spool items populated dynamically by C++ -->
     </lv_obj>

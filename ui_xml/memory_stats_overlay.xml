@@ -13,29 +13,29 @@
               style_text_align="center"/>
     <!-- RSS row -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_layout="flex"
-            style_flex_flow="row" style_flex_main_place="space_between">
+            height="content" style_pad_all="0" style_layout="flex" style_flex_flow="row"
+            style_flex_main_place="space_between">
       <lv_label text="RSS:" style_text_font="noto_sans_14" style_text_color="#text_muted"/>
       <lv_label name="rss_value" text="--" style_text_font="noto_sans_14" style_text_color="#text"/>
     </lv_obj>
     <!-- Peak row -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_layout="flex"
-            style_flex_flow="row" style_flex_main_place="space_between">
+            height="content" style_pad_all="0" style_layout="flex" style_flex_flow="row"
+            style_flex_main_place="space_between">
       <lv_label text="Peak:" style_text_font="noto_sans_14" style_text_color="#text_muted"/>
       <lv_label name="hwm_value" text="--" style_text_font="noto_sans_14" style_text_color="#text"/>
     </lv_obj>
     <!-- Private row -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_layout="flex"
-            style_flex_flow="row" style_flex_main_place="space_between">
+            height="content" style_pad_all="0" style_layout="flex" style_flex_flow="row"
+            style_flex_main_place="space_between">
       <lv_label text="Private:" style_text_font="noto_sans_14" style_text_color="#text_muted"/>
       <lv_label name="private_value" text="--" style_text_font="noto_sans_14" style_text_color="#text"/>
     </lv_obj>
     <!-- Delta row -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_layout="flex"
-            style_flex_flow="row" style_flex_main_place="space_between">
+            height="content" style_pad_all="0" style_layout="flex" style_flex_flow="row"
+            style_flex_main_place="space_between">
       <lv_label text="Delta:" style_text_font="noto_sans_14" style_text_color="#text_muted"/>
       <lv_label name="delta_value" text="--" style_text_font="noto_sans_14" style_text_color="#success"/>
     </lv_obj>

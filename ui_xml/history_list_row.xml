@@ -23,7 +23,7 @@
     <!-- Main content column -->
     <lv_obj width="content"
             height="content" flex_grow="1" flex_flow="column" style_flex_gap_row="#space_xs" style_pad_all="0"
-            style_bg_opa="0" style_border_width="0" clickable="false">
+            clickable="false">
       <!-- Filename (primary text) -->
       <text_body name="row_filename"
                  width="100%" text="$filename" style_text_align="left" long_mode="dots" style_pad_all="0"
@@ -31,7 +31,7 @@
       <!-- Metadata row (date, duration, filament type) -->
       <lv_obj width="100%"
               height="content" flex_flow="row" style_flex_main_place="start" style_flex_gap_column="#space_lg"
-              style_pad_all="0" style_bg_opa="0" style_border_width="0" clickable="false">
+              style_pad_all="0" clickable="false">
         <!-- Date -->
         <text_small name="row_date"
                     width="content" text="$date" style_text_align="left" style_text_color="#text_muted"

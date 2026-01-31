@@ -20,8 +20,8 @@
             clickable="true">
       <!-- Header row: "Slot N" + close button -->
       <lv_obj width="100%"
-              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-              style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+              height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+              style_flex_cross_place="center" scrollable="false">
         <text_body name="slot_header" text="Slot 1"/>
         <ui_button name="btn_close" width="28" height="28" icon="close" variant="ghost">
           <event_cb trigger="clicked" callback="slot_edit_popup_close_cb"/>
@@ -33,9 +33,8 @@
               scrollable="false"/>
       <!-- Tool dropdown row (hidden when tool mapping not supported) -->
       <lv_obj name="tool_row"
-              width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-              style_pad_top="#space_xs" flex_flow="row" style_flex_main_place="space_between"
-              style_flex_cross_place="center" scrollable="false" hidden="true">
+              width="100%" height="content" style_pad_all="0" style_pad_top="#space_xs" flex_flow="row"
+              style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false" hidden="true">
         <text_small text="Tool"/>
         <lv_dropdown name="tool_dropdown"
                      width="#dropdown_width" height="32" style_radius="#border_radius" style_border_width="0">
@@ -44,8 +43,8 @@
       </lv_obj>
       <!-- Backup dropdown row (hidden when endless spool not supported) -->
       <lv_obj name="backup_row"
-              width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-              style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false" hidden="true">
+              width="100%" height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+              style_flex_cross_place="center" scrollable="false" hidden="true">
         <text_small text="Backup"/>
         <lv_dropdown name="backup_dropdown"
                      width="#dropdown_width" height="32" style_radius="#border_radius" style_border_width="0">

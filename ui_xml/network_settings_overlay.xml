@@ -10,15 +10,14 @@
         extends="overlay_panel" width="#overlay_panel_width_full" title="Network Settings" bg_color="#app_bg">
     <!-- Two-Column Content Area -->
     <lv_obj name="content_area"
-            width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" style_pad_gap="#space_lg"
-            scrollable="false" style_border_width="0" flex_flow="row" style_flex_main_place="start"
-            style_flex_cross_place="start">
+            width="100%" flex_grow="1" style_pad_all="#space_lg" style_pad_gap="#space_lg" scrollable="false"
+            flex_flow="row" style_flex_main_place="start" style_flex_cross_place="start">
       <!-- ================================================================== -->
       <!-- LEFT COLUMN (40%) - WiFi status, Ethernet status, network test -->
       <!-- ================================================================== -->
       <lv_obj height="100%"
-              flex_grow="4" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#space_sm"
-              scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start">
+              flex_grow="4" style_pad_all="0" style_pad_gap="#space_sm" scrollable="false" flex_flow="column"
+              style_flex_main_place="start" style_flex_cross_place="start">
         <!-- ============================================================== -->
         <!-- WiFi Status Card (Combined toggle + connection status) -->
         <!-- ============================================================== -->
@@ -30,12 +29,12 @@
           <bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
           <!-- Header Row: WiFi label + toggle -->
           <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+                  height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                  style_flex_main_place="space_between" style_flex_cross_place="center">
             <!-- Label with optional band warning -->
             <lv_obj height="content"
-                    flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                    flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                    flex_grow="1" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+                    style_pad_gap="#space_sm">
               <text_body text="WiFi"/>
               <!-- Band limitation indicator -->
               <text_small text="(2.4GHz)">
@@ -53,26 +52,25 @@
           <divider_horizontal/>
           <!-- WiFi Status Container - only ONE child visible at a time -->
           <lv_obj name="wifi_status_container"
-                  width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                  scrollable="false" flex_flow="column" style_pad_gap="0">
+                  width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="column"
+                  style_pad_gap="0">
             <!-- Hardware Unavailable (shown when wifi_hardware_available == 0) -->
             <lv_obj name="wifi_unavailable_state"
-                    width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    scrollable="false" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                    width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                    style_flex_cross_place="center" style_pad_gap="#space_sm">
               <bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="1"/>
               <icon src="wifi_off" size="sm" variant="secondary"/>
               <text_small text="WiFi hardware unavailable"/>
             </lv_obj>
             <!-- Connected (shown when wifi_connected == 1) -->
             <lv_obj name="wifi_connected_state"
-                    width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    scrollable="false" flex_flow="column" style_pad_gap="#space_xs">
+                    width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="column"
+                    style_pad_gap="#space_xs">
               <bind_flag_if_eq subject="wifi_connected" flag="hidden" ref_value="0"/>
               <!-- SSID row with checkmark and signal -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center"
-                      style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <icon src="check_circle" size="sm" variant="success"/>
                 <text_body name="ssid_label" bind_text="connected_ssid"/>
                 <lv_obj height="1" flex_grow="1" scrollable="false"/>
@@ -80,23 +78,23 @@
               </lv_obj>
               <!-- IP Address -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <text_small text="IP:"/>
                 <text_small name="ip_label" bind_text="ip_address"/>
               </lv_obj>
               <!-- MAC Address -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <text_small text="MAC:"/>
                 <text_small name="mac_label" bind_text="mac_address"/>
               </lv_obj>
             </lv_obj>
             <!-- Disconnected (shown when wifi_connected == 0 AND hardware available) -->
             <lv_obj name="wifi_disconnected_state"
-                    width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    scrollable="false" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                    width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                    style_flex_cross_place="center" style_pad_gap="#space_sm">
               <bind_flag_if_eq subject="wifi_connected" flag="hidden" ref_value="1"/>
               <icon src="wifi_off" size="sm" variant="secondary"/>
               <text_small text="Not connected"/>
@@ -112,9 +110,8 @@
                 style_pad_gap="#space_xs">
           <!-- Header Row: Ethernet label -->
           <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center"
-                  style_pad_gap="#space_sm">
+                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="start"
+                  style_flex_cross_place="center" style_pad_gap="#space_sm">
             <icon src="ethernet" size="sm" variant="secondary"/>
             <text_body text="Ethernet"/>
           </lv_obj>
@@ -122,46 +119,46 @@
           <divider_horizontal/>
           <!-- Ethernet Status Container - only ONE child visible at a time -->
           <lv_obj name="eth_status_container"
-                  width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                  scrollable="false" flex_flow="column" style_pad_gap="0">
+                  width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="column"
+                  style_pad_gap="0">
             <!-- Connected State (shown when eth_connected == 1) -->
             <lv_obj name="eth_connected_state"
-                    width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    scrollable="false" flex_flow="column" style_pad_gap="#space_xs">
+                    width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="column"
+                    style_pad_gap="#space_xs">
               <bind_flag_if_eq subject="eth_connected" flag="hidden" ref_value="0"/>
               <!-- Connected indicator with IP -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_main_place="start" style_flex_cross_place="center"
-                      style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <icon src="check_circle" size="sm" variant="success"/>
                 <text_body text="Connected"/>
               </lv_obj>
               <!-- IP Address -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <text_small text="IP:"/>
                 <text_small name="eth_ip_label" bind_text="eth_ip_address"/>
               </lv_obj>
               <!-- MAC Address -->
               <lv_obj width="100%"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                      flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+                      height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                      style_flex_cross_place="center" style_pad_gap="#space_xs">
                 <text_small text="MAC:"/>
                 <text_small name="eth_mac_label" bind_text="eth_mac_address"/>
               </lv_obj>
             </lv_obj>
             <!-- Disconnected State (shown when eth_connected == 0) -->
             <lv_obj name="eth_disconnected_state"
-                    width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    scrollable="false" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                    width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                    style_flex_cross_place="center" style_pad_gap="#space_sm">
               <bind_flag_if_eq subject="eth_connected" flag="hidden" ref_value="1"/>
               <icon src="ethernet" size="sm" variant="secondary"/>
               <text_small text="Not connected"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
+
         <!-- Spacer to push Test Network button to bottom -->
         <lv_obj width="100%" flex_grow="1" scrollable="false"/>
         <!-- ============================================================== -->
@@ -179,16 +176,16 @@
       <!-- RIGHT COLUMN (60%) - Available networks list -->
       <!-- ================================================================== -->
       <lv_obj height="100%"
-              flex_grow="6" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_gap="#space_md"
-              scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start">
+              flex_grow="6" style_pad_all="0" style_pad_gap="#space_md" scrollable="false" flex_flow="column"
+              style_flex_main_place="start" style_flex_cross_place="start">
         <!-- Header Row: Title + Count + Refresh Button -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+                height="content" style_pad_all="0" scrollable="false" flex_flow="row"
+                style_flex_main_place="space_between" style_flex_cross_place="center">
           <!-- Title with count -->
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+                  style_pad_gap="#space_sm">
             <text_body text="Available networks"/>
             <text_small name="network_count_label" bind_text="network_count"/>
           </lv_obj>
@@ -197,8 +194,8 @@
             <bind_state_if_eq subject="wifi_scanning" state="disabled" ref_value="1"/>
             <bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
             <lv_obj width="content"
-                    height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                    flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
+                    height="100%" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+                    style_pad_gap="#space_xs">
               <!-- Static refresh icon (shown when not scanning) -->
               <icon name="refresh_icon" src="refresh" size="xs" variant="primary">
                 <bind_flag_if_eq subject="wifi_scanning" flag="hidden" ref_value="1"/>
@@ -218,23 +215,21 @@
                 style_clip_corner="true" flex_flow="column">
           <!-- wifi_network_item components are created here dynamically by C++ -->
           <!-- Placeholder when hardware unavailable (shown when wifi_hardware_available == 0) -->
-          <lv_obj name="wifi_hardware_unavailable_placeholder"
-                  width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false">
+          <lv_obj name="wifi_hardware_unavailable_placeholder" width="100%" flex_grow="1" scrollable="false">
             <bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="1"/>
             <empty_state icon="wifi_off" text="WiFi control unavailable" icon_size="md"/>
           </lv_obj>
           <!-- Placeholder when no networks (shown when WiFi disabled AND hardware available) -->
-          <lv_obj name="wifi_disabled_placeholder"
-                  width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" scrollable="false">
+          <lv_obj name="wifi_disabled_placeholder" width="100%" flex_grow="1" scrollable="false">
             <bind_flag_if_eq subject="wifi_enabled" flag="hidden" ref_value="1"/>
             <bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
             <empty_state icon="wifi_off" text="Enable WiFi to scan" icon_size="md"/>
           </lv_obj>
           <!-- Scanning indicator (shown when scanning) -->
           <lv_obj name="scanning_placeholder"
-                  width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg"
-                  scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
-                  style_flex_track_place="center" hidden="true">
+                  width="100%" flex_grow="1" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
+                  style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
+                  hidden="true">
             <bind_flag_if_eq subject="wifi_scanning" flag="hidden" ref_value="0"/>
             <spinner size="md"/>
             <text_small text="Scanning for networks..." style_margin_top="#space_sm"/>

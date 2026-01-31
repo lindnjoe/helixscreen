@@ -17,8 +17,8 @@
         scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
     <!-- Header row: Icon + Name + Version + Status -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-            flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_md">
+            height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+            style_pad_gap="#space_md">
       <!-- Plugin icon -->
       <lv_obj width="40"
               height="40" style_bg_color="#app_bg" style_bg_opa="255" style_radius="20" style_border_width="0"
@@ -28,8 +28,8 @@
       </lv_obj>
       <!-- Name + Author column -->
       <lv_obj width="content"
-              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-              flex_flow="column" style_pad_gap="#space_xxs" flex_grow="1">
+              height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs"
+              flex_grow="1">
         <text_body name="name_label" text="$plugin_name"/>
         <text_small name="author_label" text="$plugin_author"/>
       </lv_obj>
@@ -43,8 +43,8 @@
     </lv_obj>
     <!-- Description row (if present) -->
     <lv_obj name="description_container"
-            width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-            style_pad_left="#space_xl" scrollable="false" flex_flow="column">
+            width="100%" height="content" style_pad_all="0" style_pad_left="#space_xl" scrollable="false"
+            flex_flow="column">
       <text_small name="description_label" width="100%" text="$plugin_description" long_mode="wrap"/>
     </lv_obj>
     <!-- Error row (shown only for failed plugins) -->
@@ -54,8 +54,8 @@
             scrollable="false" flex_flow="column" style_pad_gap="#space_sm" hidden="true">
       <!-- Error message row -->
       <lv_obj width="100%"
-              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-              flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+              height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+              style_pad_gap="#space_sm">
         <icon src="alert" size="xs" variant="danger"/>
         <text_small name="error_label" text="$error_message" style_text_color="#danger" long_mode="wrap" flex_grow="1"/>
       </lv_obj>

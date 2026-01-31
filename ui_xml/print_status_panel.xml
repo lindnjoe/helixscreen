@@ -20,9 +20,8 @@
                 action_button_callback="emergency_stop_clicked"/>
     <!-- Content Area (two columns: viewer left, controls right) -->
     <lv_obj name="overlay_content"
-            width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg"
-            style_pad_right="#space_lg" style_pad_top="0" style_pad_bottom="#space_md" flex_flow="row"
-            style_pad_gap="#space_md" scrollable="false">
+            width="100%" flex_grow="1" style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="0"
+            style_pad_bottom="#space_md" flex_flow="row" style_pad_gap="#space_md" scrollable="false">
       <!-- ================================================================== -->
       <!-- LEFT SECTION: G-code Viewer / Thumbnail (5/9 width via flex_grow) -->
       <!-- ================================================================== -->
@@ -43,8 +42,7 @@
         <!-- Thumbnail image (shown in thumbnail[0] mode only, hidden in 3D[1] and 2D[2]) -->
         <!-- Image source set programmatically via lv_image_set_src() when thumbnail available -->
         <lv_image name="print_thumbnail"
-                  width="100%" height="100%" style_bg_opa="0" align="center" inner_align="contain"
-                  style_translate_y="#preview_offset_y">
+                  width="100%" height="100%" align="center" inner_align="contain" style_translate_y="#preview_offset_y">
           <bind_flag_if_gt subject="gcode_viewer_mode" flag="hidden" ref_value="0"/>
         </lv_image>
 
@@ -74,10 +72,9 @@
         <!-- PRINT COMPLETE OVERLAY: Shown when print finishes successfully -->
         <!-- Hidden by default. Binding removes hidden ONLY when outcome == COMPLETE (1) -->
         <lv_obj name="print_complete_overlay"
-                width="100%" height="100%" align="center" style_bg_opa="0" style_border_width="0" style_radius="0"
-                style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center"
-                style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm"
-                scrollable="false" hidden="true">
+                width="100%" height="100%" align="center" style_radius="0" style_pad_all="#space_lg" flex_flow="column"
+                style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
+                style_pad_gap="#space_sm" scrollable="false" hidden="true">
           <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="1"/>
           <!-- Green success badge with checkmark (animated on appearance) -->
           <lv_obj name="success_badge"
@@ -93,10 +90,9 @@
         <!-- PRINT CANCELLED OVERLAY: Shown when print is cancelled -->
         <!-- Hidden by default. Binding removes hidden ONLY when outcome == CANCELLED (2) -->
         <lv_obj name="print_cancelled_overlay"
-                width="100%" height="100%" align="center" style_bg_opa="0" style_border_width="0" style_radius="0"
-                style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center"
-                style_flex_cross_place="center" style_flex_track_place="center" style_pad_gap="#space_sm"
-                scrollable="false" hidden="true">
+                width="100%" height="100%" align="center" style_radius="0" style_pad_all="#space_lg" flex_flow="column"
+                style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
+                style_pad_gap="#space_sm" scrollable="false" hidden="true">
           <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="2"/>
           <!-- Orange warning badge with cancel icon (animated on appearance) -->
           <lv_obj name="cancel_badge"
@@ -111,8 +107,7 @@
 
         <!-- Metadata container - fixed height at bottom, overlaying thumbnail -->
         <lv_obj name="metadata_clip"
-                width="100%" height="93" style_bg_opa="0" style_border_width="0" style_radius="0" style_pad_all="0"
-                align="bottom_mid" scrollable="false">
+                width="100%" height="93" style_radius="0" style_pad_all="0" align="bottom_mid" scrollable="false">
           <!-- Inner overlay with semi-transparent background and rounded corners -->
           <lv_obj name="metadata_overlay"
                   width="100%" height="99" align="bottom_mid" style_bg_opa="160" style_border_width="0"
@@ -132,12 +127,12 @@
                        width="100%" text="benchy.gcode" bind_text="print_display_filename" style_text_align="left"/>
             <!-- Status Row: Time/Progress -->
             <lv_obj width="100%"
-                    height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                    style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+                    height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+                    style_flex_cross_place="center" scrollable="false">
               <!-- Time display: elapsed / remaining -->
               <lv_obj width="content"
-                      height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                      style_flex_main_place="start" style_flex_cross_place="center" scrollable="false">
+                      height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="start"
+                      style_flex_cross_place="center" scrollable="false">
                 <text_small name="print_elapsed" text="0h 00m" bind_text="print_elapsed"/>
                 <text_small text=" / "/>
                 <text_small name="print_remaining" text="0h 00m" bind_text="print_remaining"/>
@@ -156,8 +151,8 @@
       <!-- RIGHT SECTION: Controls (4/9 width via flex_grow) -->
       <!-- ================================================================== -->
       <lv_obj name="controls_section"
-              height="100%" flex_grow="4" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-              flex_flow="column" style_pad_gap="#space_lg">
+              height="100%" flex_grow="4" style_pad_all="0" scrollable="false" flex_flow="column"
+              style_pad_gap="#space_lg">
 
         <!-- Nozzle Temperature Card -->
         <ui_card name="nozzle_temp_card"
@@ -183,21 +178,21 @@
 
         <!-- Filament & AMS Status Row (side-by-side) -->
         <lv_obj name="filament_ams_status_row"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_left="#space_md"
-                style_pad_right="#space_md" style_pad_top="#space_xs" flex_flow="row"
-                style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+                width="100%" height="content" style_pad_left="#space_md" style_pad_right="#space_md"
+                style_pad_top="#space_xs" flex_flow="row" style_flex_main_place="space_between"
+                style_flex_cross_place="center" scrollable="false">
           <!-- Filament Sensor Status (hidden if no sensors) -->
           <lv_obj name="filament_status_row"
-                  width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                  flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                  width="content" height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                  style_pad_gap="#space_sm">
             <bind_flag_if_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
             <text_small text="Filament"/>
             <filament_sensor_indicator/>
           </lv_obj>
           <!-- AMS Current Tool Status (hidden if no AMS or no tool active) -->
           <lv_obj name="ams_status_row"
-                  width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                  flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+                  width="content" height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                  style_pad_gap="#space_sm">
             <text_small text="Active"/>
             <ams_current_tool name="ams_current_tool_indicator"/>
           </lv_obj>
@@ -205,15 +200,13 @@
 
         <!-- Control Buttons (stacked below status, no spacer to avoid clipping) -->
         <lv_obj name="button_grid"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_top="0"
-                style_pad_bottom="0" style_pad_left="#space_sm" style_pad_right="#space_sm" scrollable="false"
-                flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center"
-                style_pad_gap="#space_sm">
+                width="100%" height="content" style_pad_top="0" style_pad_bottom="0" style_pad_left="#space_sm"
+                style_pad_right="#space_sm" scrollable="false" flex_flow="column" style_flex_main_place="start"
+                style_flex_cross_place="center" style_pad_gap="#space_sm">
           <!-- Row 1: Light, Timelapse (conditional), Pause -->
           <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                  style_pad_gap="#space_sm">
+                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center"
+                  style_flex_cross_place="center" style_pad_gap="#space_sm">
             <ui_button name="btn_light"
                        height="#button_height_lg" flex_grow="1" text="Light" bind_icon="light_button_icon">
               <event_cb trigger="clicked" callback="on_print_status_light"/>
@@ -234,9 +227,8 @@
 
           <!-- Row 2: Tune, Cancel -->
           <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
-                  flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
-                  style_pad_gap="#space_sm">
+                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_main_place="center"
+                  style_flex_cross_place="center" style_pad_gap="#space_sm">
             <ui_button name="btn_tune" height="#button_height_lg" flex_grow="1" icon="tune" text="Tune">
               <event_cb trigger="clicked" callback="on_print_status_tune"/>
             </ui_button>
@@ -258,8 +250,7 @@
         <!-- Plugin injection point: widgets from plugins appear here -->
         <!-- Plugins can inject print monitoring widgets, sensor readouts, etc. -->
         <lv_obj name="print_status_extras"
-                width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                flex_flow="column" style_pad_gap="#space_md"/>
+                width="100%" height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_md"/>
       </lv_obj>
     </lv_obj>
   </view>

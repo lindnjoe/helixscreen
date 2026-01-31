@@ -16,12 +16,12 @@
         style_pad_gap="0">
     <!-- Header with title and close button -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg"
-            style_pad_right="#space_md" style_pad_top="#space_lg" style_pad_bottom="#space_sm" flex_flow="row"
-            style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+            height="content" style_pad_left="#space_lg" style_pad_right="#space_md" style_pad_top="#space_lg"
+            style_pad_bottom="#space_sm" flex_flow="row" style_flex_main_place="space_between"
+            style_flex_cross_place="center" scrollable="false">
       <lv_obj width="content"
-              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-              style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+              height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+              style_pad_gap="#space_sm" scrollable="false">
         <text_heading name="slot_indicator" text="Edit Slot 1"/>
         <text_small name="spoolman_id_label" text="" hidden="true"/>
       </lv_obj>
@@ -34,12 +34,11 @@
     <divider_horizontal/>
     <!-- Content area - HORIZONTAL layout with side-by-side sections -->
     <lv_obj width="100%"
-            height="content" style_bg_opa="0" style_border_width="0" style_pad_all="#space_md" flex_flow="row"
-            style_pad_gap="#space_lg" scrollable="false">
+            height="content" style_pad_all="#space_md" flex_flow="row" style_pad_gap="#space_lg" scrollable="false">
       <!-- LEFT COLUMN: Color preview (tappable) -->
       <lv_obj width="#left_column_width"
-              height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-              style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+              height="content" style_pad_all="0" flex_flow="column" style_flex_main_place="start"
+              style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
         <!-- Large color swatch (tappable to open picker) -->
         <lv_obj name="color_swatch"
                 width="#color_preview_size" height="#color_preview_size" style_radius="#border_radius"
@@ -54,12 +53,11 @@
       </lv_obj>
       <!-- RIGHT COLUMN: Form fields -->
       <lv_obj height="content"
-              flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-              style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="#space_md" scrollable="false">
+              flex_grow="1" style_pad_all="0" flex_flow="column" style_flex_main_place="start"
+              style_flex_cross_place="start" style_pad_gap="#space_md" scrollable="false">
         <!-- Vendor dropdown -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                style_pad_gap="#space_xxs" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xxs" scrollable="false">
           <text_small text="Vendor"/>
           <lv_dropdown name="vendor_dropdown"
                        width="100%" height="content" style_radius="#border_radius" style_border_width="0">
@@ -68,8 +66,7 @@
         </lv_obj>
         <!-- Material dropdown -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                style_pad_gap="#space_xxs" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xxs" scrollable="false">
           <text_small text="Material"/>
           <lv_dropdown name="material_dropdown"
                        width="100%" height="content" style_radius="#border_radius" style_border_width="0">
@@ -78,17 +75,16 @@
         </lv_obj>
         <!-- Remaining weight section -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
-                style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="#space_xxs"
-                scrollable="false">
+                height="content" style_pad_all="0" flex_flow="column" style_flex_main_place="start"
+                style_flex_cross_place="start" style_pad_gap="#space_xxs" scrollable="false">
           <!-- Header row with label, percentage, and edit button -->
           <lv_obj width="100%"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_flex_main_place="space_between" style_flex_cross_place="center" scrollable="false">
+                  height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
+                  style_flex_cross_place="center" scrollable="false">
             <text_small text="Remaining"/>
             <lv_obj width="content"
-                    height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                    style_flex_cross_place="center" style_pad_gap="#space_xs" scrollable="false">
+                    height="content" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
+                    style_pad_gap="#space_xs" scrollable="false">
               <text_body name="remaining_pct_label" text="75%"/>
               <!-- Edit button (shown when edit_remaining_mode=0) -->
               <ui_button name="btn_remaining_edit"
@@ -129,17 +125,15 @@
         </lv_obj>
         <!-- Temperature display (compact, read-only) -->
         <lv_obj width="100%"
-                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                style_flex_main_place="start" style_pad_gap="#space_lg" scrollable="false">
+                height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="start"
+                style_pad_gap="#space_lg" scrollable="false">
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_pad_gap="#space_xs" scrollable="false">
+                  height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xs" scrollable="false">
             <text_small text="Nozzle:"/>
             <text_small name="temp_nozzle_label" text="200-230°C"/>
           </lv_obj>
           <lv_obj width="content"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_pad_gap="#space_xs" scrollable="false">
+                  height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_xs" scrollable="false">
             <text_small text="Bed:"/>
             <text_small name="temp_bed_label" text="60°C"/>
           </lv_obj>
@@ -155,9 +149,7 @@
     <!-- Horizontal divider above buttons -->
     <divider_horizontal/>
     <!-- Action buttons row -->
-    <lv_obj width="100%"
-            height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-            scrollable="false">
+    <lv_obj width="100%" height="#button_height" style_pad_all="0" flex_flow="row" scrollable="false">
       <!-- Reset button -->
       <ui_button name="btn_reset" height="100%" text="Reset" flex_grow="1">
         <event_cb trigger="clicked" callback="ams_edit_reset_cb"/>

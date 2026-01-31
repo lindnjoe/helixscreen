@@ -12,9 +12,8 @@
     <!-- STATE: PROBING (state=1) - Progress bar + E-Stop -->
     <!-- ============================================================ -->
     <lv_obj name="probing_container"
-            width="100%" height="content" style_min_height="200" style_bg_opa="0" style_border_width="0"
-            style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg"
-            style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
+            width="100%" height="content" style_min_height="200" style_pad_left="#space_lg" style_pad_right="#space_lg"
+            style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
             style_flex_main_place="start" style_flex_track_place="center" style_pad_gap="#space_md" hidden="true">
       <!-- Show only when state=1 -->
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="1"/>
@@ -40,9 +39,8 @@
     <!-- STATE: NAMING (state=2) - Success + Profile name input -->
     <!-- ============================================================ -->
     <lv_obj name="naming_container"
-            width="100%" height="content" style_min_height="200" style_bg_opa="0" style_border_width="0"
-            style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg"
-            style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
+            width="100%" height="content" style_min_height="200" style_pad_left="#space_lg" style_pad_right="#space_lg"
+            style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
             style_flex_main_place="start" style_flex_track_place="center" style_pad_gap="#space_md" hidden="true">
       <!-- Show only when state=2 -->
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="2"/>
@@ -62,9 +60,8 @@
     <!-- STATE: ERROR (state=3) - Error message -->
     <!-- ============================================================ -->
     <lv_obj name="error_container"
-            width="100%" height="content" style_min_height="180" style_bg_opa="0" style_border_width="0"
-            style_pad_left="#space_lg" style_pad_right="#space_lg" style_pad_top="#space_lg"
-            style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
+            width="100%" height="content" style_min_height="180" style_pad_left="#space_lg" style_pad_right="#space_lg"
+            style_pad_top="#space_lg" style_pad_bottom="#space_lg" flex_flow="column" style_flex_cross_place="center"
             style_flex_main_place="start" style_flex_track_place="center" style_pad_gap="#space_md" hidden="true">
       <!-- Show only when state=3 -->
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="3"/>
@@ -83,8 +80,8 @@
     <!-- Button row: PROBING state (state=1) - Cancel only -->
     <!-- ============================================================ -->
     <lv_obj name="probing_button_row"
-            width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-            style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
+            width="100%" height="#button_height" style_pad_all="0" style_pad_gap="0" flex_flow="row" hidden="true"
+            scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="1"/>
       <!-- Cancel button -->
       <ui_button name="btn_cancel_probing" height="100%" flex_grow="1" style_radius="0" text="Cancel">
@@ -95,8 +92,8 @@
     <!-- Button row: NAMING state (state=2) - Don't Save | Save -->
     <!-- ============================================================ -->
     <lv_obj name="naming_button_row"
-            width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-            style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
+            width="100%" height="#button_height" style_pad_all="0" style_pad_gap="0" flex_flow="row" hidden="true"
+            scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="2"/>
       <!-- Don't Save button -->
       <ui_button name="btn_dont_save"
@@ -114,8 +111,8 @@
     <!-- Button row: ERROR state (state=3) - Close only -->
     <!-- ============================================================ -->
     <lv_obj name="error_button_row"
-            width="100%" height="#button_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-            style_pad_gap="0" flex_flow="row" hidden="true" scrollable="false">
+            width="100%" height="#button_height" style_pad_all="0" style_pad_gap="0" flex_flow="row" hidden="true"
+            scrollable="false">
       <bind_flag_if_ne subject="bed_mesh_calibrate_state" flag="hidden" ref_value="3"/>
       <!-- Close button -->
       <ui_button name="btn_close" height="100%" flex_grow="1" style_radius="0" text="Close">

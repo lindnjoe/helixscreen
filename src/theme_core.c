@@ -33,6 +33,7 @@ typedef struct {
     lv_style_t dropdown_selected_style;  // Dropdown selected item highlight
     lv_style_t card_style;               // Shared card style (bg_color, border, radius)
     lv_style_t dialog_style;             // Shared dialog style (surface_control bg)
+    lv_style_t obj_base_style;           // Base lv_obj style (transparent, no border)
     lv_style_t text_primary_style;       // Shared primary text style (text_color)
     lv_style_t text_muted_style;         // Shared muted text style (text_muted_color)
     lv_style_t text_subtle_style;        // Shared subtle text style (text_subtle_color)
@@ -61,8 +62,9 @@ typedef struct {
     lv_style_t button_success_style;   // Success button (success color bg)
     lv_style_t button_tertiary_style;  // Tertiary button (tertiary color bg)
     lv_style_t button_warning_style;   // Warning button (warning color bg)
-    lv_color_t dropdown_accent_color;  // Accent color for dropdown selection (stored for apply callback)
-    bool is_dark_mode;                 // Track theme mode for context
+    lv_color_t
+        dropdown_accent_color; // Accent color for dropdown selection (stored for apply callback)
+    bool is_dark_mode;         // Track theme mode for context
 } helix_theme_t;
 
 // Static theme instance (singleton pattern matching LVGL's approach)
@@ -96,7 +98,8 @@ static uint8_t compute_color_saturation(lv_color_t color) {
     // For L <= 0.5: S = delta / sum
     // For L > 0.5: S = delta / (510 - sum)
     uint16_t divisor = (sum <= 255) ? sum : (510 - sum);
-    if (divisor == 0) divisor = 1; // Avoid division by zero
+    if (divisor == 0)
+        divisor = 1; // Avoid division by zero
 
     return (uint8_t)((delta * 255) / divisor);
 }
@@ -152,6 +155,13 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
 
     // Apply global disabled state styling (50% opacity for all widgets)
     lv_obj_add_style(obj, &helix->disabled_style, LV_PART_MAIN | LV_STATE_DISABLED);
+
+    // Apply transparent background and no border to plain lv_obj containers
+    // This makes lv_obj act as a layout container by default (no visual styling)
+    // Specialized widgets like buttons, cards, inputs override this as needed
+    if (lv_obj_check_type(obj, &lv_obj_class)) {
+        lv_obj_add_style(obj, &helix->obj_base_style, LV_PART_MAIN);
+    }
 
     // Apply button styling (grey background + radius preservation + focus ring)
 #if LV_USE_BUTTON
@@ -330,6 +340,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
         lv_style_reset(&helix_theme_instance->dropdown_selected_style);
         lv_style_reset(&helix_theme_instance->card_style);
         lv_style_reset(&helix_theme_instance->dialog_style);
+        lv_style_reset(&helix_theme_instance->obj_base_style);
         lv_style_reset(&helix_theme_instance->text_primary_style);
         lv_style_reset(&helix_theme_instance->text_muted_style);
         lv_style_reset(&helix_theme_instance->text_subtle_style);
@@ -527,6 +538,12 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_set_bg_color(&helix_theme_instance->dialog_style, surface_control);
     lv_style_set_bg_opa(&helix_theme_instance->dialog_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->dialog_style, border_radius);
+
+    // Initialize base lv_obj style - transparent with no border by default
+    // This eliminates the need for style_bg_opa="0" style_border_width="0" on every container
+    lv_style_init(&helix_theme_instance->obj_base_style);
+    lv_style_set_bg_opa(&helix_theme_instance->obj_base_style, LV_OPA_0);
+    lv_style_set_border_width(&helix_theme_instance->obj_base_style, 0);
 
     // Initialize shared primary text style - for text labels
     lv_style_init(&helix_theme_instance->text_primary_style);

@@ -16,8 +16,8 @@
         flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center">
     <!-- Selection container -->
     <ui_card width="100%"
-             flex_grow="1" style_pad_all="#space_lg" style_pad_gap="#space_sm"
-             flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start">
+             flex_grow="1" style_pad_all="#space_lg" style_pad_gap="#space_sm" flex_flow="column"
+             style_flex_main_place="start" style_flex_cross_place="start">
       <!-- Runout sensor selection -->
       <text_body text="Runout Sensor"/>
       <lv_dropdown name="runout_sensor_dropdown"

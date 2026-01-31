@@ -51,8 +51,7 @@
           </ui_button>
         </lv_obj>
         <!-- Measure Noise Button (secondary) -->
-        <ui_button name="btn_measure_noise"
-                   width="100%" variant="secondary" icon="vibrate" text="Measure Noise">
+        <ui_button name="btn_measure_noise" width="100%" variant="secondary" icon="vibrate" text="Measure Noise">
           <event_cb trigger="clicked" callback="input_shaper_measure_noise_cb"/>
         </ui_button>
       </lv_obj>
@@ -75,8 +74,7 @@
           <text_small text="This may take 1-2 minutes" style_text_align="center"/>
         </lv_obj>
         <!-- Cancel button -->
-        <ui_button name="btn_cancel"
-                   width="100%" variant="secondary" icon="close" text="Cancel">
+        <ui_button name="btn_cancel" width="100%" variant="secondary" icon="close" text="Cancel">
           <event_cb trigger="clicked" callback="input_shaper_cancel_cb"/>
         </ui_button>
       </lv_obj>
@@ -178,8 +176,7 @@
             <event_cb trigger="clicked" callback="input_shaper_close_cb"/>
           </ui_button>
           <!-- Apply button (primary) -->
-          <ui_button name="btn_apply"
-                     flex_grow="1" variant="success" icon="check" text="Apply">
+          <ui_button name="btn_apply" flex_grow="1" variant="success" icon="check" text="Apply">
             <event_cb trigger="clicked" callback="input_shaper_apply_cb"/>
           </ui_button>
         </lv_obj>
@@ -195,8 +192,7 @@
           </ui_button>
         </lv_obj>
         <!-- Test Print button (enables tuning tower for visual comparison) -->
-        <ui_button name="btn_test_print"
-                   width="100%" variant="secondary" icon="printer_3d" text="Test Print">
+        <ui_button name="btn_test_print" width="100%" variant="secondary" icon="printer_3d" text="Test Print">
           <event_cb trigger="clicked" callback="input_shaper_print_test_cb"/>
         </ui_button>
       </lv_obj>
