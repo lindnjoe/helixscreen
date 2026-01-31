@@ -100,6 +100,44 @@ struct StyleEntry {
     StyleConfigureFn configure = nullptr;
 };
 
+#include <array>
+
+/// Unified theme manager - singleton managing all styles and colors.
+/// Replaces theme_core.c + old theme_manager.cpp with table-driven approach.
+class ThemeManager {
+  public:
+    /// Get singleton instance
+    static ThemeManager& instance();
+
+    /// Initialize the theme system. Must be called once at startup.
+    void init();
+
+    /// Shutdown and cleanup
+    void shutdown();
+
+    /// Get style for a role. Returns pointer to internal style (never null after init).
+    lv_style_t* get_style(StyleRole role);
+
+    /// Get current palette
+    const ThemePalette& current_palette() const {
+        return current_palette_;
+    }
+
+    // Delete copy/move
+    ThemeManager(const ThemeManager&) = delete;
+    ThemeManager& operator=(const ThemeManager&) = delete;
+
+  private:
+    ThemeManager() = default;
+
+    std::array<StyleEntry, static_cast<size_t>(StyleRole::COUNT)> styles_{};
+    ThemePalette current_palette_{};
+    bool initialized_ = false;
+
+    void register_style_configs();
+    void apply_palette(const ThemePalette& palette);
+};
+
 // ============================================================================
 // End Table-Driven Style System Types
 // ============================================================================
