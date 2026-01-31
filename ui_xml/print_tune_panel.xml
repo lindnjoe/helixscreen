@@ -70,9 +70,9 @@
                 style_pad_gap="#space_sm" scrollable="false">
 
           <!-- Amount selector buttons (radio-style, one selected at a time) -->
-          <lv_obj height="content"
-                  flex_grow="1" style_pad_all="0" flex_flow="row" style_flex_cross_place="center"
-                  style_pad_gap="#space_xxs" scrollable="false">
+          <lv_obj flex_grow="1"
+                  style_pad_all="0" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xxs"
+                  scrollable="false">
             <ui_button name="btn_z_amount_005" flex_grow="1" text="0.05">
               <bind_style name="z_amount_selected" subject="z_amount_005_active" ref_value="1"/>
               <bind_style name="z_amount_unselected" subject="z_amount_005_active" ref_value="0"/>

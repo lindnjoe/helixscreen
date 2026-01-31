@@ -35,7 +35,7 @@
                   flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center" clickable="true">
             <event_cb trigger="clicked" callback="on_filament_nozzle_target_tap"/>
             <text_small text="Nozzle" clickable="false" event_bubble="true"/>
-            <lv_obj width="content"
+            <lv_obj
                     height="content" flex_flow="row" style_pad_all="0"
                     scrollable="false" style_flex_cross_place="center" style_pad_gap="#space_xs" clickable="false"
                     event_bubble="true">
@@ -58,7 +58,7 @@
                   flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center" clickable="true">
             <event_cb trigger="clicked" callback="on_filament_bed_target_tap"/>
             <text_small text="Bed" clickable="false" event_bubble="true"/>
-            <lv_obj width="content"
+            <lv_obj
                     height="content" flex_flow="row" style_pad_all="0"
                     scrollable="false" style_flex_cross_place="center" style_pad_gap="#space_xs" clickable="false"
                     event_bubble="true">

@@ -16,8 +16,7 @@
       <!-- Code/script icon -->
       <icon name="macro_icon" src="code_tags" size="sm" variant="primary"/>
       <!-- Text container: name + optional description -->
-      <lv_obj height="content"
-              flex_grow="1" flex_flow="column" style_pad_gap="#space_xs" scrollable="false" clickable="false">
+      <lv_obj flex_grow="1" flex_flow="column" style_pad_gap="#space_xs" scrollable="false" clickable="false">
         <text_body name="macro_label" text="$macro_name"/>
         <text_small name="macro_desc" text="$macro_description" hidden="true"/>
       </lv_obj>

@@ -545,6 +545,9 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_init(&helix_theme_instance->obj_base_style);
     lv_style_set_bg_opa(&helix_theme_instance->obj_base_style, LV_OPA_0);
     lv_style_set_border_width(&helix_theme_instance->obj_base_style, 0);
+    // Default lv_obj to content sizing (LVGL defaults to LV_DPI_DEF ~130px)
+    lv_style_set_width(&helix_theme_instance->obj_base_style, LV_SIZE_CONTENT);
+    lv_style_set_height(&helix_theme_instance->obj_base_style, LV_SIZE_CONTENT);
 
     // Initialize shared primary text style - for text labels
     lv_style_init(&helix_theme_instance->text_primary_style);

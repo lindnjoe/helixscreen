@@ -29,35 +29,35 @@
     <!-- ================================================================== -->
     <setting_section_header title="PRINTER" icon="printer_3d"/>
     <!-- Filament Sensors (hidden if no sensors detected) -->
-    <lv_obj name="container_filament_sensors" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_filament_sensors" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_filament_sensors"
                           label="Filament Sensors" icon="filament" description="Configure filament detection sensors"
                           callback="on_filament_sensors_clicked"/>
     </lv_obj>
     <!-- AMS Settings (hidden if no AMS detected) -->
-    <lv_obj name="container_ams_settings" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_ams_settings" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="ams_slot_count" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_ams_settings"
                           label="AMS Settings" icon="filament" description="Quick actions, calibration, speed"
                           callback="on_ams_settings_clicked"/>
     </lv_obj>
     <!-- Spoolman Settings (hidden if Spoolman not available) -->
-    <lv_obj name="container_spoolman_settings" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_spoolman_settings" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_spoolman" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_spoolman_settings"
                           label="Spoolman" icon="database" description="Weight sync settings"
                           callback="on_spoolman_settings_clicked"/>
     </lv_obj>
     <!-- LED Light Toggle (hidden if no LED capability) -->
-    <lv_obj name="container_led_light" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_led_light" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_led" flag="hidden" ref_value="0"/>
       <setting_toggle_row name="row_led_light"
                           label="LED on at Start" icon="light" description="Turn on LED when printer starts"
                           callback="on_led_light_changed"/>
     </lv_obj>
     <!-- Firmware Retraction Settings (hidden if no firmware_retraction capability) -->
-    <lv_obj name="container_firmware_retraction" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_firmware_retraction" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_firmware_retraction" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_firmware_retraction"
                           label="Retraction Settings" icon="arrow_up_right"
@@ -76,7 +76,7 @@
     <!-- ================================================================== -->
     <setting_section_header title="NOTIFICATIONS" icon="notifications"/>
     <!-- Sounds Toggle (hidden if no speaker capability) -->
-    <lv_obj name="container_sounds" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_sounds" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_speaker" flag="hidden" ref_value="0"/>
       <setting_toggle_row name="row_sounds"
                           label="Sounds" icon="notifications" description="Enable audio feedback"
@@ -104,14 +104,14 @@
                         callback="on_network_clicked"/>
     <!-- Touch Calibration (hidden on non-touch displays unless test mode) -->
     <!-- Description is bound to touch_cal_status subject in C++ setup() -->
-    <lv_obj name="container_touch_calibration" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_touch_calibration" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="show_touch_calibration" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_touch_calibration"
                           label="Touch Calibration" icon="cursor_move" description=""
                           callback="on_touch_calibration_clicked"/>
     </lv_obj>
     <!-- Hardware Issues (hidden when no issues) -->
-    <lv_obj name="container_hardware_health" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_hardware_health" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="hardware_has_issues" flag="hidden" ref_value="0"/>
       <!-- Label bound to hardware_issues_label subject in C++ for reactive updates -->
       <setting_action_row name="row_hardware_health"

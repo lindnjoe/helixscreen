@@ -232,11 +232,18 @@ if [ -n "$FILES" ]; then
 
       if [ -n "$FORMAT_ISSUES" ]; then
         if [ "$AUTO_FIX" = true ]; then
-          echo "✅ Auto-formatted files - re-stage them before committing:"
-          echo "$FORMAT_ISSUES" | tr ' ' '\n' | grep -v '^$' | sed 's/^/   /'
-          echo ""
-          echo "ℹ️  Stage formatted files with:"
-          echo "   git add$FORMAT_ISSUES"
+          # Auto-stage formatted files when in pre-commit mode (--staged-only)
+          if [ "$STAGED_ONLY" = true ]; then
+            git add $FORMAT_ISSUES
+            echo "✅ Auto-formatted and re-staged files:"
+            echo "$FORMAT_ISSUES" | tr ' ' '\n' | grep -v '^$' | sed 's/^/   /'
+          else
+            echo "✅ Auto-formatted files - re-stage them before committing:"
+            echo "$FORMAT_ISSUES" | tr ' ' '\n' | grep -v '^$' | sed 's/^/   /'
+            echo ""
+            echo "ℹ️  Stage formatted files with:"
+            echo "   git add$FORMAT_ISSUES"
+          fi
         else
           echo "⚠️  Files may need formatting (version differences may cause false positives):"
           echo "$FORMAT_ISSUES" | tr ' ' '\n' | grep -v '^$' | sed 's/^/   /'

@@ -46,7 +46,7 @@
       <event_cb trigger="clicked" callback="on_screws_tilt_row_clicked"/>
     </setting_action_row>
     <!-- Input Shaping (hidden if no accelerometer) -->
-    <lv_obj name="container_input_shaping" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_input_shaping" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_accelerometer" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_input_shaping"
                           label="Input Shaping" icon="inputshaper" description="Resonance compensation tuning">
@@ -54,7 +54,7 @@
       </setting_action_row>
     </lv_obj>
     <!-- Z-Offset Calibration (hidden if no probe) -->
-    <lv_obj name="container_z_offset" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_z_offset" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_probe" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_z_offset"
                           label="Z-Offset Calibration" icon="z_closer" description="Interactive probe calibration">
@@ -70,7 +70,7 @@
     <!-- ================================================================== -->
     <setting_section_header title="FILAMENT" icon="filament"/>
     <!-- Spoolman (hidden if not connected) -->
-    <lv_obj name="container_spoolman" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_spoolman" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_spoolman" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_spoolman"
                           label="Spoolman" icon="inventory" description="Filament tracking and inventory">
@@ -78,7 +78,7 @@
       </setting_action_row>
     </lv_obj>
     <!-- Fallback message when Spoolman not available -->
-    <lv_obj name="container_no_spoolman" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_no_spoolman" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_eq subject="printer_has_spoolman" flag="hidden" ref_value="1"/>
       <setting_info_row name="row_no_spoolman" label="Spoolman" icon="inventory" value="Not configured"/>
     </lv_obj>
@@ -92,7 +92,7 @@
     </setting_action_row>
     <!-- HelixPrint Plugin (NOT installed - show Install row) -->
     <!-- Shows ONLY when value == 0 (not installed), hidden otherwise (-1 or 1) -->
-    <lv_obj name="container_helix_plugin_install" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_helix_plugin_install" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_not_eq subject="helix_plugin_installed" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_helix_plugin_install"
                           label="Install HelixPrint Plugin" icon="puzzle_outline"
@@ -102,7 +102,7 @@
     </lv_obj>
     <!-- HelixPrint Plugin (INSTALLED - show Uninstall row) -->
     <!-- Shows ONLY when value == 1 (installed), hidden otherwise (-1 or 0) -->
-    <lv_obj name="container_helix_plugin_uninstall" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_helix_plugin_uninstall" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_not_eq subject="helix_plugin_installed" flag="hidden" ref_value="1"/>
       <setting_action_row name="row_helix_plugin_uninstall"
                           label="Uninstall HelixPrint Plugin" icon="puzzle_outline"
@@ -127,7 +127,7 @@
     </setting_action_row>
     <!-- Phase Tracking Toggle (visible when plugin installed) -->
     <!-- Shows ONLY when value == 1 (installed), hidden otherwise (-1 or 0) -->
-    <lv_obj name="container_phase_tracking" width="100%" height="content" style_pad_all="0" scrollable="false">
+    <lv_obj name="container_phase_tracking" width="100%" style_pad_all="0" scrollable="false">
       <bind_flag_if_not_eq subject="helix_plugin_installed" flag="hidden" ref_value="1"/>
       <setting_toggle_row name="row_phase_tracking"
                           label="Phase Tracking" icon="progress_clock"

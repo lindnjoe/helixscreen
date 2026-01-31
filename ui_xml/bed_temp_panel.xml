@@ -35,16 +35,16 @@
                  width="100%" height="content" style_radius="0" flex_flow="column" style_flex_main_place="center"
                  style_pad_gap="#space_xs" style_pad_all="#space_sm">
           <!-- Horizontal centering row with flex spacers -->
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
             <!-- Left spacer -->
             <lv_obj height="1" flex_grow="1" style_pad_all="0" scrollable="false"/>
             <!-- Content column: left-aligned children -->
-            <lv_obj width="content"
-                    height="content" flex_flow="column" style_flex_cross_place="start" style_pad_all="0"
-                    style_pad_gap="#space_xs" scrollable="false">
+            <lv_obj height="content"
+                    flex_flow="column" style_flex_cross_place="start" style_pad_all="0" style_pad_gap="#space_xs"
+                    scrollable="false">
               <icon name="bed_icon" src="radiator" size="xl" variant="secondary"/>
-              <lv_obj height="content"
-                      style_pad_all="0" scrollable="false" flex_flow="column" style_flex_main_place="center"
+              <lv_obj style_pad_all="0"
+                      scrollable="false" flex_flow="column" style_flex_main_place="center"
                       style_flex_cross_place="start" style_pad_gap="#space_xxs">
                 <text_small text="Current / Target"/>
                 <temp_display name="bed_temp_display"

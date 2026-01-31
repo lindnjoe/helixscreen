@@ -68,9 +68,8 @@
               <text_small name="preview_label_mode" text="Mode"/>
               <lv_dropdown name="preview_dropdown" width="100%" height="#input_height" options="Standard Quiet Focused"/>
             </lv_obj>
-            <lv_obj width="content"
-                    height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
-                    scrollable="false">
+            <lv_obj height="content"
+                    flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs" scrollable="false">
               <text_small name="preview_label_auto" text="Auto"/>
               <ui_switch name="preview_switch" size="small" checked="true"/>
             </lv_obj>

@@ -26,7 +26,7 @@
       <!-- Horizontal divider above buttons -->
       <divider_horizontal/>
       <!-- Button column -->
-      <lv_obj width="100%" height="content" style_pad_all="#space_md" flex_flow="column" style_pad_gap="#space_sm">
+      <lv_obj width="100%" style_pad_all="#space_md" flex_flow="column" style_pad_gap="#space_sm">
         <!-- Restart Klipper (primary action) -->
         <ui_button name="restart_klipper_btn"
                    width="100%" height="#button_height" variant="warning" icon="refresh" text="Restart Klipper">

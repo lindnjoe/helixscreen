@@ -63,35 +63,35 @@
                   height="content" flex_flow="column" style_pad_all="#space_md" style_pad_gap="#space_xs"
                   scrollable="false">
             <!-- Name row -->
-            <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+            <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
               <text_small text="Name"/>
               <text_small name="mesh_name_value"
                           bind_text="bed_mesh_profile_name" flex_grow="1" style_text_align="right"
                           style_pad_left="#space_sm" style_text_color="#success"/>
             </lv_obj>
             <!-- Size row -->
-            <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+            <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
               <text_small text="Size"/>
               <text_small name="mesh_size_value"
                           bind_text="bed_mesh_dimensions" flex_grow="1" style_text_align="right"
                           style_pad_left="#space_sm" style_text_color="#text"/>
             </lv_obj>
             <!-- Max row -->
-            <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+            <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
               <text_small name="mesh_max_label" bind_text="bed_mesh_max_label"/>
               <text_small name="mesh_max_value"
                           bind_text="bed_mesh_max_value" flex_grow="1" style_text_align="right"
                           style_pad_left="#space_sm" style_text_color="#text"/>
             </lv_obj>
             <!-- Min row -->
-            <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+            <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
               <text_small name="mesh_min_label" bind_text="bed_mesh_min_label"/>
               <text_small name="mesh_min_value"
                           bind_text="bed_mesh_min_value" flex_grow="1" style_text_align="right"
                           style_pad_left="#space_sm" style_text_color="#text"/>
             </lv_obj>
             <!-- Z Range row -->
-            <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" scrollable="false">
+            <lv_obj width="100%" flex_flow="row" style_pad_all="0" scrollable="false">
               <text_small text="Z Range"/>
               <text_small name="mesh_range_value"
                           bind_text="bed_mesh_variance" flex_grow="1" style_text_align="right"

@@ -10,20 +10,18 @@
         <!-- 3D Viewer -->
         <gcode_viewer name="gcode_viewer" width="100%" flex_grow="1" style_bg_color="0x000000" style_border_width="0"/>
         <!-- Lighting Controls Bar (bottom) -->
-        <lv_obj width="100%" height="content" flex_flow="row" style_bg_color="#card_bg" style_pad_all="#space_md">
+        <lv_obj width="100%" flex_flow="row" style_bg_color="#card_bg" style_pad_all="#space_md">
           <!-- Specular Intensity -->
-          <lv_obj height="content"
-                  flex_grow="1" flex_flow="row" style_pad_all="0" style_pad_top="#space_md"
-                  style_flex_cross_place="center">
+          <lv_obj flex_grow="1"
+                  flex_flow="row" style_pad_all="0" style_pad_top="#space_md" style_flex_cross_place="center">
             <text_small text="Specular:" style_pad_right="#space_md"/>
             <lv_slider name="specular_slider" flex_grow="1" min_value="0" max_value="20" value="5"/>
             <lv_label name="specular_value_label"
                       text="0.05" style_text_color="#text" style_text_font="#font_small" style_pad_left="#space_md"/>
           </lv_obj>
           <!-- Shininess -->
-          <lv_obj height="content"
-                  flex_grow="1" flex_flow="row" style_pad_all="0" style_pad_top="#space_md"
-                  style_flex_cross_place="center">
+          <lv_obj flex_grow="1"
+                  flex_flow="row" style_pad_all="0" style_pad_top="#space_md" style_flex_cross_place="center">
             <text_small text="Shininess:" style_pad_right="#space_md"/>
             <lv_slider name="shininess_slider" flex_grow="1" min_value="5" max_value="50" value="5"/>
             <lv_label name="shininess_value_label"
@@ -41,13 +39,13 @@
                  style_border_width="0">
           <text_body text="View Presets"/>
           <!-- Row 1 -->
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
             <ui_button name="btn_travels" flex_grow="1" flag_checkable="true" text="Travels"/>
             <ui_button name="btn_top" flex_grow="1" text="Top"/>
             <ui_button name="btn_front" flex_grow="1" text="Front"/>
           </lv_obj>
           <!-- Row 2 -->
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
             <ui_button name="btn_side" flex_grow="1" text="Side"/>
             <ui_button name="btn_reset" flex_grow="1" text="Reset"/>
           </lv_obj>
@@ -57,7 +55,7 @@
                  height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                  style_border_width="0">
           <text_body text="Zoom"/>
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
             <ui_button name="btn_zoom_in" flex_grow="1" text="+"/>
             <ui_button name="btn_zoom_out" flex_grow="1" text="-"/>
           </lv_obj>
@@ -66,7 +64,7 @@
         <ui_card width="100%"
                  height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                  style_border_width="0">
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" style_flex_cross_place="center">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" style_flex_cross_place="center">
             <text_body text="Layer:"/>
             <text_small name="layer_value_label" text=" 0 / 0" style_pad_left="#space_xs"/>
           </lv_obj>
@@ -89,7 +87,7 @@
                  height="content" flex_flow="column" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                  style_border_width="0">
           <text_body text="File"/>
-          <lv_obj width="100%" height="content" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
+          <lv_obj width="100%" flex_flow="row" style_pad_all="0" style_pad_gap="#space_sm">
             <ui_button name="btn_load_test" flex_grow="1" text="Browse"/>
             <ui_button name="btn_clear" flex_grow="1" text="Clear"/>
           </lv_obj>

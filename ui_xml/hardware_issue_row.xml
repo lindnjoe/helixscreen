@@ -17,7 +17,7 @@
         scrollable="false" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="start"
         style_pad_gap="#space_md">
     <!-- Icon column (fixed width for severity icon) -->
-    <lv_obj width="28" height="content" style_pad_all="0" style_pad_top="#space_xxs" scrollable="false">
+    <lv_obj width="28" style_pad_all="0" style_pad_top="#space_xxs" scrollable="false">
       <!-- Severity icons - all hidden by default, finalize() shows the correct one -->
       <lv_label name="icon_info"
                 text="#icon_info_circle" hidden="true" style_text_font="mdi_icons_24" style_text_color="#info"/>
@@ -31,8 +31,8 @@
                 style_text_color="#danger"/>
     </lv_obj>
     <!-- Content column -->
-    <lv_obj height="content"
-            flex_grow="1" style_pad_all="0" style_pad_right="#space_md" scrollable="false" flex_flow="column"
+    <lv_obj flex_grow="1"
+            style_pad_all="0" style_pad_right="#space_md" scrollable="false" flex_flow="column"
             style_pad_gap="#space_xxs">
       <text_body name="hardware_name" width="100%" text="Hardware Name" long_mode="wrap"/>
       <text_small name="issue_message" width="100%" text="Issue description" long_mode="wrap"/>

@@ -98,15 +98,15 @@
           <!-- Row 1: Started | Ended | Duration -->
           <lv_obj width="100%"
                   height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_sm" scrollable="false">
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Started"/>
               <text_body name="start_time_label" bind_text="history_detail_start_time"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Ended"/>
               <text_body name="end_time_label" bind_text="history_detail_end_time"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Duration"/>
               <text_body name="duration_label" bind_text="history_detail_duration"/>
             </lv_obj>
@@ -114,15 +114,15 @@
           <!-- Row 2: Layers | Nozzle | Bed Temp -->
           <lv_obj width="100%"
                   height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_sm" scrollable="false">
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Layers"/>
               <text_body name="layers_label" bind_text="history_detail_layers"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Nozzle"/>
               <text_body name="nozzle_temp_label" bind_text="history_detail_nozzle_temp"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Bed"/>
               <text_body name="bed_temp_label" bind_text="history_detail_bed_temp"/>
             </lv_obj>
@@ -130,15 +130,15 @@
           <!-- Row 3: Filament | Type | Layer Height -->
           <lv_obj width="100%"
                   height="content" style_pad_all="0" flex_flow="row" style_pad_gap="#space_sm" scrollable="false">
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Filament"/>
               <text_body name="filament_label" bind_text="history_detail_filament"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Type"/>
               <text_body name="filament_type_label" bind_text="history_detail_filament_type"/>
             </lv_obj>
-            <lv_obj height="content" flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
+            <lv_obj flex_grow="1" style_pad_all="0" flex_flow="column" scrollable="false">
               <text_small text="Layer Height"/>
               <text_body name="layer_height_label" bind_text="history_detail_layer_height"/>
             </lv_obj>

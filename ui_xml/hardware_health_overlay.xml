@@ -41,8 +41,7 @@
           <icon name="status_icon_crit" src="alert_octagon" size="md" variant="text"/>
         </lv_obj>
         <!-- Status text -->
-        <lv_obj width="content"
-                height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xs">
+        <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xs">
           <text_heading name="status_title" bind_text="hardware_status_title"/>
           <text_small name="status_detail" bind_text="hardware_status_detail"/>
         </lv_obj>

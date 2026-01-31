@@ -24,7 +24,7 @@
               style_flex_main_place="start" style_flex_cross_place="start">
         <text_heading text="Connection" style_pad_bottom="#space_xs"/>
         <!-- Printer Name -->
-        <lv_obj width="100%" height="content" style_pad_all="0" flex_flow="column" style_pad_gap="0">
+        <lv_obj width="100%" style_pad_all="0" flex_flow="column" style_pad_gap="0">
           <text_small text="Printer Name"/>
           <text_body name="summary_printer_name_label" bind_text="summary_printer_name"/>
         </lv_obj>
@@ -53,7 +53,7 @@
               style_flex_main_place="start" style_flex_cross_place="start">
         <text_heading text="Hardware" style_pad_bottom="#space_xs"/>
         <!-- Heated Bed -->
-        <lv_obj width="100%" height="content" style_pad_all="0" flex_flow="column" style_pad_gap="0">
+        <lv_obj width="100%" style_pad_all="0" flex_flow="column" style_pad_gap="0">
           <text_small text="Heated Bed"/>
           <text_body name="summary_bed_label" bind_text="summary_bed"/>
         </lv_obj>

@@ -30,7 +30,7 @@
       <!-- Disabled clickability when not enabled (disconnected OR klippy not ready) -->
       <bind_state_if_not_eq subject="nav_buttons_enabled" state="disabled" ref_value="1"/>
       <!-- Normal icons container - visible only when enabled -->
-      <lv_obj name="nav_controls_icons" width="content" height="content" clickable="false" style_pad_all="0">
+      <lv_obj name="nav_controls_icons" clickable="false" style_pad_all="0">
         <bind_flag_if_eq subject="nav_buttons_enabled" flag="hidden" ref_value="0"/>
         <!-- Active icon (accent) - shown when on controls panel -->
         <icon name="nav_icon_controls_active" src="fine_tune" size="lg" variant="primary" hidden="true">
@@ -54,7 +54,7 @@
       <!-- Disabled clickability when not enabled (disconnected OR klippy not ready) -->
       <bind_state_if_not_eq subject="nav_buttons_enabled" state="disabled" ref_value="1"/>
       <!-- Normal icons container - visible only when enabled -->
-      <lv_obj name="nav_filament_icons" width="content" height="content" clickable="false" style_pad_all="0">
+      <lv_obj name="nav_filament_icons" clickable="false" style_pad_all="0">
         <bind_flag_if_eq subject="nav_buttons_enabled" flag="hidden" ref_value="0"/>
         <!-- Active icon (accent) - shown when on filament panel -->
         <icon name="nav_icon_filament_active" src="filament" size="lg" variant="primary" hidden="true">

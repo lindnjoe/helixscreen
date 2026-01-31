@@ -23,9 +23,8 @@
           <icon name="status_icon" src="puzzle_outline" size="md" variant="text"/>
         </lv_obj>
         <!-- Status text -->
-        <lv_obj width="content"
-                height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xs"
-                flex_grow="1">
+        <lv_obj height="content"
+                style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xs" flex_grow="1">
           <text_heading name="status_title" bind_text="plugins_status_title"/>
           <text_small name="status_detail" bind_text="plugins_status_detail"/>
         </lv_obj>

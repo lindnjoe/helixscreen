@@ -30,12 +30,11 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+          <lv_obj height="content"
+                  style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <icon src="speed" size="sm" variant="secondary"/>
-            <lv_obj width="content"
-                    height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+            <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
               <text_body text="Max Velocity"/>
               <text_small text="Maximum toolhead speed (mm/s)"/>
             </lv_obj>
@@ -68,12 +67,11 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+          <lv_obj height="content"
+                  style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <icon src="speed_up" size="sm" variant="secondary"/>
-            <lv_obj width="content"
-                    height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+            <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
               <text_body text="Max Acceleration"/>
               <text_small text="Maximum acceleration (mm/s²)"/>
             </lv_obj>
@@ -106,12 +104,11 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+          <lv_obj height="content"
+                  style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <icon src="speed_down" size="sm" variant="secondary"/>
-            <lv_obj width="content"
-                    height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+            <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
               <text_body text="Accel to Decel"/>
               <text_small text="Acceleration to deceleration limit (mm/s²)"/>
             </lv_obj>
@@ -144,12 +141,11 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+          <lv_obj height="content"
+                  style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
             <icon src="cube" size="sm" variant="secondary"/>
-            <lv_obj width="content"
-                    height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+            <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
               <text_body text="Square Corner Velocity"/>
               <text_small text="Max speed through corners (mm/s)"/>
             </lv_obj>

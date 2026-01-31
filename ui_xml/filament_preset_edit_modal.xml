@@ -34,8 +34,7 @@
               height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="space_between"
               style_pad_gap="#space_md" scrollable="false">
         <!-- Nozzle temp -->
-        <lv_obj width="content"
-                height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false">
+        <lv_obj height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false">
           <text_small text="Nozzle °C"/>
           <lv_spinbox name="nozzle_spinbox"
                       width="#input_width" height="40" style_radius="#border_radius" style_bg_color="#card_bg"
@@ -43,8 +42,7 @@
                       digit_count="3"/>
         </lv_obj>
         <!-- Bed temp -->
-        <lv_obj width="content"
-                height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false">
+        <lv_obj height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_xs" scrollable="false">
           <text_small text="Bed °C"/>
           <lv_spinbox name="bed_spinbox"
                       width="#input_width" height="40" style_radius="#border_radius" style_bg_color="#card_bg"

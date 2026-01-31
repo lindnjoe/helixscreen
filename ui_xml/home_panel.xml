@@ -56,7 +56,7 @@
         <!-- printer_container -->
 
         <!-- Printer info - subtle text at bottom -->
-        <lv_obj name="printer_info_bar" width="100%" height="content" style_pad_all="0">
+        <lv_obj name="printer_info_bar" width="100%" style_pad_all="0">
           <bind_flag_if_eq subject="printer_info_visible" flag="hidden" ref_value="0"/>
           <text_small width="100%"
                       height="content" bind_text="printer_type_text" style_text_color="#text" style_text_align="center"
@@ -226,7 +226,7 @@
           <lv_obj height="100%"
                   flex_grow="1" style_pad_all="0" flex_flow="column" style_flex_main_place="center"
                   style_flex_track_place="center">
-            <lv_obj name="status_notification_container" width="content" height="content" style_pad_all="0">
+            <lv_obj name="status_notification_container" style_pad_all="0">
               <icon name="status_notification_icon"
                     src="notifications" size="#icon_size_card" variant="secondary" align="center" clickable="true">
                 <event_cb trigger="clicked" callback="status_notification_history_clicked"/>

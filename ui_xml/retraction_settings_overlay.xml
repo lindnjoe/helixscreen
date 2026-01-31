@@ -18,12 +18,11 @@
               height="content" style_pad_all="0" scrollable="false" flex_flow="row"
               style_flex_main_place="space_between" style_flex_cross_place="center">
         <!-- Label with Icon -->
-        <lv_obj width="content"
-                height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
+        <lv_obj height="content"
+                style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                 style_pad_gap="#space_sm">
           <icon src="arrow_up_right" size="sm" variant="secondary"/>
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+          <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
             <text_body text="Enable Retraction"/>
             <text_small text="Use G10/G11 firmware retraction"/>
           </lv_obj>
@@ -45,8 +44,7 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+          <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
             <text_body text="Retract Length"/>
             <text_small text="0.4-2mm direct drive, 4-6mm bowden"/>
           </lv_obj>
@@ -78,8 +76,7 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+          <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
             <text_body text="Retract Speed"/>
             <text_small text="Speed of retraction movement"/>
           </lv_obj>
@@ -111,8 +108,7 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+          <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
             <text_body text="Unretract Extra"/>
             <text_small text="Extra prime to compensate ooze"/>
           </lv_obj>
@@ -144,8 +140,7 @@
         <lv_obj width="100%"
                 height="content" style_pad_all="0" scrollable="false" flex_flow="row"
                 style_flex_main_place="space_between" style_flex_cross_place="center">
-          <lv_obj width="content"
-                  height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
+          <lv_obj height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs">
             <text_body text="Unretract Speed"/>
             <text_small text="Speed of prime movement"/>
           </lv_obj>

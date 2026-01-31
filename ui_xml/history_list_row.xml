@@ -21,9 +21,8 @@
             width="#space_xs" height="100%" style_bg_opa="255" style_bg_color="$status_color" style_radius="#space_xxs"
             style_pad_all="0" clickable="false"/>
     <!-- Main content column -->
-    <lv_obj width="content"
-            height="content" flex_grow="1" flex_flow="column" style_flex_gap_row="#space_xs" style_pad_all="0"
-            clickable="false">
+    <lv_obj height="content"
+            flex_grow="1" flex_flow="column" style_flex_gap_row="#space_xs" style_pad_all="0" clickable="false">
       <!-- Filename (primary text) -->
       <text_body name="row_filename"
                  width="100%" text="$filename" style_text_align="left" long_mode="dots" style_pad_all="0"

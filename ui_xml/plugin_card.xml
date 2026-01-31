@@ -26,15 +26,14 @@
         <icon name="plugin_icon" src="puzzle_outline" size="sm" variant="primary"/>
       </lv_obj>
       <!-- Name + Author column -->
-      <lv_obj width="content"
-              height="content" style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs"
-              flex_grow="1">
+      <lv_obj height="content"
+              style_pad_all="0" scrollable="false" flex_flow="column" style_pad_gap="#space_xxs" flex_grow="1">
         <text_body name="name_label" text="$plugin_name"/>
         <text_small name="author_label" text="$plugin_author"/>
       </lv_obj>
       <!-- Version badge -->
-      <lv_obj width="content"
-              height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius_small"
+      <lv_obj height="content"
+              style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius_small"
               style_pad_left="#space_sm" style_pad_right="#space_sm" style_pad_top="#space_xs"
               style_pad_bottom="#space_xs" scrollable="false">
         <text_small name="version_label" text="$plugin_version"/>
