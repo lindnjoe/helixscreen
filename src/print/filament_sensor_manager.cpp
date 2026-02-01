@@ -464,8 +464,8 @@ bool FilamentSensorManager::has_any_runout() const {
 
         auto it = states_.find(sensor.klipper_name);
         if (it != states_.end() && it->second.available && !it->second.filament_detected) {
-            spdlog::warn("[FilamentSensorManager] has_any_runout: TRUE - {} ({}) has no filament",
-                         sensor.sensor_name, role_to_config_string(sensor.role));
+            spdlog::debug("[FilamentSensorManager] has_any_runout: TRUE - {} ({}) has no filament",
+                          sensor.sensor_name, role_to_config_string(sensor.role));
             return true;
         }
     }
@@ -629,8 +629,8 @@ void FilamentSensorManager::update_from_status(const json& status) {
 }
 
 void FilamentSensorManager::inject_mock_sensors(std::vector<std::string>& objects,
-                                                 nlohmann::json& /*config_keys*/,
-                                                 nlohmann::json& /*moonraker_info*/) {
+                                                nlohmann::json& /*config_keys*/,
+                                                nlohmann::json& /*moonraker_info*/) {
     // Filament sensors are discovered from Klipper objects
     objects.emplace_back("filament_switch_sensor runout");
     objects.emplace_back("filament_switch_sensor toolhead");

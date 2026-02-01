@@ -185,18 +185,22 @@ bool DisplayManager::init(const Config& config) {
         // On AD5M, Klipper's reset_screen fires ~3s after Klipper becomes READY.
         // Klipper typically becomes ready 10-20s after boot, so a 20s delay ensures
         // we fire AFTER the delayed_gcode dims the screen.
-        lv_timer_create(
-            [](lv_timer_t* t) {
-                auto* dm = static_cast<DisplayManager*>(lv_timer_get_user_data(t));
-                if (dm && dm->m_backlight && dm->m_backlight->is_available()) {
-                    int brightness = SettingsManager::instance().get_brightness();
-                    brightness = std::clamp(brightness, 10, 100);
-                    dm->m_backlight->set_brightness(brightness);
-                    spdlog::warn("[DisplayManager] Delayed brightness override: {}%", brightness);
-                }
-                lv_timer_delete(t);
-            },
-            20000, this);
+        // Only needed on Allwinner (AD5M) - other platforms don't have this issue.
+        if (std::string_view(m_backlight->name()) == "Allwinner") {
+            lv_timer_create(
+                [](lv_timer_t* t) {
+                    auto* dm = static_cast<DisplayManager*>(lv_timer_get_user_data(t));
+                    if (dm && dm->m_backlight && dm->m_backlight->is_available()) {
+                        int brightness = SettingsManager::instance().get_brightness();
+                        brightness = std::clamp(brightness, 10, 100);
+                        dm->m_backlight->set_brightness(brightness);
+                        spdlog::info("[DisplayManager] Delayed brightness override: {}%",
+                                     brightness);
+                    }
+                    lv_timer_delete(t);
+                },
+                20000, this);
+        }
     }
 
     // Load dim settings from config
