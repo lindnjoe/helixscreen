@@ -85,4 +85,26 @@ constexpr std::chrono::seconds NOTIFICATION_GRACE_PERIOD{10};
 /// Allows time for initial sensor state to arrive after discovery
 constexpr std::chrono::seconds SENSOR_STABILIZATION_PERIOD{5};
 } // namespace Startup
+
+/**
+ * @brief Animation timing constants for UI micro-animations
+ *
+ * These provide consistent animation durations across the UI.
+ * Used by AnimatedValue and other animation utilities.
+ */
+namespace Animation {
+/// Default animation duration for value changes (ms)
+constexpr uint32_t DEFAULT_DURATION_MS = 300;
+
+/// Temperature animation duration - must be SHORTER than update interval (~100-200ms)
+/// to complete between updates. Using 80ms for smooth but achievable transitions.
+constexpr uint32_t TEMPERATURE_DURATION_MS = 80;
+
+/// Threshold in centidegrees to skip animation (avoids jitter on tiny fluctuations)
+/// 5 centidegrees = 0.5°C
+constexpr int TEMPERATURE_THRESHOLD_CENTI = 5;
+
+/// Fast animation for quick feedback (button presses, toggles)
+constexpr uint32_t FAST_DURATION_MS = 150;
+} // namespace Animation
 } // namespace AppConstants
