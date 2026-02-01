@@ -34,6 +34,7 @@ void configure_input_bg(lv_style_t* s, const ThemePalette& p) {
     lv_style_set_bg_color(s, p.elevated_bg);
     lv_style_set_bg_opa(s, LV_OPA_COVER);
     lv_style_set_radius(s, p.border_radius);
+    lv_style_set_text_color(s, p.text);
 }
 
 void configure_disabled(lv_style_t* s, const ThemePalette& p) {
@@ -182,6 +183,7 @@ void configure_dropdown(lv_style_t* s, const ThemePalette& p) {
     lv_style_set_border_color(s, p.border);
     lv_style_set_border_width(s, p.border_width);
     lv_style_set_radius(s, p.border_radius);
+    lv_style_set_text_color(s, p.text);
 }
 
 void configure_checkbox(lv_style_t* s, const ThemePalette& p) {
