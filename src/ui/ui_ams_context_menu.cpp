@@ -16,6 +16,11 @@ namespace helix::ui {
 // Static member initialization
 bool AmsContextMenu::callbacks_registered_ = false;
 
+// Active instance pointer - only one context menu can be visible at a time.
+// This avoids the user_data traversal problem where ui_button and other widgets
+// also set user_data, causing get_instance_from_event to find the wrong object.
+static AmsContextMenu* s_active_instance = nullptr;
+
 // ============================================================================
 // Construction / Destruction
 // ============================================================================
@@ -44,6 +49,10 @@ AmsContextMenu::AmsContextMenu(AmsContextMenu&& other) noexcept
       action_callback_(std::move(other.action_callback_)), backend_(other.backend_),
       total_slots_(other.total_slots_), tool_dropdown_(other.tool_dropdown_),
       backup_dropdown_(other.backup_dropdown_) {
+    // Update static instance to point to new location
+    if (s_active_instance == &other) {
+        s_active_instance = this;
+    }
     other.menu_ = nullptr;
     other.parent_ = nullptr;
     other.slot_index_ = -1;
@@ -65,6 +74,11 @@ AmsContextMenu& AmsContextMenu::operator=(AmsContextMenu&& other) noexcept {
         total_slots_ = other.total_slots_;
         tool_dropdown_ = other.tool_dropdown_;
         backup_dropdown_ = other.backup_dropdown_;
+
+        // Update static instance to point to new location
+        if (s_active_instance == &other) {
+            s_active_instance = this;
+        }
 
         other.menu_ = nullptr;
         other.parent_ = nullptr;
@@ -120,8 +134,8 @@ bool AmsContextMenu::show_near_widget(lv_obj_t* parent, int slot_index, lv_obj_t
         return false;
     }
 
-    // Store 'this' in menu's user_data for callback traversal
-    lv_obj_set_user_data(menu_, this);
+    // Set as active instance for static callbacks (only one menu visible at a time)
+    s_active_instance = this;
 
     // Configure dropdowns based on backend capabilities
     configure_dropdowns();
@@ -172,6 +186,11 @@ void AmsContextMenu::hide() {
     if (!menu_)
         return;
 
+    // Clear active instance FIRST so callbacks won't find us
+    if (s_active_instance == this) {
+        s_active_instance = nullptr;
+    }
+
     // Use async delete since we may be called during event processing
     // (e.g., button click handler). Deleting during event causes crash.
     if (lv_is_initialized()) {
@@ -187,57 +206,70 @@ void AmsContextMenu::hide() {
 // ============================================================================
 
 void AmsContextMenu::handle_backdrop_clicked() {
-    int slot = slot_index_; // Capture before hide() resets it
+    int slot = slot_index_;
+    ActionCallback callback_copy = action_callback_;
     spdlog::debug("[AmsContextMenu] Backdrop clicked");
 
-    hide(); // Hide before callback (consistent with other handlers)
+    hide();
 
-    if (action_callback_) {
-        action_callback_(MenuAction::CANCELLED, slot);
+    if (callback_copy) {
+        callback_copy(MenuAction::CANCELLED, slot);
     }
 }
 
 void AmsContextMenu::handle_load() {
     int slot = slot_index_;
-    spdlog::info("[AmsContextMenu] Load requested for slot {}", slot);
 
-    hide(); // Hide first so slot_index_ is valid in callback
+    // Capture callback BEFORE hide() - hide() may trigger destruction
+    // that invalidates our callback. Copy, don't move, so menu stays usable.
+    ActionCallback callback_copy = action_callback_;
 
-    if (action_callback_) {
-        action_callback_(MenuAction::LOAD, slot);
+    spdlog::info("[AmsContextMenu] Load requested for slot {}, callback={}", slot,
+                 static_cast<bool>(callback_copy));
+
+    hide();
+
+    if (callback_copy) {
+        spdlog::debug("[AmsContextMenu] Invoking callback for LOAD slot {}", slot);
+        callback_copy(MenuAction::LOAD, slot);
+    } else {
+        spdlog::warn("[AmsContextMenu] No callback set for LOAD action");
     }
 }
 
 void AmsContextMenu::handle_unload() {
     int slot = slot_index_;
+    ActionCallback callback_copy = action_callback_;
     spdlog::info("[AmsContextMenu] Unload requested for slot {}", slot);
 
     hide();
 
-    if (action_callback_) {
-        action_callback_(MenuAction::UNLOAD, slot);
+    if (callback_copy) {
+        callback_copy(MenuAction::UNLOAD, slot);
     }
 }
 
 void AmsContextMenu::handle_edit() {
     int slot = slot_index_;
+    ActionCallback callback_copy = action_callback_;
     spdlog::info("[AmsContextMenu] Edit requested for slot {}", slot);
 
     hide();
 
-    if (action_callback_) {
-        action_callback_(MenuAction::EDIT, slot);
+    if (callback_copy) {
+        callback_copy(MenuAction::EDIT, slot);
     }
 }
 
 void AmsContextMenu::handle_spoolman() {
     int slot = slot_index_;
+    ActionCallback callback_copy = action_callback_;
     spdlog::info("[AmsContextMenu] Spoolman requested for slot {}", slot);
 
     hide();
 
-    if (action_callback_) {
-        action_callback_(MenuAction::SPOOLMAN, slot);
+    if (callback_copy) {
+        callback_copy(MenuAction::SPOOLMAN, slot);
     }
 }
 
@@ -266,21 +298,14 @@ void AmsContextMenu::register_callbacks() {
 // Static Callbacks (Instance Lookup via User Data)
 // ============================================================================
 
-AmsContextMenu* AmsContextMenu::get_instance_from_event(lv_event_t* e) {
-    auto* target = static_cast<lv_obj_t*>(lv_event_get_target(e));
-
-    // Traverse parent chain to find menu root with user_data
-    lv_obj_t* obj = target;
-    while (obj) {
-        void* user_data = lv_obj_get_user_data(obj);
-        if (user_data) {
-            return static_cast<AmsContextMenu*>(user_data);
-        }
-        obj = lv_obj_get_parent(obj);
+AmsContextMenu* AmsContextMenu::get_instance_from_event(lv_event_t* /*e*/) {
+    // Use static instance pointer instead of traversing user_data chain.
+    // This avoids conflicts with ui_button and other widgets that also
+    // store their own data in user_data.
+    if (!s_active_instance) {
+        spdlog::warn("[AmsContextMenu] No active instance for event");
     }
-
-    spdlog::warn("[AmsContextMenu] Could not find instance from event target");
-    return nullptr;
+    return s_active_instance;
 }
 
 void AmsContextMenu::on_backdrop_cb(lv_event_t* e) {
