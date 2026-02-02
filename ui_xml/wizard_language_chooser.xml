@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!-- Copyright (C) 2025-2026 356C LLC -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<component>
+  <!-- First-Run Wizard: Language Selection -->
+  <!-- Cycling "Welcome!" animation with scrollable language list -->
+  <consts>
+    <str name="step_title" value="Printer Setup: Language"/>
+    <str name="step_subtitle" value="Select your preferred language"/>
+    <int name="step_order" value="1"/>
+  </consts>
+  <view name="wizard_language_chooser_root"
+        extends="lv_obj" width="100%" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0"
+        flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center">
+
+    <ui_card width="100%"
+             flex_grow="1" style_radius="#border_radius" style_pad_all="#space_lg" style_pad_gap="#space_md"
+             flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center">
+
+      <!-- Animated Welcome Header -->
+      <text_heading name="welcome_header" bind_text="wizard_welcome_text"
+                    width="100%" style_text_align="center" style_pad_top="#space_sm" style_pad_bottom="#space_md"/>
+
+      <!-- Scrollable language list -->
+      <lv_obj name="language_list"
+              width="100%" flex_grow="1" style_pad_all="#space_xs" style_pad_gap="#space_xs"
+              style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
+              scrollable="true" scroll_dir="ver" flex_flow="column">
+
+        <!-- English -->
+        <lv_obj name="lang_item_en" width="100%" height="content"
+                style_pad_all="#space_md" style_radius="#border_radius"
+                style_bg_color="#card_bg" style_bg_opa="255"
+                flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="center">
+          <lv_image src="A:assets/images/flags/flag_en.png"/>
+          <text_body text="English" flex_grow="1"/>
+          <event_cb trigger="clicked" callback="on_language_selected" user_data="0"/>
+        </lv_obj>
+
+        <!-- Deutsch -->
+        <lv_obj name="lang_item_de" width="100%" height="content"
+                style_pad_all="#space_md" style_radius="#border_radius"
+                style_bg_color="#card_bg" style_bg_opa="255"
+                flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="center">
+          <lv_image src="A:assets/images/flags/flag_de.png"/>
+          <text_body text="Deutsch" flex_grow="1"/>
+          <event_cb trigger="clicked" callback="on_language_selected" user_data="1"/>
+        </lv_obj>
+
+        <!-- Français -->
+        <lv_obj name="lang_item_fr" width="100%" height="content"
+                style_pad_all="#space_md" style_radius="#border_radius"
+                style_bg_color="#card_bg" style_bg_opa="255"
+                flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="center">
+          <lv_image src="A:assets/images/flags/flag_fr.png"/>
+          <text_body text="Français" flex_grow="1"/>
+          <event_cb trigger="clicked" callback="on_language_selected" user_data="2"/>
+        </lv_obj>
+
+        <!-- Español -->
+        <lv_obj name="lang_item_es" width="100%" height="content"
+                style_pad_all="#space_md" style_radius="#border_radius"
+                style_bg_color="#card_bg" style_bg_opa="255"
+                flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="center">
+          <lv_image src="A:assets/images/flags/flag_es.png"/>
+          <text_body text="Español" flex_grow="1"/>
+          <event_cb trigger="clicked" callback="on_language_selected" user_data="3"/>
+        </lv_obj>
+
+        <!-- Русский -->
+        <lv_obj name="lang_item_ru" width="100%" height="content"
+                style_pad_all="#space_md" style_radius="#border_radius"
+                style_bg_color="#card_bg" style_bg_opa="255"
+                flex_flow="row" style_pad_gap="#space_md" style_flex_cross_place="center">
+          <lv_image src="A:assets/images/flags/flag_ru.png"/>
+          <text_body text="Русский" flex_grow="1"/>
+          <event_cb trigger="clicked" callback="on_language_selected" user_data="4"/>
+        </lv_obj>
+
+      </lv_obj>
+    </ui_card>
+  </view>
+</component>

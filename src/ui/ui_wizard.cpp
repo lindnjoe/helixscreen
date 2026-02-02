@@ -12,6 +12,7 @@
 #include "ui_wizard_filament_sensor_select.h"
 #include "ui_wizard_heater_select.h"
 #include "ui_wizard_input_shaper.h"
+#include "ui_wizard_language_chooser.h"
 #include "ui_wizard_led_select.h"
 #include "ui_wizard_printer_identify.h"
 #include "ui_wizard_probe_sensor_select.h"
@@ -67,19 +68,22 @@ static int current_screen_step = -1;
 // Track if touch calibration step (0) is being skipped - not fbdev or already calibrated
 static bool touch_cal_step_skipped = false;
 
-// Track if AMS step (6) is being skipped - no AMS detected
+// Track if language step (1) is being skipped - language already set
+static bool language_step_skipped = false;
+
+// Track if AMS step (7) is being skipped - no AMS detected
 static bool ams_step_skipped = false;
 
-// Track if LED step (7) is being skipped - no LEDs discovered
+// Track if LED step (8) is being skipped - no LEDs discovered
 static bool led_step_skipped = false;
 
-// Track if filament sensor step (8) is being skipped - <2 standalone sensors
+// Track if filament sensor step (9) is being skipped - <2 standalone sensors
 static bool filament_step_skipped = false;
 
-// Track if probe sensor step (9) is being skipped - no unassigned switch sensors
+// Track if probe sensor step (10) is being skipped - no unassigned switch sensors
 static bool probe_step_skipped = false;
 
-// Track if input shaper step (10) is being skipped - no accelerometer
+// Track if input shaper step (11) is being skipped - no accelerometer
 static bool input_shaper_step_skipped = false;
 
 // Track if we've calculated the actual step total (happens after connection step)
@@ -104,19 +108,20 @@ static void ui_wizard_precalculate_skips();
  */
 static const char* const STEP_COMPONENT_NAMES[] = {
     "wizard_touch_calibration",      // 0 (may be skipped on non-fbdev)
-    "wizard_wifi_setup",             // 1
-    "wizard_connection",             // 2
-    "wizard_printer_identify",       // 3
-    "wizard_heater_select",          // 4
-    "wizard_fan_select",             // 5
-    "wizard_ams_identify",           // 6 (may be skipped if no AMS)
-    "wizard_led_select",             // 7 (may be skipped if no LEDs)
-    "wizard_filament_sensor_select", // 8 (may be skipped if <2 sensors)
-    "wizard_probe_sensor_select",    // 9 (may be skipped if no unassigned sensors)
-    "wizard_input_shaper",           // 10 (may be skipped if no accelerometer)
-    "wizard_summary"                 // 11
+    "wizard_language_chooser",       // 1 (may be skipped if language already set)
+    "wizard_wifi_setup",             // 2
+    "wizard_connection",             // 3
+    "wizard_printer_identify",       // 4
+    "wizard_heater_select",          // 5
+    "wizard_fan_select",             // 6
+    "wizard_ams_identify",           // 7 (may be skipped if no AMS)
+    "wizard_led_select",             // 8 (may be skipped if no LEDs)
+    "wizard_filament_sensor_select", // 9 (may be skipped if <2 sensors)
+    "wizard_probe_sensor_select",    // 10 (may be skipped if no unassigned sensors)
+    "wizard_input_shaper",           // 11 (may be skipped if no accelerometer)
+    "wizard_summary"                 // 12
 };
-static constexpr int STEP_COMPONENT_COUNT = 11; // Last step number (summary at step 11)
+static constexpr int STEP_COMPONENT_COUNT = 12; // Last step number (summary at step 12)
 
 /**
  * Get step title from XML component's <consts> block
@@ -282,6 +287,7 @@ void ui_wizard_container_register_responsive_constants() {
         "wizard_filament_sensor_select",
         "wizard_probe_sensor_select",
         "wizard_input_shaper",
+        "wizard_language_chooser",
         "wizard_summary",
         nullptr // Sentinel
     };
@@ -341,6 +347,7 @@ void ui_wizard_navigate_to_step(int step) {
     // This ensures correct behavior if wizard is restarted after hardware changes
     if (step == 0) {
         touch_cal_step_skipped = false;
+        language_step_skipped = false;
         ams_step_skipped = false;
         led_step_skipped = false;
         filament_step_skipped = false;
@@ -354,32 +361,36 @@ void ui_wizard_navigate_to_step(int step) {
             step = 1;
             spdlog::debug("[Wizard] Skipping touch calibration step");
         }
+
+        // Auto-skip language step if language already set
+        if (step == 1 && get_wizard_language_chooser_step()->should_skip()) {
+            language_step_skipped = true;
+            step = 2;
+            spdlog::debug("[Wizard] Skipping language step");
+        }
     }
 
     // Calculate display step and total for progress indicator
-    // When steps are skipped, we adjust the display numbers:
-    // - Touch cal skip (0): step 1+ displays as-is (touch cal was step 1 when shown)
-    // - AMS skip (6): steps 7+ display one lower
-    // - LED skip (7): steps 8+ display one lower
-    // - Filament skip (8): steps 9+ display one lower
-    // - Probe skip (9): steps 10+ display one lower
-    // - Input shaper skip (10): steps 11+ display one lower
-    // Total = 12 - skipped_count (steps 0-11 = 12 total)
+    // When steps are skipped, we adjust the display numbers so users see consecutive step numbers
+    // Step order: 0=touch, 1=language, 2=wifi, 3=connection, 4=printer, 5=heater, 6=fan,
+    //             7=ams, 8=led, 9=filament, 10=probe, 11=input_shaper, 12=summary
     int display_step = step + 1; // Convert internal step (0-based) to 1-based display
     if (touch_cal_step_skipped)
         display_step--;
-    if (ams_step_skipped && step > 6)
+    if (language_step_skipped && step > 1)
         display_step--;
-    if (led_step_skipped && step > 7)
+    if (ams_step_skipped && step > 7)
         display_step--;
-    if (filament_step_skipped && step > 8)
+    if (led_step_skipped && step > 8)
         display_step--;
-    if (probe_step_skipped && step > 9)
+    if (filament_step_skipped && step > 9)
         display_step--;
-    if (input_shaper_step_skipped && step > 10)
+    if (probe_step_skipped && step > 10)
+        display_step--;
+    if (input_shaper_step_skipped && step > 11)
         display_step--;
 
-    int display_total = 12; // Steps 0-11 = 12 total
+    int display_total = 13; // Steps 0-12 = 13 total
     if (touch_cal_step_skipped)
         display_total--;
     if (ams_step_skipped)
@@ -392,16 +403,23 @@ void ui_wizard_navigate_to_step(int step) {
         display_total--;
     if (input_shaper_step_skipped)
         display_total--;
+    if (language_step_skipped)
+        display_total--;
 
     // Update current_step subject (internal step number for UI bindings)
     lv_subject_set_int(&current_step, step);
 
     // Update Back button visibility based on whether we can go back
-    int min_step = touch_cal_step_skipped ? 1 : 0;
+    // Find the first non-skipped step
+    int min_step = 0;
+    if (touch_cal_step_skipped)
+        min_step = 1;
+    if (min_step == 1 && language_step_skipped)
+        min_step = 2;
     lv_subject_set_int(&wizard_back_visible, (step > min_step) ? 1 : 0);
 
-    // Determine if this is the last step (summary is always step 11 internally)
-    bool is_last_step = (step == 11);
+    // Determine if this is the last step (summary is always step 12 internally)
+    bool is_last_step = (step == 12);
 
     // Update next button text based on step
     if (is_last_step) {
@@ -445,21 +463,21 @@ void ui_wizard_set_title(const char* title) {
 /**
  * Pre-calculate which steps will be skipped based on hardware data
  *
- * Called after the connection step (step 2) completes so hardware data is available.
- * This ensures the step counter shows consistent totals from step 3 onwards.
+ * Called after the connection step (step 3) completes so hardware data is available.
+ * This ensures the step counter shows consistent totals from step 4 onwards.
  */
 static void ui_wizard_precalculate_skips() {
     spdlog::info("[Wizard] Pre-calculating step skips based on hardware data");
 
-    // Touch calibration is already handled at step 0
+    // Touch calibration (step 0) and language (step 1) are already handled at navigation time
 
-    // AMS skip (step 6)
+    // AMS skip (step 7)
     if (!ams_step_skipped && get_wizard_ams_identify_step()->should_skip()) {
         ams_step_skipped = true;
         spdlog::debug("[Wizard] Pre-calculated: AMS step will be skipped");
     }
 
-    // LED skip (step 7)
+    // LED skip (step 8)
     if (!led_step_skipped && get_wizard_led_select_step()->should_skip()) {
         led_step_skipped = true;
         spdlog::debug("[Wizard] Pre-calculated: LED step will be skipped");
@@ -475,29 +493,30 @@ static void ui_wizard_precalculate_skips() {
         }
     }
 
-    // Filament sensor skip (step 8)
+    // Filament sensor skip (step 9)
     if (!filament_step_skipped && get_wizard_filament_sensor_select_step()->should_skip()) {
         filament_step_skipped = true;
         spdlog::debug("[Wizard] Pre-calculated: Filament sensor step will be skipped");
     }
 
-    // Probe sensor skip (step 9)
+    // Probe sensor skip (step 10)
     if (!probe_step_skipped && get_wizard_probe_sensor_select_step()->should_skip()) {
         probe_step_skipped = true;
         spdlog::debug("[Wizard] Pre-calculated: Probe sensor step will be skipped");
     }
 
-    // Input shaper skip (step 10)
+    // Input shaper skip (step 11)
     if (!input_shaper_step_skipped && get_wizard_input_shaper_step()->should_skip()) {
         input_shaper_step_skipped = true;
         spdlog::debug("[Wizard] Pre-calculated: Input shaper step will be skipped");
     }
 
-    int total_skipped = (touch_cal_step_skipped ? 1 : 0) + (ams_step_skipped ? 1 : 0) +
-                        (led_step_skipped ? 1 : 0) + (filament_step_skipped ? 1 : 0) +
-                        (probe_step_skipped ? 1 : 0) + (input_shaper_step_skipped ? 1 : 0);
+    int total_skipped = (touch_cal_step_skipped ? 1 : 0) + (language_step_skipped ? 1 : 0) +
+                        (ams_step_skipped ? 1 : 0) + (led_step_skipped ? 1 : 0) +
+                        (filament_step_skipped ? 1 : 0) + (probe_step_skipped ? 1 : 0) +
+                        (input_shaper_step_skipped ? 1 : 0);
     spdlog::info("[Wizard] Pre-calculated skips: {} steps will be skipped, {} total steps",
-                 total_skipped, 12 - total_skipped);
+                 total_skipped, 13 - total_skipped);
 
     // Mark that we now know the true step count
     skips_precalculated = true;
@@ -524,37 +543,40 @@ static void ui_wizard_cleanup_current_screen() {
     case 0: // Touch Calibration
         get_wizard_touch_calibration_step()->cleanup();
         break;
-    case 1: // WiFi Setup
+    case 1: // Language Chooser
+        get_wizard_language_chooser_step()->cleanup();
+        break;
+    case 2: // WiFi Setup
         get_wizard_wifi_step()->cleanup();
         break;
-    case 2: // Moonraker Connection
+    case 3: // Moonraker Connection
         get_wizard_connection_step()->cleanup();
         break;
-    case 3: // Printer Identification
+    case 4: // Printer Identification
         get_wizard_printer_identify_step()->cleanup();
         break;
-    case 4: // Heater Select (combined bed + hotend)
+    case 5: // Heater Select (combined bed + hotend)
         get_wizard_heater_select_step()->cleanup();
         break;
-    case 5: // Fan Select
+    case 6: // Fan Select
         get_wizard_fan_select_step()->cleanup();
         break;
-    case 6: // AMS Identify
+    case 7: // AMS Identify
         get_wizard_ams_identify_step()->cleanup();
         break;
-    case 7: // LED Select
+    case 8: // LED Select
         get_wizard_led_select_step()->cleanup();
         break;
-    case 8: // Filament Sensor Select
+    case 9: // Filament Sensor Select
         get_wizard_filament_sensor_select_step()->cleanup();
         break;
-    case 9: // Probe Sensor Select
+    case 10: // Probe Sensor Select
         get_wizard_probe_sensor_select_step()->cleanup();
         break;
-    case 10: // Input Shaper
+    case 11: // Input Shaper
         get_wizard_input_shaper_step()->cleanup();
         break;
-    case 11: // Summary
+    case 12: // Summary
         get_wizard_summary_step()->cleanup();
         break;
     default:
@@ -604,7 +626,16 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 1: // WiFi Setup
+    case 1: // Language Chooser
+        spdlog::debug("[Wizard] Creating language chooser screen");
+        lv_subject_set_int(&connection_test_passed, 1);
+        get_wizard_language_chooser_step()->init_subjects();
+        get_wizard_language_chooser_step()->register_callbacks();
+        get_wizard_language_chooser_step()->create(content);
+        lv_obj_update_layout(content);
+        break;
+
+    case 2: // WiFi Setup
         spdlog::debug("[Wizard] Creating WiFi setup screen");
         // Reset Next button to enabled - WiFi step has no connection test requirement
         lv_subject_set_int(&connection_test_passed, 1);
@@ -615,7 +646,7 @@ static void ui_wizard_load_screen(int step) {
         get_wizard_wifi_step()->init_wifi_manager();
         break;
 
-    case 2: // Moonraker Connection
+    case 3: // Moonraker Connection
         spdlog::debug("[Wizard] Creating Moonraker connection screen");
         get_wizard_connection_step()->init_subjects();
         get_wizard_connection_step()->register_callbacks();
@@ -623,7 +654,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 3: // Printer Identification
+    case 4: // Printer Identification
         spdlog::debug("[Wizard] Creating printer identification screen");
         get_wizard_printer_identify_step()->init_subjects();
         get_wizard_printer_identify_step()->register_callbacks();
@@ -634,7 +665,7 @@ static void ui_wizard_load_screen(int step) {
                                get_wizard_printer_identify_step()->get_detection_status());
         break;
 
-    case 4: // Heater Select (combined bed + hotend)
+    case 5: // Heater Select (combined bed + hotend)
         spdlog::debug("[Wizard] Creating heater select screen");
         get_wizard_heater_select_step()->init_subjects();
         get_wizard_heater_select_step()->register_callbacks();
@@ -642,7 +673,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 5: // Fan Select
+    case 6: // Fan Select
         spdlog::debug("[Wizard] Creating fan select screen");
         get_wizard_fan_select_step()->init_subjects();
         get_wizard_fan_select_step()->register_callbacks();
@@ -650,7 +681,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 6: // AMS Identify
+    case 7: // AMS Identify
         spdlog::debug("[Wizard] Creating AMS identify screen");
         get_wizard_ams_identify_step()->init_subjects();
         get_wizard_ams_identify_step()->register_callbacks();
@@ -658,7 +689,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 7: // LED Select
+    case 8: // LED Select
         spdlog::debug("[Wizard] Creating LED select screen");
         get_wizard_led_select_step()->init_subjects();
         get_wizard_led_select_step()->register_callbacks();
@@ -666,14 +697,14 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 8: // Filament Sensor Select
+    case 9: // Filament Sensor Select
         spdlog::debug("[Wizard] Creating filament sensor select screen");
         get_wizard_filament_sensor_select_step()->init_subjects();
         get_wizard_filament_sensor_select_step()->register_callbacks();
         get_wizard_filament_sensor_select_step()->create(content);
         lv_obj_update_layout(content);
         // Schedule refresh in case sensors are discovered after screen creation
-        // (handles race condition when jumping directly to step 8)
+        // (handles race condition when jumping directly to step 9)
         lv_timer_create(
             [](lv_timer_t* timer) {
                 get_wizard_filament_sensor_select_step()->refresh();
@@ -682,7 +713,7 @@ static void ui_wizard_load_screen(int step) {
             1500, nullptr); // Refresh after 1.5 seconds
         break;
 
-    case 9: // Probe Sensor Select
+    case 10: // Probe Sensor Select
         spdlog::debug("[Wizard] Creating probe sensor select screen");
         get_wizard_probe_sensor_select_step()->init_subjects();
         get_wizard_probe_sensor_select_step()->register_callbacks();
@@ -697,7 +728,7 @@ static void ui_wizard_load_screen(int step) {
             1500, nullptr); // Refresh after 1.5 seconds
         break;
 
-    case 10: // Input Shaper Calibration
+    case 11: // Input Shaper Calibration
         spdlog::debug("[Wizard] Creating input shaper calibration screen");
         get_wizard_input_shaper_step()->init_subjects();
         get_wizard_input_shaper_step()->register_callbacks();
@@ -705,7 +736,7 @@ static void ui_wizard_load_screen(int step) {
         lv_obj_update_layout(content);
         break;
 
-    case 11: // Summary
+    case 12: // Summary
         spdlog::debug("[Wizard] Creating summary screen");
         get_wizard_summary_step()->init_subjects();
         get_wizard_summary_step()->register_callbacks();
@@ -914,41 +945,50 @@ static void on_back_clicked(lv_event_t* e) {
     (void)e;
     int current = lv_subject_get_int(&current_step);
 
-    // Minimum step depends on whether touch calibration was skipped
-    int min_step = touch_cal_step_skipped ? 1 : 0;
+    // Find minimum step (first non-skipped step)
+    int min_step = 0;
+    if (touch_cal_step_skipped)
+        min_step = 1;
+    if (min_step == 1 && language_step_skipped)
+        min_step = 2;
 
     if (current > min_step) {
         int prev_step = current - 1;
 
-        // Skip input shaper step (10) when going back if it was skipped
-        if (prev_step == 10 && input_shaper_step_skipped) {
+        // Skip input shaper step (11) when going back if it was skipped
+        if (prev_step == 11 && input_shaper_step_skipped) {
+            prev_step = 10;
+        }
+
+        // Skip probe sensor step (10) when going back if it was skipped
+        if (prev_step == 10 && probe_step_skipped) {
             prev_step = 9;
         }
 
-        // Skip probe sensor step (9) when going back if it was skipped
-        if (prev_step == 9 && probe_step_skipped) {
+        // Skip filament sensor step (9) when going back if it was skipped
+        if (prev_step == 9 && filament_step_skipped) {
             prev_step = 8;
+        }
+
+        // Skip LED step (8) when going back if it was skipped
+        if (prev_step == 8 && led_step_skipped) {
+            prev_step = 7;
+        }
+
+        // Skip AMS step (7) when going back if it was skipped
+        if (prev_step == 7 && ams_step_skipped) {
+            prev_step = 6;
+        }
+
+        // Skip language step (1) when going back if it was skipped
+        if (prev_step == 1 && language_step_skipped) {
+            prev_step = 0;
         }
 
         // Skip touch calibration step (0) when going back if it was skipped
         if (prev_step == 0 && touch_cal_step_skipped) {
             // Can't go back further - touch cal was skipped
             return;
-        }
-
-        // Skip filament sensor step (8) when going back if it was skipped
-        if (prev_step == 8 && filament_step_skipped) {
-            prev_step = 7;
-        }
-
-        // Skip LED step (7) when going back if it was skipped
-        if (prev_step == 7 && led_step_skipped) {
-            prev_step = 6;
-        }
-
-        // Skip AMS step (6) when going back if it was skipped
-        if (prev_step == 6 && ams_step_skipped) {
-            prev_step = 5;
         }
 
         ui_wizard_navigate_to_step(prev_step);
@@ -960,7 +1000,7 @@ static void on_next_clicked(lv_event_t* e) {
     (void)e;
     int current = lv_subject_get_int(&current_step);
 
-    // Summary (step 9) is always the last internal step
+    // Summary (step 12) is the last step
     if (current >= STEP_COMPONENT_COUNT) {
         spdlog::info("[Wizard] Finish button clicked, completing wizard");
         ui_wizard_complete();
@@ -974,29 +1014,36 @@ static void on_next_clicked(lv_event_t* e) {
 
     int next_step = current + 1;
 
-    // Pre-calculate all skip flags when leaving connection step (step 2)
-    // This ensures consistent step totals from step 3 onwards
-    if (current == 2) {
+    // Skip language step (1) if language already set
+    if (next_step == 1 && get_wizard_language_chooser_step()->should_skip()) {
+        language_step_skipped = true;
+        next_step = 2;
+        spdlog::debug("[Wizard] Skipping language step (language already set)");
+    }
+
+    // Pre-calculate all skip flags when leaving connection step (step 3)
+    // This ensures consistent step totals from step 4 onwards
+    if (current == 3) {
         spdlog::info("[Wizard] Leaving connection step, pre-calculating skips...");
         ui_wizard_precalculate_skips();
     }
 
-    // Skip AMS step (6) if no AMS detected
-    if (next_step == 6 && get_wizard_ams_identify_step()->should_skip()) {
+    // Skip AMS step (7) if no AMS detected
+    if (next_step == 7 && get_wizard_ams_identify_step()->should_skip()) {
         ams_step_skipped = true;
-        next_step = 7;
+        next_step = 8;
         spdlog::debug("[Wizard] Skipping AMS step (no AMS detected)");
     }
 
-    // Skip LED step (7) if no LEDs detected
-    if (next_step == 7 && get_wizard_led_select_step()->should_skip()) {
+    // Skip LED step (8) if no LEDs detected
+    if (next_step == 8 && get_wizard_led_select_step()->should_skip()) {
         led_step_skipped = true;
-        next_step = 8;
+        next_step = 9;
         spdlog::debug("[Wizard] Skipping LED step (no LEDs detected)");
     }
 
     // Ensure FilamentSensorManager is populated before skip check
-    if (next_step == 8) {
+    if (next_step == 9) {
         auto& fsm = helix::FilamentSensorManager::instance();
         if (fsm.get_sensors().empty()) {
             MoonrakerAPI* api = get_moonraker_api();
@@ -1007,8 +1054,8 @@ static void on_next_clicked(lv_event_t* e) {
         }
     }
 
-    // Skip filament sensor step (8) if <2 standalone sensors
-    if (next_step == 8 && get_wizard_filament_sensor_select_step()->should_skip()) {
+    // Skip filament sensor step (9) if <2 standalone sensors
+    if (next_step == 9 && get_wizard_filament_sensor_select_step()->should_skip()) {
         filament_step_skipped = true;
 
         // Auto-configure single sensor if exactly 1 detected
@@ -1017,21 +1064,21 @@ static void on_next_clicked(lv_event_t* e) {
             step->auto_configure_single_sensor();
             spdlog::info("[Wizard] Auto-configured single filament sensor as RUNOUT");
         }
-        next_step = 9;
+        next_step = 10;
         spdlog::debug("[Wizard] Skipping filament sensor step (<2 sensors)");
     }
 
-    // Skip probe sensor step (9) if no unassigned switch sensors
-    if (next_step == 9 && get_wizard_probe_sensor_select_step()->should_skip()) {
+    // Skip probe sensor step (10) if no unassigned switch sensors
+    if (next_step == 10 && get_wizard_probe_sensor_select_step()->should_skip()) {
         probe_step_skipped = true;
-        next_step = 10;
+        next_step = 11;
         spdlog::debug("[Wizard] Skipping probe sensor step (no unassigned sensors)");
     }
 
-    // Skip input shaper step (10) if no accelerometer detected
-    if (next_step == 10 && get_wizard_input_shaper_step()->should_skip()) {
+    // Skip input shaper step (11) if no accelerometer detected
+    if (next_step == 11 && get_wizard_input_shaper_step()->should_skip()) {
         input_shaper_step_skipped = true;
-        next_step = 11;
+        next_step = 12;
         spdlog::debug("[Wizard] Skipping input shaper step (no accelerometer)");
     }
 
