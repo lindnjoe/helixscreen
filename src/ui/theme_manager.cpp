@@ -450,10 +450,15 @@ static ThemePalette convert_to_theme_palette(const theme_palette_t* p, int borde
 static lv_theme_t* theme_init_lvgl(lv_display_t* display, const theme_palette_t* palette,
                                    bool is_dark, const lv_font_t* base_font, int32_t border_radius,
                                    int32_t border_width, int32_t border_opacity) {
-    // Convert palette and initialize ThemeManager
+    // Build BOTH dark and light palettes from active_theme for contrast calculations
+    // The contrast system needs both palettes to pick appropriate text colors
+    theme_palette_t dark_theme_pal = build_palette_from_mode(active_theme.dark);
+    theme_palette_t light_theme_pal = build_palette_from_mode(active_theme.light);
+
     ThemePalette dark_pal =
-        convert_to_theme_palette(palette, border_radius, border_width, border_opacity);
-    ThemePalette light_pal = dark_pal; // Same palette for both modes initially
+        convert_to_theme_palette(&dark_theme_pal, border_radius, border_width, border_opacity);
+    ThemePalette light_pal =
+        convert_to_theme_palette(&light_theme_pal, border_radius, border_width, border_opacity);
 
     auto& tm = ThemeManager::instance();
     tm.set_palettes(light_pal, dark_pal);
