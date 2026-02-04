@@ -367,7 +367,7 @@ ifneq ($(CROSS_COMPILE),)
 	$(ECHO) "$(YELLOW)→ Cross-compiling libnl for $(CROSS_COMPILE)...$(RESET)"
 	$(Q)if [ ! -f "$(LIBNL_DIR)/configure" ]; then \
 		echo "$(CYAN)→ Running autogen.sh...$(RESET)"; \
-		cd $(LIBNL_DIR) && ./autogen.sh; \
+		cd $(LIBNL_DIR) && PATH="/usr/bin:$$PATH" ./autogen.sh; \
 	fi
 	$(Q)if [ -f "$(LIBNL_DIR)/Makefile" ]; then \
 		$(MAKE) -C $(LIBNL_DIR) distclean 2>/dev/null || true; \
