@@ -107,7 +107,7 @@ static bool parse_double(const char* str, double& out, const char* name) {
 static void print_help(const char* program_name) {
     printf("Usage: %s [options]\n", program_name);
     printf("Options:\n");
-    printf("  -s, --size <size>    Screen size: tiny, small, medium, large (default: small)\n");
+    printf("  -s, --size <size>    Screen size: tiny, tiny_alt, small, medium, large (or WxH)\n");
     printf("  -p, --panel <panel>  Initial panel (default: home)\n");
     printf("  -k, --keypad         Show numeric keypad for testing\n");
     printf("  --keyboard           Show keyboard for testing (no textarea)\n");
@@ -161,10 +161,12 @@ static void print_help(const char* program_name) {
     printf("  Print: print-status, print-tune\n");
     printf("  Dev: ams, step-test, test, gcode-test, glyphs\n");
     printf("\nScreen sizes:\n");
-    printf("  tiny   = %dx%d\n", UI_SCREEN_TINY_W, UI_SCREEN_TINY_H);
-    printf("  small  = %dx%d (default)\n", UI_SCREEN_SMALL_W, UI_SCREEN_SMALL_H);
-    printf("  medium = %dx%d\n", UI_SCREEN_MEDIUM_W, UI_SCREEN_MEDIUM_H);
-    printf("  large  = %dx%d\n", UI_SCREEN_LARGE_W, UI_SCREEN_LARGE_H);
+    printf("  tiny     = %dx%d\n", UI_SCREEN_TINY_W, UI_SCREEN_TINY_H);
+    printf("  tiny_alt = %dx%d\n", UI_SCREEN_TINY_ALT_W, UI_SCREEN_TINY_ALT_H);
+    printf("  small    = %dx%d (default)\n", UI_SCREEN_SMALL_W, UI_SCREEN_SMALL_H);
+    printf("  medium   = %dx%d\n", UI_SCREEN_MEDIUM_W, UI_SCREEN_MEDIUM_H);
+    printf("  large    = %dx%d\n", UI_SCREEN_LARGE_W, UI_SCREEN_LARGE_H);
+    printf("  WxH      = arbitrary resolution (e.g., -s 1920x1080)\n");
     printf("\nWizard steps:\n");
     printf("  wifi, connection, printer-identify, bed, hotend, fan, led, summary\n");
     printf("\nWindow placement:\n");
@@ -357,6 +359,10 @@ bool parse_cli_args(int argc, char** argv, CliArgs& args, int& screen_width, int
                 screen_width = UI_SCREEN_TINY_W;
                 screen_height = UI_SCREEN_TINY_H;
                 args.screen_size = ScreenSize::TINY;
+            } else if (strcmp(size_arg, "tiny_alt") == 0) {
+                screen_width = UI_SCREEN_TINY_ALT_W;
+                screen_height = UI_SCREEN_TINY_ALT_H;
+                args.screen_size = ScreenSize::TINY_ALT;
             } else if (strcmp(size_arg, "small") == 0) {
                 screen_width = UI_SCREEN_SMALL_W;
                 screen_height = UI_SCREEN_SMALL_H;
@@ -370,9 +376,33 @@ bool parse_cli_args(int argc, char** argv, CliArgs& args, int& screen_width, int
                 screen_height = UI_SCREEN_LARGE_H;
                 args.screen_size = ScreenSize::LARGE;
             } else {
-                printf("Unknown screen size: %s\n", size_arg);
-                printf("Available sizes: tiny, small, medium, large\n");
-                return false;
+                // Try parsing as WxH format (e.g., "480x400" or "1920x1080")
+                int w = 0, h = 0;
+                if (sscanf(size_arg, "%dx%d", &w, &h) == 2 && w > 0 && h > 0) {
+                    screen_width = w;
+                    screen_height = h;
+                    // Set screen_size to closest preset based on max(width, height)
+                    int max_dim = (w > h) ? w : h;
+                    if (max_dim <= 480) {
+                        // Distinguish TINY (480x320) from TINY_ALT (480x400)
+                        if (w == 480 && h >= 400) {
+                            args.screen_size = ScreenSize::TINY_ALT;
+                        } else {
+                            args.screen_size = ScreenSize::TINY;
+                        }
+                    } else if (max_dim <= 800) {
+                        args.screen_size = ScreenSize::SMALL;
+                    } else if (max_dim <= 1024) {
+                        args.screen_size = ScreenSize::MEDIUM;
+                    } else {
+                        args.screen_size = ScreenSize::LARGE;
+                    }
+                } else {
+                    printf("Unknown screen size: %s\n", size_arg);
+                    printf("Available sizes: tiny, tiny_alt, small, medium, large (or WxH like "
+                           "480x400)\n");
+                    return false;
+                }
             }
         }
         // Panel selection

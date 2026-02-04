@@ -70,6 +70,7 @@ class DisplayBackendDRM : public DisplayBackend {
         return "Linux DRM/KMS";
     }
     bool is_available() const override;
+    DetectedResolution detect_resolution() const override;
 
     // Framebuffer operations
     bool clear_framebuffer(uint32_t color) override;

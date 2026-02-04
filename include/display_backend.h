@@ -28,6 +28,18 @@ enum class DisplayBackendType {
 };
 
 /**
+ * @brief Result of display resolution auto-detection
+ *
+ * Used by detect_resolution() to return hardware-detected display dimensions.
+ * Only valid for fbdev/DRM backends; SDL always returns invalid.
+ */
+struct DetectedResolution {
+    int width = 0;
+    int height = 0;
+    bool valid = false;
+};
+
+/**
  * @brief Convert DisplayBackendType to string for logging
  */
 inline const char* display_backend_type_to_string(DisplayBackendType type) {
@@ -132,6 +144,22 @@ class DisplayBackend {
      * @return true if backend can be used
      */
     virtual bool is_available() const = 0;
+
+    /**
+     * @brief Detect the native display resolution from hardware
+     *
+     * Queries the display hardware for its native resolution. This allows
+     * auto-configuration without requiring explicit CLI size arguments.
+     *
+     * For FBDEV: queries FBIOGET_VSCREENINFO for xres/yres
+     * For DRM: queries the connector's preferred mode
+     * For SDL: returns invalid (desktop uses presets/CLI)
+     *
+     * @return DetectedResolution with valid=true if detection succeeded
+     */
+    virtual DetectedResolution detect_resolution() const {
+        return {}; // Default: not supported
+    }
 
     /**
      * @brief Check if the display is still active/owned by this process

@@ -213,6 +213,33 @@ bool DisplayBackendFbdev::is_available() const {
     return true;
 }
 
+DetectedResolution DisplayBackendFbdev::detect_resolution() const {
+    int fd = open(fb_device_.c_str(), O_RDONLY);
+    if (fd < 0) {
+        spdlog::debug("[Fbdev Backend] Cannot open {} for resolution detection: {}", fb_device_,
+                      strerror(errno));
+        return {};
+    }
+
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
+        spdlog::debug("[Fbdev Backend] Cannot get vscreeninfo for resolution detection: {}",
+                      strerror(errno));
+        close(fd);
+        return {};
+    }
+
+    close(fd);
+
+    if (vinfo.xres == 0 || vinfo.yres == 0) {
+        spdlog::warn("[Fbdev Backend] Framebuffer reports 0x0 resolution");
+        return {};
+    }
+
+    spdlog::info("[Fbdev Backend] Detected resolution: {}x{}", vinfo.xres, vinfo.yres);
+    return {static_cast<int>(vinfo.xres), static_cast<int>(vinfo.yres), true};
+}
+
 lv_display_t* DisplayBackendFbdev::create_display(int width, int height) {
     spdlog::info("[Fbdev Backend] Creating framebuffer display on {}", fb_device_);
 

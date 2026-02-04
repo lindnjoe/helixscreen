@@ -217,6 +217,8 @@ class ThemeManager {
 #define UI_SCREEN_SMALL_H 480
 #define UI_SCREEN_TINY_W 480
 #define UI_SCREEN_TINY_H 320
+#define UI_SCREEN_TINY_ALT_W 480
+#define UI_SCREEN_TINY_ALT_H 400
 
 // Spacing tokens available (use theme_manager_get_spacing() to read values):
 //   space_xxs: 2/3/4px  (small/medium/large breakpoints)

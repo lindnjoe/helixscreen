@@ -414,7 +414,7 @@ INCLUDES := -I. -I$(INC_DIR) -Isrc/generated -isystem lib -isystem lib/glm $(LVG
 LDFLAGS_COMMON := $(SDL2_LIBS) $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) -lm -lpthread
 
 # Platform-specific configuration
-# Cross-compilation targets (pi, ad5m) are Linux-based embedded systems
+# Cross-compilation targets (pi, ad5m, k1) are Linux-based embedded systems
 ifneq ($(CROSS_COMPILE),)
     # Cross-compilation for embedded Linux targets
     NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)

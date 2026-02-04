@@ -172,6 +172,63 @@ bool DisplayBackendDRM::is_available() const {
     return true;
 }
 
+DetectedResolution DisplayBackendDRM::detect_resolution() const {
+    int fd = open(drm_device_.c_str(), O_RDWR | O_CLOEXEC);
+    if (fd < 0) {
+        spdlog::debug("[DRM Backend] Cannot open {} for resolution detection: {}", drm_device_,
+                      strerror(errno));
+        return {};
+    }
+
+    drmModeRes* resources = drmModeGetResources(fd);
+    if (!resources) {
+        spdlog::debug("[DRM Backend] Failed to get DRM resources for resolution detection");
+        close(fd);
+        return {};
+    }
+
+    DetectedResolution result;
+
+    // Find first connected connector and get its preferred mode
+    for (int i = 0; i < resources->count_connectors && !result.valid; i++) {
+        drmModeConnector* connector = drmModeGetConnector(fd, resources->connectors[i]);
+        if (!connector) {
+            continue;
+        }
+
+        if (connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0) {
+            // Find preferred mode, or use first mode as fallback
+            drmModeModeInfo* preferred = nullptr;
+            for (int m = 0; m < connector->count_modes; m++) {
+                if (connector->modes[m].type & DRM_MODE_TYPE_PREFERRED) {
+                    preferred = &connector->modes[m];
+                    break;
+                }
+            }
+
+            // Use preferred mode if found, otherwise first mode
+            drmModeModeInfo* mode = preferred ? preferred : &connector->modes[0];
+            result.width = static_cast<int>(mode->hdisplay);
+            result.height = static_cast<int>(mode->vdisplay);
+            result.valid = true;
+
+            spdlog::info("[DRM Backend] Detected resolution: {}x{} ({})", result.width,
+                         result.height, mode->name);
+        }
+
+        drmModeFreeConnector(connector);
+    }
+
+    drmModeFreeResources(resources);
+    close(fd);
+
+    if (!result.valid) {
+        spdlog::debug("[DRM Backend] No connected display found for resolution detection");
+    }
+
+    return result;
+}
+
 lv_display_t* DisplayBackendDRM::create_display(int width, int height) {
     spdlog::info("[DRM Backend] Creating DRM display on {}", drm_device_);
 

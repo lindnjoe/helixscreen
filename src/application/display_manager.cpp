@@ -77,9 +77,6 @@ bool DisplayManager::init(const Config& config) {
         return false;
     }
 
-    m_width = config.width;
-    m_height = config.height;
-
     // Initialize LVGL library
     lv_init();
 
@@ -93,7 +90,41 @@ bool DisplayManager::init(const Config& config) {
 
     spdlog::info("[DisplayManager] Using backend: {}", m_backend->name());
 
-    // Create LVGL display first - this opens /dev/fb0 and keeps it open
+    // Determine display dimensions
+    m_width = config.width;
+    m_height = config.height;
+
+    // Auto-detect resolution for non-SDL backends when no dimensions specified
+    if (m_width == 0 && m_height == 0 && m_backend->type() != DisplayBackendType::SDL) {
+        auto detected = m_backend->detect_resolution();
+        // Validate detected dimensions are within reasonable bounds
+        if (detected.valid && detected.width >= 100 && detected.height >= 100 &&
+            detected.width <= 8192 && detected.height <= 8192) {
+            m_width = detected.width;
+            m_height = detected.height;
+            spdlog::info("[DisplayManager] Auto-detected resolution: {}x{}", m_width, m_height);
+        } else if (detected.valid) {
+            // Detection returned but with bogus values
+            m_width = 800;
+            m_height = 480;
+            spdlog::warn("[DisplayManager] Detected resolution {}x{} out of bounds, using default",
+                         detected.width, detected.height);
+        } else {
+            // Fall back to default 800x480
+            m_width = 800;
+            m_height = 480;
+            spdlog::warn("[DisplayManager] Resolution detection failed, using default {}x{}",
+                         m_width, m_height);
+        }
+    } else if (m_width == 0 || m_height == 0) {
+        // SDL backend or partial dimensions specified - use defaults
+        m_width = (m_width > 0) ? m_width : 800;
+        m_height = (m_height > 0) ? m_height : 480;
+        spdlog::debug("[DisplayManager] Using configured/default resolution: {}x{}", m_width,
+                      m_height);
+    }
+
+    // Create LVGL display - this opens /dev/fb0 and keeps it open
     m_display = m_backend->create_display(m_width, m_height);
     if (!m_display) {
         spdlog::error("[DisplayManager] Failed to create display");

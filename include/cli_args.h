@@ -20,7 +20,7 @@ namespace helix {
 /**
  * @brief Screen size presets
  */
-enum class ScreenSize { TINY, SMALL, MEDIUM, LARGE };
+enum class ScreenSize { TINY, TINY_ALT, SMALL, MEDIUM, LARGE };
 
 /**
  * @brief Overlay panel flags (grouped for clarity)
