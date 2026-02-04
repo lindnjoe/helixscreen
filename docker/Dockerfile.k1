@@ -81,6 +81,10 @@ ENV TARGET_LDFLAGS=""
 # Working directory
 WORKDIR /src
 
+# Configure git to trust the mounted source directory
+# Required because the container runs as root but files are owned by the host user
+RUN git config --global --add safe.directory '*'
+
 # Verify the toolchain works (including LTO-aware tools)
 RUN mipsel-buildroot-linux-musl-gcc --version && \
     mipsel-buildroot-linux-musl-g++ --version && \
@@ -92,4 +96,5 @@ RUN mipsel-buildroot-linux-musl-gcc --version && \
     echo "for clean, portable binaries on K1 series printers."
 
 # Default command: build for K1
-CMD ["make", "PLATFORM_TARGET=k1", "-j"]
+# SKIP_OPTIONAL_DEPS=1 runs minimal dependency check (skips npm, clang-format, etc.)
+CMD ["make", "PLATFORM_TARGET=k1", "SKIP_OPTIONAL_DEPS=1", "-j"]

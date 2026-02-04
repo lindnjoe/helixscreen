@@ -96,6 +96,10 @@ ENV TARGET_LDFLAGS=""
 # Working directory
 WORKDIR /src
 
+# Configure git to trust the mounted source directory
+# Required because the container runs as root but files are owned by the host user
+RUN git config --global --add safe.directory '*'
+
 # Verify the toolchain works (including LTO-aware tools)
 RUN arm-none-linux-gnueabihf-gcc --version && \
     arm-none-linux-gnueabihf-g++ --version && \
@@ -107,4 +111,5 @@ RUN arm-none-linux-gnueabihf-gcc --version && \
     echo "to avoid glibc version conflicts. Binary will be self-contained."
 
 # Default command: build for AD5M
-CMD ["make", "PLATFORM_TARGET=ad5m", "-j"]
+# SKIP_OPTIONAL_DEPS=1 runs minimal dependency check (skips npm, clang-format, etc.)
+CMD ["make", "PLATFORM_TARGET=ad5m", "SKIP_OPTIONAL_DEPS=1", "-j"]

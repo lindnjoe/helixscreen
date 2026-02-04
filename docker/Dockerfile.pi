@@ -69,5 +69,10 @@ ENV PKG_CONFIG_SYSROOT_DIR=/
 # Create working directory
 WORKDIR /src
 
+# Configure git to trust the mounted source directory
+# Required because the container runs as root but files are owned by the host user
+RUN git config --global --add safe.directory '*'
+
 # Default command: build for Pi
-CMD ["make", "PLATFORM_TARGET=pi", "-j"]
+# SKIP_OPTIONAL_DEPS=1 runs minimal dependency check (skips npm, clang-format, etc.)
+CMD ["make", "PLATFORM_TARGET=pi", "SKIP_OPTIONAL_DEPS=1", "-j"]
