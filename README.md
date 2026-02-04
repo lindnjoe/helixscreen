@@ -80,12 +80,16 @@ See [docs/GALLERY.md](docs/GALLERY.md) for all screenshots.
 
 ## Installation
 
+> **⚠️ Run these commands on your printer's host computer, not your local machine.**
+>
+> SSH into your Raspberry Pi, BTT CB1/Manta, or similar host as root. For all-in-one printers (Creality K1, Adventurer 5M/Pro), SSH directly into the printer itself.
+
 **Raspberry Pi / Creality K1:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh | sh
 ```
 
-**Adventurer 5M:** Requires downloading to your computer first, then copying to the printer (BusyBox lacks HTTPS support).
+**Adventurer 5M/Pro:** Requires downloading to your computer first, then copying to the printer (BusyBox lacks HTTPS support).
 
 See [Installation Guide](docs/user/INSTALL.md) for detailed instructions, display configuration, and troubleshooting.
 
@@ -123,6 +127,8 @@ Any Klipper + Moonraker printer. Currently tested on Voron 2.4, Voron 0.2, Flash
 **What multi-material systems work?**
 AFC (Box Turtle), Happy Hare (ERCF, 3MS, Tradrack), tool changers, and ValgACE.
 
+See [docs/user/FAQ.md](docs/user/FAQ.md) for the full FAQ.
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -132,17 +138,26 @@ AFC (Box Turtle), Happy Hare (ERCF, 3MS, Tradrack), tool changers, and ValgACE.
 | Can't connect to Moonraker | Check IP/port in helixconfig.json |
 | Wizard not showing | Delete helixconfig.json to trigger it |
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) or open a [GitHub issue](https://github.com/prestonbrown/helixscreen/issues).
+See [docs/user/TROUBLESHOOTING.md](docs/user/TROUBLESHOOTING.md) for more solutions, or open a [GitHub issue](https://github.com/prestonbrown/helixscreen/issues).
 
 ## Documentation
 
+### User Guides
 | Guide | Description |
 |-------|-------------|
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Build system, workflow, contributing |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, patterns |
-| [GALLERY.md](docs/GALLERY.md) | All screenshots |
-| [ROADMAP.md](docs/ROADMAP.md) | Feature timeline |
-| [LVGL9_XML_GUIDE.md](docs/LVGL9_XML_GUIDE.md) | XML syntax reference |
+| [Installation](docs/user/INSTALL.md) | Setup for Pi, K1, AD5M |
+| [User Guide](docs/user/USER_GUIDE.md) | Using HelixScreen |
+| [FAQ](docs/user/FAQ.md) | Common questions |
+| [Troubleshooting](docs/user/TROUBLESHOOTING.md) | Problem solutions |
+
+### Developer Guides
+| Guide | Description |
+|-------|-------------|
+| [Development](docs/DEVELOPMENT.md) | Build system, workflow, contributing |
+| [Architecture](docs/ARCHITECTURE.md) | System design, patterns |
+| [LVGL9 XML Guide](docs/LVGL9_XML_GUIDE.md) | XML syntax reference |
+| [Gallery](docs/GALLERY.md) | All screenshots |
+| [Roadmap](docs/ROADMAP.md) | Feature timeline |
 
 ## License
 

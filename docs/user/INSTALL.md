@@ -24,6 +24,10 @@ This guide walks you through installing HelixScreen on your 3D printer's touchsc
 
 ## Quick Start
 
+> **⚠️ Run these commands on your printer's host, not your local computer.**
+>
+> SSH into your Raspberry Pi, BTT CB1/Manta, or similar host. For all-in-one printers (Creality K1, Adventurer 5M/Pro), SSH directly into the printer itself as root.
+
 **Raspberry Pi (MainsailOS) or Creality K1:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh | sh
@@ -178,7 +182,9 @@ See [First Boot & Setup Wizard](#first-boot--setup-wizard) for details.
 
 ### Automated Installation (Recommended)
 
-The AD5M uses BusyBox which doesn't support HTTPS downloads directly. You'll need to download the release on your computer first, then copy it to the printer:
+The AD5M uses BusyBox which doesn't support HTTPS downloads directly. This is a **two-step process**:
+1. Download on your local computer (Steps 1-2)
+2. SSH into the printer as root and run the installer (Step 3)
 
 **Step 1: Download on your computer**
 
@@ -198,10 +204,13 @@ Or download manually from: https://github.com/prestonbrown/helixscreen/releases/
 scp -O helixscreen-ad5m.tar.gz install.sh root@<printer-ip>:/data/
 ```
 
-**Step 3: Run the installer**
+**Step 3: SSH into the printer and run the installer**
 
 ```bash
+# From your local computer, SSH into the printer as root
 ssh root@<printer-ip>
+
+# Now on the printer, run the installer
 sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz
 ```
 
