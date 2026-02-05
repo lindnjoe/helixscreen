@@ -245,6 +245,8 @@ class DisplaySettingsOverlay : public OverlayBase {
 
     /// Tracks original theme index for Apply button state
     int original_theme_index_{-1};
+    /// Snapshot of active theme when explorer opens (for revert on close)
+    helix::ThemeData original_theme_;
     /// Current preview dark mode state
     bool preview_is_dark_{true};
     /// Currently previewed theme name (for passing to editor)

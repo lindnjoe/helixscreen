@@ -96,6 +96,9 @@ struct ui_temp_graph_t {
     // Axis label font (configurable via ui_temp_graph_set_axis_size)
     const lv_font_t* axis_font; // Font for X/Y axis labels (default: font_small)
     int32_t y_axis_width;       // Width reserved for Y-axis labels
+
+    // Theme change observer (re-applies chart colors on theme toggle)
+    lv_observer_t* theme_observer;
 };
 
 /**

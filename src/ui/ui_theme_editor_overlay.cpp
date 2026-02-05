@@ -146,10 +146,6 @@ void ThemeEditorOverlay::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_theme_save_as_confirm", on_save_as_confirm);
     lv_xml_register_event_cb(nullptr, "on_theme_save_as_cancel", on_save_as_cancel);
 
-    // Restart dialog callbacks
-    lv_xml_register_event_cb(nullptr, "on_theme_restart_now", on_restart_now);
-    lv_xml_register_event_cb(nullptr, "on_theme_restart_later", on_restart_later);
-
     // Theme preset dropdown callback
     lv_xml_register_event_cb(nullptr, "on_theme_preset_changed", on_theme_preset_changed);
 
@@ -195,12 +191,6 @@ void ThemeEditorOverlay::cleanup() {
     if (save_as_dialog_) {
         Modal::hide(save_as_dialog_);
         save_as_dialog_ = nullptr;
-    }
-
-    // Clean up restart dialog if showing
-    if (restart_dialog_) {
-        Modal::hide(restart_dialog_);
-        restart_dialog_ = nullptr;
     }
 
     // Clear swatch references (widgets will be destroyed by LVGL)
@@ -578,10 +568,15 @@ void ThemeEditorOverlay::handle_save_clicked() {
     if (helix::save_theme_to_file(editing_theme_, filepath)) {
         clear_dirty();
         original_theme_ = editing_theme_;
-        spdlog::info("[{}] Theme '{}' saved to '{}'", get_name(), editing_theme_.name, filepath);
 
-        // Show restart dialog (theme changes require restart to take full effect)
-        show_restart_dialog();
+        // Persist as active theme and apply live (no restart needed)
+        SettingsManager::instance().set_theme_name(editing_theme_.filename);
+        theme_manager_apply_theme(editing_theme_, theme_manager_is_dark_mode());
+
+        spdlog::info("[{}] Theme '{}' saved and applied live", get_name(), editing_theme_.name);
+
+        // Close the editor overlay
+        ui_nav_go_back();
     } else {
         spdlog::error("[{}] Failed to save theme to '{}'", get_name(), filepath);
     }
@@ -770,26 +765,6 @@ void ThemeEditorOverlay::show_save_as_dialog() {
     spdlog::debug("[{}] Showing Save As dialog", get_name());
 }
 
-void ThemeEditorOverlay::show_restart_dialog() {
-    // Close existing dialog if any
-    if (restart_dialog_) {
-        Modal::hide(restart_dialog_);
-        restart_dialog_ = nullptr;
-    }
-
-    // Show restart prompt using confirmation dialog
-    restart_dialog_ = ui_modal_show_confirmation(
-        lv_tr("Theme Saved"),
-        lv_tr("Theme changes require an app restart to fully apply. Restart now?"),
-        ModalSeverity::Info, lv_tr("Restart Now"), on_restart_now, on_restart_later, nullptr);
-
-    if (!restart_dialog_) {
-        spdlog::error("[{}] Failed to show restart dialog", get_name());
-    }
-
-    spdlog::debug("[{}] Showing restart dialog", get_name());
-}
-
 void ThemeEditorOverlay::show_discard_confirmation(std::function<void()> on_discard) {
     // Store the action to execute if user confirms discard
     pending_discard_action_ = std::move(on_discard);
@@ -894,44 +869,13 @@ void ThemeEditorOverlay::handle_save_as_confirm() {
     Modal::hide(save_as_dialog_);
     save_as_dialog_ = nullptr;
 
-    // Show restart dialog
-    show_restart_dialog();
-}
+    // Apply live (no restart needed)
+    theme_manager_apply_theme(editing_theme_, theme_manager_is_dark_mode());
 
-// ============================================================================
-// RESTART DIALOG CALLBACKS
-// ============================================================================
+    spdlog::info("[{}] Theme saved as '{}' and applied live", get_name(), editing_theme_.name);
 
-void ThemeEditorOverlay::on_restart_now(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[ThemeEditorOverlay] on_restart_now");
-    static_cast<void>(lv_event_get_current_target(e));
-
-    auto& overlay = get_theme_editor_overlay();
-    if (overlay.restart_dialog_) {
-        Modal::hide(overlay.restart_dialog_);
-        overlay.restart_dialog_ = nullptr;
-    }
-
-    spdlog::info("[ThemeEditorOverlay] User requested restart - exiting application");
-
-    // Exit the application to trigger restart (supervisor will restart it)
-    std::exit(0);
-
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void ThemeEditorOverlay::on_restart_later(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[ThemeEditorOverlay] on_restart_later");
-    static_cast<void>(lv_event_get_current_target(e));
-
-    auto& overlay = get_theme_editor_overlay();
-    if (overlay.restart_dialog_) {
-        Modal::hide(overlay.restart_dialog_);
-        overlay.restart_dialog_ = nullptr;
-    }
-
-    spdlog::info("[ThemeEditorOverlay] User chose to restart later");
-    LVGL_SAFE_EVENT_CB_END();
+    // Close the editor overlay
+    ui_nav_go_back();
 }
 
 // ============================================================================

@@ -141,10 +141,6 @@ class ThemeEditorOverlay : public OverlayBase {
     static void on_save_as_confirm(lv_event_t* e);
     static void on_save_as_cancel(lv_event_t* e);
 
-    // Restart dialog callbacks
-    static void on_restart_now(lv_event_t* e);
-    static void on_restart_later(lv_event_t* e);
-
     // Theme preset dropdown callback
     static void on_theme_preset_changed(lv_event_t* e);
 
@@ -168,7 +164,6 @@ class ThemeEditorOverlay : public OverlayBase {
     void handle_slider_change(const char* slider_name, int value);
     void show_color_picker(int palette_index);
     void show_save_as_dialog();
-    void show_restart_dialog();
     void show_discard_confirmation(std::function<void()> on_discard);
     void update_title_dirty_indicator();
     void handle_back_clicked();
@@ -210,9 +205,6 @@ class ThemeEditorOverlay : public OverlayBase {
 
     // Save As dialog tracking
     lv_obj_t* save_as_dialog_ = nullptr;
-
-    // Restart dialog tracking
-    lv_obj_t* restart_dialog_ = nullptr;
 };
 
 /**

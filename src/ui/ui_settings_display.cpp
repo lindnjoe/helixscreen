@@ -425,8 +425,8 @@ void DisplaySettingsOverlay::handle_theme_settings_clicked() {
         NavigationManager::instance().register_overlay_instance(theme_explorer_overlay_, nullptr);
         NavigationManager::instance().register_overlay_close_callback(
             theme_explorer_overlay_, [this]() {
-                // Revert preview to current theme on close
-                theme_manager_revert_preview();
+                // Revert to the theme that was active when explorer opened
+                theme_manager_apply_theme(original_theme_, theme_manager_is_dark_mode());
                 lv_obj_safe_delete(theme_explorer_overlay_);
                 // Clear cache so next open picks up filesystem changes
                 cached_themes_.clear();
@@ -439,9 +439,10 @@ void DisplaySettingsOverlay::handle_theme_settings_clicked() {
     // Cache the theme list to avoid re-parsing on every toggle/selection
     cached_themes_ = helix::discover_themes(helix::get_themes_directory());
 
-    // Remember original theme for Apply button state and preview
+    // Remember original theme for Apply button state and revert on close
     original_theme_index_ = SettingsManager::instance().get_theme_index();
     preview_theme_name_ = SettingsManager::instance().get_theme_name();
+    original_theme_ = theme_manager_get_active_theme();
 
     // Initialize dark mode toggle to current global state
     preview_is_dark_ = theme_manager_is_dark_mode();
@@ -481,17 +482,19 @@ void DisplaySettingsOverlay::handle_apply_theme_clicked() {
     }
 
     int selected_index = lv_dropdown_get_selected(dropdown);
+
+    // Persist theme selection
     SettingsManager::instance().set_theme_by_index(selected_index);
+
+    // Apply theme live (no restart needed) - preview already loaded the theme data,
+    // so theme_manager_apply_theme was called via preview. Just persist the choice.
+    spdlog::info("[{}] Theme applied live - index {}", get_name(), selected_index);
 
     // Update original index since theme is now applied
     original_theme_index_ = selected_index;
 
     // Disable Apply button since changes are now saved - reactive via subject
     lv_subject_set_int(&theme_apply_disabled_subject_, 1);
-
-    // Show restart notice using info note toast (non-blocking)
-    spdlog::info("[{}] Theme applied - index {}. Restart required for full effect.", get_name(),
-                 selected_index);
 }
 
 void DisplaySettingsOverlay::handle_edit_colors_clicked() {

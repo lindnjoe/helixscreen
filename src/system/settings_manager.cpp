@@ -331,8 +331,6 @@ void SettingsManager::set_theme_name(const std::string& name) {
     Config* config = Config::get_instance();
     config->set<std::string>("/display/theme", name);
     config->save();
-
-    restart_pending_ = true;
 }
 
 std::string SettingsManager::get_theme_options() const {
