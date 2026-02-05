@@ -1096,6 +1096,16 @@ void ControlsPanel::handle_fan_slider_changed(int value) {
     // Defensive validation - slider should already be 0-100 but clamp anyway
     value = std::clamp(value, 0, 100);
     spdlog::debug("[{}] Fan slider changed to {}%", get_name(), value);
+
+    // Optimistic update - show new value immediately without waiting for Moonraker
+    if (value > 0) {
+        helix::fmt::format_percent(value, fan_speed_buf_, sizeof(fan_speed_buf_));
+    } else {
+        std::snprintf(fan_speed_buf_, sizeof(fan_speed_buf_), "Off");
+    }
+    lv_subject_copy_string(&fan_speed_subject_, fan_speed_buf_);
+    lv_subject_set_int(&fan_pct_subject_, value);
+
     if (api_) {
         api_->set_fan_speed(
             "fan", static_cast<double>(value), []() { /* Silent success */ },

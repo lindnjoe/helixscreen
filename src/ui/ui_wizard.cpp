@@ -226,9 +226,13 @@ void ui_wizard_deinit_subjects() {
         return;
     }
 
-    // Cleanup current wizard screen BEFORE deleting container
-    // This ensures step-specific resources are released properly
-    ui_wizard_cleanup_current_screen();
+    // Reset screen step tracking FIRST to prevent cleanup from accessing
+    // already-destroyed wizard step objects. During StaticPanelRegistry::destroy_all(),
+    // step objects (registered lazily after WizardSubjects) are destroyed first in LIFO
+    // order. If cleanup calls their getters, the getter re-creates the object and calls
+    // register_destroy(), invalidating the destroy_all() iterator → crash.
+    // The step destructors already handled their own cleanup when their unique_ptrs were reset.
+    current_screen_step = -1;
 
     // Delete wizard container BEFORE deinitializing subjects
     // This triggers proper widget cleanup: DELETE callbacks fire
@@ -908,72 +912,14 @@ void ui_wizard_complete() {
         },
         500, nullptr); // 500ms delay for UI to stabilize
 
-    // 6. Connect to Moonraker using saved configuration
-    if (!config) {
-        config = Config::get_instance();
-    }
+    // 6. Trigger re-discovery through Application's pre-registered callbacks.
+    // Discovery callbacks (set_hardware, init_fans, hardware validation, plugin detection,
+    // etc.) were registered in Application::init_moonraker() via setup_discovery_callbacks().
     MoonrakerClient* client = get_moonraker_client();
-
-    if (!config || !client) {
-        spdlog::error("[Wizard] Failed to get config or moonraker client");
-        return;
-    }
-
-    std::string moonraker_host = config->get<std::string>(helix::wizard::MOONRAKER_HOST, "");
-    int moonraker_port = config->get<int>(helix::wizard::MOONRAKER_PORT, 7125);
-
-    if (moonraker_host.empty()) {
-        spdlog::warn("[Wizard] No Moonraker host configured, skipping connection");
-        return;
-    }
-
-    // Build WebSocket URL
-    std::string moonraker_url =
-        "ws://" + moonraker_host + ":" + std::to_string(moonraker_port) + "/websocket";
-
-    // Build HTTP base URL for file transfers (same host:port, http:// scheme)
-    std::string http_base_url = "http://" + moonraker_host + ":" + std::to_string(moonraker_port);
-    MoonrakerAPI* api = get_moonraker_api();
-    if (api) {
-        api->set_http_base_url(http_base_url);
-    }
-
-    // Check if already connected to the same URL
-    ConnectionState current_state = client->get_connection_state();
-    const std::string& current_url = client->get_last_url();
-
-    if (current_state == ConnectionState::CONNECTED && current_url == moonraker_url) {
-        // Already connected - but we still need to re-discover hardware
-        // because user may have changed hardware mappings during wizard
-        spdlog::info("[Wizard] Already connected to {} - triggering re-discovery", moonraker_url);
-        client->discover_printer([]() {
-            spdlog::info("✓ Printer re-discovery complete after wizard");
-            // Reload home panel config after discovery completes
-            get_global_home_panel().reload_from_config();
-        });
+    if (client && client->get_connection_state() == ConnectionState::CONNECTED) {
+        client->discover_printer([]() { spdlog::info("[Wizard] Post-wizard discovery complete"); });
     } else {
-        // Connect to Moonraker
-        spdlog::debug("[Wizard] Connecting to Moonraker at {}", moonraker_url);
-        int connect_result = client->connect(
-            moonraker_url.c_str(),
-            []() {
-                spdlog::info("✓ Connected to Moonraker");
-                // Start auto-discovery (must be called AFTER connection is established)
-                MoonrakerClient* client = get_moonraker_client();
-                if (client) {
-                    client->discover_printer([]() {
-                        spdlog::info("✓ Printer auto-discovery complete");
-                        // Reload home panel config after discovery completes
-                        get_global_home_panel().reload_from_config();
-                    });
-                }
-            },
-            []() { spdlog::warn("✗ Disconnected from Moonraker"); });
-
-        if (connect_result != 0) {
-            spdlog::error("[Wizard] Failed to initiate Moonraker connection (code {})",
-                          connect_result);
-        }
+        spdlog::warn("[Wizard] Not connected after wizard - subsystems will initialize on restart");
     }
 
     // Tell Home Panel to reload immediately for printer image, type overlay

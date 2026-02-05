@@ -1386,6 +1386,7 @@ void MoonrakerClient::complete_discovery_subscription(std::function<void()> on_c
     }
 
     // All discovered fans
+    spdlog::info("[Moonraker Client] Subscribing to {} fans: {}", fans_.size(), json(fans_).dump());
     for (const auto& fan : fans_) {
         subscription_objects[fan] = nullptr;
     }

@@ -801,6 +801,11 @@ bool Application::init_moonraker() {
     // Register MoonrakerManager globally (for Advanced panel access to MacroModificationManager)
     set_moonraker_manager(m_moonraker.get());
 
+    // Set up discovery callbacks on client (must be after API creation since API constructor
+    // also sets these callbacks - we intentionally overwrite with combined callbacks that
+    // both update the API's hardware_ and perform Application-level initialization)
+    setup_discovery_callbacks();
+
     // Create print history manager (shared cache for history panels and file status indicators)
     m_history_manager =
         std::make_unique<PrintHistoryManager>(m_moonraker->api(), get_moonraker_client());
@@ -1265,39 +1270,7 @@ void Application::create_overlays() {
     }
 }
 
-bool Application::connect_moonraker() {
-    // Determine if we should connect
-    std::string saved_host = m_config->get<std::string>(m_config->df() + "moonraker_host", "");
-    bool has_cli_url = !m_args.moonraker_url.empty();
-    // In test mode, still respect wizard state - don't connect until wizard completes
-    bool should_connect =
-        has_cli_url || (get_runtime_config()->test_mode && !m_wizard_active) ||
-        (!m_args.force_wizard && !m_config->is_wizard_required() && !saved_host.empty());
-
-    if (!should_connect) {
-        return true; // Not connecting is not an error
-    }
-
-    std::string moonraker_url;
-    std::string http_base_url;
-
-    if (has_cli_url) {
-        moonraker_url = m_args.moonraker_url;
-        std::string host_port = moonraker_url.substr(5);
-        auto ws_pos = host_port.find("/websocket");
-        if (ws_pos != std::string::npos) {
-            host_port = host_port.substr(0, ws_pos);
-        }
-        http_base_url = "http://" + host_port;
-    } else {
-        moonraker_url =
-            "ws://" + m_config->get<std::string>(m_config->df() + "moonraker_host") + ":" +
-            std::to_string(m_config->get<int>(m_config->df() + "moonraker_port")) + "/websocket";
-        http_base_url = "http://" + m_config->get<std::string>(m_config->df() + "moonraker_host") +
-                        ":" + std::to_string(m_config->get<int>(m_config->df() + "moonraker_port"));
-    }
-
-    // Set up discovery callbacks
+void Application::setup_discovery_callbacks() {
     MoonrakerClient* client = m_moonraker->client();
     MoonrakerAPI* api = m_moonraker->api();
 
@@ -1310,6 +1283,8 @@ bool Application::connect_moonraker() {
         auto ctx =
             std::make_unique<HardwareDiscoveredCtx>(HardwareDiscoveredCtx{hardware, api, client});
         ui_queue_update<HardwareDiscoveredCtx>(std::move(ctx), [](HardwareDiscoveredCtx* c) {
+            // Update API's hardware data (replaces MoonrakerAPI constructor callback)
+            c->api->hardware() = c->hardware;
             helix::init_subsystems_from_hardware(c->hardware, c->api, c->client);
         });
     });
@@ -1334,12 +1309,16 @@ bool Application::connect_moonraker() {
                 return;
             }
 
+            // Update API's hardware data (replaces MoonrakerAPI constructor callback)
+            c->api->hardware() = c->hardware;
+
             // Mark discovery complete so splash can exit
             c->app->m_splash_manager.on_discovery_complete();
             spdlog::info("[Application] Moonraker discovery complete, splash can exit");
 
             get_printer_state().set_hardware(c->hardware);
-            get_printer_state().init_fans(c->hardware.fans());
+            get_printer_state().init_fans(
+                c->hardware.fans(), helix::FanRoleConfig::from_config(Config::get_instance()));
             get_printer_state().set_klipper_version(c->hardware.software_version());
             get_printer_state().set_moonraker_version(c->hardware.moonraker_version());
 
@@ -1373,8 +1352,44 @@ bool Application::connect_moonraker() {
             SettingsManager::instance().apply_led_startup_preference();
         });
     });
+}
+
+bool Application::connect_moonraker() {
+    // Determine if we should connect
+    std::string saved_host = m_config->get<std::string>(m_config->df() + "moonraker_host", "");
+    bool has_cli_url = !m_args.moonraker_url.empty();
+    // In test mode, still respect wizard state - don't connect until wizard completes
+    bool should_connect =
+        has_cli_url || (get_runtime_config()->test_mode && !m_wizard_active) ||
+        (!m_args.force_wizard && !m_config->is_wizard_required() && !saved_host.empty());
+
+    if (!should_connect) {
+        return true; // Not connecting is not an error
+    }
+
+    std::string moonraker_url;
+    std::string http_base_url;
+
+    if (has_cli_url) {
+        moonraker_url = m_args.moonraker_url;
+        std::string host_port = moonraker_url.substr(5);
+        auto ws_pos = host_port.find("/websocket");
+        if (ws_pos != std::string::npos) {
+            host_port = host_port.substr(0, ws_pos);
+        }
+        http_base_url = "http://" + host_port;
+    } else {
+        moonraker_url =
+            "ws://" + m_config->get<std::string>(m_config->df() + "moonraker_host") + ":" +
+            std::to_string(m_config->get<int>(m_config->df() + "moonraker_port")) + "/websocket";
+        http_base_url = "http://" + m_config->get<std::string>(m_config->df() + "moonraker_host") +
+                        ":" + std::to_string(m_config->get<int>(m_config->df() + "moonraker_port"));
+    }
+
+    // Discovery callbacks are already registered (setup_discovery_callbacks in init_moonraker)
 
     // Set HTTP base URL for API
+    MoonrakerAPI* api = m_moonraker->api();
     api->set_http_base_url(http_base_url);
 
     // Connect

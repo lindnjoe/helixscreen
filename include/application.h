@@ -98,6 +98,7 @@ class Application {
     // Helper functions
     void ensure_project_root_cwd();
     void auto_configure_mock_state();
+    void setup_discovery_callbacks();
     lv_obj_t* create_overlay_panel(lv_obj_t* screen, const char* component_name,
                                    const char* display_name);
     void init_action_prompt();

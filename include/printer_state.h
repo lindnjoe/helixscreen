@@ -606,9 +606,11 @@ class PrinterState {
     /**
      * @brief Initialize fan list from discovered fan objects
      * @param fan_objects List of Moonraker fan object names
+     * @param roles Wizard-configured fan role assignments
      */
-    void init_fans(const std::vector<std::string>& fan_objects) {
-        fan_state_.init_fans(fan_objects);
+    void init_fans(const std::vector<std::string>& fan_objects,
+                   const helix::FanRoleConfig& roles = {}) {
+        fan_state_.init_fans(fan_objects, roles);
     }
 
     /**
