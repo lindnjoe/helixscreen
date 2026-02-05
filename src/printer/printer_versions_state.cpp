@@ -28,6 +28,7 @@ void PrinterVersionsState::init_subjects(bool register_xml) {
     // Initialize string subjects with em dash default
     INIT_SUBJECT_STRING(klipper_version, "—", subjects_, register_xml);
     INIT_SUBJECT_STRING(moonraker_version, "—", subjects_, register_xml);
+    INIT_SUBJECT_STRING(os_version, "—", subjects_, register_xml);
 
     subjects_initialized_ = true;
     spdlog::debug("[PrinterVersionsState] Subjects initialized successfully");
@@ -66,6 +67,11 @@ void PrinterVersionsState::set_klipper_version_internal(const std::string& versi
 void PrinterVersionsState::set_moonraker_version_internal(const std::string& version) {
     lv_subject_copy_string(&moonraker_version_, version.c_str());
     spdlog::debug("[PrinterVersionsState] Moonraker version set: {}", version);
+}
+
+void PrinterVersionsState::set_os_version_internal(const std::string& version) {
+    lv_subject_copy_string(&os_version_, version.c_str());
+    spdlog::debug("[PrinterVersionsState] OS version set: {}", version);
 }
 
 } // namespace helix

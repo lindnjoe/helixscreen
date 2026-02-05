@@ -69,6 +69,13 @@ class PrinterVersionsState {
      */
     void set_moonraker_version_internal(const std::string& version);
 
+    /**
+     * @brief Set OS version string (synchronous, must be on UI thread)
+     *
+     * @param version OS distribution name (e.g., "Forge-X 1.4.0")
+     */
+    void set_os_version_internal(const std::string& version);
+
     // ========================================================================
     // Subject accessors
     // ========================================================================
@@ -89,6 +96,14 @@ class PrinterVersionsState {
         return &moonraker_version_;
     }
 
+    /**
+     * @brief Get OS version subject for XML binding
+     * @return Pointer to string subject
+     */
+    lv_subject_t* get_os_version_subject() {
+        return &os_version_;
+    }
+
   private:
     SubjectManager subjects_;
     bool subjects_initialized_ = false;
@@ -96,10 +111,12 @@ class PrinterVersionsState {
     // Version subjects (string, 64-byte buffer each)
     lv_subject_t klipper_version_{};
     lv_subject_t moonraker_version_{};
+    lv_subject_t os_version_{};
 
     // String buffers for subject storage
     char klipper_version_buf_[64]{};
     char moonraker_version_buf_[64]{};
+    char os_version_buf_[64]{};
 };
 
 } // namespace helix

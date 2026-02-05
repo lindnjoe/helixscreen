@@ -498,6 +498,14 @@ void PrinterState::set_moonraker_version_internal(const std::string& version) {
     versions_state_.set_moonraker_version_internal(version);
 }
 
+void PrinterState::set_os_version(const std::string& version) {
+    helix::async::call_method_ref(this, &PrinterState::set_os_version_internal, version);
+}
+
+void PrinterState::set_os_version_internal(const std::string& version) {
+    versions_state_.set_os_version_internal(version);
+}
+
 void PrinterState::set_spoolman_available(bool available) {
     // Delegate to capabilities_state_ component (handles thread-safety)
     capabilities_state_.set_spoolman_available(available);
@@ -551,15 +559,17 @@ bool PrinterState::can_start_new_print() const {
 
 void PrinterState::set_kinematics(const std::string& kinematics) {
     // Determine if the bed moves on Z based on kinematics type:
-    // - Cartesian: bed typically moves on Z axis (Ender 3, Prusa MK3, etc.)
-    // - CoreXY/CoreXZ: gantry typically moves on Z axis (Voron 2.4, RatRig, etc.)
+    // - CoreXY/CoreXZ: bed typically moves on Z (Voron 0/Trident, Bambu, AD5M, etc.)
+    //   Exception: Voron 2.4 and similar with quad_gantry_level have gantry-Z
+    // - Cartesian: gantry typically moves on Z (Ender 3, Prusa i3, etc.)
     // - Delta: effector moves on Z, bed is stationary
-    //
-    // Note: This is a heuristic. Some CoreXY printers (Voron Trident) have gantry-Z.
-    // For perfect accuracy, we'd need to parse stepper_z configuration.
-    bool bed_moves_z = (kinematics.find("cartesian") != std::string::npos);
+    bool is_corexy_family = (kinematics.find("corexy") != std::string::npos ||
+                             kinematics.find("corexz") != std::string::npos);
 
-    // Delegate to capabilities_state_ component
+    // CoreXY with QGL = gantry moves on Z (e.g. Voron 2.4), otherwise bed moves
+    bool has_qgl = lv_subject_get_int(capabilities_state_.get_printer_has_qgl_subject()) != 0;
+    bool bed_moves_z = is_corexy_family && !has_qgl;
+
     capabilities_state_.set_bed_moves(bed_moves_z);
 }
 

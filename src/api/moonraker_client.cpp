@@ -1236,6 +1236,30 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                                 err.message);
                         });
 
+                    // Step 4b: Query OS version from machine.system_info (parallel)
+                    send_jsonrpc(
+                        "machine.system_info", json::object(),
+                        [this](json sys_response) {
+                            // Extract distribution name: result.system_info.distribution.name
+                            if (sys_response.contains("result") &&
+                                sys_response["result"].contains("system_info") &&
+                                sys_response["result"]["system_info"].contains("distribution") &&
+                                sys_response["result"]["system_info"]["distribution"].contains(
+                                    "name")) {
+                                std::string os_name =
+                                    sys_response["result"]["system_info"]["distribution"]["name"]
+                                        .get<std::string>();
+                                hardware_.set_os_version(os_name);
+                                spdlog::debug("[Moonraker Client] OS version: {}", os_name);
+                            }
+                        },
+                        [](const MoonrakerError& err) {
+                            spdlog::debug(
+                                "[Moonraker Client] machine.system_info query failed, continuing: "
+                                "{}",
+                                err.message);
+                        });
+
                     // Step 5: Query MCU information for printer detection
                     // Find all MCU objects (e.g., "mcu", "mcu EBBCan", "mcu rpi")
                     std::vector<std::string> mcu_objects;
@@ -1259,6 +1283,8 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                         std::make_shared<std::atomic<size_t>>(mcu_objects.size());
                     auto mcu_results =
                         std::make_shared<std::vector<std::pair<std::string, std::string>>>();
+                    auto mcu_version_results =
+                        std::make_shared<std::vector<std::pair<std::string, std::string>>>();
                     auto mcu_results_mutex = std::make_shared<std::mutex>();
 
                     for (const auto& mcu_obj : mcu_objects) {
@@ -1266,10 +1292,11 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                         send_jsonrpc(
                             "printer.objects.query", {{"objects", mcu_query}},
                             [this, on_complete, mcu_obj, pending_mcu_queries, mcu_results,
-                             mcu_results_mutex](json mcu_response) {
+                             mcu_version_results, mcu_results_mutex](json mcu_response) {
                                 std::string chip_type;
+                                std::string mcu_version;
 
-                                // Extract MCU chip type from mcu_constants.MCU
+                                // Extract MCU chip type and version from response
                                 if (mcu_response.contains("result") &&
                                     mcu_response["result"].contains("status") &&
                                     mcu_response["result"]["status"].contains(mcu_obj)) {
@@ -1285,12 +1312,25 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                                         spdlog::debug("[Moonraker Client] Detected MCU '{}': {}",
                                                       mcu_obj, chip_type);
                                     }
+
+                                    // Extract mcu_version for About section
+                                    if (mcu_data.contains("mcu_version") &&
+                                        mcu_data["mcu_version"].is_string()) {
+                                        mcu_version = mcu_data["mcu_version"].get<std::string>();
+                                        spdlog::debug("[Moonraker Client] MCU '{}' version: {}",
+                                                      mcu_obj, mcu_version);
+                                    }
                                 }
 
-                                // Store result thread-safely
-                                if (!chip_type.empty()) {
+                                // Store results thread-safely
+                                {
                                     std::lock_guard<std::mutex> lock(*mcu_results_mutex);
-                                    mcu_results->push_back({mcu_obj, chip_type});
+                                    if (!chip_type.empty()) {
+                                        mcu_results->push_back({mcu_obj, chip_type});
+                                    }
+                                    if (!mcu_version.empty()) {
+                                        mcu_version_results->push_back({mcu_obj, mcu_version});
+                                    }
                                 }
 
                                 // Check if all queries complete
@@ -1302,15 +1342,18 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                                     // Sort results to ensure consistent ordering (primary "mcu"
                                     // first)
                                     std::lock_guard<std::mutex> lock(*mcu_results_mutex);
+                                    auto sort_mcu_first = [](const auto& a, const auto& b) {
+                                        // "mcu" comes first, then alphabetical
+                                        if (a.first == "mcu")
+                                            return true;
+                                        if (b.first == "mcu")
+                                            return false;
+                                        return a.first < b.first;
+                                    };
                                     std::sort(mcu_results->begin(), mcu_results->end(),
-                                              [](const auto& a, const auto& b) {
-                                                  // "mcu" comes first, then alphabetical
-                                                  if (a.first == "mcu")
-                                                      return true;
-                                                  if (b.first == "mcu")
-                                                      return false;
-                                                  return a.first < b.first;
-                                              });
+                                              sort_mcu_first);
+                                    std::sort(mcu_version_results->begin(),
+                                              mcu_version_results->end(), sort_mcu_first);
 
                                     for (const auto& [obj_name, chip] : *mcu_results) {
                                         mcu_list.push_back(chip);
@@ -1322,6 +1365,7 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                                     // Update hardware discovery with MCU info
                                     hardware_.set_mcu(primary_mcu);
                                     hardware_.set_mcu_list(mcu_list);
+                                    hardware_.set_mcu_versions(*mcu_version_results);
 
                                     if (!primary_mcu.empty()) {
                                         spdlog::info("[Moonraker Client] Primary MCU: {}",

@@ -129,7 +129,34 @@ void register_server_handlers(std::unordered_map<std::string, MethodHandler>& re
         return true;
     };
 
-    spdlog::debug("[MoonrakerClientMock] Registered {} server method handlers", 3);
+    // machine.system_info - Get OS/system information
+    // https://moonraker.readthedocs.io/en/latest/web_api/#get-system-info
+    registry["machine.system_info"] =
+        [](MoonrakerClientMock* /*self*/, const json& /*params*/,
+           std::function<void(json)> success_cb,
+           std::function<void(const MoonrakerError&)> /*error_cb*/) -> bool {
+        spdlog::debug("[MoonrakerClientMock] machine.system_info");
+
+        json response = {
+            {"jsonrpc", "2.0"},
+            {"result",
+             {{"system_info",
+               {{"cpu_info", {{"cpu_count", 4}, {"total_memory", 3906644}, {"memory_units", "kB"}}},
+                {"distribution",
+                 {{"name", "Ubuntu 22.04 LTS (mock)"},
+                  {"id", "ubuntu"},
+                  {"version", "22.04"},
+                  {"version_parts", {{"major", "22"}, {"minor", "04"}, {"build_number", ""}}},
+                  {"like", "debian"},
+                  {"codename", "jammy"}}}}}}}};
+
+        if (success_cb) {
+            success_cb(response);
+        }
+        return true;
+    };
+
+    spdlog::debug("[MoonrakerClientMock] Registered {} server method handlers", 4);
 }
 
 } // namespace mock_internal

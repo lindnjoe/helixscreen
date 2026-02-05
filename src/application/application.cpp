@@ -1321,6 +1321,9 @@ void Application::setup_discovery_callbacks() {
                 c->hardware.fans(), helix::FanRoleConfig::from_config(Config::get_instance()));
             get_printer_state().set_klipper_version(c->hardware.software_version());
             get_printer_state().set_moonraker_version(c->hardware.moonraker_version());
+            if (!c->hardware.os_version().empty()) {
+                get_printer_state().set_os_version(c->hardware.os_version());
+            }
 
             // Hardware validation: check config expectations vs discovered hardware
             HardwareValidator validator;

@@ -126,6 +126,23 @@ void register_object_handlers(std::unordered_map<std::string, MethodHandler>& re
                 status_obj["idle_timeout"] = {{"state", idle_state}};
             }
 
+            // MCU objects (for discovery - chip type and firmware version)
+            for (const auto& [key, val] : objects.items()) {
+                if (key == "mcu" || key.rfind("mcu ", 0) == 0) {
+                    json mcu_obj = json::object();
+                    // Provide mock mcu_constants and mcu_version
+                    if (key == "mcu") {
+                        mcu_obj["mcu_constants"] = {{"MCU", "stm32f446xx"}};
+                        mcu_obj["mcu_version"] = "v0.12.0-155-g4cfa273e";
+                    } else {
+                        // Secondary MCU (e.g., "mcu EBBCan")
+                        mcu_obj["mcu_constants"] = {{"MCU", "stm32g0b1xx"}};
+                        mcu_obj["mcu_version"] = "v0.12.0-155-g4cfa273e";
+                    }
+                    status_obj[key] = mcu_obj;
+                }
+            }
+
             // input_shaper (for get_input_shaper_config)
             if (objects.contains("input_shaper")) {
                 // Return mock input shaper configuration

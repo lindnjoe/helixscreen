@@ -68,6 +68,7 @@ SettingsPanel::~SettingsPanel() {
     if (lv_is_initialized()) {
         klipper_version_observer_ = nullptr;
         moonraker_version_observer_ = nullptr;
+        os_version_observer_ = nullptr;
 
         // Unregister overlay callbacks to prevent dangling 'this' in callbacks
         auto& nav = NavigationManager::instance();
@@ -570,10 +571,10 @@ void SettingsPanel::populate_info_rows() {
     if (printer_row) {
         printer_value_ = lv_obj_find_by_name(printer_row, "value");
         if (printer_value_) {
-            // Try to get printer name from config
+            // Try to get printer name from config (wizard stores at /printer/name)
             Config* config = Config::get_instance();
             std::string printer_name =
-                config->get<std::string>(config->df() + "printer_name", "Unknown");
+                config->get<std::string>(helix::wizard::PRINTER_NAME, "Unknown");
             // Update subject (label binding happens in XML)
             lv_subject_copy_string(&printer_value_subject_, printer_name.c_str());
             spdlog::debug("[{}]   ✓ Printer: {}", get_name(), printer_name);
@@ -623,6 +624,17 @@ void SettingsPanel::populate_info_rows() {
         }
     }
 
+    // === OS Version (reactive binding from PrinterState) ===
+    lv_obj_t* os_row = lv_obj_find_by_name(panel_, "row_os");
+    if (os_row) {
+        lv_obj_t* os_value = lv_obj_find_by_name(os_row, "value");
+        if (os_value) {
+            os_version_observer_ =
+                lv_label_bind_text(os_value, printer_state_.get_os_version_subject(), "%s");
+            spdlog::debug("[{}]   ✓ OS version bound to subject", get_name());
+        }
+    }
+
     // === Total Print Hours (from Moonraker history totals) ===
     if (api_) {
         api_->get_history_totals(
@@ -639,6 +651,49 @@ void SettingsPanel::populate_info_rows() {
             [this](const MoonrakerError& err) {
                 spdlog::warn("[{}] Failed to fetch print hours: {}", get_name(), err.message);
             });
+    }
+
+    // === MCU Version Rows (dynamic, created from discovery data) ===
+    if (api_) {
+        const auto& mcu_versions = api_->hardware().mcu_versions();
+        if (!mcu_versions.empty()) {
+            // Find the bottom padding spacer to insert MCU rows before it
+            lv_obj_t* last_child = lv_obj_get_child(panel_, lv_obj_get_child_count(panel_) - 1);
+
+            for (const auto& [mcu_name, mcu_version] : mcu_versions) {
+                // Format label: "MCU" for primary, "MCU EBBCan" etc for secondaries
+                std::string label = "MCU";
+                if (mcu_name != "mcu") {
+                    // "mcu EBBCan" → "MCU EBBCan"
+                    label = "MCU" + mcu_name.substr(3);
+                }
+
+                // Create setting_info_row via XML component
+                const char* attrs[] = {"label", label.c_str(), "label_tag", label.c_str(),
+                                       "icon",  "code_braces", nullptr,     nullptr};
+                lv_obj_t* row =
+                    static_cast<lv_obj_t*>(lv_xml_create(panel_, "setting_info_row", attrs));
+                if (row) {
+                    // Move before the bottom padding spacer
+                    if (last_child) {
+                        lv_obj_swap(row, last_child);
+                    }
+
+                    // Set the value text
+                    lv_obj_t* value_label = lv_obj_find_by_name(row, "value");
+                    if (value_label) {
+                        // Truncate long version strings
+                        std::string display_version = mcu_version;
+                        if (display_version.length() > 30) {
+                            display_version = display_version.substr(0, 27) + "...";
+                        }
+                        lv_label_set_text(value_label, display_version.c_str());
+                    }
+
+                    spdlog::debug("[{}]   ✓ MCU row: {} = {}", get_name(), label, mcu_version);
+                }
+            }
+        }
     }
 }
 

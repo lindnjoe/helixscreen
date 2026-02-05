@@ -189,6 +189,8 @@ void SubjectInitializer::init_panel_subjects(MoonrakerAPI* api) {
     if (api)
         get_global_filament_panel().set_api(api);
     get_global_settings_panel().init_subjects();
+    if (api)
+        get_global_settings_panel().set_api(api);
 
     // SettingsManager subjects are initialized by settings_panel.init_subjects() above
     // Register cleanup here (StaticSubjectRegistry - core state singleton)

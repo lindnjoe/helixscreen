@@ -22,6 +22,7 @@
 #include <cctype>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "hv/json.hpp"
@@ -308,6 +309,17 @@ class PrinterDiscovery {
             return;
         }
 
+        // Extract kinematics from [printer] section
+        // Klipper's toolhead.kinematics status field returns null (it's an object reference),
+        // so configfile.config.printer.kinematics is the reliable source
+        if (config.contains("printer") && config["printer"].is_object()) {
+            const auto& printer = config["printer"];
+            if (printer.contains("kinematics") && printer["kinematics"].is_string()) {
+                kinematics_ = printer["kinematics"].get<std::string>();
+                spdlog::debug("[PrinterDiscovery] Kinematics from config: {}", kinematics_);
+            }
+        }
+
         for (const auto& [key, value] : config.items()) {
             if (key == "adxl345" || key.rfind("adxl345 ", 0) == 0 || key == "lis2dw" ||
                 key.rfind("lis2dw ", 0) == 0 || key == "mpu9250" || key.rfind("mpu9250 ", 0) == 0 ||
@@ -373,10 +385,12 @@ class PrinterDiscovery {
         hostname_.clear();
         software_version_.clear();
         moonraker_version_.clear();
+        os_version_.clear();
         kinematics_.clear();
         build_volume_ = BuildVolume{};
         mcu_.clear();
         mcu_list_.clear();
+        mcu_versions_.clear();
         printer_objects_.clear();
     }
 
@@ -729,6 +743,29 @@ class PrinterDiscovery {
     }
 
     /**
+     * @brief Set OS distribution name from machine.system_info
+     */
+    void set_os_version(const std::string& os_version) {
+        os_version_ = os_version;
+    }
+
+    [[nodiscard]] const std::string& os_version() const {
+        return os_version_;
+    }
+
+    /**
+     * @brief Set MCU version strings (name→version pairs)
+     * e.g., {"mcu", "v0.12.0-108-..."}, {"mcu EBBCan", "v0.12.0-..."}
+     */
+    void set_mcu_versions(const std::vector<std::pair<std::string, std::string>>& mcu_versions) {
+        mcu_versions_ = mcu_versions;
+    }
+
+    [[nodiscard]] const std::vector<std::pair<std::string, std::string>>& mcu_versions() const {
+        return mcu_versions_;
+    }
+
+    /**
      * @brief Set all printer objects from Klipper
      */
     void set_printer_objects(const std::vector<std::string>& objects) {
@@ -805,10 +842,12 @@ class PrinterDiscovery {
     std::string hostname_;
     std::string software_version_;
     std::string moonraker_version_;
+    std::string os_version_;
     std::string kinematics_;
     BuildVolume build_volume_;
     std::string mcu_;
     std::vector<std::string> mcu_list_;
+    std::vector<std::pair<std::string, std::string>> mcu_versions_;
     std::vector<std::string> printer_objects_;
 };
 

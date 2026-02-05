@@ -114,6 +114,7 @@ class SettingsPanel : public PanelBase {
     // Observers for reactive bindings (must be removed before labels are destroyed)
     lv_observer_t* klipper_version_observer_ = nullptr;
     lv_observer_t* moonraker_version_observer_ = nullptr;
+    lv_observer_t* os_version_observer_ = nullptr;
 
     // LED state observer (syncs toggle with printer LED state)
     ObserverGuard led_state_observer_;

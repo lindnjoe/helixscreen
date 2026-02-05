@@ -406,7 +406,17 @@ void MoonrakerClientMock::rebuild_hardware() {
     // Add default filament sensor
     objects.push_back("filament_switch_sensor runout_sensor");
 
+    // Add MCU objects for discovery
+    objects.push_back("mcu");
+    objects.push_back("mcu EBBCan");
+
     hardware_.parse_objects(objects);
+
+    // Set mock MCU version data (after parse_objects which clears everything)
+    hardware_.set_mcu("stm32f446xx");
+    hardware_.set_mcu_list({"stm32f446xx", "stm32g0b1xx"});
+    hardware_.set_mcu_versions(
+        {{"mcu", "v0.12.0-155-g4cfa273e"}, {"mcu EBBCan", "v0.12.0-155-g4cfa273e"}});
 }
 
 void MoonrakerClientMock::discover_printer(
@@ -462,6 +472,26 @@ void MoonrakerClientMock::discover_printer(
                 spdlog::debug("[MoonrakerClientMock] Klipper software version: {}",
                               software_version);
             }
+
+            // Query machine.system_info for OS version (uses registered RPC handler)
+            send_jsonrpc(
+                "machine.system_info", json::object(),
+                [this](json sys_response) {
+                    if (sys_response.contains("result") &&
+                        sys_response["result"].contains("system_info") &&
+                        sys_response["result"]["system_info"].contains("distribution") &&
+                        sys_response["result"]["system_info"]["distribution"].contains("name")) {
+                        std::string os_name =
+                            sys_response["result"]["system_info"]["distribution"]["name"]
+                                .get<std::string>();
+                        hardware_.set_os_version(os_name);
+                        spdlog::debug("[MoonrakerClientMock] OS version: {}", os_name);
+                    }
+                },
+                [](const MoonrakerError& err) {
+                    spdlog::debug("[MoonrakerClientMock] machine.system_info failed: {}",
+                                  err.message);
+                });
 
             // Set Spoolman availability during discovery (matches real Moonraker behavior)
             // Real client queries server.spoolman.status during discovery - see

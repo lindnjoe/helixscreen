@@ -873,6 +873,16 @@ class PrinterState {
     void set_moonraker_version(const std::string& version);
 
     /**
+     * @brief Set OS version from machine.system_info
+     *
+     * Updates os_version_ subject for Settings panel About section.
+     * Called after MoonrakerClient::discover_printer() completes.
+     *
+     * @param version OS distribution name (e.g., "Forge-X 1.4.0")
+     */
+    void set_os_version(const std::string& version);
+
+    /**
      * @brief Get Klipper version subject for XML binding
      */
     lv_subject_t* get_klipper_version_subject() {
@@ -884,6 +894,13 @@ class PrinterState {
      */
     lv_subject_t* get_moonraker_version_subject() {
         return versions_state_.get_moonraker_version_subject();
+    }
+
+    /**
+     * @brief Get OS version subject for XML binding
+     */
+    lv_subject_t* get_os_version_subject() {
+        return versions_state_.get_os_version_subject();
     }
 
     /**
@@ -1378,6 +1395,7 @@ class PrinterState {
     void set_hardware_internal(const helix::PrinterDiscovery& hardware);
     void set_klipper_version_internal(const std::string& version);
     void set_moonraker_version_internal(const std::string& version);
+    void set_os_version_internal(const std::string& version);
     void set_klippy_state_internal(KlippyState state);
     void set_printer_type_internal(const std::string& type);
 
