@@ -1,28 +1,18 @@
 locale: zh
 translations:
-  ' / ': ' / '
-  ' 0 / 0': ' 0 / 0'
-  '#808080': '#808080'
-  '#RRGGBB': '#RRGGBB'
   (0): (0)
   (2.4GHz): (2.4GHz)
-  +: +
-  '+0': '+0'
   +0.01mm: +0.01mm
   +0.05mm: +0.05mm
   +0.1mm: +0.1mm
   +1mm: +1mm
-  '-': '-'
   "- Check [resonance_tester] in printer.cfg": "- 检查 printer.cfg 中的 [resonance_tester]"
   "- Ensure ADXL345 is connected": "- 确保 ADXL345 已连接"
   "- Try Measure Noise first": "- 先尝试测量噪声"
-  --: --
-  '---': '---'
   -0.01mm: -0.01mm
   -0.05mm: -0.05mm
   -0.1mm: -0.1mm
   -1mm: -1mm
-  /: /
   "0.4-2mm direct drive, 4-6mm bowden": "直驱 0.4-2mm，远程挤出 4-6mm"
   "1. Printer homes and probes the bed": "1. 打印机归位并探测热床"
   "1. Printer will home and probe each screw": "1. 打印机将归位并探测每个螺丝位置"
@@ -47,7 +37,6 @@ translations:
   850g: 850g
   "= Loosen": "= 松开"
   "= Tighten": "= 拧紧"
-  '?': '?'
   "ABOUT": "关于"
   "ABS": "ABS"
   "AMS Settings": "AMS 设置"
@@ -162,7 +151,6 @@ translations:
   "Color Sensors": "颜色传感器"
   "Complete": "完成"
   Completed: 已完成
-  "Completed in 3 probes": "3 次探测完成"
   "Config-defined (read-only)": "配置定义（只读）"
   "Configure G10/G11 firmware retraction": "配置 G10/G11 固件回抽"
   "Configure PRINT_START": "配置 PRINT_START"
@@ -208,12 +196,10 @@ translations:
   "Danger": "危险"
   "Dark Mode": "深色模式"
   "Day": "日"
-  Default (value=50): 默认 (value=50)
   "Default border thickness": "默认边框厚度"
   "Define macros in your printer.cfg": "在 printer.cfg 中定义宏"
   "Delete": "删除"
   "Delta:": "差值："
-  Deutsch: Deutsch
   "Detecting printer type...": "正在检测打印机类型..."
   "Device Operations": "设备操作"
   "Disable": "禁用"
@@ -256,7 +242,6 @@ translations:
   "Enable detailed print preparation tracking (Recommended)": "启用详细打印准备跟踪（推荐）"
   "Enabled": "已启用"
   "Ended": "已结束"
-  English: English
   "Enhancement Complete!": "增强完成！"
   "Enhancement Failed": "增强失败"
   "Enter G-code command...": "输入 G-code 命令..."
@@ -268,7 +253,6 @@ translations:
   "Enter 127.0.0.1 if Moonraker is local, or the hostname/IP of a remote printer": "本地用127.0.0.1，或远程主机名/IP"
   "Error": "错误"
   Error state: 错误状态
-  Español: Español
   "Ethernet": "以太网"
   "Exclude": "排除"
   "Execute printer macros": "执行打印机宏"
@@ -307,7 +291,6 @@ translations:
   "Flow Rate": "流量"
   Forming tip...: 正在成型尖端...
   "Framerate": "帧率"
-  Français: Français
   "Freq": "频率"
   "Front": "前"
   "G-code Console": "G-code 控制台"
@@ -367,7 +350,6 @@ translations:
   "Interactive 3D G-code during prints": "打印期间的交互式 3D G-code"
   "Interactive probe calibration": "交互式探针校准"
   "Issue description": "问题描述"
-  Italiano: Italiano
   Just now: 刚刚
   "Kd:": "Kd："
   "Keep Printing": "继续打印"
@@ -536,7 +518,6 @@ translations:
   "Plugins are discovered on application startup": "插件在应用程序启动时被发现"
   "Polymaker": "Polymaker"
   "Port": "端口"
-  Português: Português
   "Position": "位置"
   "Power": "电源"
   "Power Control": "电源控制"
@@ -719,7 +700,6 @@ translations:
   "Stop Drying": "停止干燥"
   "Stop Print?": "停止打印？"
   "Stops all motion. Requires firmware restart.": "停止所有运动。需要固件重启。"
-  Styled (value=75): 样式化 (value=75)
   "Success Rate": "成功率"
   "Success!": "成功！"
   "Surfaces inherit app background tokens for light and dark modes.": "表面继承应用背景色用于浅色和深色模式。"
@@ -751,7 +731,6 @@ translations:
   "Theme changes apply after restart.": "主题更改在重启后生效。"
   "Theme changes will take effect after restart.": "主题更改将在重启后生效。"
   "Theme, brightness, and sleep settings": "主题、亮度和休眠设置"
-  Thin bar (height=8): 细条 (height=8)
   "This calibration uses the paper friction method to set your Z-offset.": "此校准使用纸张摩擦法设置 Z 偏移。"
   "This may take 1-2 minutes": "这可能需要 1-2 分钟"
   "This may take up to 30 seconds": "这可能需要 30 秒"
@@ -823,12 +802,10 @@ translations:
   "Width": "宽度"
   "Width Sensors": "宽度传感器"
   'X:': 'X：'
-  XY: XY
   'Y:': 'Y：'
   "Year": "年"
   "Your completed prints will appear here": "您完成的打印将显示在此处"
   "Your printer has an automatic filament changer": "您的打印机有自动耗材更换器"
-  Z: Z
   "Z Calibration": "Z 轴校准"
   "Z Range": "Z 范围"
   "Z probes for bed leveling and mesh generation": "用于热床调平和网格生成的 Z 探针"
@@ -836,35 +813,14 @@ translations:
   "Z-Offset Calibration": "Z 偏移校准"
   "Z-Offset:": "Z 偏移："
   "Z-Tilt Adjust": "Z 倾斜调整"
-  'Z:': 'Z：'
-  'Z: 0.000': 'Z：0.000'
   "Zoom": "缩放"
-  ^ FRONT: ^ 前方
   "hour": "小时"
   "hours": "小时"
-  lg: lg
-  md: md
-  min_value=0, max_value=100, value=25: min_value=0, max_value=100, value=25
   "minute": "分钟"
   "minutes": "分钟"
-  mzv @ 36.7 Hz: mzv @ 36.7 Hz
   "seconds": "秒"
   size="large": size="large"
   size="medium": size="medium"
   size="medium" width="100": size="medium" width="100"
   size="small": size="small"
   size="tiny": size="tiny"
-  sm: sm
-  'true': 'true'
-  value=0 (shows FULL - BUG!): value=0 (shows FULL - BUG!)
-  value=1 (tiny sliver?): value=1 (tiny sliver?)
-  value=100 (should be full): value=100 (should be full)
-  xs: xs
-  Русский: Русский
-  —: —
-  •: •
-  中文: 中文
-  日本語: 日本語
-  󰅐: 󰅐
-  󰉋: 󰉋
-  󱧰: 󱧰

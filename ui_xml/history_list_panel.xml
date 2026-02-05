@@ -52,7 +52,7 @@
               style_flex_cross_place="center" style_pad_row="#space_md" style_pad_all="#space_xl">
         <bind_flag_if_not_eq subject="history_list_panel_state" flag="hidden" ref_value="1"/>
         <!-- Empty state icon (clock/history icon F0150) -->
-        <lv_label name="empty_icon" text="󰅐" translation_tag="󰅐" style_text_font="mdi_icons_48" style_text_color="#text_muted"/>
+        <lv_label name="empty_icon" text="󰅐" style_text_font="mdi_icons_48" style_text_color="#text_muted"/>
         <!-- Empty state message -->
         <text_muted name="empty_message" bind_text="history_empty_message" style_text_align="center"/>
         <text_small name="empty_hint"

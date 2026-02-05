@@ -32,6 +32,12 @@ TEXT_ATTRIBUTES = {"text", "label", "description", "title", "subtitle"}
 VARIABLE_PATTERN = re.compile(r"\$\w+")  # $variable
 ICON_PATTERN = re.compile(r"^#icon_")  # #icon_xxx
 NUMERIC_PATTERN = re.compile(r"^[\d.]+%?$")  # 123 or 100%
+FONT_NAME_PATTERN = re.compile(r"^(mdi_icons_|noto_sans_)\w+$")  # Font names
+HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")  # #RRGGBB hex colors
+SIZE_ATTR_PATTERN = re.compile(r'^size=')  # XML size attribute values
+
+# Short tokens and non-translatable exact strings
+NON_TRANSLATABLE = {"true", "false", "xl", "lg", "md", "sm", "xs", "#RRGGBB"}
 
 # C++ patterns that indicate translatable text
 CPP_TRANSLATABLE_PATTERNS = [
@@ -74,6 +80,22 @@ def should_skip_text(text: str) -> bool:
 
     # Skip pure numeric values
     if NUMERIC_PATTERN.match(text.strip()):
+        return True
+
+    # Skip icon codepoints (Private Use Area Unicode)
+    if all(ord(c) >= 0xE000 for c in text):
+        return True
+
+    # Skip font names, hex colors, size attributes
+    if FONT_NAME_PATTERN.match(text):
+        return True
+    if HEX_COLOR_PATTERN.match(text):
+        return True
+    if SIZE_ATTR_PATTERN.match(text):
+        return True
+
+    # Skip known non-translatable tokens
+    if text in NON_TRANSLATABLE:
         return True
 
     return False

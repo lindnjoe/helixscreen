@@ -1,28 +1,18 @@
 locale: ja
 translations:
-  ' / ': ' / '
-  ' 0 / 0': ' 0 / 0'
-  '#808080': '#808080'
-  '#RRGGBB': '#RRGGBB'
   (0): (0)
   (2.4GHz): (2.4GHz)
-  +: +
-  '+0': '+0'
   +0.01mm: +0.01mm
   +0.05mm: +0.05mm
   +0.1mm: +0.1mm
   +1mm: +1mm
-  '-': '-'
   "- Check [resonance_tester] in printer.cfg": "- printer.cfg の [resonance_tester] を確認してください"
   "- Ensure ADXL345 is connected": "- ADXL345 が接続されていることを確認してください"
   "- Try Measure Noise first": "- まず「ノイズ測定」をお試しください"
-  --: --
-  '---': '---'
   -0.01mm: -0.01mm
   -0.05mm: -0.05mm
   -0.1mm: -0.1mm
   -1mm: -1mm
-  /: /
   "0.4-2mm direct drive, 4-6mm bowden": "0.4-2mm ダイレクトドライブ、4-6mm ボーデン"
   "1. Printer homes and probes the bed": "1. プリンターがホーミングしてベッドをプローブします"
   "1. Printer will home and probe each screw": "1. プリンターがホーミングして各ネジをプローブします"
@@ -47,7 +37,6 @@ translations:
   850g: 850g
   "= Loosen": "= 緩める"
   "= Tighten": "= 締める"
-  '?': '?'
   "ABOUT": "バージョン情報"
   "ABS": "ABS"
   "AMS Settings": "AMS設定"
@@ -162,7 +151,6 @@ translations:
   "Color Sensors": "カラーセンサー"
   "Complete": "完了"
   Completed: "完了"
-  "Completed in 3 probes": "3回のプローブで完了"
   "Config-defined (read-only)": "設定で定義済み（読み取り専用）"
   "Configure G10/G11 firmware retraction": "G10/G11 ファームウェアリトラクションを設定"
   "Configure PRINT_START": "PRINT_START を設定"
@@ -208,13 +196,11 @@ translations:
   "Danger": "危険"
   "Dark Mode": "ダークモード"
   "Day": "日"
-  Default (value=50): "デフォルト (value=50)"
   "Default border thickness": "デフォルトの境界線の太さ"
   "Define macros in your printer.cfg": "printer.cfg でマクロを定義してください"
   "Delete": "削除"
   "Detecting printer type...": "プリンタータイプを検出中..."
   "Delta:": "差分:"
-  Deutsch: Deutsch
   "Device Operations": "デバイス操作"
   "Disable": "無効化"
   "Discovered Printers": "検出されたプリンター"
@@ -256,7 +242,6 @@ translations:
   "Enable detailed print preparation tracking (Recommended)": "詳細な印刷準備トラッキングを有効化（推奨）"
   "Enabled": "有効"
   "Ended": "終了"
-  English: English
   "Enhancement Complete!": "改善完了！"
   "Enhancement Failed": "改善失敗"
   "Enter G-code command...": "G-code コマンドを入力..."
@@ -268,7 +253,6 @@ translations:
   "Enter 127.0.0.1 if Moonraker is local, or the hostname/IP of a remote printer": "ローカルは127.0.0.1、リモートはホスト名/IP"
   "Error": "エラー"
   Error state: "エラー状態"
-  Español: Español
   "Ethernet": "イーサネット"
   "Exclude": "除外"
   "Execute printer macros": "プリンターマクロを実行"
@@ -307,7 +291,6 @@ translations:
   "Flow Rate": "フローレート"
   Forming tip...: "チップを形成中..."
   "Framerate": "フレームレート"
-  Français: Français
   "Freq": "周波数"
   "Front": "正面"
   "G-code Console": "G-code コンソール"
@@ -367,7 +350,6 @@ translations:
   "Interactive 3D G-code during prints": "印刷中のインタラクティブ 3D G-code"
   "Interactive probe calibration": "インタラクティブプローブキャリブレーション"
   "Issue description": "問題の説明"
-  Italiano: Italiano
   Just now: "たった今"
   "Kd:": "Kd:"
   "Keep Printing": "印刷を続行"
@@ -391,7 +373,6 @@ translations:
   "Layer": "レイヤー"
   "Layer Height": "レイヤー高さ"
   "Layer mode captures one frame per layer change. Best for most prints.": "レイヤーモードはレイヤー変更ごとに1フレームをキャプチャします。ほとんどの印刷に最適です。"
-  "Layer 0 / 0": "レイヤー 0 / 0"
   "Layer:": "レイヤー:"
   "Layers": "レイヤー"
   "Length:": "長さ:"
@@ -537,7 +518,6 @@ translations:
   "Plugins are discovered on application startup": "プラグインはアプリケーション起動時に検出されます"
   "Polymaker": "Polymaker"
   "Port": "ポート"
-  Português: Português
   "Position": "位置"
   "Power": "電源"
   "Power Control": "電源制御"
@@ -721,7 +701,6 @@ translations:
   "Stop Drying": "乾燥を停止"
   "Stop Print?": "印刷を停止しますか？"
   "Stops all motion. Requires firmware restart.": "すべての動作を停止します。ファームウェアの再起動が必要です。"
-  Styled (value=75): "スタイル適用 (value=75)"
   "Success Rate": "成功率"
   "Success!": "成功！"
   "Surfaces inherit app background tokens for light and dark modes.": "サーフェスはライトモードとダークモードのアプリ背景トークンを継承します。"
@@ -753,7 +732,6 @@ translations:
   "Theme changes apply after restart.": "テーマの変更は再起動後に適用されます。"
   "Theme changes will take effect after restart.": "テーマの変更は再起動後に有効になります。"
   "Theme, brightness, and sleep settings": "テーマ、明るさ、スリープ設定"
-  Thin bar (height=8): "細いバー (height=8)"
   "This calibration uses the paper friction method to set your Z-offset.": "このキャリブレーションは紙の摩擦方式を使用して Z-offset を設定します。"
   "This may take 1-2 minutes": "1〜2分かかる場合があります"
   "This may take up to 30 seconds": "最大30秒かかる場合があります"
@@ -827,12 +805,10 @@ translations:
   "Width": "幅"
   "Width Sensors": "幅センサー"
   'X:': 'X:'
-  XY: XY
   'Y:': 'Y:'
   "Year": "年"
   "Your completed prints will appear here": "完了した印刷がここに表示されます"
   "Your printer has an automatic filament changer": "お使いのプリンターには自動フィラメントチェンジャーがあります"
-  Z: Z
   "Z Calibration": "Z キャリブレーション"
   "Z Range": "Z 範囲"
   "Z probes for bed leveling and mesh generation": "ベッドレベリングとメッシュ生成用 Z プローブ"
@@ -840,35 +816,14 @@ translations:
   "Z-Offset Calibration": "Z-Offset キャリブレーション"
   "Z-Offset:": "Z-Offset:"
   "Z-Tilt Adjust": "Z-Tilt 調整"
-  'Z:': 'Z:'
-  'Z: 0.000': 'Z: 0.000'
   "Zoom": "ズーム"
-  ^ FRONT: "^ 正面"
   "hour": "時間"
   "hours": "時間"
-  lg: lg
-  md: md
-  min_value=0, max_value=100, value=25: min_value=0, max_value=100, value=25
   "minute": "分"
   "minutes": "分"
-  mzv @ 36.7 Hz: mzv @ 36.7 Hz
   "seconds": "秒"
   size="large": size="large"
   size="medium": size="medium"
   size="medium" width="100": size="medium" width="100"
   size="small": size="small"
   size="tiny": size="tiny"
-  sm: sm
-  'true': 'true'
-  value=0 (shows FULL - BUG!): value=0 (shows FULL - BUG!)
-  value=1 (tiny sliver?): value=1 (tiny sliver?)
-  value=100 (should be full): value=100 (should be full)
-  xs: xs
-  Русский: Русский
-  —: —
-  •: •
-  中文: 中文
-  日本語: 日本語
-  󰅐: 󰅐
-  󰉋: 󰉋
-  󱧰: 󱧰

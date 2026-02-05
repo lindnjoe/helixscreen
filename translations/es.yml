@@ -1,28 +1,18 @@
 locale: es
 translations:
-  ' / ': ' / '
-  ' 0 / 0': ' 0 / 0'
-  '#808080': '#808080'
-  '#RRGGBB': '#RRGGBB'
   (0): (0)
   (2.4GHz): (2.4GHz)
-  +: +
-  '+0': '+0'
   +0.01mm: +0.01mm
   +0.05mm: +0.05mm
   +0.1mm: +0.1mm
   +1mm: +1mm
-  '-': '-'
   "- Check [resonance_tester] in printer.cfg": "- Verifique [resonance_tester] en printer.cfg"
   "- Ensure ADXL345 is connected": "- Asegúrese de que el ADXL345 esté conectado"
   "- Try Measure Noise first": "- Intente Medir Ruido primero"
-  --: --
-  '---': '---'
   -0.01mm: -0.01mm
   -0.05mm: -0.05mm
   -0.1mm: -0.1mm
   -1mm: -1mm
-  /: /
   "0.4-2mm direct drive, 4-6mm bowden": "0.4-2mm extrusión directa, 4-6mm bowden"
   "1. Printer homes and probes the bed": "1. La impresora hace origen y sondea la cama"
   "1. Printer will home and probe each screw": "1. La impresora hará origen y sondeará cada tornillo"
@@ -47,7 +37,6 @@ translations:
   850g: 850g
   "= Loosen": "= Aflojar"
   "= Tighten": "= Apretar"
-  '?': '?'
   "ABOUT": "ACERCA DE"
   "ABS": "ABS"
   "AMS Settings": "Configuración AMS"
@@ -160,7 +149,6 @@ translations:
   "Color Sensors": "Sensores de Color"
   "Complete": "Completo"
   Completed: Completado
-  "Completed in 3 probes": "Completado en 3 sondeos"
   "Config-defined (read-only)": "Definido en configuración (solo lectura)"
   "Configure G10/G11 firmware retraction": "Configurar retracción de firmware G10/G11"
   "Configure PRINT_START": "Configurar PRINT_START"
@@ -204,12 +192,10 @@ translations:
   "Danger": "Peligro"
   "Dark Mode": "Modo Oscuro"
   "Day": "Día"
-  Default (value=50): Predeterminado (valor=50)
   "Default border thickness": "Grosor de borde predeterminado"
   "Define macros in your printer.cfg": "Defina macros en su printer.cfg"
   "Delete": "Eliminar"
   "Delta:": "Delta:"
-  Deutsch: Deutsch
   "Device Operations": "Operaciones de Dispositivo"
   "Disable": "Desactivar"
   "Discovered Printers": "Impresoras Descubiertas"
@@ -251,7 +237,6 @@ translations:
   "Enable detailed print preparation tracking (Recommended)": "Activar seguimiento detallado de preparación de impresión (Recomendado)"
   "Enabled": "Activado"
   "Ended": "Terminado"
-  English: English
   "Enhancement Complete!": "¡Mejora Completa!"
   "Enhancement Failed": "Mejora Fallida"
   "Enter G-code command...": "Ingrese comando G-code..."
@@ -262,7 +247,6 @@ translations:
   "Enter password": "Ingrese contraseña"
   "Error": "Error"
   Error state: Estado de error
-  Español: Español
   "Ethernet": "Ethernet"
   "Exclude": "Excluir"
   "Execute printer macros": "Ejecutar macros de impresora"
@@ -301,7 +285,6 @@ translations:
   "Flow Rate": "Tasa de Flujo"
   Forming tip...: Formando punta...
   "Framerate": "Cuadros por segundo"
-  Français: Français
   "Freq": "Frec"
   "Front": "Frente"
   "G-code Console": "Consola G-code"
@@ -361,7 +344,6 @@ translations:
   "Interactive 3D G-code during prints": "G-code 3D interactivo durante impresiones"
   "Interactive probe calibration": "Calibración interactiva de sonda"
   "Issue description": "Descripción del problema"
-  Italiano: Italiano
   Just now: Justo ahora
   "Kd:": "Kd:"
   "Keep Printing": "Continuar Imprimiendo"
@@ -527,7 +509,6 @@ translations:
   "Plugins are discovered on application startup": "Los plugins se descubren al iniciar la aplicación"
   "Polymaker": "Polymaker"
   "Port": "Puerto"
-  Português: Português
   "Position": "Posición"
   "Power": "Energía"
   "Power Control": "Control de Energía"
@@ -693,7 +674,6 @@ translations:
   "Stop Drying": "Detener Secado"
   "Stop Print?": "¿Detener Impresión?"
   "Stops all motion. Requires firmware restart.": "Detiene todo movimiento. Requiere reinicio de firmware."
-  Styled (value=75): Estilizado (valor=75)
   "Success Rate": "Tasa de Éxito"
   "Success!": "¡Éxito!"
   "Surfaces inherit app background tokens for light and dark modes.": "Las superficies heredan los tokens de fondo de la aplicación para modos claro y oscuro."
@@ -725,7 +705,6 @@ translations:
   "Theme changes apply after restart.": "Los cambios de tema se aplican después de reiniciar."
   "Theme changes will take effect after restart.": "Los cambios de tema tendrán efecto después de reiniciar."
   "Theme, brightness, and sleep settings": "Tema, brillo y configuración de suspensión"
-  Thin bar (height=8): Barra delgada (alto=8)
   "This calibration uses the paper friction method to set your Z-offset.": "Esta calibración usa el método de fricción de papel para establecer su Z-offset."
   "This may take 1-2 minutes": "Esto puede tardar 1-2 minutos"
   "This may take up to 30 seconds": "Esto puede tardar hasta 30 segundos"
@@ -797,11 +776,9 @@ translations:
   "Width": "Ancho"
   "Width Sensors": "Sensores de Ancho"
   'X:': 'X:'
-  XY: XY
   'Y:': 'Y:'
   "Year": "Año"
   "Your completed prints will appear here": "Sus impresiones completadas aparecerán aquí"
-  Z: Z
   "Z Calibration": "Calibración Z"
   "Z Range": "Rango Z"
   "Z probes for bed leveling and mesh generation": "Sondas Z para nivelación de cama y generación de malla"
@@ -809,42 +786,17 @@ translations:
   "Z-Offset Calibration": "Calibración de Z-Offset"
   "Z-Offset:": "Z-Offset:"
   "Z-Tilt Adjust": "Ajuste Z-Tilt"
-  'Z:': 'Z:'
-  'Z: 0.000': 'Z: 0.000'
   "Zoom": "Zoom"
-  ^ FRONT: ^ FRENTE
   "hour": "hora"
   "hours": "horas"
-  lg: lg
-  md: md
-  min_value=0, max_value=100, value=25: min_value=0, max_value=100, value=25
   "minute": "minuto"
   "minutes": "minutos"
-  mzv @ 36.7 Hz: mzv @ 36.7 Hz
   "seconds": "segundos"
   size="large": size="large"
   size="medium": size="medium"
   size="medium" width="100": size="medium" width="100"
   size="small": size="small"
   size="tiny": size="tiny"
-  sm: sm
-  'true': 'true'
-  value=0 (shows FULL - BUG!): value=0 (muestra LLENO - ¡ERROR!)
-  value=1 (tiny sliver?): value=1 (¿pequeño fragmento?)
-  value=100 (should be full): value=100 (debería estar lleno)
-  xs: xs
-  Русский: Русский
-  —: —
-  •: •
-  中文: 中文
-  日本語: 日本語
-  "0h": "0h"
-  "0h 00m": "0h 00m"
-  "0m": "0m"
-  "1.0.0": "1.0.0"
-  "127.0.0.1": "127.0.0.1"
-  "200°C": "200°C"
-  "25°C / 200°C": "25°C / 200°C"
   "Authentication failed": "Autenticación fallida"
   "Calibrate input shaping to reduce ringing artifacts in prints": "Calibrar el moldeado de entrada para reducir artefactos de resonancia en las impresiones"
   "Calibrate your touchscreen for accurate input": "Calibre su pantalla táctil para una entrada precisa"
@@ -855,7 +807,6 @@ translations:
   "Connection timeout": "Tiempo de conexión agotado"
   "Detecting printer type...": "Detectando tipo de impresora..."
   "Enter 127.0.0.1 if Moonraker is local, or the hostname/IP of a remote printer": "127.0.0.1 si es local, o hostname/IP remoto"
-  "Layer 0 / 0": "Capa 0 / 0"
   "Multi-Material System Detected": "Sistema Multi-Material Detectado"
   "Not configured": "No configurado"
   "Optional - select your main lighting source, or skip if your printer doesn't have one": "Opcional - seleccione su fuente de iluminación principal, u omita si su impresora no tiene una"
@@ -877,188 +828,11 @@ translations:
   "Select which sensor triggers pause on filament runout": "Seleccione qué sensor activa la pausa al agotarse el filamento"
   "Select your preferred language": "Seleccione su idioma preferido"
   "Skip if using dedicated probe (BLTouch, Klicky, etc.)": "Omita si usa una sonda dedicada (BLTouch, Klicky, etc.)"
-  "T0": "T0"
   "WiFi Disabled": "WiFi Desactivado"
   "WiFi Enabled": "WiFi Activado"
   "Your printer has an automatic filament changer": "Su impresora tiene un cambiador automático de filamento"
-  "benchy.gcode": "benchy.gcode"
-  "mdi_icons_16": "mdi_icons_16"
-  "mdi_icons_24": "mdi_icons_24"
-  "mdi_icons_32": "mdi_icons_32"
-  "mdi_icons_48": "mdi_icons_48"
-  "mdi_icons_64": "mdi_icons_64"
-  "noto_sans_14": "noto_sans_14"
-  "noto_sans_18": "noto_sans_18"
-  "noto_sans_20": "noto_sans_20"
-  "noto_sans_26": "noto_sans_26"
-  "noto_sans_28": "noto_sans_28"
-  "noto_sans_light_10": "noto_sans_light_10"
-  "noto_sans_light_12": "noto_sans_light_12"
-  "noto_sans_light_14": "noto_sans_light_14"
-  "noto_sans_light_16": "noto_sans_light_16"
-  "noto_sans_light_18": "noto_sans_light_18"
   "size=\"large\"": "size=\"large\""
   "size=\"medium\"": "size=\"medium\""
   "size=\"medium\" width=\"100\"": "size=\"medium\" width=\"100\""
   "size=\"small\"": "size=\"small\""
   "size=\"tiny\"": "size=\"tiny\""
-  "xl": "xl"
-  "󰀦": "󰀦"
-  "󰀩": "󰀩"
-  "󰁅": "󰁅"
-  "󰁌": "󰁌"
-  "󰁍": "󰁍"
-  "󰁎": "󰁎"
-  "󰁔": "󰁔"
-  "󰁝": "󰁝"
-  "󰁟": "󰁟"
-  "󰂚": "󰂚"
-  "󰂭": "󰂭"
-  "󰄉": "󰄉"
-  "󰄝": "󰄝"
-  "󰄪": "󰄪"
-  "󰄬": "󰄬"
-  "󰅀": "󰅀"
-  "󰅁": "󰅁"
-  "󰅂": "󰅂"
-  "󰅃": "󰅃"
-  󰅐: 󰅐
-  "󰅖": "󰅖"
-  "󰅙": "󰅙"
-  "󰅩": "󰅩"
-  "󰅴": "󰅴"
-  "󰆍": "󰆍"
-  "󰆧": "󰆧"
-  "󰆴": "󰆴"
-  "󰆾": "󰆾"
-  "󰇙": "󰇙"
-  "󰇚": "󰇚"
-  "󰇺": "󰇺"
-  "󰈀": "󰈀"
-  "󰈐": "󰈐"
-  "󰈯": "󰈯"
-  "󰈸": "󰈸"
-  󰉋: 󰉋
-  "󰉙": "󰉙"
-  "󰉹": "󰉹"
-  "󰋗": "󰋗"
-  "󰋜": "󰋜"
-  "󰋣": "󰋣"
-  "󰋮": "󰋮"
-  "󰋼": "󰋼"
-  "󰋽": "󰋽"
-  "󰌗": "󰌗"
-  "󰌨": "󰌨"
-  "󰌪": "󰌪"
-  "󰌵": "󰌵"
-  "󰌶": "󰌶"
-  "󰌾": "󰌾"
-  "󰍴": "󰍴"
-  "󰏖": "󰏖"
-  "󰏤": "󰏤"
-  "󰏫": "󰏫"
-  "󰐊": "󰐊"
-  "󰐌": "󰐌"
-  "󰐕": "󰐕"
-  "󰐥": "󰐥"
-  "󰐪": "󰐪"
-  "󰐫": "󰐫"
-  "󰐸": "󰐸"
-  "󰑎": "󰑎"
-  "󰑐": "󰑐"
-  "󰑥": "󰑥"
-  "󰑧": "󰑧"
-  "󰑩": "󰑩"
-  "󰑭": "󰑭"
-  "󰑹": "󰑹"
-  "󰒊": "󰒊"
-  "󰒓": "󰒓"
-  "󰓅": "󰓅"
-  "󰓛": "󰓛"
-  "󰓾": "󰓾"
-  "󰔏": "󰔏"
-  "󰔟": "󰔟"
-  "󰕌": "󰕌"
-  "󰕦": "󰕦"
-  "󰕧": "󰕧"
-  "󰕮": "󰕮"
-  "󰕰": "󰕰"
-  "󰕲": "󰕲"
-  "󰖌": "󰖌"
-  "󰖡": "󰖡"
-  "󰖩": "󰖩"
-  "󰖪": "󰖪"
-  "󰗘": "󰗘"
-  "󰗡": "󰗡"
-  "󰘬": "󰘬"
-  "󰘮": "󰘮"
-  "󰚥": "󰚥"
-  "󰚩": "󰚩"
-  "󰚰": "󰚰"
-  "󰛨": "󰛨"
-  "󰜗": "󰜗"
-  "󰜮": "󰜮"
-  "󰜱": "󰜱"
-  "󰜴": "󰜴"
-  "󰜷": "󰜷"
-  "󰜺": "󰜺"
-  "󰝘": "󰝘"
-  "󰝰": "󰝰"
-  "󰞖": "󰞖"
-  "󰞙": "󰞙"
-  "󰠝": "󰠝"
-  "󰤇": "󰤇"
-  "󰤟": "󰤟"
-  "󰤠": "󰤠"
-  "󰤡": "󰤡"
-  "󰤢": "󰤢"
-  "󰤤": "󰤤"
-  "󰤥": "󰤥"
-  "󰤧": "󰤧"
-  "󰤨": "󰤨"
-  "󰤪": "󰤪"
-  "󰤺": "󰤺"
-  "󰥛": "󰥛"
-  "󰦖": "󰦖"
-  "󰩆": "󰩆"
-  "󰩦": "󰩦"
-  "󰩺": "󰩺"
-  "󰭜": "󰭜"
-  "󰯂": "󰯂"
-  "󰳡": "󰳡"
-  "󰴻": "󰴻"
-  "󰵉": "󰵉"
-  "󰵌": "󰵌"
-  "󰵑": "󰵑"
-  "󰵕": "󰵕"
-  "󰸄": "󰸄"
-  "󰸅": "󰸅"
-  "󰹏": "󰹏"
-  "󰹛": "󰹛"
-  "󰹳": "󰹳"
-  "󰹹": "󰹹"
-  "󰻇": "󰻇"
-  "󰾅": "󰾅"
-  "󰾆": "󰾆"
-  "󰾜": "󰾜"
-  "󱊍": "󱊍"
-  "󱌣": "󱌣"
-  "󱕂": "󱕂"
-  "󱕃": "󱕃"
-  "󱚵": "󱚵"
-  "󱚽": "󱚽"
-  "󱚿": "󱚿"
-  "󱞿": "󱞿"
-  "󱢸": "󱢸"
-  󱧰: 󱧰
-  "󱩅": "󱩅"
-  "󱩎": "󱩎"
-  "󱩏": "󱩏"
-  "󱩐": "󱩐"
-  "󱩑": "󱩑"
-  "󱩒": "󱩒"
-  "󱩓": "󱩓"
-  "󱩔": "󱩔"
-  "󱩕": "󱩕"
-  "󱩖": "󱩖"
-  "󱬵": "󱬵"

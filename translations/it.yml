@@ -1,28 +1,18 @@
 locale: it
 translations:
-  ' / ': ' / '
-  ' 0 / 0': ' 0 / 0'
-  '#808080': '#808080'
-  '#RRGGBB': '#RRGGBB'
   (0): (0)
   (2.4GHz): (2.4GHz)
-  +: +
-  '+0': '+0'
   +0.01mm: +0.01mm
   +0.05mm: +0.05mm
   +0.1mm: +0.1mm
   +1mm: +1mm
-  '-': '-'
   "- Check [resonance_tester] in printer.cfg": "- Controllare [resonance_tester] in printer.cfg"
   "- Ensure ADXL345 is connected": "- Assicurarsi che ADXL345 sia collegato"
   "- Try Measure Noise first": "- Provare prima Misura rumore"
-  --: --
-  '---': '---'
   -0.01mm: -0.01mm
   -0.05mm: -0.05mm
   -0.1mm: -0.1mm
   -1mm: -1mm
-  /: /
   "0.4-2mm direct drive, 4-6mm bowden": "0,4-2mm direct drive, 4-6mm bowden"
   "1. Printer homes and probes the bed": "1. La stampante esegue homing e sonda il piano"
   "1. Printer will home and probe each screw": "1. La stampante eseguirà homing e sonderà ogni vite"
@@ -47,7 +37,6 @@ translations:
   850g: 850g
   "= Loosen": "= Allentare"
   "= Tighten": "= Stringere"
-  '?': '?'
   "ABOUT": "INFORMAZIONI"
   "ABS": "ABS"
   "AMS Settings": "Impostazioni AMS"
@@ -163,7 +152,6 @@ translations:
   "Color Sensors": "Sensori colore"
   "Complete": "Completato"
   Completed: Completato
-  "Completed in 3 probes": "Completato in 3 sondaggi"
   "Config-defined (read-only)": "Definito nella configurazione (sola lettura)"
   "Configure G10/G11 firmware retraction": "Configura retrazione firmware G10/G11"
   "Configure PRINT_START": "Configura PRINT_START"
@@ -212,12 +200,10 @@ translations:
   "Danger": "Pericolo"
   "Dark Mode": "Modalità scura"
   "Day": "Giorno"
-  Default (value=50): Predefinito (valore=50)
   "Default border thickness": "Spessore bordo predefinito"
   "Define macros in your printer.cfg": "Definire le macro nel proprio printer.cfg"
   "Delete": "Elimina"
   "Delta:": "Delta:"
-  Deutsch: Deutsch
   "Detecting printer type...": "Rilevamento tipo stampante..."
   "Device Operations": "Operazioni dispositivo"
   "Disable": "Disabilita"
@@ -260,7 +246,6 @@ translations:
   "Enable detailed print preparation tracking (Recommended)": "Abilita tracciamento dettagliato preparazione stampa (consigliato)"
   "Enabled": "Abilitato"
   "Ended": "Terminato"
-  English: English
   "Enhancement Complete!": "Miglioramento completato!"
   "Enhancement Failed": "Miglioramento fallito"
   "Enter G-code command...": "Inserisci comando G-code..."
@@ -272,7 +257,6 @@ translations:
   "Enter password": "Inserisci password"
   "Error": "Errore"
   Error state: Stato errore
-  Español: Español
   "Ethernet": "Ethernet"
   "Exclude": "Escludi"
   "Execute printer macros": "Esegui macro stampante"
@@ -311,7 +295,6 @@ translations:
   "Flow Rate": "Flusso"
   Forming tip...: Formazione punta...
   "Framerate": "Frequenza fotogrammi"
-  Français: Français
   "Freq": "Freq"
   "Front": "Anteriore"
   "G-code Console": "Console G-code"
@@ -371,7 +354,6 @@ translations:
   "Interactive 3D G-code during prints": "G-code 3D interattivo durante le stampe"
   "Interactive probe calibration": "Calibrazione sonda interattiva"
   "Issue description": "Descrizione problema"
-  Italiano: Italiano
   Just now: Adesso
   "Kd:": "Kd:"
   "Keep Printing": "Continua a stampare"
@@ -395,7 +377,6 @@ translations:
   "Layer": "Layer"
   "Layer Height": "Altezza layer"
   "Layer mode captures one frame per layer change. Best for most prints.": "La modalità layer cattura un fotogramma per cambio layer. Ideale per la maggior parte delle stampe."
-  "Layer 0 / 0": "Layer 0 / 0"
   "Layer:": "Layer:"
   "Layers": "Layer"
   "Length:": "Lunghezza:"
@@ -541,7 +522,6 @@ translations:
   "Plugins are discovered on application startup": "I plugin vengono rilevati all'avvio dell'applicazione"
   "Polymaker": "Polymaker"
   "Port": "Porta"
-  Português: Português
   "Position": "Posizione"
   "Power": "Alimentazione"
   "Power Control": "Controllo alimentazione"
@@ -725,7 +705,6 @@ translations:
   "Stop Drying": "Ferma essiccazione"
   "Stop Print?": "Fermare stampa?"
   "Stops all motion. Requires firmware restart.": "Ferma tutto il movimento. Richiede riavvio firmware."
-  Styled (value=75): Stilizzato (valore=75)
   "Success Rate": "Tasso di successo"
   "Success!": "Successo!"
   "Surfaces inherit app background tokens for light and dark modes.": "Le superfici ereditano i token sfondo app per modalità chiara e scura."
@@ -737,7 +716,6 @@ translations:
   System detected: Sistema rilevato
   "TD-1 filament color detection": "Rilevamento colore filamento TD-1"
   "THEME COLORS": "COLORI TEMA"
-  "T0": "T0"
   "TPU": "TPU"
   "Tap to show keyboard...": "Tocca per mostrare tastiera..."
   "Target": "Target"
@@ -758,7 +736,6 @@ translations:
   "Theme changes apply after restart.": "Le modifiche al tema si applicano dopo il riavvio."
   "Theme changes will take effect after restart.": "Le modifiche al tema avranno effetto dopo il riavvio."
   "Theme, brightness, and sleep settings": "Tema, luminosità e impostazioni standby"
-  Thin bar (height=8): Barra sottile (altezza=8)
   "This calibration uses the paper friction method to set your Z-offset.": "Questa calibrazione utilizza il metodo della frizione della carta per impostare lo Z-offset."
   "This may take 1-2 minutes": "Questo potrebbe richiedere 1-2 minuti"
   "This may take up to 30 seconds": "Questo potrebbe richiedere fino a 30 secondi"
@@ -832,12 +809,10 @@ translations:
   "Width": "Larghezza"
   "Width Sensors": "Sensori larghezza"
   'X:': 'X:'
-  XY: XY
   'Y:': 'Y:'
   "Year": "Anno"
   "Your completed prints will appear here": "Le stampe completate appariranno qui"
   "Your printer has an automatic filament changer": "La tua stampante ha un cambia-filamento automatico"
-  Z: Z
   "Z Calibration": "Calibrazione Z"
   "Z Range": "Intervallo Z"
   "Z probes for bed leveling and mesh generation": "Sonde Z per livellamento piano e generazione mesh"
@@ -845,220 +820,14 @@ translations:
   "Z-Offset Calibration": "Calibrazione Z-Offset"
   "Z-Offset:": "Z-Offset:"
   "Z-Tilt Adjust": "Regolazione Z-Tilt"
-  'Z:': 'Z:'
-  'Z: 0.000': 'Z: 0.000'
   "Zoom": "Zoom"
-  ^ FRONT: ^ ANTERIORE
   "hour": "ora"
   "hours": "ore"
-  lg: lg
-  md: md
-  min_value=0, max_value=100, value=25: min_value=0, max_value=100, value=25
   "minute": "minuto"
   "minutes": "minuti"
-  mzv @ 36.7 Hz: mzv @ 36.7 Hz
   "seconds": "secondi"
   size="large": size="large"
   size="medium": size="medium"
   size="medium" width="100": size="medium" width="100"
   size="small": size="small"
   size="tiny": size="tiny"
-  sm: sm
-  'true': 'true'
-  value=0 (shows FULL - BUG!): value=0 (mostra PIENO - BUG!)
-  value=1 (tiny sliver?): value=1 (frammento piccolo?)
-  value=100 (should be full): value=100 (dovrebbe essere pieno)
-  xs: xs
-  Русский: Русский
-  —: —
-  •: •
-  中文: 中文
-  日本語: 日本語
-  "0h": "0h"
-  "0h 00m": "0h 00m"
-  "0m": "0m"
-  "1.0.0": "1.0.0"
-  "127.0.0.1": "127.0.0.1"
-  "200°C": "200°C"
-  "25°C / 200°C": "25°C / 200°C"
-  "benchy.gcode": "benchy.gcode"
-  "mdi_icons_16": "mdi_icons_16"
-  "mdi_icons_24": "mdi_icons_24"
-  "mdi_icons_32": "mdi_icons_32"
-  "mdi_icons_48": "mdi_icons_48"
-  "mdi_icons_64": "mdi_icons_64"
-  "noto_sans_14": "noto_sans_14"
-  "noto_sans_18": "noto_sans_18"
-  "noto_sans_20": "noto_sans_20"
-  "noto_sans_26": "noto_sans_26"
-  "noto_sans_28": "noto_sans_28"
-  "noto_sans_light_10": "noto_sans_light_10"
-  "noto_sans_light_12": "noto_sans_light_12"
-  "noto_sans_light_14": "noto_sans_light_14"
-  "noto_sans_light_16": "noto_sans_light_16"
-  "noto_sans_light_18": "noto_sans_light_18"
-  "size=&quot;large&quot;": "size=&quot;large&quot;"
-  "size=&quot;medium&quot;": "size=&quot;medium&quot;"
-  "size=&quot;medium&quot; width=&quot;100&quot;": "size=&quot;medium&quot; width=&quot;100&quot;"
-  "size=&quot;small&quot;": "size=&quot;small&quot;"
-  "size=&quot;tiny&quot;": "size=&quot;tiny&quot;"
-  "xl": "xl"
-  "󰀦": "󰀦"
-  "󰀩": "󰀩"
-  "󰁅": "󰁅"
-  "󰁌": "󰁌"
-  "󰁍": "󰁍"
-  "󰁎": "󰁎"
-  "󰁔": "󰁔"
-  "󰁝": "󰁝"
-  "󰁟": "󰁟"
-  "󰂚": "󰂚"
-  "󰂭": "󰂭"
-  "󰄉": "󰄉"
-  "󰄝": "󰄝"
-  "󰄪": "󰄪"
-  "󰄬": "󰄬"
-  "󰅀": "󰅀"
-  "󰅁": "󰅁"
-  "󰅂": "󰅂"
-  "󰅃": "󰅃"
-  "󰅐": "󰅐"
-  "󰅖": "󰅖"
-  "󰅙": "󰅙"
-  "󰅩": "󰅩"
-  "󰅴": "󰅴"
-  "󰆍": "󰆍"
-  "󰆧": "󰆧"
-  "󰆴": "󰆴"
-  "󰆾": "󰆾"
-  "󰇙": "󰇙"
-  "󰇚": "󰇚"
-  "󰇺": "󰇺"
-  "󰈀": "󰈀"
-  "󰈐": "󰈐"
-  "󰈯": "󰈯"
-  "󰈸": "󰈸"
-  "󰉋": "󰉋"
-  "󰉙": "󰉙"
-  "󰉹": "󰉹"
-  "󰋗": "󰋗"
-  "󰋜": "󰋜"
-  "󰋣": "󰋣"
-  "󰋮": "󰋮"
-  "󰋼": "󰋼"
-  "󰋽": "󰋽"
-  "󰌗": "󰌗"
-  "󰌨": "󰌨"
-  "󰌪": "󰌪"
-  "󰌵": "󰌵"
-  "󰌶": "󰌶"
-  "󰌾": "󰌾"
-  "󰍴": "󰍴"
-  "󰏖": "󰏖"
-  "󰏤": "󰏤"
-  "󰏫": "󰏫"
-  "󰐊": "󰐊"
-  "󰐌": "󰐌"
-  "󰐕": "󰐕"
-  "󰐥": "󰐥"
-  "󰐪": "󰐪"
-  "󰐫": "󰐫"
-  "󰐸": "󰐸"
-  "󰑎": "󰑎"
-  "󰑐": "󰑐"
-  "󰑥": "󰑥"
-  "󰑧": "󰑧"
-  "󰑩": "󰑩"
-  "󰑭": "󰑭"
-  "󰑹": "󰑹"
-  "󰒊": "󰒊"
-  "󰒓": "󰒓"
-  "󰓅": "󰓅"
-  "󰓛": "󰓛"
-  "󰓾": "󰓾"
-  "󰔏": "󰔏"
-  "󰔟": "󰔟"
-  "󰕌": "󰕌"
-  "󰕦": "󰕦"
-  "󰕧": "󰕧"
-  "󰕮": "󰕮"
-  "󰕰": "󰕰"
-  "󰕲": "󰕲"
-  "󰖌": "󰖌"
-  "󰖡": "󰖡"
-  "󰖩": "󰖩"
-  "󰖪": "󰖪"
-  "󰗘": "󰗘"
-  "󰗡": "󰗡"
-  "󰘬": "󰘬"
-  "󰘮": "󰘮"
-  "󰚥": "󰚥"
-  "󰚩": "󰚩"
-  "󰚰": "󰚰"
-  "󰛨": "󰛨"
-  "󰜗": "󰜗"
-  "󰜮": "󰜮"
-  "󰜱": "󰜱"
-  "󰜴": "󰜴"
-  "󰜷": "󰜷"
-  "󰜺": "󰜺"
-  "󰝘": "󰝘"
-  "󰝰": "󰝰"
-  "󰞖": "󰞖"
-  "󰞙": "󰞙"
-  "󰠝": "󰠝"
-  "󰤇": "󰤇"
-  "󰤟": "󰤟"
-  "󰤠": "󰤠"
-  "󰤡": "󰤡"
-  "󰤢": "󰤢"
-  "󰤤": "󰤤"
-  "󰤥": "󰤥"
-  "󰤧": "󰤧"
-  "󰤨": "󰤨"
-  "󰤪": "󰤪"
-  "󰤺": "󰤺"
-  "󰥛": "󰥛"
-  "󰦖": "󰦖"
-  "󰩆": "󰩆"
-  "󰩦": "󰩦"
-  "󰩺": "󰩺"
-  "󰭜": "󰭜"
-  "󰯂": "󰯂"
-  "󰳡": "󰳡"
-  "󰴻": "󰴻"
-  "󰵉": "󰵉"
-  "󰵌": "󰵌"
-  "󰵑": "󰵑"
-  "󰵕": "󰵕"
-  "󰸄": "󰸄"
-  "󰸅": "󰸅"
-  "󰹏": "󰹏"
-  "󰹛": "󰹛"
-  "󰹳": "󰹳"
-  "󰹹": "󰹹"
-  "󰻇": "󰻇"
-  "󰾅": "󰾅"
-  "󰾆": "󰾆"
-  "󰾜": "󰾜"
-  "󱊍": "󱊍"
-  "󱌣": "󱌣"
-  "󱕂": "󱕂"
-  "󱕃": "󱕃"
-  "󱚵": "󱚵"
-  "󱚽": "󱚽"
-  "󱚿": "󱚿"
-  "󱞿": "󱞿"
-  "󱢸": "󱢸"
-  "󱧰": "󱧰"
-  "󱩅": "󱩅"
-  "󱩎": "󱩎"
-  "󱩏": "󱩏"
-  "󱩐": "󱩐"
-  "󱩑": "󱩑"
-  "󱩒": "󱩒"
-  "󱩓": "󱩓"
-  "󱩔": "󱩔"
-  "󱩕": "󱩕"
-  "󱩖": "󱩖"
-  "󱬵": "󱬵"

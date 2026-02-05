@@ -1,28 +1,18 @@
 locale: ru
 translations:
-  ' / ': ' / '
-  ' 0 / 0': ' 0 / 0'
-  '#808080': '#808080'
-  '#RRGGBB': '#RRGGBB'
   (0): (0)
   (2.4GHz): (2.4GHz)
-  +: +
-  '+0': '+0'
   +0.01mm: +0.01мм
   +0.05mm: +0.05мм
   +0.1mm: +0.1мм
   +1mm: +1мм
-  '-': '-'
   "- Check [resonance_tester] in printer.cfg": "- Проверьте [resonance_tester] в printer.cfg"
   "- Ensure ADXL345 is connected": "- Убедитесь, что ADXL345 подключен"
   "- Try Measure Noise first": "- Сначала попробуйте измерить шум"
-  --: --
-  '---': '---'
   -0.01mm: -0.01мм
   -0.05mm: -0.05мм
   -0.1mm: -0.1мм
   -1mm: -1мм
-  /: /
   "0.4-2mm direct drive, 4-6mm bowden": "0.4-2мм прямой привод, 4-6мм боуден"
   "1. Printer homes and probes the bed": "1. Принтер паркуется и зондирует стол"
   "1. Printer will home and probe each screw": "1. Принтер запаркуется и проверит каждый винт"
@@ -47,7 +37,6 @@ translations:
   850g: 850г
   "= Loosen": "= Ослабить"
   "= Tighten": "= Затянуть"
-  '?': '?'
   "ABOUT": "О ПРОГРАММЕ"
   "ABS": "ABS"
   "AMS Settings": "Настройки AMS"
@@ -162,7 +151,6 @@ translations:
   "Color Sensors": "Датчики цвета"
   "Complete": "Завершено"
   Completed: Завершено
-  "Completed in 3 probes": "Завершено за 3 зондирования"
   "Config-defined (read-only)": "Определено в конфигурации (только чтение)"
   "Configure G10/G11 firmware retraction": "Настроить аппаратный ретракт G10/G11"
   "Configure PRINT_START": "Настроить PRINT_START"
@@ -209,13 +197,11 @@ translations:
   "Danger": "Опасность"
   "Dark Mode": "Тёмный режим"
   "Day": "День"
-  Default (value=50): По умолчанию (значение=50)
   "Default border thickness": "Толщина границы по умолчанию"
   "Define macros in your printer.cfg": "Определите макросы в вашем printer.cfg"
   "Delete": "Удалить"
   "Detecting printer type...": "Определение типа принтера..."
   "Delta:": "Дельта:"
-  Deutsch: Deutsch
   "Device Operations": "Операции с устройством"
   "Disable": "Отключить"
   "Discovered Printers": "Обнаруженные принтеры"
@@ -257,7 +243,6 @@ translations:
   "Enable detailed print preparation tracking (Recommended)": "Включить детальное отслеживание подготовки к печати (рекомендуется)"
   "Enabled": "Включено"
   "Ended": "Завершено"
-  English: English
   "Enhancement Complete!": "Улучшение завершено!"
   "Enhancement Failed": "Ошибка улучшения"
   "Enter 127.0.0.1 if Moonraker is local, or the hostname/IP of a remote printer": "127.0.0.1 если локально, или hostname/IP"
@@ -269,7 +254,6 @@ translations:
   "Enter password": "Введите пароль"
   "Error": "Ошибка"
   Error state: Состояние ошибки
-  Español: Español
   "Ethernet": "Ethernet"
   "Exclude": "Исключить"
   "Execute printer macros": "Выполнить макросы принтера"
@@ -308,7 +292,6 @@ translations:
   "Flow Rate": "Скорость потока"
   Forming tip...: Формирование кончика...
   "Framerate": "Частота кадров"
-  Français: Français
   "Freq": "Частота"
   "Front": "Спереди"
   "G-code Console": "Консоль G-code"
@@ -368,7 +351,6 @@ translations:
   "Interactive 3D G-code during prints": "Интерактивный 3D G-code во время печати"
   "Interactive probe calibration": "Интерактивная калибровка зонда"
   "Issue description": "Описание проблемы"
-  Italiano: Italiano
   Just now: Только что
   "Kd:": "Kd:"
   "Keep Printing": "Продолжить печать"
@@ -537,7 +519,6 @@ translations:
   "Plugins are discovered on application startup": "Плагины обнаруживаются при запуске приложения"
   "Polymaker": "Polymaker"
   "Port": "Порт"
-  Português: Português
   "Position": "Позиция"
   "Power": "Питание"
   "Power Control": "Управление питанием"
@@ -720,7 +701,6 @@ translations:
   "Stop Drying": "Остановить сушку"
   "Stop Print?": "Остановить печать?"
   "Stops all motion. Requires firmware restart.": "Останавливает всё движение. Требуется перезапуск прошивки."
-  Styled (value=75): Стилизованный (значение=75)
   "Success Rate": "Процент успеха"
   "Success!": "Успешно!"
   "Surfaces inherit app background tokens for light and dark modes.": "Поверхности наследуют токены фона приложения для светлого и тёмного режимов."
@@ -752,7 +732,6 @@ translations:
   "Theme changes apply after restart.": "Изменения темы применяются после перезапуска."
   "Theme changes will take effect after restart.": "Изменения темы вступят в силу после перезапуска."
   "Theme, brightness, and sleep settings": "Тема, яркость и настройки сна"
-  Thin bar (height=8): Тонкая полоса (высота=8)
   "This calibration uses the paper friction method to set your Z-offset.": "Эта калибровка использует метод трения бумаги для установки Z-смещения."
   "This may take 1-2 minutes": "Это может занять 1-2 минуты"
   "This may take up to 30 seconds": "Это может занять до 30 секунд"
@@ -824,12 +803,10 @@ translations:
   "Width": "Ширина"
   "Width Sensors": "Датчики ширины"
   'X:': 'X:'
-  XY: XY
   'Y:': 'Y:'
   "Year": "Год"
   "Your printer has an automatic filament changer": "Ваш принтер имеет автоматический сменщик филамента"
   "Your completed prints will appear here": "Ваши завершённые печати появятся здесь"
-  Z: Z
   "Z Calibration": "Калибровка Z"
   "Z Range": "Диапазон Z"
   "Z probes for bed leveling and mesh generation": "Z-зонды для выравнивания стола и создания сетки"
@@ -837,229 +814,21 @@ translations:
   "Z-Offset Calibration": "Калибровка Z-смещения"
   "Z-Offset:": "Z-смещение:"
   "Z-Tilt Adjust": "Регулировка Z-наклона"
-  'Z:': 'Z:'
-  'Z: 0.000': 'Z: 0.000'
   "Zoom": "Масштаб"
-  ^ FRONT: ^ ПЕРЕД
   "hour": "час"
   "hours": "часов"
-  lg: lg
-  md: md
-  min_value=0, max_value=100, value=25: min_value=0, max_value=100, value=25
   "minute": "минута"
   "minutes": "минут"
-  mzv @ 36.7 Hz: mzv @ 36.7 Гц
   "seconds": "секунд"
   size="large": size="large"
   size="medium": size="medium"
   size="medium" width="100": size="medium" width="100"
   size="small": size="small"
   size="tiny": size="tiny"
-  sm: sm
-  'true': 'true'
-  value=0 (shows FULL - BUG!): value=0 (показывает ПОЛНЫЙ - БАГ!)
-  value=1 (tiny sliver?): value=1 (крошечная полоска?)
-  value=100 (should be full): value=100 (должен быть полным)
-  xs: xs
-  Русский: Русский
-  —: —
-  •: •
-  中文: 中文
-  日本語: 日本語
-  "0h": "0ч"
-  "0h 00m": "0ч 00м"
-  "0m": "0м"
-  "1.0.0": "1.0.0"
-  "127.0.0.1": "127.0.0.1"
-  "200°C": "200°C"
-  "25°C / 200°C": "25°C / 200°C"
   "Authentication failed": "Ошибка аутентификации"
   "Connected to ": "Подключено к "
   "Connecting to ": "Подключение к "
   "Connection timeout": "Таймаут соединения"
-  "Layer 0 / 0": "Слой 0 / 0"
   "Scanning...": "Сканирование..."
-  "T0": "T0"
   "WiFi Disabled": "WiFi отключён"
   "WiFi Enabled": "WiFi включён"
-  "benchy.gcode": "benchy.gcode"
-  "mdi_icons_16": "mdi_icons_16"
-  "mdi_icons_24": "mdi_icons_24"
-  "mdi_icons_32": "mdi_icons_32"
-  "mdi_icons_48": "mdi_icons_48"
-  "mdi_icons_64": "mdi_icons_64"
-  "noto_sans_14": "noto_sans_14"
-  "noto_sans_18": "noto_sans_18"
-  "noto_sans_20": "noto_sans_20"
-  "noto_sans_26": "noto_sans_26"
-  "noto_sans_28": "noto_sans_28"
-  "noto_sans_light_10": "noto_sans_light_10"
-  "noto_sans_light_12": "noto_sans_light_12"
-  "noto_sans_light_14": "noto_sans_light_14"
-  "noto_sans_light_16": "noto_sans_light_16"
-  "noto_sans_light_18": "noto_sans_light_18"
-  "size=&quot;large&quot;": "size=&quot;large&quot;"
-  "size=&quot;medium&quot;": "size=&quot;medium&quot;"
-  "size=&quot;medium&quot; width=&quot;100&quot;": "size=&quot;medium&quot; width=&quot;100&quot;"
-  "size=&quot;small&quot;": "size=&quot;small&quot;"
-  "size=&quot;tiny&quot;": "size=&quot;tiny&quot;"
-  "xl": "xl"
-  "󰀦": "󰀦"
-  "󰀩": "󰀩"
-  "󰁅": "󰁅"
-  "󰁌": "󰁌"
-  "󰁍": "󰁍"
-  "󰁎": "󰁎"
-  "󰁔": "󰁔"
-  "󰁝": "󰁝"
-  "󰁟": "󰁟"
-  "󰂚": "󰂚"
-  "󰂭": "󰂭"
-  "󰄉": "󰄉"
-  "󰄝": "󰄝"
-  "󰄪": "󰄪"
-  "󰄬": "󰄬"
-  "󰅀": "󰅀"
-  "󰅁": "󰅁"
-  "󰅂": "󰅂"
-  "󰅃": "󰅃"
-  󰅐: 󰅐
-  "󰅖": "󰅖"
-  "󰅙": "󰅙"
-  "󰅩": "󰅩"
-  "󰅴": "󰅴"
-  "󰆍": "󰆍"
-  "󰆧": "󰆧"
-  "󰆴": "󰆴"
-  "󰆾": "󰆾"
-  "󰇙": "󰇙"
-  "󰇚": "󰇚"
-  "󰇺": "󰇺"
-  "󰈀": "󰈀"
-  "󰈐": "󰈐"
-  "󰈯": "󰈯"
-  "󰈸": "󰈸"
-  󰉋: 󰉋
-  "󰉙": "󰉙"
-  "󰉹": "󰉹"
-  "󰋗": "󰋗"
-  "󰋜": "󰋜"
-  "󰋣": "󰋣"
-  "󰋮": "󰋮"
-  "󰋼": "󰋼"
-  "󰋽": "󰋽"
-  "󰌗": "󰌗"
-  "󰌨": "󰌨"
-  "󰌪": "󰌪"
-  "󰌵": "󰌵"
-  "󰌶": "󰌶"
-  "󰌾": "󰌾"
-  "󰍴": "󰍴"
-  "󰏖": "󰏖"
-  "󰏤": "󰏤"
-  "󰏫": "󰏫"
-  "󰐊": "󰐊"
-  "󰐌": "󰐌"
-  "󰐕": "󰐕"
-  "󰐥": "󰐥"
-  "󰐪": "󰐪"
-  "󰐫": "󰐫"
-  "󰐸": "󰐸"
-  "󰑎": "󰑎"
-  "󰑐": "󰑐"
-  "󰑥": "󰑥"
-  "󰑧": "󰑧"
-  "󰑩": "󰑩"
-  "󰑭": "󰑭"
-  "󰑹": "󰑹"
-  "󰒊": "󰒊"
-  "󰒓": "󰒓"
-  "󰓅": "󰓅"
-  "󰓛": "󰓛"
-  "󰓾": "󰓾"
-  "󰔏": "󰔏"
-  "󰔟": "󰔟"
-  "󰕌": "󰕌"
-  "󰕦": "󰕦"
-  "󰕧": "󰕧"
-  "󰕮": "󰕮"
-  "󰕰": "󰕰"
-  "󰕲": "󰕲"
-  "󰖌": "󰖌"
-  "󰖡": "󰖡"
-  "󰖩": "󰖩"
-  "󰖪": "󰖪"
-  "󰗘": "󰗘"
-  "󰗡": "󰗡"
-  "󰘬": "󰘬"
-  "󰘮": "󰘮"
-  "󰚥": "󰚥"
-  "󰚩": "󰚩"
-  "󰚰": "󰚰"
-  "󰛨": "󰛨"
-  "󰜗": "󰜗"
-  "󰜮": "󰜮"
-  "󰜱": "󰜱"
-  "󰜴": "󰜴"
-  "󰜷": "󰜷"
-  "󰜺": "󰜺"
-  "󰝘": "󰝘"
-  "󰝰": "󰝰"
-  "󰞖": "󰞖"
-  "󰞙": "󰞙"
-  "󰠝": "󰠝"
-  "󰤇": "󰤇"
-  "󰤟": "󰤟"
-  "󰤠": "󰤠"
-  "󰤡": "󰤡"
-  "󰤢": "󰤢"
-  "󰤤": "󰤤"
-  "󰤥": "󰤥"
-  "󰤧": "󰤧"
-  "󰤨": "󰤨"
-  "󰤪": "󰤪"
-  "󰤺": "󰤺"
-  "󰥛": "󰥛"
-  "󰦖": "󰦖"
-  "󰩆": "󰩆"
-  "󰩦": "󰩦"
-  "󰩺": "󰩺"
-  "󰭜": "󰭜"
-  "󰯂": "󰯂"
-  "󰳡": "󰳡"
-  "󰴻": "󰴻"
-  "󰵉": "󰵉"
-  "󰵌": "󰵌"
-  "󰵑": "󰵑"
-  "󰵕": "󰵕"
-  "󰸄": "󰸄"
-  "󰸅": "󰸅"
-  "󰹏": "󰹏"
-  "󰹛": "󰹛"
-  "󰹳": "󰹳"
-  "󰹹": "󰹹"
-  "󰻇": "󰻇"
-  "󰾅": "󰾅"
-  "󰾆": "󰾆"
-  "󰾜": "󰾜"
-  "󱊍": "󱊍"
-  "󱌣": "󱌣"
-  "󱕂": "󱕂"
-  "󱕃": "󱕃"
-  "󱚵": "󱚵"
-  "󱚽": "󱚽"
-  "󱚿": "󱚿"
-  "󱞿": "󱞿"
-  "󱢸": "󱢸"
-  󱧰: 󱧰
-  "󱩅": "󱩅"
-  "󱩎": "󱩎"
-  "󱩏": "󱩏"
-  "󱩐": "󱩐"
-  "󱩑": "󱩑"
-  "󱩒": "󱩒"
-  "󱩓": "󱩓"
-  "󱩔": "󱩔"
-  "󱩕": "󱩕"
-  "󱩖": "󱩖"
-  "󱬵": "󱬵"
