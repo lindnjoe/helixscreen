@@ -1080,7 +1080,7 @@ void ui_temp_graph_set_axis_size(ui_temp_graph_t* graph, const char* size) {
     int32_t y_axis_width = 40; // default for "sm"
     if (size) {
         if (strcmp(size, "xs") == 0) {
-            y_axis_width = 24;
+            y_axis_width = 30;
         } else if (strcmp(size, "md") == 0) {
             y_axis_width = 45;
         } else if (strcmp(size, "lg") == 0) {
