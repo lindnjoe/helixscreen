@@ -60,6 +60,7 @@ compile_commands.json
 .cache/
 
 .idea/
+.vscode/
 
 # Session notes (developer-specific)
 SESSION_SUMMARY.md
