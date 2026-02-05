@@ -57,6 +57,9 @@ struct CardWidgetData {
     /// Folder type for declarative binding: 0=file, 1=directory, 2=parent directory (..)
     lv_subject_t folder_type_subject;
 
+    /// Thumbnail state: 0=real thumbnail, 1=placeholder (show icon), 2=directory (hide both)
+    lv_subject_t thumbnail_state_subject;
+
     // Observer handles (saved for cleanup before DELETE)
     lv_observer_t* filename_observer = nullptr;
     lv_observer_t* time_observer = nullptr;
@@ -64,7 +67,8 @@ struct CardWidgetData {
     lv_observer_t* metadata_row_observer = nullptr;    ///< Hides metadata for directories
     lv_observer_t* folder_icon_observer = nullptr;     ///< Shows folder icon for directories
     lv_observer_t* parent_dir_icon_observer = nullptr; ///< Shows parent dir icon for ".."
-    lv_observer_t* thumbnail_observer = nullptr;       ///< Hides thumbnail for directories
+    lv_observer_t* thumbnail_observer = nullptr;       ///< Shows thumbnail when state==0
+    lv_observer_t* no_thumb_icon_observer = nullptr;   ///< Shows placeholder icon when state==1
 };
 
 /**

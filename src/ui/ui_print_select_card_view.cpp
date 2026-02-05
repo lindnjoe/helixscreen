@@ -116,6 +116,7 @@ void PrintSelectCardView::cleanup() {
                 lv_subject_deinit(&data->time_subject);
                 lv_subject_deinit(&data->filament_subject);
                 lv_subject_deinit(&data->folder_type_subject);
+                lv_subject_deinit(&data->thumbnail_state_subject);
             }
         }
     }
@@ -192,6 +193,8 @@ void PrintSelectCardView::init_pool(const CardDimensions& dims) {
                                    sizeof(data->filament_buf), "--");
             // folder_type: 0=file, 1=directory, 2=parent directory (..)
             lv_subject_init_int(&data->folder_type_subject, 0);
+            // thumbnail_state: 0=real thumbnail, 1=placeholder (show icon), 2=directory
+            lv_subject_init_int(&data->thumbnail_state_subject, 1);
 
             // Bind labels to subjects
             lv_obj_t* filename_label = lv_obj_find_by_name(card, "filename_label");
@@ -234,11 +237,18 @@ void PrintSelectCardView::init_pool(const CardDimensions& dims) {
                     parent_dir_icon, &data->folder_type_subject, LV_OBJ_FLAG_HIDDEN, 2);
             }
 
+            // Bind thumbnail/placeholder icon visibility to thumbnail_state
+            // 0=real thumbnail, 1=placeholder (show cube icon), 2=directory (hide both)
             lv_obj_t* thumbnail = lv_obj_find_by_name(card, "thumbnail");
             if (thumbnail) {
-                // Hide thumbnail for any directory (folder_type != 0)
                 data->thumbnail_observer = lv_obj_bind_flag_if_not_eq(
-                    thumbnail, &data->folder_type_subject, LV_OBJ_FLAG_HIDDEN, 0);
+                    thumbnail, &data->thumbnail_state_subject, LV_OBJ_FLAG_HIDDEN, 0);
+            }
+
+            lv_obj_t* no_thumb_icon = lv_obj_find_by_name(card, "no_thumbnail_icon");
+            if (no_thumb_icon) {
+                data->no_thumb_icon_observer = lv_obj_bind_flag_if_not_eq(
+                    no_thumb_icon, &data->thumbnail_state_subject, LV_OBJ_FLAG_HIDDEN, 1);
             }
 
             card_pool_.push_back(card);
@@ -310,11 +320,21 @@ void PrintSelectCardView::configure_card(lv_obj_t* card, size_t pool_index, size
     lv_subject_copy_string(&data->filament_subject, file.filament_str.c_str());
     lv_subject_set_int(&data->folder_type_subject, folder_type);
 
-    // Update thumbnail source (only for files - directories use folder icon)
-    if (!file.is_dir) {
-        lv_obj_t* thumb_img = lv_obj_find_by_name(card, "thumbnail");
-        if (thumb_img && !file.thumbnail_path.empty()) {
-            lv_image_set_src(thumb_img, file.thumbnail_path.c_str());
+    // Update thumbnail state (observers handle visibility declaratively)
+    // 0=real thumbnail, 1=placeholder (show cube icon), 2=directory (hide both)
+    if (file.is_dir) {
+        lv_subject_set_int(&data->thumbnail_state_subject, 2);
+    } else {
+        bool has_real_thumb =
+            !file.thumbnail_path.empty() && !is_placeholder_thumbnail(file.thumbnail_path);
+        if (has_real_thumb) {
+            lv_obj_t* thumb_img = lv_obj_find_by_name(card, "thumbnail");
+            if (thumb_img) {
+                lv_image_set_src(thumb_img, file.thumbnail_path.c_str());
+            }
+            lv_subject_set_int(&data->thumbnail_state_subject, 0);
+        } else {
+            lv_subject_set_int(&data->thumbnail_state_subject, 1);
         }
     }
 

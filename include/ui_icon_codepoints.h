@@ -88,6 +88,7 @@ static const IconMapping ICON_MAP[] = {
     {"console",            "\xF3\xB0\x86\x8D"},  // F018D console/terminal
     {"cooldown",           "\xF3\xB0\x9C\x97"},  // F0717 snowflake
     {"cube",               "\xF3\xB0\x86\xA7"},  // F01A7 cube-outline
+    {"cube_outline",       "\xF3\xB0\x86\xA7"},  // F01A7 cube-outline
     {"cursor_move",        "\xF3\xB0\x86\xBE"},  // F01BE cursor-move (4-way arrows)
 
     // Dashboard/Database
@@ -113,6 +114,7 @@ static const IconMapping ICON_MAP[] = {
     {"fire",               "\xF3\xB0\x88\xB8"},  // F0238 fire
     {"flash",              "\xF3\xB0\x89\x81"},  // F0241 flash (lightning bolt)
     {"folder",             "\xF3\xB0\x89\x8B"},  // F024B folder
+    {"folder_arrow_up",    "\xF3\xB1\xA7\xB0"},  // F19F0 folder-arrow-up (parent dir)
     {"folder_open",        "\xF3\xB0\x9D\xB0"},  // F0770 folder-open
     {"folder_upload",      "\xF3\xB0\x89\x99"},  // F0259 folder-upload
 

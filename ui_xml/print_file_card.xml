@@ -26,8 +26,6 @@
     <px name="thumbnail_height" value="150"/>
     <!-- Metadata overlay minimum height -->
     <px name="metadata_overlay_min_height" value="70"/>
-    <!-- Folder icon size (larger than typical icons for card display) -->
-    <px name="folder_icon_size" value="80"/>
   </consts>
   <view name="card_root"
         extends="ui_card" height="#card_height" style_flex_basis="#card_base_width" flex_grow="1"
@@ -42,14 +40,15 @@
     <lv_image name="thumbnail"
               width="100%" height="100%" src="$thumbnail_src" align="center" inner_align="contain"
               style_translate_y="#preview_offset_y"/>
+    <!-- No-thumbnail placeholder - shown for files without real thumbnails -->
+    <icon name="no_thumbnail_icon" src="cube_outline" size="xl" variant="tertiary"
+          align="center" style_translate_y="-10" hidden="true"/>
     <!-- Folder icon - shown for regular directories (folder_type=1) -->
-    <lv_label name="folder_icon"
-              width="#folder_icon_size" height="#folder_icon_size" text="󰉋" style_text_font="mdi_icons_64"
-              align="center" style_text_align="center" style_text_color="#warning" style_translate_y="-10" hidden="true"/>
+    <icon name="folder_icon" src="folder" size="xl" variant="warning"
+          align="center" style_translate_y="-10" hidden="true"/>
     <!-- Parent directory icon - shown for ".." entries (folder_type=2) -->
-    <lv_label name="parent_dir_icon"
-              width="#folder_icon_size" height="#folder_icon_size" text="󱧰" style_text_font="mdi_icons_64"
-              align="center" style_text_align="center" style_text_color="#warning" style_translate_y="-10" hidden="true"/>
+    <icon name="parent_dir_icon" src="folder_arrow_up" size="xl" variant="warning"
+          align="center" style_translate_y="-10" hidden="true"/>
     <!-- Metadata clip container - sharp top edge, clips the inner overlay's top rounded corners -->
     <lv_obj name="metadata_clip"
             width="100%" height="#metadata_overlay_min_height" style_radius="0" style_pad_all="0" align="bottom_mid"
