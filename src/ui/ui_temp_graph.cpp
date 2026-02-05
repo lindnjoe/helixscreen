@@ -569,6 +569,26 @@ static void draw_y_axis_labels_cb(lv_event_t* e) {
     }
 }
 
+// Theme change callback: re-apply chart colors when theme toggles
+static void theme_change_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    (void)subject;
+    auto* graph = static_cast<ui_temp_graph_t*>(lv_observer_get_user_data(observer));
+    if (!graph || !graph->chart) {
+        return;
+    }
+
+    // Re-apply themed background color
+    lv_obj_set_style_bg_color(graph->chart, theme_manager_get_color("graph_bg"), LV_PART_MAIN);
+
+    // Re-apply themed text color for axis labels
+    lv_obj_set_style_text_color(graph->chart, theme_manager_get_color("text"), LV_PART_MAIN);
+
+    // Force full redraw so draw callbacks (grid, axis labels, gradients) pick up new colors
+    lv_obj_invalidate(graph->chart);
+
+    spdlog::debug("[TempGraph] Updated colors on theme change");
+}
+
 // Create temperature graph widget
 ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     if (!parent) {
@@ -676,6 +696,12 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     // Register Y-axis label draw callback (renders temperature labels directly on canvas)
     lv_obj_add_event_cb(graph->chart, draw_y_axis_labels_cb, LV_EVENT_DRAW_POST, graph);
 
+    // Subscribe to theme changes for live color updates
+    lv_subject_t* theme_subject = theme_manager_get_changed_subject();
+    if (theme_subject) {
+        graph->theme_observer = lv_subject_add_observer(theme_subject, theme_change_cb, graph);
+    }
+
     spdlog::info("[TempGraph] Created: {} points, {:.0f}-{:.0f}°C range", graph->point_count,
                  graph->min_temp, graph->max_temp);
 
@@ -690,6 +716,12 @@ void ui_temp_graph_destroy(ui_temp_graph_t* graph) {
 
     // Transfer ownership to RAII wrapper - automatic cleanup
     std::unique_ptr<ui_temp_graph_t> graph_ptr(graph);
+
+    // Unsubscribe from theme changes before deleting the chart
+    if (graph_ptr->theme_observer) {
+        lv_observer_remove(graph_ptr->theme_observer);
+        graph_ptr->theme_observer = nullptr;
+    }
 
     // Remove all series (cursors will be cleaned up automatically)
     for (int i = 0; i < graph_ptr->series_count; i++) {

@@ -6,7 +6,6 @@
 #include "ui_icon.h"
 #include "ui_temperature_utils.h"
 
-#include "lvgl/src/xml/lv_xml.h" // for lv_xml_get_subject
 #include "theme_manager.h"
 
 #include <spdlog/spdlog.h>
@@ -62,9 +61,9 @@ void HeatingIconAnimator::attach(lv_obj_t* icon) {
     apply_color();
 
     // Subscribe to theme changes for automatic color refresh
-    lv_subject_t* dark_mode_subject = lv_xml_get_subject(nullptr, "settings_dark_mode");
-    if (dark_mode_subject) {
-        theme_observer_ = lv_subject_add_observer(dark_mode_subject, theme_change_cb, this);
+    lv_subject_t* theme_subject = theme_manager_get_changed_subject();
+    if (theme_subject) {
+        theme_observer_ = lv_subject_add_observer(theme_subject, theme_change_cb, this);
         spdlog::debug("[HeatingIconAnimator] Attached to icon with theme observer");
     } else {
         spdlog::debug("[HeatingIconAnimator] Attached to icon (no theme subject found)");
