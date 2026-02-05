@@ -24,7 +24,7 @@ HelixScreen is a touchscreen interface for Klipper 3D printers. It connects to y
 **Tested and confirmed working:**
 - Voron 0.1
 - Voron 2.4
-- FlashForge Adventurer 5M Pro (with [Forge-X](https://github.com/DrA1ex/ff5m))
+- FlashForge Adventurer 5M / 5M Pro (with [Forge-X](https://github.com/DrA1ex/ff5m)) — most thoroughly tested on ForgeX 1.4.0 with FlashForge firmware 3.1.5; other versions may work fine
 
 **Should work but not yet tested:**
 - Other Voron models

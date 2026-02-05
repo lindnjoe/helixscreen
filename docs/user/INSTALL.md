@@ -75,6 +75,8 @@ After installation, the setup wizard will guide you through initial configuratio
   - SSH access to the printer (usually `root@<printer-ip>`)
   - About 100MB free disk space
 
+> **Tested versions:** Most thoroughly tested on ForgeX 1.4.0 with FlashForge firmware 3.1.5. Other versions may work fine.
+
 #### AD5M Firmware Variants
 
 The installer automatically detects which firmware you're running and configures paths accordingly:
