@@ -142,6 +142,14 @@
     <setting_info_row name="row_update_status" label="Update Status" label_tag="Update Status" icon="sysinfo">
       <text_muted name="value" bind_text="update_version_text"/>
     </setting_info_row>
+    <!-- Install Update (visible only when update available) -->
+    <lv_obj name="container_install_update" width="100%" style_pad_all="0">
+      <bind_flag_if_not_eq subject="update_status" flag="hidden" ref_value="2"/>
+      <setting_action_row name="row_install_update"
+                          label="Install Update" label_tag="Install Update"
+                          icon="download" description="" description_tag=""
+                          callback="on_install_update_clicked"/>
+    </lv_obj>
     <!-- ================================================================== -->
     <!-- ABOUT SECTION -->
     <!-- ================================================================== -->

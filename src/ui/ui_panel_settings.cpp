@@ -205,6 +205,46 @@ static void on_check_updates_clicked(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
+// Static callback for install update row (opens download modal)
+static void on_install_update_clicked(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_install_update_clicked");
+    spdlog::info("[SettingsPanel] Install update requested");
+    get_global_settings_panel().show_update_download_modal();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+// Static callback to start downloading update
+static void on_update_download_start(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_update_download_start");
+    spdlog::info("[SettingsPanel] Starting update download");
+    UpdateChecker::instance().start_download();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+// Static callback to cancel download
+static void on_update_download_cancel(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_update_download_cancel");
+    spdlog::info("[SettingsPanel] Download cancelled by user");
+    UpdateChecker::instance().cancel_download();
+    get_global_settings_panel().hide_update_download_modal();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+// Static callback to dismiss download modal (close without action)
+static void on_update_download_dismiss(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_update_download_dismiss");
+    get_global_settings_panel().hide_update_download_modal();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+// Static callback to restart after update install
+static void on_update_restart(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[SettingsPanel] on_update_restart");
+    spdlog::info("[SettingsPanel] User requested restart after update");
+    std::exit(0);
+    LVGL_SAFE_EVENT_CB_END();
+}
+
 // ============================================================================
 // MODAL DIALOG STATIC CALLBACKS (XML event_cb)
 // ============================================================================
@@ -347,6 +387,11 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_hardware_health_clicked", on_hardware_health_clicked);
     lv_xml_register_event_cb(nullptr, "on_plugins_clicked", on_plugins_clicked);
     lv_xml_register_event_cb(nullptr, "on_check_updates_clicked", on_check_updates_clicked);
+    lv_xml_register_event_cb(nullptr, "on_install_update_clicked", on_install_update_clicked);
+    lv_xml_register_event_cb(nullptr, "on_update_download_start", on_update_download_start);
+    lv_xml_register_event_cb(nullptr, "on_update_download_cancel", on_update_download_cancel);
+    lv_xml_register_event_cb(nullptr, "on_update_download_dismiss", on_update_download_dismiss);
+    lv_xml_register_event_cb(nullptr, "on_update_restart", on_update_restart);
 
     // Register XML event callbacks for overlays
     lv_xml_register_event_cb(nullptr, "on_restart_later_clicked", on_restart_later_clicked);
@@ -984,6 +1029,29 @@ void SettingsPanel::handle_plugins_clicked() {
     }
 }
 
+void SettingsPanel::show_update_download_modal() {
+    if (!update_download_modal_) {
+        update_download_modal_ = static_cast<lv_obj_t*>(
+            lv_xml_create(lv_screen_active(), "update_download_modal", nullptr));
+    }
+
+    // Set to Confirming state with version info
+    auto info = UpdateChecker::instance().get_cached_update();
+    std::string text = info ? ("Download v" + info->version + "?") : "Download update?";
+    UpdateChecker::instance().report_download_status(UpdateChecker::DownloadStatus::Confirming, 0,
+                                                     text);
+
+    lv_obj_remove_flag(update_download_modal_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void SettingsPanel::hide_update_download_modal() {
+    if (update_download_modal_) {
+        lv_obj_add_flag(update_download_modal_, LV_OBJ_FLAG_HIDDEN);
+    }
+    // Reset download state
+    UpdateChecker::instance().report_download_status(UpdateChecker::DownloadStatus::Idle, 0, "");
+}
+
 void SettingsPanel::perform_factory_reset() {
     spdlog::warn("[{}] Performing factory reset - resetting config!", get_name());
 
@@ -1226,4 +1294,5 @@ void register_settings_panel_callbacks() {
                              SettingsPanel::on_factory_reset_clicked);
     lv_xml_register_event_cb(nullptr, "on_hardware_health_clicked",
                              SettingsPanel::on_hardware_health_clicked);
+    lv_xml_register_event_cb(nullptr, "on_install_update_clicked", on_install_update_clicked);
 }

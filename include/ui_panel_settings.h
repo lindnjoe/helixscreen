@@ -99,6 +99,9 @@ class SettingsPanel : public PanelBase {
     // Restart prompt dialog
     lv_obj_t* restart_prompt_dialog_ = nullptr;
 
+    // Update download modal
+    lv_obj_t* update_download_modal_ = nullptr;
+
     // Action rows (clickable)
     lv_obj_t* display_settings_row_ = nullptr;
     lv_obj_t* filament_sensors_row_ = nullptr;
@@ -224,6 +227,10 @@ class SettingsPanel : public PanelBase {
 
     // Note: handle_hardware_action() moved to HardwareHealthOverlay
     // See ui_settings_hardware_health.h
+
+    // Update download modal (lazy-created, show/hide programmatically)
+    void show_update_download_modal();
+    void hide_update_download_modal();
 
     // Dialog pointers accessible to static callbacks
     lv_obj_t* theme_restart_dialog_ = nullptr;
