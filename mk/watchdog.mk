@@ -49,7 +49,8 @@ endif
 ifdef WATCHDOG_BUILD
 
 # Compile watchdog source (with dependency tracking for header changes)
-$(BUILD_DIR)/watchdog/%.o: src/%.cpp | $(BUILD_DIR)/watchdog
+# Depends on LIBHV_LIB to ensure libhv headers are installed before compilation
+$(BUILD_DIR)/watchdog/%.o: src/%.cpp $(LIBHV_LIB) | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
@@ -62,22 +63,22 @@ WATCHDOG_EXTRA_OBJS := $(BUILD_DIR)/watchdog/config.o \
                        $(BUILD_DIR)/watchdog/ui_notification_stub.o
 
 # Compile config for watchdog (with HELIX_WATCHDOG to guard get_runtime_config dependency)
-$(BUILD_DIR)/watchdog/config.o: src/system/config.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/config.o: src/system/config.cpp $(LIBHV_LIB) | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # Compile backlight backend for watchdog (with HELIX_WATCHDOG to skip runtime_config dependency)
-$(BUILD_DIR)/watchdog/backlight_backend.o: src/api/backlight_backend.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/backlight_backend.o: src/api/backlight_backend.cpp $(LIBHV_LIB) | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # Compile logging_init for watchdog
-$(BUILD_DIR)/watchdog/logging_init.o: src/system/logging_init.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/logging_init.o: src/system/logging_init.cpp $(LIBHV_LIB) | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # Compile notification stub for watchdog (with dependency tracking)
-$(BUILD_DIR)/watchdog/ui_notification_stub.o: tools/ui_notification_stub.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/ui_notification_stub.o: tools/ui_notification_stub.cpp $(LIBHV_LIB) | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog stub)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
