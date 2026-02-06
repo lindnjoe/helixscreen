@@ -54,8 +54,8 @@ static constexpr int DEFAULT_WIDTH = 800;
 static constexpr int DEFAULT_HEIGHT = 480;
 
 // Splash timing
-static constexpr int FADE_DURATION_MS = 300; // Fast fade-in (disabled on slow hardware)
-static constexpr int FRAME_DELAY_US = 16000; // ~60 FPS
+static constexpr int FADE_DURATION_MS = 1000; // Fade-in duration
+static constexpr int FRAME_DELAY_US = 16000;  // ~60 FPS
 
 // Read brightness from config file (simple parsing, no JSON library)
 // Returns configured brightness (10-100) or default_value on failure
@@ -169,7 +169,8 @@ static void fade_anim_cb(void* obj, int32_t value) {
  * Tries 3D full-screen splash first (dark/light based on config),
  * falls back to pre-rendered logo, then to PNG with runtime scaling.
  */
-static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height, bool dark_mode) {
+static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height, bool dark_mode,
+                                  bool use_fade) {
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 
     // Try full-screen 3D splash first
@@ -206,9 +207,21 @@ static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height, bool 
         lv_image_set_src(img, lvgl_path);
         lv_obj_center(img);
 
-        // Show immediately (no fade on embedded — too slow)
-        lv_obj_set_style_opa(img, LV_OPA_COVER, LV_PART_MAIN);
-        fprintf(stderr, "helix-splash: Using 3D splash (%s, %s)\n", mode_name, size_name);
+        if (use_fade) {
+            lv_obj_set_style_opa(img, LV_OPA_TRANSP, LV_PART_MAIN);
+            lv_anim_t anim;
+            lv_anim_init(&anim);
+            lv_anim_set_var(&anim, img);
+            lv_anim_set_values(&anim, LV_OPA_TRANSP, LV_OPA_COVER);
+            lv_anim_set_duration(&anim, FADE_DURATION_MS);
+            lv_anim_set_path_cb(&anim, lv_anim_path_ease_in);
+            lv_anim_set_exec_cb(&anim, fade_anim_cb);
+            lv_anim_start(&anim);
+        } else {
+            lv_obj_set_style_opa(img, LV_OPA_COVER, LV_PART_MAIN);
+        }
+        fprintf(stderr, "helix-splash: Using 3D splash (%s, %s, fade=%s)\n", mode_name, size_name,
+                use_fade ? "yes" : "no");
         return img;
     }
 
@@ -258,13 +271,7 @@ static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height, bool 
         }
     }
 
-    // Fade-in animation: skip on slow hardware (pre-rendered = slow device)
-    // Alpha blending each frame is too slow on AD5M's Cortex-A7
-    if (use_prerendered) {
-        // Slow hardware: show immediately at full opacity
-        lv_obj_set_style_opa(container, LV_OPA_COVER, LV_PART_MAIN);
-    } else {
-        // Fast hardware: smooth fade-in animation
+    if (use_fade) {
         lv_anim_t anim;
         lv_anim_init(&anim);
         lv_anim_set_var(&anim, container);
@@ -273,6 +280,8 @@ static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height, bool 
         lv_anim_set_path_cb(&anim, lv_anim_path_ease_in);
         lv_anim_set_exec_cb(&anim, fade_anim_cb);
         lv_anim_start(&anim);
+    } else {
+        lv_obj_set_style_opa(container, LV_OPA_COVER, LV_PART_MAIN);
     }
 
     return container;
@@ -351,8 +360,10 @@ int main(int argc, char** argv) {
     }
 
     // Create splash UI
+    // Fade-in animation only on DRM/SDL backends (fbdev doesn't alpha-blend well)
+    bool use_fade = (backend->type() != DisplayBackendType::FBDEV);
     lv_obj_t* screen = lv_screen_active();
-    lv_obj_t* splash_widget = create_splash_ui(screen, width, height, dark_mode);
+    lv_obj_t* splash_widget = create_splash_ui(screen, width, height, dark_mode, use_fade);
     (void)splash_widget; // Used by animation, no need to track
 
     // Main loop - run until signaled to quit
