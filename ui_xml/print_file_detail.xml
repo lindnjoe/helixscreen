@@ -6,7 +6,7 @@
   <!-- Uses reactive subjects for file data (no API properties needed) -->
   <view name="detail_view_root"
         extends="lv_obj" width="#overlay_panel_width" height="100%" align="right_mid" style_bg_opa="255"
-        style_border_width="0" style_pad_all="0" style_pad_gap="0" flex_flow="column" clickable="true">
+        style_bg_color="#card_bg" style_border_width="0" style_pad_all="0" style_pad_gap="0" flex_flow="column" clickable="true">
     <event_cb trigger="clicked" callback="on_print_select_detail_backdrop"/>
     <!-- HEADER BAR (full width at top) -->
     <header_bar name="detail_header" title="Print File" title_tag="Print File" back_button_callback="on_print_detail_back_clicked"/>

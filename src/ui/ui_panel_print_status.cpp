@@ -34,6 +34,7 @@
 #include "settings_manager.h"
 #include "standard_macros.h"
 #include "static_panel_registry.h"
+#include "theme_manager.h"
 #include "thumbnail_cache.h"
 #include "thumbnail_processor.h"
 #include "wizard_config_paths.h"
@@ -290,6 +291,9 @@ lv_obj_t* PrintStatusPanel::create(lv_obj_t* parent) {
         spdlog::error("[{}] Failed to create overlay from XML", get_name());
         return nullptr;
     }
+
+    // Swap gradient images to match current theme (XML hardcodes -dark.bin)
+    theme_manager_swap_gradients(overlay_root_);
 
     spdlog::debug("[{}] Setting up panel...", get_name());
 

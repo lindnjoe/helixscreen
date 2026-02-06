@@ -40,6 +40,34 @@ static lv_subject_t theme_changed_subject;
 static int32_t theme_generation = 0;
 static bool theme_subject_initialized = false;
 
+// Color-swap map for container theming (replaces name-based heuristics)
+struct ColorSwapEntry {
+    lv_color_t from;
+    lv_color_t to;
+};
+
+static std::vector<ColorSwapEntry> bg_swap_map;
+static std::vector<ColorSwapEntry> border_swap_map;
+
+static bool color_eq(lv_color_t a, lv_color_t b) {
+    return a.red == b.red && a.green == b.green && a.blue == b.blue;
+}
+
+/// Add entry to swap map, skipping duplicates where `from` already exists.
+/// Logs a debug warning on collision so theme authors can spot flattened palettes.
+static void swap_map_add(std::vector<ColorSwapEntry>& map, lv_color_t from, lv_color_t to,
+                         const char* name) {
+    for (const auto& e : map) {
+        if (color_eq(e.from, from)) {
+            spdlog::debug("[Theme] Swap map collision: '{}' has same color as earlier entry "
+                          "(0x{:02X}{:02X}{:02X}), skipping",
+                          name, from.red, from.green, from.blue);
+            return;
+        }
+    }
+    map.push_back({from, to});
+}
+
 // ============================================================================
 // LVGL Theme Infrastructure (formerly in theme_compat.cpp)
 // ============================================================================
@@ -1140,6 +1168,10 @@ static void theme_swap_gradient_images(lv_obj_t* root, bool dark_mode) {
     lv_obj_tree_walk(root, gradient_swap_cb, &ctx);
 }
 
+void theme_manager_swap_gradients(lv_obj_t* root) {
+    theme_swap_gradient_images(root, use_dark_mode);
+}
+
 void theme_manager_apply_theme(const helix::ThemeData& theme, bool dark_mode) {
     if (!theme_display) {
         spdlog::error("[Theme] Cannot apply theme: theme not initialized");
@@ -1155,6 +1187,10 @@ void theme_manager_apply_theme(const helix::ThemeData& theme, bool dark_mode) {
         effective_dark = false;
     }
 
+    // Capture old palette colors before overwriting, for swap map (copy, not ref!)
+    const helix::ModePalette old_mp = use_dark_mode ? active_theme.dark : active_theme.light;
+    bool have_old = !old_mp.screen_bg.empty();
+
     active_theme = theme;
     use_dark_mode = effective_dark;
     spdlog::info("[Theme] Applying theme '{}' in {} mode", theme.name,
@@ -1164,6 +1200,23 @@ void theme_manager_apply_theme(const helix::ThemeData& theme, bool dark_mode) {
     const helix::ModePalette& mode_palette = get_current_mode_palette();
     spdlog::debug("[Theme] Colors: screen={}, card={}, text={}", mode_palette.screen_bg,
                   mode_palette.card_bg, mode_palette.text);
+
+    // Build color swap map (old baked values → new values), deduplicating collisions
+    bg_swap_map.clear();
+    border_swap_map.clear();
+    if (have_old) {
+        auto p = theme_manager_parse_hex_color;
+        const helix::ModePalette& new_mp = mode_palette;
+        swap_map_add(bg_swap_map, p(old_mp.screen_bg.c_str()), p(new_mp.screen_bg.c_str()),
+                     "screen_bg");
+        swap_map_add(bg_swap_map, p(old_mp.card_bg.c_str()), p(new_mp.card_bg.c_str()), "card_bg");
+        swap_map_add(bg_swap_map, p(old_mp.elevated_bg.c_str()), p(new_mp.elevated_bg.c_str()),
+                     "elevated_bg");
+        swap_map_add(bg_swap_map, p(old_mp.overlay_bg.c_str()), p(new_mp.overlay_bg.c_str()),
+                     "overlay_bg");
+        swap_map_add(bg_swap_map, p(old_mp.border.c_str()), p(new_mp.border.c_str()), "border");
+        swap_map_add(border_swap_map, p(old_mp.border.c_str()), p(new_mp.border.c_str()), "border");
+    }
 
     // Update ThemeManager stored palettes and apply current mode
     theme_update_colors(effective_dark, active_theme.properties.border_opacity);
@@ -1391,7 +1444,6 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     // Parse palette colors
     lv_color_t screen_bg = theme_manager_parse_hex_color(palette.screen_bg.c_str());
     lv_color_t overlay_bg = theme_manager_parse_hex_color(palette.overlay_bg.c_str());
-    lv_color_t card_bg = theme_manager_parse_hex_color(palette.card_bg.c_str());
     lv_color_t elevated_bg = theme_manager_parse_hex_color(palette.elevated_bg.c_str());
     lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
     lv_color_t text_primary = theme_manager_parse_hex_color(palette.text.c_str());
@@ -1402,9 +1454,6 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
 
     // Compute knob color: brighter of primary vs tertiary
     lv_color_t knob_color = theme_compute_more_saturated(primary, tertiary);
-
-    // Get object name for container classification (cards, backgrounds, dividers)
-    const char* obj_name = lv_obj_get_name(obj);
 
     // ==========================================================================
     // LABELS - Use font-based detection instead of name matching
@@ -1546,24 +1595,29 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     }
 
     // ==========================================================================
-    // CONTAINERS - use name hints for cards/backgrounds/dialogs
+    // CONTAINERS - color-swap map (replaces name-based heuristics)
     // ==========================================================================
-    if (obj_name) {
-        if (strstr(obj_name, "divider") != nullptr) {
-            // Named dividers (fallback for any that don't match structural detection)
-            lv_obj_set_style_bg_color(obj, border, LV_PART_MAIN);
-        } else if (strstr(obj_name, "card") != nullptr || strstr(obj_name, "nav") != nullptr) {
-            lv_obj_set_style_bg_color(obj, card_bg, LV_PART_MAIN);
-            lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
-        } else if (strstr(obj_name, "dialog") != nullptr) {
-            // Modal dialogs use elevated_bg (elevated surface)
-            spdlog::debug("[Theme] Applying elevated_bg to dialog: {} (color: 0x{:06X})", obj_name,
-                          lv_color_to_u32(elevated_bg) & 0xFFFFFF);
-            lv_obj_set_style_bg_color(obj, elevated_bg, LV_PART_MAIN);
-        } else if (strstr(obj_name, "background") != nullptr ||
-                   strstr(obj_name, "toast") != nullptr || strstr(obj_name, "header") != nullptr) {
-            // Containers that use screen_bg background
-            lv_obj_set_style_bg_color(obj, screen_bg, LV_PART_MAIN);
+    // Swap bg_color if it matches any old semantic color
+    lv_opa_t bg_opa_check = lv_obj_get_style_bg_opa(obj, LV_PART_MAIN);
+    if (bg_opa_check > 0 && !bg_swap_map.empty()) {
+        lv_color_t current_bg = lv_obj_get_style_bg_color(obj, LV_PART_MAIN);
+        for (const auto& entry : bg_swap_map) {
+            if (color_eq(current_bg, entry.from)) {
+                lv_obj_set_style_bg_color(obj, entry.to, LV_PART_MAIN);
+                break;
+            }
+        }
+    }
+
+    // Swap border_color if it matches any old semantic color
+    int32_t bw = lv_obj_get_style_border_width(obj, LV_PART_MAIN);
+    if (bw > 0 && !border_swap_map.empty()) {
+        lv_color_t current_border = lv_obj_get_style_border_color(obj, LV_PART_MAIN);
+        for (const auto& entry : border_swap_map) {
+            if (color_eq(current_border, entry.from)) {
+                lv_obj_set_style_border_color(obj, entry.to, LV_PART_MAIN);
+                break;
+            }
         }
     }
 }

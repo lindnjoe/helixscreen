@@ -7,6 +7,7 @@
 #include "ui_utils.h"              // For strip_gcode_extension
 
 #include "prerendered_images.h"
+#include "theme_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -255,6 +256,9 @@ void PrintSelectCardView::init_pool(const CardDimensions& dims) {
             card_data_pool_.push_back(std::move(data));
         }
     }
+
+    // Swap gradient images to match current theme (XML hardcodes -dark.bin)
+    theme_manager_swap_gradients(container_);
 
     spdlog::debug("[PrintSelectCardView] Pool initialized with {} cards", card_pool_.size());
 }
