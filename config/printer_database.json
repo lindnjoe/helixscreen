@@ -20,6 +20,7 @@
       "name": "FlashForge Adventurer 5M",
       "manufacturer": "FlashForge",
       "image": "flashforge-adventurer-5m.png",
+      "print_start_profile": "forge_x",
       "heuristics": [
         {
           "type": "macro_match",
@@ -103,6 +104,7 @@
       "name": "FlashForge Adventurer 5M Pro",
       "manufacturer": "FlashForge",
       "image": "flashforge-adventurer-5m-pro.png",
+      "print_start_profile": "forge_x",
       "heuristics": [
         {
           "type": "led_match",

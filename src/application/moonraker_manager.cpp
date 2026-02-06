@@ -29,6 +29,8 @@
 #include "moonraker_client_mock.h"
 #include "print_completion.h"
 #include "print_start_collector.h"
+#include "print_start_profile.h"
+#include "printer_detector.h"
 #include "printer_state.h"
 #include "settings_manager.h"
 #include "sound_manager.h"
@@ -401,6 +403,22 @@ void MoonrakerManager::init_print_start_collector() {
 
     // Create collector
     m_print_start_collector = std::make_shared<PrintStartCollector>(*m_client, get_printer_state());
+
+    // Load print start profile based on detected printer type
+    std::string printer_type = get_printer_state().get_printer_type();
+    if (!printer_type.empty()) {
+        std::string profile_name = PrinterDetector::get_print_start_profile(printer_type);
+        if (!profile_name.empty()) {
+            auto profile = PrintStartProfile::load(profile_name);
+            m_print_start_collector->set_profile(profile);
+            spdlog::info("[MoonrakerManager] Loaded print start profile '{}' for printer '{}'",
+                         profile_name, printer_type);
+        } else {
+            spdlog::debug(
+                "[MoonrakerManager] No print start profile for printer '{}', using default",
+                printer_type);
+        }
+    }
 
     // Store shared_ptr in a static for the lambda captures
     // This avoids the capturing lambda issue with ObserverGuard

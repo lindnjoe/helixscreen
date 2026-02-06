@@ -460,6 +460,7 @@ TEST_CASE("PrintStart: typical noise lines should not match phases", "[print][ne
 #include "../lvgl_test_fixture.h"
 #include "moonraker_client_mock.h"
 #include "print_start_collector.h"
+#include "print_start_profile.h"
 
 /**
  * @brief HELIX:PHASE signal parser for direct testing
@@ -526,6 +527,7 @@ class PrintStartCollectorHeaterFixture : public LVGLTestFixture {
         state_.init_subjects(false);
         client_ = std::make_unique<MoonrakerClientMock>();
         collector_ = std::make_shared<PrintStartCollector>(*client_, state_);
+        collector_->set_profile(PrintStartProfile::load_default());
     }
 
     ~PrintStartCollectorHeaterFixture() override {

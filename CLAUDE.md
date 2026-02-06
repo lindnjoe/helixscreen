@@ -32,6 +32,7 @@ scripts/setup-worktree.sh feature/my-branch  # Symlinks deps, builds fast
 | `docs/BUILD_SYSTEM.md` | Build, Makefile |
 | `docs/MOONRAKER_SECURITY_REVIEW.md` | Moonraker/security |
 | `docs/LOGGING.md` | Adding spdlog calls, choosing info vs debug vs trace |
+| `docs/PRINT_START_PROFILES.md` | Print start profiles: adding new printers, JSON schema, all phases |
 
 ---
 

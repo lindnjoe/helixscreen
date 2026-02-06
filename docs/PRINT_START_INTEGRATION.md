@@ -2,11 +2,15 @@
 
 HelixScreen detects when your print's preparation phase (heating, homing, leveling, etc.) is complete and actual printing begins. This document explains how the detection works and how to optimize it for your setup.
 
+**Developer guide**: For adding profiles for new printers, see [PRINT_START_PROFILES.md](PRINT_START_PROFILES.md).
+
 ## How It Works
 
-When a print starts, HelixScreen shows a "Preparing Print" overlay on the home panel with a progress bar. Once the preparation is complete, the UI transitions to show normal print status.
+When a print starts, HelixScreen shows a "Preparing Print" overlay on the home panel with a progress bar showing the current phase (homing, heating, leveling, etc.). Once the preparation is complete, the UI transitions to show normal print status.
 
-HelixScreen uses a multi-signal detection system with the following priority:
+HelixScreen uses a modular profile system with printer-specific signal matching. Known printers (like the FlashForge AD5M) get accurate, per-phase progress tracking. Unknown printers use generic pattern matching that works with standard G-code commands.
+
+Detection uses a multi-signal system with these fallbacks for completion:
 
 | Priority | Signal | How It Works |
 |----------|--------|--------------|
@@ -246,51 +250,69 @@ If detection takes the full 45-second timeout:
 1. **Add HELIX_READY**: The most reliable option
 2. **Check if your slicer sets layer info**: Look for `SET_PRINT_STATS_INFO` in your G-code
 3. **Verify macro object subscriptions**: HelixScreen subscribes to `gcode_macro _HELIX_STATE`, `gcode_macro _START_PRINT`, and `gcode_macro START_PRINT`
-4. **ForgeX users**: Detection should be instant via `START_PRINT.preparation_done` signal
+4. **ForgeX users**: Detection should be instant via the Forge-X profile (`// State:` signals) and `START_PRINT.preparation_done` macro variable
 
 ## Technical Details
 
-### Detection Signals
+### Printer-Specific Profiles
 
-**Macro Variables (Priority 1)**
+HelixScreen uses a modular profile system to match different printer firmware. Known printers (like the FlashForge AD5M with Forge-X firmware) have custom profiles that map firmware-specific output to preparation phases with accurate progress tracking. Unknown printers use generic regex patterns that work with standard G-code commands.
 
-HelixScreen subscribes to these Moonraker objects:
-- `gcode_macro _HELIX_STATE` → watches `print_started` variable
-- `gcode_macro _START_PRINT` → watches `print_started` variable
-- `gcode_macro START_PRINT` → watches `preparation_done` variable
+Profiles are JSON files in `config/print_start_profiles/`. Each profile can define:
+- **Signal formats**: Exact prefix + value matching for structured firmware output
+- **Response patterns**: Regex patterns for G-code console parsing
+- **Progress mode**: `sequential` (known firmware) or `weighted` (generic heuristics)
 
-When any of these become `True`, detection is instant. ForgeX firmware uses
-`START_PRINT.preparation_done` and `_START_PRINT.print_started` for this purpose.
+For developer details on creating profiles for new printers, see [PRINT_START_PROFILES.md](PRINT_START_PROFILES.md).
 
-**G-code Console (Priority 2)**
+### Phase Detection
 
-HelixScreen watches `notify_gcode_response` for patterns:
-```regex
-SET_PRINT_STATS_INFO\s+CURRENT_LAYER=|LAYER:?\s*1\b|;LAYER:1|First layer|HELIX:READY
-```
+During PRINT_START, HelixScreen detects these preparation phases:
 
-**Layer Count (Priority 3)**
+| Phase | Description |
+|-------|-------------|
+| Initializing | PRINT_START macro detected |
+| Homing | G28 / Home All Axes |
+| Heating Bed | M190 / M140 |
+| Heating Nozzle | M109 / M104 |
+| QGL | Quad Gantry Level |
+| Z Tilt | Z Tilt Adjust |
+| Bed Mesh | BED_MESH_CALIBRATE / mesh load |
+| Cleaning | Nozzle wipe / clean |
+| Purging | Purge line / priming |
+| Complete | Transition to printing |
 
-Monitors `print_stats.info.current_layer` from Moonraker. When ≥1, prep is considered complete.
+### Detection Priority
 
-**Progress + Temps (Priority 4)**
+G-code responses are checked in this order (first match wins):
 
-Combines file progress (from `virtual_sdcard.progress`) with temperature stability:
-- Progress ≥2% (past typical preamble/macros)
-- Extruder within 5°C of target
-- Bed within 5°C of target (if target >0)
+| Priority | Signal | How It Works |
+|----------|--------|--------------|
+| 1 | **HELIX:PHASE signals** | Universal `HELIX:PHASE:HOMING` etc. from HelixScreen macros |
+| 2 | **Profile signal formats** | Exact prefix matching (e.g., Forge-X `// State: HOMING...`) |
+| 3 | **PRINT_START marker** | Detects `PRINT_START`/`START_PRINT` once per session |
+| 4 | **Completion marker** | `SET_PRINT_STATS_INFO CURRENT_LAYER=`, `LAYER: 1`, `HELIX:READY` |
+| 5 | **Profile regex patterns** | G-code command matching (G28, M190, etc.) |
 
-**Timeout (Priority 5)**
+### Completion Fallbacks
 
-Last resort after 45 seconds in PRINTING state:
-- Extruder ≥90% of target
-- Bed ≥90% of target (if target >0)
+For printers that don't emit G-code layer markers, HelixScreen has additional fallback signals:
+
+| Fallback | Condition |
+|----------|-----------|
+| **Macro Variables** | `_HELIX_STATE.print_started`, `_START_PRINT.print_started`, or `START_PRINT.preparation_done` becomes True |
+| **Layer Count** | `print_stats.info.current_layer` becomes ≥ 1 |
+| **Progress + Temps** | Print progress ≥ 2% AND temperatures within 5°C of target |
+| **Timeout** | 45 seconds in PRINTING state with temps ≥ 90% of target |
 
 ### Files
 
 | File | Purpose |
 |------|---------|
-| `src/print/print_start_collector.cpp` | Detection logic and fallback implementation |
+| `src/print/print_start_collector.cpp` | Detection engine and fallback implementation |
+| `src/print/print_start_profile.cpp` | Profile loading and signal/pattern matching |
+| `config/print_start_profiles/*.json` | Printer-specific profile definitions |
 | `config/helix_macros.cfg` | Klipper macros for detection and phase tracking |
 | `src/printer/macro_manager.cpp` | Macro installation management |
 | `src/api/moonraker_client.cpp` | Object subscription setup |
+| `docs/PRINT_START_PROFILES.md` | Developer guide for creating new profiles |

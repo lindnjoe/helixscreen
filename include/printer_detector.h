@@ -218,6 +218,18 @@ class PrinterDetector {
      */
     static PrintStartCapabilities get_print_start_capabilities(const std::string& printer_name);
 
+    /**
+     * @brief Get print start profile name for a printer
+     *
+     * Looks up the print_start_profile field from the printer database JSON
+     * for the specified printer. This determines which JSON profile to load
+     * for PRINT_START phase detection.
+     *
+     * @param printer_name Printer name (e.g., "FlashForge Adventurer 5M Pro")
+     * @return Profile name (e.g., "forge_x"), or empty string if not specified
+     */
+    static std::string get_print_start_profile(const std::string& printer_name);
+
     // =========================================================================
     // User Extensions API
     // =========================================================================

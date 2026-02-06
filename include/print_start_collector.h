@@ -4,6 +4,7 @@
 #pragma once
 
 #include "moonraker_client.h"
+#include "print_start_profile.h"
 #include "printer_state.h"
 
 #include <atomic>
@@ -93,17 +94,16 @@ class PrintStartCollector : public std::enable_shared_from_this<PrintStartCollec
      */
     void enable_fallbacks();
 
-  private:
     /**
-     * @brief Phase pattern for regex matching
+     * @brief Set the print start profile for pattern/signal matching
+     *
+     * Must be called before start(). Ignored if the collector is active.
+     *
+     * @param profile Profile to use, or nullptr to disable profile-based matching
      */
-    struct PhasePattern {
-        PrintStartPhase phase;
-        std::regex pattern;
-        const char* message;
-        int weight; // Progress weight (0-100, all phases should sum to 100)
-    };
+    void set_profile(std::shared_ptr<PrintStartProfile> profile);
 
+  private:
     /**
      * @brief Handle incoming G-code response
      */
@@ -125,9 +125,14 @@ class PrintStartCollector : public std::enable_shared_from_this<PrintStartCollec
     bool check_helix_phase_signal(const std::string& line);
 
     /**
-     * @brief Update phase and recalculate progress
+     * @brief Update phase and recalculate progress (weighted mode)
      */
     void update_phase(PrintStartPhase phase, const char* message);
+
+    /**
+     * @brief Update phase with explicit progress value (sequential mode)
+     */
+    void update_phase(PrintStartPhase phase, const std::string& message, int progress);
 
     /**
      * @brief Calculate overall progress based on detected phases
@@ -168,8 +173,10 @@ class PrintStartCollector : public std::enable_shared_from_this<PrintStartCollec
     bool print_start_detected_ = false;
     std::chrono::steady_clock::time_point printing_state_start_;
 
-    // Static phase patterns (initialized once, immutable after)
-    static const std::vector<PhasePattern> phase_patterns_;
+    // Profile for signal/pattern matching (set via set_profile() or loaded by start())
+    std::shared_ptr<PrintStartProfile> profile_;
+
+    // Universal patterns (not profile-specific)
     static const std::regex print_start_pattern_;
     static const std::regex completion_pattern_;
 

@@ -13,52 +13,6 @@ using json = nlohmann::json;
 // STATIC PATTERN DEFINITIONS
 // ============================================================================
 
-// Phase detection patterns with progress weights
-// Weights should roughly sum to 100% for typical PRINT_START macros
-const std::vector<PrintStartCollector::PhasePattern> PrintStartCollector::phase_patterns_ = {
-    // Homing (usually first step)
-    {PrintStartPhase::HOMING, std::regex(R"(G28|Homing|Home All Axes|homing)", std::regex::icase),
-     "Homing...", 10},
-
-    // Heating - bed
-    {PrintStartPhase::HEATING_BED,
-     std::regex(R"(M190|M140\s+S[1-9]|Heating bed|Heat Bed|BED_TEMP|bed.*heat)", std::regex::icase),
-     "Heating Bed...", 20},
-
-    // Heating - nozzle
-    {PrintStartPhase::HEATING_NOZZLE,
-     std::regex(R"(M109|M104\s+S[1-9]|Heating (nozzle|hotend|extruder)|EXTRUDER_TEMP)",
-                std::regex::icase),
-     "Heating Nozzle...", 20},
-
-    // Quad gantry level
-    {PrintStartPhase::QGL,
-     std::regex(R"(QUAD_GANTRY_LEVEL|quad.?gantry.?level|QGL)", std::regex::icase),
-     "Leveling Gantry...", 15},
-
-    // Z tilt adjust
-    {PrintStartPhase::Z_TILT, std::regex(R"(Z_TILT_ADJUST|z.?tilt.?adjust)", std::regex::icase),
-     "Z Tilt Adjust...", 15},
-
-    // Bed mesh
-    {PrintStartPhase::BED_MESH,
-     std::regex(R"(BED_MESH_CALIBRATE|BED_MESH_PROFILE\s+LOAD=|Loading bed mesh|mesh.*load)",
-                std::regex::icase),
-     "Loading Bed Mesh...", 10},
-
-    // Nozzle cleaning
-    {PrintStartPhase::CLEANING,
-     std::regex(R"(CLEAN_NOZZLE|NOZZLE_CLEAN|WIPE_NOZZLE|nozzle.?wipe|clean.?nozzle)",
-                std::regex::icase),
-     "Cleaning Nozzle...", 5},
-
-    // Purge line
-    {PrintStartPhase::PURGING,
-     std::regex(R"(VORON_PURGE|LINE_PURGE|PURGE_LINE|Prime.?Line|Priming|KAMP_.*PURGE|purge.?line)",
-                std::regex::icase),
-     "Purging...", 5},
-};
-
 // Pattern to detect PRINT_START macro invocation
 const std::regex
     PrintStartCollector::print_start_pattern_(R"(PRINT_START|START_PRINT|_PRINT_START)",
@@ -107,6 +61,11 @@ void PrintStartCollector::start() {
         print_start_detected_ = false;
     }
     fallbacks_enabled_.store(false); // Will be enabled after initial window
+
+    // Ensure we have a profile for pattern matching
+    if (!profile_) {
+        profile_ = PrintStartProfile::load_default();
+    }
 
     // Generate unique handler name for G-code response callback
     static std::atomic<uint64_t> s_collector_id{0};
@@ -347,6 +306,19 @@ void PrintStartCollector::on_gcode_response(const json& msg) {
         return; // Signal handled
     }
 
+    // Check profile signal formats (priority 2, after HELIX:PHASE)
+    if (profile_) {
+        PrintStartProfile::MatchResult match;
+        if (profile_->try_match_signal(line, match)) {
+            if (profile_->progress_mode() == PrintStartProfile::ProgressMode::SEQUENTIAL) {
+                update_phase(match.phase, match.message, match.progress);
+            } else {
+                update_phase(match.phase, match.message.c_str());
+            }
+            return;
+        }
+    }
+
     // Check for PRINT_START marker (once per session)
     bool should_set_initializing = false;
     {
@@ -375,24 +347,29 @@ void PrintStartCollector::on_gcode_response(const json& msg) {
 }
 
 void PrintStartCollector::check_phase_patterns(const std::string& line) {
-    for (const auto& pattern : phase_patterns_) {
-        if (std::regex_search(line, pattern.pattern)) {
-            // Only update if this is a new phase
-            bool is_new_phase = false;
-            {
-                std::lock_guard<std::mutex> lock(state_mutex_);
-                if (detected_phases_.find(pattern.phase) == detected_phases_.end()) {
-                    detected_phases_.insert(pattern.phase);
-                    is_new_phase = true;
-                }
-            }
-            if (is_new_phase) {
-                update_phase(pattern.phase, pattern.message);
+    if (!profile_) {
+        return;
+    }
 
-                spdlog::debug("[PrintStartCollector] Detected phase: {} (progress: {}%)",
-                              static_cast<int>(pattern.phase), calculate_progress());
+    PrintStartProfile::MatchResult match;
+    if (profile_->try_match_pattern(line, match)) {
+        // Only update if this is a new phase
+        bool is_new_phase = false;
+        {
+            std::lock_guard<std::mutex> lock(state_mutex_);
+            if (detected_phases_.find(match.phase) == detected_phases_.end()) {
+                detected_phases_.insert(match.phase);
+                is_new_phase = true;
             }
-            return; // Only match first pattern per line
+        }
+        if (is_new_phase) {
+            if (profile_->progress_mode() == PrintStartProfile::ProgressMode::SEQUENTIAL) {
+                update_phase(match.phase, match.message, match.progress);
+            } else {
+                update_phase(match.phase, match.message.c_str());
+            }
+            spdlog::debug("[PrintStartCollector] Detected phase: {} (progress: {}%)",
+                          static_cast<int>(match.phase), calculate_progress());
         }
     }
 }
@@ -486,18 +463,44 @@ void PrintStartCollector::update_phase(PrintStartPhase phase, const char* messag
     state_.set_print_start_state(phase, message, progress);
 }
 
+void PrintStartCollector::update_phase(PrintStartPhase phase, const std::string& message,
+                                       int progress) {
+    {
+        std::lock_guard<std::mutex> lock(state_mutex_);
+        current_phase_ = phase;
+        detected_phases_.insert(phase);
+    }
+    // Use sequential progress directly, cap at 95% unless COMPLETE
+    int capped_progress = (phase == PrintStartPhase::COMPLETE) ? 100 : std::min(progress, 95);
+    state_.set_print_start_state(phase, message.c_str(), capped_progress);
+}
+
+void PrintStartCollector::set_profile(std::shared_ptr<PrintStartProfile> profile) {
+    if (active_.load()) {
+        spdlog::warn("[PrintStartCollector] set_profile() called while active, ignoring");
+        return;
+    }
+    profile_ = std::move(profile);
+    if (profile_) {
+        spdlog::info("[PrintStartCollector] Using profile: {}", profile_->name());
+    } else {
+        spdlog::info("[PrintStartCollector] No profile set, signal/pattern matching disabled");
+    }
+}
+
 int PrintStartCollector::calculate_progress() const {
     std::lock_guard<std::mutex> lock(state_mutex_);
     return calculate_progress_locked();
 }
 
 int PrintStartCollector::calculate_progress_locked() const {
-    int total_weight = 0;
+    if (!profile_) {
+        return 0;
+    }
 
-    for (const auto& pattern : phase_patterns_) {
-        if (detected_phases_.find(pattern.phase) != detected_phases_.end()) {
-            total_weight += pattern.weight;
-        }
+    int total_weight = 0;
+    for (const auto& phase : detected_phases_) {
+        total_weight += profile_->get_phase_weight(phase);
     }
 
     // Cap at 95% - final 5% is for completion transition
