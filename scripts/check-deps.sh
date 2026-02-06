@@ -211,6 +211,26 @@ check_libraries() {
             :  # ok already printed
         elif [ -f "/usr/include/openssl/ssl.h" ] || [ -f "/usr/local/include/openssl/ssl.h" ]; then
             ok "OpenSSL found (system headers)"
+        elif [ -n "$CC" ] && command -v "$CC" >/dev/null 2>&1; then
+            # Cross-compilation: check the compiler's sysroot for OpenSSL headers
+            # ARM standalone toolchains: gcc -print-sysroot returns <prefix>/<triple>/libc
+            # but OpenSSL installs to <prefix>/<triple>/include (one level up from libc)
+            SSL_FOUND=0
+            SYSROOT=$("$CC" -print-sysroot 2>/dev/null || true)
+            if [ -n "$SYSROOT" ] && [ -f "$SYSROOT/include/openssl/ssl.h" ]; then
+                ok "OpenSSL found (cross-compiler sysroot)"
+                SSL_FOUND=1
+            elif [ -n "$SYSROOT" ]; then
+                TOOLCHAIN_PREFIX=$(dirname "$SYSROOT")
+                if [ -f "$TOOLCHAIN_PREFIX/include/openssl/ssl.h" ]; then
+                    ok "OpenSSL found (toolchain: $TOOLCHAIN_PREFIX)"
+                    SSL_FOUND=1
+                fi
+            fi
+            if [ $SSL_FOUND -eq 0 ]; then
+                fail "OpenSSL development libraries not found" "openssl"
+                hint "openssl" "openssl" "libssl-dev" "openssl-devel"
+            fi
         else
             fail "OpenSSL development libraries not found" "openssl"
             hint "openssl" "openssl" "libssl-dev" "openssl-devel"
