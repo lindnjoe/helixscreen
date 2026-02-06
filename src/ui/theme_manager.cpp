@@ -1477,6 +1477,20 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
             return;
         }
 
+        // Labels inside dark overlays (e.g., metadata on thumbnails) need light text
+        // regardless of theme mode. Walk ancestors to find nearest opaque container.
+        for (lv_obj_t* anc = parent; anc != nullptr; anc = lv_obj_get_parent(anc)) {
+            lv_opa_t anc_opa = lv_obj_get_style_bg_opa(anc, LV_PART_MAIN);
+            if (anc_opa >= LV_OPA_50) {
+                lv_color_t anc_bg = lv_obj_get_style_bg_color(anc, LV_PART_MAIN);
+                if (theme_compute_brightness(anc_bg) < 80) {
+                    lv_obj_set_style_text_color(obj, lv_color_white(), LV_PART_MAIN);
+                    return;
+                }
+                break; // found opaque ancestor, not dark — fall through to normal
+            }
+        }
+
         // Small/heading fonts get muted color, body fonts get primary
         if (is_muted_text_font(font)) {
             lv_obj_set_style_text_color(obj, text_muted, LV_PART_MAIN);
