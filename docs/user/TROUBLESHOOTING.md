@@ -30,10 +30,10 @@ Solutions to common problems with HelixScreen.
 ```bash
 # MainsailOS - edit service temporarily
 sudo systemctl edit --force helixscreen
-# Add these lines:
+# Add these lines (use your actual install path):
 [Service]
 ExecStart=
-ExecStart=/opt/helixscreen/bin/helix-launcher.sh -vv
+ExecStart=~/helixscreen/bin/helix-launcher.sh -vv
 
 # Then restart
 sudo systemctl daemon-reload
@@ -64,12 +64,12 @@ sudo journalctl -u helixscreen -f
 
 **Common causes:**
 
-1. **Missing or corrupt assets**
+1. **Missing or corrupt assets** (use your actual install path)
    ```bash
-   # Check assets exist
-   ls -la /opt/helixscreen/assets/
-   ls -la /opt/helixscreen/assets/fonts/
-   ls -la /opt/helixscreen/xml/
+   # Check assets exist (Pi: ~/helixscreen or /opt/helixscreen)
+   ls -la ~/helixscreen/assets/
+   ls -la ~/helixscreen/assets/fonts/
+   ls -la ~/helixscreen/xml/
    ```
 
 2. **Wrong display backend for your hardware**
@@ -100,7 +100,7 @@ sudo journalctl -u helixscreen -f
 
 **Specify the DRM device explicitly:**
 ```json
-// /opt/helixscreen/config/helixconfig.json
+// ~/helixscreen/config/helixconfig.json (or /opt/helixscreen/config/)
 {
   "display": {
     "drm_device": "/dev/dri/card1"
@@ -133,8 +133,8 @@ sudo systemctl status helixscreen
 
 **Force console logging for debugging:**
 ```bash
-# Run manually to see all output
-sudo /opt/helixscreen/bin/helix-screen -vvv
+# Run manually to see all output (use your actual install path)
+sudo ~/helixscreen/bin/helix-screen -vvv
 ```
 
 **Check log destination in config:**
@@ -813,27 +813,27 @@ max_job_count: 100
 
 **Solutions:**
 
-**Check config exists and is valid JSON:**
+**Check config exists and is valid JSON** (use your actual install path):
 ```bash
-cat /opt/helixscreen/config/helixconfig.json | jq .
+cat ~/helixscreen/config/helixconfig.json | jq .
 ```
 
 If the file is missing or invalid, the wizard will run. After completing the wizard, verify:
 ```bash
-grep wizard_completed /opt/helixscreen/config/helixconfig.json
+grep wizard_completed ~/helixscreen/config/helixconfig.json
 # Should show: "wizard_completed": true
 ```
 
 **Check config directory is writable:**
 ```bash
-ls -la /opt/helixscreen/config/
+ls -la ~/helixscreen/config/
 # The helixscreen process needs write access
 ```
 
 **Create fresh config from template:**
 ```bash
-sudo cp /opt/helixscreen/config/helixconfig.json.template \
-        /opt/helixscreen/config/helixconfig.json
+cp ~/helixscreen/config/helixconfig.json.template \
+   ~/helixscreen/config/helixconfig.json
 ```
 
 > **Note:** Copying the template creates a valid config but with `wizard_completed: false`, so the wizard will still run once to configure your printer.
@@ -850,8 +850,8 @@ sudo cp /opt/helixscreen/config/helixconfig.json.template \
 
 **Check config directory is writable:**
 ```bash
-# Test write access
-sudo -u root touch /opt/helixscreen/config/test && rm /opt/helixscreen/config/test
+# Test write access (use your actual install path)
+touch ~/helixscreen/config/test && rm ~/helixscreen/config/test
 echo "Write OK"
 ```
 
@@ -884,12 +884,12 @@ sudo systemctl restart helixscreen
 **Solutions:**
 
 **Re-run wizard:**
-1. Delete config: `sudo rm /opt/helixscreen/config/helixconfig.json`
+1. Delete config: `rm ~/helixscreen/config/helixconfig.json`
 2. Restart: `sudo systemctl restart helixscreen`
 3. Manually select correct printer in wizard
 
 **Manual configuration:**
-Edit `/opt/helixscreen/config/helixconfig.json` to set correct printer type and features.
+Edit `~/helixscreen/config/helixconfig.json` to set correct printer type and features.
 
 ---
 
@@ -1017,8 +1017,8 @@ When reporting issues, gather this information:
 ### System Information
 
 ```bash
-# HelixScreen version
-/opt/helixscreen/bin/helix-screen --version
+# HelixScreen version (use your actual install path)
+~/helixscreen/bin/helix-screen --version
 
 # OS version
 cat /etc/os-release
@@ -1058,7 +1058,8 @@ tail -f /tmp/helixscreen.log
 
 ```bash
 # Current config (sanitize API keys before sharing!)
-cat /opt/helixscreen/config/helixconfig.json
+# Pi: ~/helixscreen/config/ or /opt/helixscreen/config/
+cat ~/helixscreen/config/helixconfig.json
 ```
 
 ### Display Information

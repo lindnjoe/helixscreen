@@ -36,11 +36,13 @@ Complete reference for HelixScreen configuration options.
 
 | Platform | Location |
 |----------|----------|
-| MainsailOS (Pi) | `/opt/helixscreen/config/helixconfig.json` |
+| MainsailOS (Pi) | `~/helixscreen/config/helixconfig.json` (or `/opt/helixscreen/config/` if no Klipper ecosystem) |
 | AD5M Forge-X | `/opt/helixscreen/config/helixconfig.json` |
 | AD5M Klipper Mod | `/root/printer_software/helixscreen/config/helixconfig.json` |
 | K1 Simple AF | `/usr/data/helixscreen/config/helixconfig.json` |
 | Development | `./config/helixconfig.json` (in config/ directory) |
+
+> **Note:** On Pi, the installer auto-detects your Klipper ecosystem. If `~/klipper`, `~/moonraker`, or `~/printer_data` exists, HelixScreen installs to `~/helixscreen`. Otherwise it falls back to `/opt/helixscreen`. You can override with `INSTALL_DIR=/path ./install.sh`.
 
 The configuration file is created automatically by the first-run wizard. You can also copy from the template:
 
@@ -864,9 +866,13 @@ Located in `printer.capability_overrides`:
 ## Resetting Configuration
 
 ### Full Reset
-Delete the config file and restart:
+Delete the config file and restart (use your actual install path):
 ```bash
+# Pi with Klipper ecosystem:
+rm ~/helixscreen/config/helixconfig.json
+# Pi without ecosystem (or if installed to /opt):
 sudo rm /opt/helixscreen/config/helixconfig.json
+
 sudo systemctl restart helixscreen
 ```
 
@@ -875,12 +881,12 @@ This triggers the first-run wizard.
 ### Partial Reset
 Edit the config file directly:
 ```bash
-sudo nano /opt/helixscreen/config/helixconfig.json
+nano ~/helixscreen/config/helixconfig.json
 ```
 
 Or copy fresh from template:
 ```bash
-sudo cp /opt/helixscreen/config/helixconfig.json.template /opt/helixscreen/config/helixconfig.json
+cp ~/helixscreen/config/helixconfig.json.template ~/helixscreen/config/helixconfig.json
 ```
 
 ---

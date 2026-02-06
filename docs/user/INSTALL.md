@@ -159,12 +159,14 @@ curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/script
 ```
 
 The installer automatically:
-1. Detects your platform
+1. Detects your platform and Klipper ecosystem
 2. Downloads the correct release
 3. Stops any competing UIs (KlipperScreen, etc.)
-4. Installs to `/opt/helixscreen/`
+4. Installs to `~/helixscreen` (if Klipper ecosystem detected) or `/opt/helixscreen` (fallback)
 5. Configures and starts the systemd service
 6. Sets up Moonraker update_manager for web UI updates
+
+> **Install path auto-detection:** The installer checks for `~/klipper`, `~/moonraker`, `~/printer_data`, or an active `moonraker.service`. If any are found, HelixScreen installs alongside them in your home directory. Override with `INSTALL_DIR=/custom/path`.
 
 ### Step 3: Complete the Setup Wizard
 
@@ -434,11 +436,13 @@ HelixScreen should detect and use these automatically.
 
 ### Screen Rotation
 
-To rotate the display, add to `/opt/helixscreen/helixconfig.json`:
+To rotate the display, add to your `helixconfig.json` (typically at `~/helixscreen/config/helixconfig.json`):
 
 ```json
 {
-  "display_rotate": 180
+  "display": {
+    "rotate": 180
+  }
 }
 ```
 
@@ -547,10 +551,10 @@ On the touchscreen: **Settings** → scroll down to the bottom of the page to fi
 Or via SSH, check the help output:
 ```bash
 # Path varies by platform:
-#   Pi: /opt/helixscreen/bin/helix-screen
+#   Pi: ~/helixscreen/bin/helix-screen (or /opt/helixscreen if no Klipper ecosystem)
 #   K1: /usr/data/helixscreen/bin/helix-screen
 #   AD5M Klipper Mod: /root/printer_software/helixscreen/bin/helix-screen
-/opt/helixscreen/bin/helix-screen --help | head -1
+~/helixscreen/bin/helix-screen --help | head -1
 ```
 
 ### Update from Mainsail/Fluidd Web UI (Pi Only)
@@ -603,7 +607,8 @@ curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/script
 The update process preserves your `helixconfig.json` settings. If you want to reset to defaults:
 
 ```bash
-sudo rm /opt/helixscreen/helixconfig.json
+# Use your actual install path (~/helixscreen or /opt/helixscreen)
+sudo rm ~/helixscreen/config/helixconfig.json
 sudo systemctl restart helixscreen
 ```
 
@@ -614,13 +619,13 @@ If you installed manually or the installer couldn't find your `moonraker.conf`, 
 ```ini
 # Add to moonraker.conf
 # NOTE: The 'path' varies by platform:
-#   Pi: /opt/helixscreen
+#   Pi: ~/helixscreen (or /opt/helixscreen if no Klipper ecosystem)
 #   K1/Simple AF: /usr/data/helixscreen
 #   AD5M Klipper Mod: /root/printer_software/helixscreen
 [update_manager helixscreen]
 type: git_repo
 channel: stable
-path: /opt/helixscreen
+path: ~/helixscreen
 origin: https://github.com/prestonbrown/helixscreen.git
 primary_branch: main
 managed_services: helixscreen
@@ -667,7 +672,9 @@ sudo systemctl disable helixscreen
 sudo rm /etc/systemd/system/helixscreen.service
 sudo systemctl daemon-reload
 
-# Remove installation
+# Remove installation (check your actual path)
+sudo rm -rf ~/helixscreen
+# Or if installed to /opt:
 sudo rm -rf /opt/helixscreen
 ```
 </details>

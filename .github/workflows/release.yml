@@ -12,10 +12,29 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # Validate shell scripts before building release packages
+  # ============================================================================
+  validate-shell:
+    name: Validate Shell Scripts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install bats
+      run: sudo apt-get update -qq && sudo apt-get install -y bats
+
+    - name: Run shell tests
+      run: make test-shell
+
+  # ============================================================================
   # Build embedded platform binaries using Docker cross-compilation
   # ============================================================================
   build-pi:
     name: Build (Raspberry Pi)
+    needs: [validate-shell]
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
@@ -72,6 +91,7 @@ jobs:
 
   build-ad5m:
     name: Build (Adventurer 5M)
+    needs: [validate-shell]
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
@@ -128,6 +148,7 @@ jobs:
 
   build-k1:
     name: Build (Creality K1 Series)
+    needs: [validate-shell]
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
