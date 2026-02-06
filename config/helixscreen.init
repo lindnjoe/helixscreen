@@ -48,21 +48,6 @@ if [ -f "$PLATFORM_HOOKS" ]; then
     . "$PLATFORM_HOOKS"
 fi
 
-# Start splash screen (if available)
-# Returns the --splash-pid argument on stdout (for capture by caller)
-# Status messages go to stderr to avoid polluting the return value
-start_splash() {
-    if [ -x "$SPLASH" ]; then
-        echo "Starting splash screen..." >&2
-        # Redirect splash output to /dev/null to prevent any contamination of captured stdout
-        # Splash auto-detects resolution from display hardware
-        "$SPLASH" >/dev/null 2>&1 &
-        SPLASH_PID=$!
-        echo "$SPLASH_PID" > /var/run/helix-splash.pid
-        echo "--splash-pid=$SPLASH_PID"
-    fi
-}
-
 # Stop splash screen
 stop_splash() {
     if [ -f /var/run/helix-splash.pid ]; then
@@ -94,7 +79,7 @@ start() {
         rm -f "$PIDFILE"
     fi
 
-    cd "$DAEMON_DIR"
+    cd "$DAEMON_DIR" || exit 1
 
     # Start splash screen early (before launcher) so it's visible during load
     # Set HELIX_NO_SPLASH=1 to disable splash (for debugging backlight issues)
@@ -159,7 +144,7 @@ stop() {
         if kill -0 "$PID" 2>/dev/null; then
             kill "$PID"
             # Wait for process to exit
-            for i in 1 2 3 4 5; do
+            for _ in 1 2 3 4 5; do
                 if ! kill -0 "$PID" 2>/dev/null; then
                     break
                 fi
@@ -175,18 +160,21 @@ stop() {
 
     # Also kill by name in case PID file is stale
     # Kill watchdog first to prevent crash dialog flash during clean shutdown
+    WATCHDOG_NAME=$(basename "$WATCHDOG")
+    DAEMON_NAME=$(basename "$DAEMON")
+    SPLASH_NAME=$(basename "$SPLASH")
     if command -v killall >/dev/null 2>&1; then
-        killall helix-watchdog 2>/dev/null || true
-        killall helix-screen 2>/dev/null || true
-        killall helix-splash 2>/dev/null || true
+        killall "$WATCHDOG_NAME" 2>/dev/null || true
+        killall "$DAEMON_NAME" 2>/dev/null || true
+        killall "$SPLASH_NAME" 2>/dev/null || true
     else
-        for pid in $(pidof helix-watchdog 2>/dev/null); do
+        for pid in $(pidof "$WATCHDOG_NAME" 2>/dev/null); do
             kill "$pid" 2>/dev/null || true
         done
-        for pid in $(pidof helix-screen 2>/dev/null); do
+        for pid in $(pidof "$DAEMON_NAME" 2>/dev/null); do
             kill "$pid" 2>/dev/null || true
         done
-        for pid in $(pidof helix-splash 2>/dev/null); do
+        for pid in $(pidof "$SPLASH_NAME" 2>/dev/null); do
             kill "$pid" 2>/dev/null || true
         done
     fi
@@ -217,7 +205,7 @@ status() {
 
     # Check if running without PID file
     if command -v pidof >/dev/null 2>&1; then
-        PID=$(pidof helix-screen 2>/dev/null)
+        PID=$(pidof "$(basename "$DAEMON")" 2>/dev/null)
         if [ -n "$PID" ]; then
             echo "$NAME is running (PID $PID) [no PID file]"
             return 0
