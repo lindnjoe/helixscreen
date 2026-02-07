@@ -409,10 +409,11 @@ std::string PrinterHardware::guess_main_led_strip() const {
         return match;
     }
 
-    // No room lighting found -- all LEDs are status/toolhead LEDs.
-    // Return empty so the UI can handle the no-light-configured case gracefully.
-    spdlog::debug("[PrinterHardware] guess_main_led_strip() -> no room lighting found");
-    return "";
+    // Priority 5 (fallback): No room lighting found, but LEDs exist.
+    // Better to control toolhead LEDs than show a broken button.
+    spdlog::debug("[PrinterHardware] guess_main_led_strip() -> '{}' (fallback: first available)",
+                  leds_[0]);
+    return leds_[0];
 }
 
 // ============================================================================

@@ -627,11 +627,11 @@ TEST_CASE("PrinterHardware::guess_main_led_strip", "[printer][guessing]") {
         REQUIRE(hw.guess_main_led_strip() == "neopixel main_strip");
     }
 
-    SECTION("Priority 4: sb_leds excluded as toolhead LED") {
+    SECTION("Priority 4: sb_leds excluded as toolhead LED, fallback to first") {
         std::vector<std::string> leds = {"Turtle_Corner_Indicators", "neopixel sb_leds"};
         PrinterHardware hw(heaters, sensors, fans, leds);
-        // sb_leds is a Stealthburner LED, not room lighting -- both excluded
-        REQUIRE(hw.guess_main_led_strip() == "");
+        // Both excluded from Priority 4, fallback returns first available
+        REQUIRE(hw.guess_main_led_strip() == "Turtle_Corner_Indicators");
     }
 
     SECTION("Priority 4: sb_led (singular) excluded as toolhead LED") {
@@ -665,16 +665,17 @@ TEST_CASE("PrinterHardware::guess_main_led_strip", "[printer][guessing]") {
         REQUIRE(hw.guess_main_led_strip() == "neopixel toolhead_light");
     }
 
-    SECTION("No room lighting: all LEDs are status/toolhead, returns empty") {
+    SECTION("No room lighting: all LEDs are status/toolhead, fallback to first") {
         std::vector<std::string> leds = {"status_indicator", "corner_indicators"};
         PrinterHardware hw(heaters, sensors, fans, leds);
-        REQUIRE(hw.guess_main_led_strip() == "");
+        REQUIRE(hw.guess_main_led_strip() == "status_indicator");
     }
 
-    SECTION("No room lighting: only sb_leds exists, returns empty") {
+    SECTION("No room lighting: only sb_leds exists, fallback to sb_leds") {
         std::vector<std::string> leds = {"neopixel sb_leds"};
         PrinterHardware hw(heaters, sensors, fans, leds);
-        REQUIRE(hw.guess_main_led_strip() == "");
+        // Better to control toolhead LEDs than show a broken button
+        REQUIRE(hw.guess_main_led_strip() == "neopixel sb_leds");
     }
 
     SECTION("Empty LEDs list: returns empty string") {
@@ -691,10 +692,25 @@ TEST_CASE("PrinterHardware::guess_main_led_strip", "[printer][guessing]") {
         REQUIRE(hw.guess_main_led_strip() == "Case_Lights");
     }
 
-    SECTION("Single status LED: returns empty (no room lighting)") {
+    SECTION("Single status LED: fallback to it") {
         std::vector<std::string> leds = {"status_indicator"};
         PrinterHardware hw(heaters, sensors, fans, leds);
-        REQUIRE(hw.guess_main_led_strip() == "");
+        // Better to control something than show a broken button
+        REQUIRE(hw.guess_main_led_strip() == "status_indicator");
+    }
+
+    SECTION("Fallback: priority still prefers case/chamber over sb_leds") {
+        std::vector<std::string> leds = {"neopixel sb_leds", "neopixel case_lights"};
+        PrinterHardware hw(heaters, sensors, fans, leds);
+        // case_lights matches Priority 1 ("case"), so it wins over fallback
+        REQUIRE(hw.guess_main_led_strip() == "neopixel case_lights");
+    }
+
+    SECTION("Fallback: sb_leds selected when only toolhead LEDs exist") {
+        std::vector<std::string> leds = {"neopixel sb_leds", "neopixel logo_led"};
+        PrinterHardware hw(heaters, sensors, fans, leds);
+        // Both are toolhead LEDs, fallback returns first
+        REQUIRE(hw.guess_main_led_strip() == "neopixel sb_leds");
     }
 }
 

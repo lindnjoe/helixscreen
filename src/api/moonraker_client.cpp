@@ -1592,10 +1592,16 @@ void MoonrakerClient::parse_objects(const json& objects) {
         else if (name.rfind("controller_fan ", 0) == 0) {
             fans_.push_back(name);
         }
-        // Output pins - only include if they look like fans (have "fan" in name)
+        // Output pins - classify as fan or LED based on name keywords
         else if (name.rfind("output_pin ", 0) == 0) {
-            if (name.find("fan") != std::string::npos) {
+            std::string lower_name = name;
+            std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
+            if (lower_name.find("fan") != std::string::npos) {
                 fans_.push_back(name);
+            } else if (lower_name.find("light") != std::string::npos ||
+                       lower_name.find("led") != std::string::npos ||
+                       lower_name.find("lamp") != std::string::npos) {
+                leds_.push_back(name);
             }
         }
         // LED outputs
