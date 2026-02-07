@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <json.hpp> // nlohmann/json from libhv
 
 namespace helix::units {
@@ -61,7 +62,7 @@ inline int json_to_centidegrees(const nlohmann::json& obj, const char* key, int 
  * Example: 0.75 → 75
  */
 inline int to_percent(double ratio) {
-    return static_cast<int>(ratio * 100.0);
+    return static_cast<int>(std::round(ratio * 100.0));
 }
 
 /**

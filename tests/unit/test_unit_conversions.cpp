@@ -96,7 +96,20 @@ TEST_CASE("to_percent converts correctly", "[unit_conversions][percent]") {
 
     SECTION("small values") {
         REQUIRE(to_percent(0.01) == 1);
-        REQUIRE(to_percent(0.001) == 0); // Truncates
+        REQUIRE(to_percent(0.001) == 0); // Rounds to 0
+    }
+
+    SECTION("float precision edge cases (rounding vs truncation)") {
+        // Issue #14: 0.9 represented as 0.8999... should round to 90, not truncate to 89
+        REQUIRE(to_percent(0.8999999999) == 90);
+        REQUIRE(to_percent(1.999999) == 200);
+    }
+
+    SECTION("rounding boundaries") {
+        REQUIRE(to_percent(0.895) == 90); // 89.5 rounds up
+        REQUIRE(to_percent(0.894) == 89); // 89.4 rounds down
+        REQUIRE(to_percent(0.005) == 1);  // 0.5 rounds up
+        REQUIRE(to_percent(0.004) == 0);  // 0.4 rounds down
     }
 }
 
