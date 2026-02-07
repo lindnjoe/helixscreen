@@ -266,6 +266,10 @@ class WifiBackendWpaSupplicant : public WifiBackend, private hv::EventLoopThread
     std::mutex init_mutex_;
     std::condition_variable init_cv_;
     std::atomic<bool> init_complete_{false};
+
+    // Shutdown coordination - prevents use-after-free when start() times out
+    // (GitHub issue #8: thread still in wpa_ctrl_attach when destructor runs)
+    std::atomic<bool> shutdown_requested_{false};
 };
 
 #endif // __APPLE__

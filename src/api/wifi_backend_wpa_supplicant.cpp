@@ -34,12 +34,23 @@ WifiBackendWpaSupplicant::WifiBackendWpaSupplicant()
 
 WifiBackendWpaSupplicant::~WifiBackendWpaSupplicant() {
     spdlog::trace("[WifiBackend] Destructor called");
-    stop();
-    cleanup_wpa(); // SECURITY: Ensure resources are cleaned up
+
+    // Signal the init thread to abort (it checks this flag between operations)
+    shutdown_requested_ = true;
+
+    // Stop the event loop and join the thread BEFORE freeing resources.
+    // This prevents the use-after-free race (GitHub issue #8) where
+    // cleanup_wpa() frees conn/mon_conn while init_wpa() is still using them.
+    hv::EventLoopThread::stop();
+    hv::EventLoopThread::join();
+
+    // Thread is now fully stopped - safe to free resources
+    cleanup_wpa();
 }
 
 WiFiError WifiBackendWpaSupplicant::start() {
     spdlog::debug("[WifiBackend] Starting wpa_supplicant backend...");
+    shutdown_requested_ = false;
 
     // Pre-flight checks before starting event loop
     WiFiError preflight_result = check_system_prerequisites();
@@ -381,6 +392,13 @@ void WifiBackendWpaSupplicant::init_wpa() {
         return;
     }
 
+    // Check for shutdown before opening connections
+    if (shutdown_requested_.load()) {
+        spdlog::debug("[WifiBackend] Shutdown requested during init, aborting");
+        signal_init_complete();
+        return;
+    }
+
     // Open control connection (for sending commands)
     if (conn == nullptr) {
         conn = wpa_ctrl_open(wpa_socket.c_str());
@@ -393,11 +411,29 @@ void WifiBackendWpaSupplicant::init_wpa() {
         spdlog::debug("[WifiBackend] Opened control connection");
     }
 
+    // Check for shutdown before opening monitor connection
+    if (shutdown_requested_.load()) {
+        spdlog::debug("[WifiBackend] Shutdown requested during init, aborting");
+        signal_init_complete();
+        return;
+    }
+
     // Open monitor connection (for receiving events)
     mon_conn = wpa_ctrl_open(wpa_socket.c_str()); // SECURITY: Use member variable to prevent leak
     if (mon_conn == nullptr) {
         LOG_ERROR_INTERNAL("Failed to open monitor connection to {}", wpa_socket);
         dispatch_event("INIT_FAILED", "Failed to connect to wpa_supplicant monitor");
+        signal_init_complete();
+        return;
+    }
+
+    // Check for shutdown before the potentially blocking wpa_ctrl_attach().
+    // This is the critical check: wpa_ctrl_attach() can block for 5+ seconds
+    // when wpa_supplicant is unresponsive, and the destructor may be waiting.
+    if (shutdown_requested_.load()) {
+        spdlog::debug("[WifiBackend] Shutdown requested before attach, aborting");
+        wpa_ctrl_close(mon_conn);
+        mon_conn = nullptr;
         signal_init_complete();
         return;
     }
