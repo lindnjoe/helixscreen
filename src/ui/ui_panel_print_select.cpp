@@ -230,7 +230,7 @@ PrintSelectPanel::~PrintSelectPanel() {
 
     // Guard against static destruction order fiasco (spdlog may be gone)
     if (!StaticPanelRegistry::is_destroyed()) {
-        spdlog::debug("[PrintSelectPanel] Destroyed");
+        spdlog::trace("[PrintSelectPanel] Destroyed");
     }
 }
 
@@ -800,6 +800,9 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
     auto* self = this;
     size_t fetch_count = 0;
 
+    // Capture current navigation generation to detect directory changes during async ops
+    uint32_t captured_gen = nav_generation_.load();
+
     // Fetch metadata for files in range only (not directories, not already fetched)
     for (size_t i = start; i < end; i++) {
         if (file_list_[i].is_dir)
@@ -820,7 +823,20 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
         api_->get_file_metadata(
             file_path,
             // Metadata success callback (runs on background thread)
-            [self, i, filename, file_path](const FileMetadata& metadata) {
+            [self, i, filename, file_path, captured_gen,
+             alive = self->alive_](const FileMetadata& metadata) {
+                // Check panel is still alive before accessing any members
+                if (!alive->load()) {
+                    return;
+                }
+                // Discard if user navigated to a different directory since this request
+                if (self->nav_generation_.load() != captured_gen) {
+                    spdlog::debug("[{}] Discarding stale metadata for {} (gen {} != {})",
+                                  self->get_name(), filename, captured_gen,
+                                  self->nav_generation_.load());
+                    return;
+                }
+
                 // Check if metadata is empty (file hasn't been scanned yet)
                 // This happens for USB files added via symlink - they need metascan
                 bool metadata_empty = metadata.thumbnails.empty() && metadata.estimated_time == 0;
@@ -831,11 +847,21 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                     // Trigger metascan to generate metadata on-demand
                     self->api_->metascan_file(
                         file_path,
-                        [self, i, filename](const FileMetadata& scanned) {
+                        [self, i, filename, captured_gen, alive](const FileMetadata& scanned) {
+                            if (!alive->load()) {
+                                return;
+                            }
+                            // Discard if directory changed during metascan
+                            if (self->nav_generation_.load() != captured_gen) {
+                                return;
+                            }
                             // Metascan succeeded - process the fresh metadata
                             self->process_metadata_result(i, filename, scanned);
                         },
-                        [self, filename](const MoonrakerError& error) {
+                        [self, filename, alive](const MoonrakerError& error) {
+                            if (!alive->load()) {
+                                return;
+                            }
                             spdlog::debug("[{}] Metascan failed for {}: {}", self->get_name(),
                                           filename, error.message);
                         });
@@ -846,7 +872,17 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                 self->process_metadata_result(i, filename, metadata);
             },
             // Metadata error callback
-            [self, i, filename, file_path](const MoonrakerError& error) {
+            [self, i, filename, file_path, captured_gen,
+             alive = self->alive_](const MoonrakerError& error) {
+                // Check panel is still alive before accessing any members
+                if (!alive->load()) {
+                    return;
+                }
+                // Discard if user navigated to a different directory since this request
+                if (self->nav_generation_.load() != captured_gen) {
+                    return;
+                }
+
                 spdlog::debug("[{}] Failed to get metadata for {}: {} ({})", self->get_name(),
                               filename, error.message, error.get_type_string());
 
@@ -856,10 +892,20 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                                   self->get_name(), filename);
                     self->api_->metascan_file(
                         file_path,
-                        [self, i, filename](const FileMetadata& scanned) {
+                        [self, i, filename, captured_gen, alive](const FileMetadata& scanned) {
+                            if (!alive->load()) {
+                                return;
+                            }
+                            // Discard if directory changed during metascan
+                            if (self->nav_generation_.load() != captured_gen) {
+                                return;
+                            }
                             self->process_metadata_result(i, filename, scanned);
                         },
-                        [self, filename](const MoonrakerError& scan_error) {
+                        [self, filename, alive](const MoonrakerError& scan_error) {
+                            if (!alive->load()) {
+                                return;
+                            }
                             spdlog::debug("[{}] Metascan also failed for {}: {}", self->get_name(),
                                           filename, scan_error.message);
                         });
@@ -1005,11 +1051,11 @@ void PrintSelectPanel::process_metadata_result(size_t i, const std::string& file
                     std::string filename_copy = d->filename;
                     time_t modified_ts = self->file_list_[d->index].modified_timestamp;
 
-                    // Create context with alive flag for destruction safety
+                    // Create context with alive flag and nav generation for safety
                     ThumbnailLoadContext ctx;
                     ctx.alive = self->alive_;
-                    ctx.generation = nullptr;
-                    ctx.captured_gen = 0;
+                    ctx.generation = &self->nav_generation_;
+                    ctx.captured_gen = self->nav_generation_.load();
 
                     get_thumbnail_cache().fetch_for_card_view(
                         self->api_, d->thumb_path, ctx,
@@ -1302,6 +1348,11 @@ void PrintSelectPanel::on_activate() {
 }
 
 void PrintSelectPanel::navigate_to_directory(const std::string& dirname) {
+    // Increment generation counter to invalidate in-flight metadata callbacks
+    uint32_t gen = ++nav_generation_;
+    spdlog::debug("[{}] Navigation generation incremented to {} (entering {})", get_name(), gen,
+                  dirname);
+
     path_navigator_.navigate_to(dirname);
     current_path_ = path_navigator_.current_path();
 
@@ -1314,6 +1365,10 @@ void PrintSelectPanel::navigate_up() {
         spdlog::debug("[{}] Already at root, cannot navigate up", get_name());
         return;
     }
+
+    // Increment generation counter to invalidate in-flight metadata callbacks
+    uint32_t gen = ++nav_generation_;
+    spdlog::debug("[{}] Navigation generation incremented to {} (going up)", get_name(), gen);
 
     path_navigator_.navigate_up();
     current_path_ = path_navigator_.current_path();
@@ -1939,13 +1994,20 @@ void PrintSelectPanel::attach_row_click_handler(lv_obj_t* row, size_t file_index
 
 void PrintSelectPanel::handle_file_click(size_t file_index) {
     if (file_index >= file_list_.size()) {
-        spdlog::error("[{}] Invalid file index: {}", get_name(), file_index);
+        spdlog::warn("[{}] Ignoring click on stale file index {} (list size {})", get_name(),
+                     file_index, file_list_.size());
         return;
     }
 
     const auto& file = file_list_[file_index];
 
     if (file.is_dir) {
+        // Close detail view before navigating to prevent stale file references
+        if (detail_view_open_) {
+            spdlog::debug("[{}] Closing detail view before directory navigation", get_name());
+            hide_detail_view();
+        }
+
         if (file.filename == "..") {
             // Parent directory - navigate up
             navigate_up();

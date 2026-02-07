@@ -506,6 +506,11 @@ class PrintSelectPanel : public PanelBase {
     /// Shared pointer allows callbacks to check if panel is still alive
     std::shared_ptr<std::atomic<bool>> alive_ = std::make_shared<std::atomic<bool>>(true);
 
+    /// Navigation generation counter: incremented on each directory change.
+    /// Metadata callbacks capture the current value and discard results
+    /// if the generation has changed (user navigated away).
+    std::atomic<uint32_t> nav_generation_{0};
+
     // File list change notification handler name (for unregistering)
     std::string filelist_handler_name_;
 
