@@ -272,6 +272,32 @@ std::string select_platform_asset(const json& assets, const std::string& platfor
     return "";
 }
 
+// --- R2 URL helpers ---------------------------------------------------------
+
+/**
+ * @brief Resolve R2 base URL from config value with compiled default fallback.
+ */
+std::string resolve_r2_base_url(const std::string& config_value, const char* default_url) {
+    std::string url = config_value.empty() ? std::string(default_url) : config_value;
+    // Strip trailing slash
+    if (!url.empty() && url.back() == '/') {
+        url.pop_back();
+    }
+    return url;
+}
+
+/**
+ * @brief Build full manifest URL for a given R2 channel.
+ */
+std::string build_r2_manifest_url(const std::string& base_url, const std::string& channel) {
+    std::string base = base_url;
+    // Strip trailing slash from base
+    if (!base.empty() && base.back() == '/') {
+        base.pop_back();
+    }
+    return base + "/" + channel + "/manifest.json";
+}
+
 } // anonymous namespace
 
 // ============================================================================
@@ -626,5 +652,114 @@ TEST_CASE("Channel config integer mapping", "[update_channel][config]") {
         REQUIRE(static_cast<int>(UpdateChannel::Stable) == 0);
         REQUIRE(static_cast<int>(UpdateChannel::Beta) == 1);
         REQUIRE(static_cast<int>(UpdateChannel::Dev) == 2);
+    }
+}
+
+// ============================================================================
+// R2 Base URL Resolution
+// ============================================================================
+
+TEST_CASE("R2 base URL resolution", "[update_channel][r2]") {
+    SECTION("default URL when no config override") {
+        auto url = resolve_r2_base_url("", "https://releases.helixscreen.org");
+        REQUIRE(url == "https://releases.helixscreen.org");
+    }
+
+    SECTION("config override replaces default") {
+        auto url =
+            resolve_r2_base_url("https://my-cdn.example.com", "https://releases.helixscreen.org");
+        REQUIRE(url == "https://my-cdn.example.com");
+    }
+
+    SECTION("trailing slash normalized") {
+        auto url =
+            resolve_r2_base_url("https://my-cdn.example.com/", "https://releases.helixscreen.org");
+        REQUIRE(url == "https://my-cdn.example.com");
+    }
+
+    SECTION("empty config falls back to default") {
+        auto url = resolve_r2_base_url("", "https://default.example.com");
+        REQUIRE(url == "https://default.example.com");
+    }
+}
+
+// ============================================================================
+// R2 Manifest URL Construction
+// ============================================================================
+
+TEST_CASE("R2 manifest URL construction", "[update_channel][r2]") {
+    SECTION("stable channel URL") {
+        auto url = build_r2_manifest_url("https://releases.helixscreen.org", "stable");
+        REQUIRE(url == "https://releases.helixscreen.org/stable/manifest.json");
+    }
+
+    SECTION("beta channel URL") {
+        auto url = build_r2_manifest_url("https://releases.helixscreen.org", "beta");
+        REQUIRE(url == "https://releases.helixscreen.org/beta/manifest.json");
+    }
+
+    SECTION("dev channel URL") {
+        auto url = build_r2_manifest_url("https://releases.helixscreen.org", "dev");
+        REQUIRE(url == "https://releases.helixscreen.org/dev/manifest.json");
+    }
+
+    SECTION("custom base URL") {
+        auto url = build_r2_manifest_url("https://my-cdn.example.com", "stable");
+        REQUIRE(url == "https://my-cdn.example.com/stable/manifest.json");
+    }
+
+    SECTION("trailing slash in base URL handled") {
+        auto url = build_r2_manifest_url("https://releases.helixscreen.org/", "stable");
+        REQUIRE(url == "https://releases.helixscreen.org/stable/manifest.json");
+    }
+}
+
+// ============================================================================
+// R2 Manifest Parsing (same format across all channels)
+// ============================================================================
+
+TEST_CASE("Stable channel manifest uses same format as dev", "[update_channel][r2]") {
+    const char* stable_manifest = R"({
+        "version": "0.9.5",
+        "tag": "v0.9.5",
+        "notes": "Bug fixes and stability improvements",
+        "published_at": "2026-02-07T10:00:00Z",
+        "assets": {
+            "pi": {"url": "https://releases.helixscreen.org/stable/helixscreen-pi-v0.9.5.tar.gz", "sha256": "abc123"},
+            "pi32": {"url": "https://releases.helixscreen.org/stable/helixscreen-pi32-v0.9.5.tar.gz", "sha256": "def456"},
+            "ad5m": {"url": "https://releases.helixscreen.org/stable/helixscreen-ad5m-v0.9.5.tar.gz", "sha256": "ghi789"},
+            "k1": {"url": "https://releases.helixscreen.org/stable/helixscreen-k1-v0.9.5.tar.gz", "sha256": "jkl012"}
+        }
+    })";
+
+    SECTION("stable manifest parses correctly for all platforms") {
+        for (const auto& platform : {"pi", "pi32", "ad5m", "k1"}) {
+            DevManifestInfo info;
+            std::string error;
+            REQUIRE(parse_dev_manifest(stable_manifest, platform, info, error));
+            REQUIRE(info.valid);
+            REQUIRE(info.version == "0.9.5");
+            REQUIRE(info.tag == "v0.9.5");
+            REQUIRE_FALSE(info.asset_url.empty());
+            REQUIRE_FALSE(info.sha256.empty());
+        }
+    }
+
+    SECTION("beta manifest with prerelease version parses correctly") {
+        const char* beta_manifest = R"({
+            "version": "1.0.0-beta.1",
+            "tag": "v1.0.0-beta.1",
+            "notes": "Beta release",
+            "published_at": "2026-02-07T10:00:00Z",
+            "assets": {
+                "pi": {"url": "https://releases.helixscreen.org/beta/helixscreen-pi-v1.0.0-beta.1.tar.gz", "sha256": "betahash"}
+            }
+        })";
+
+        DevManifestInfo info;
+        std::string error;
+        REQUIRE(parse_dev_manifest(beta_manifest, "pi", info, error));
+        REQUIRE(info.valid);
+        REQUIRE(info.version == "1.0.0-beta.1");
     }
 }

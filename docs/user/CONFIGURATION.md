@@ -810,7 +810,8 @@ Located in the `update` section:
 {
   "update": {
     "channel": 0,
-    "dev_url": ""
+    "dev_url": "",
+    "r2_url": ""
   }
 }
 ```
@@ -820,9 +821,9 @@ Located in the `update` section:
 **Default:** `0`
 **Values:** `0` (Stable), `1` (Beta), `2` (Dev)
 **Description:** Update channel selection:
-- `0` - **Stable**: Only official releases from GitHub (default)
-- `1` - **Beta**: Includes GitHub pre-releases (tagged as `v1.0.0-beta.1` etc.)
-- `2` - **Dev**: Fetches from a custom URL (requires `dev_url` to be set)
+- `0` - **Stable**: Tries R2 CDN first (`{r2_url}/stable/manifest.json`), falls back to GitHub releases API
+- `1` - **Beta**: Tries R2 CDN first (`{r2_url}/beta/manifest.json`), falls back to GitHub pre-releases API
+- `2` - **Dev**: Uses `dev_url` if set (backward compat), otherwise uses R2 CDN (`{r2_url}/dev/manifest.json`)
 
 Can also be changed from the Settings panel when `beta_features` is enabled.
 
@@ -830,7 +831,13 @@ Can also be changed from the Settings panel when `beta_features` is enabled.
 **Type:** string
 **Default:** `""` (empty)
 **Example:** `"https://releases.helixscreen.org/dev"`
-**Description:** Base URL for the dev update channel. When `channel` is `2`, HelixScreen fetches `{dev_url}/manifest.json` to check for updates. Must use `http://` or `https://` scheme. Leave empty to disable the Dev channel option.
+**Description:** Explicit base URL for the dev update channel. When set and `channel` is `2`, HelixScreen fetches `{dev_url}/manifest.json` directly, bypassing R2. When empty, the dev channel uses the R2 CDN path (`{r2_url}/dev/manifest.json`). Must use `http://` or `https://` scheme. Primarily used for local development servers or self-hosted setups that predate R2 support.
+
+### `r2_url`
+**Type:** string
+**Default:** `""` (uses built-in `https://releases.helixscreen.org`)
+**Example:** `"https://my-cdn.example.com"`
+**Description:** Base URL for R2/CDN update manifests. All channels (Stable, Beta, Dev) fetch manifests from `{r2_url}/{channel}/manifest.json`. When empty, uses the compiled-in default (`https://releases.helixscreen.org`). Self-hosters can override this to point to their own CDN or R2 bucket. Trailing slashes are automatically stripped.
 
 ---
 

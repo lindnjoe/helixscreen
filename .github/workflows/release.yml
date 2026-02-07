@@ -429,39 +429,66 @@ jobs:
           exit 1
         fi
 
-    - name: Generate manifest
+    - name: Determine upload channels
+      id: channels
       run: |
-        chmod +x scripts/generate-manifest.sh
-        scripts/generate-manifest.sh \
-          --version "${{ steps.version.outputs.version }}" \
-          --tag "${{ steps.version.outputs.tag }}" \
-          --notes "${{ steps.notes.outputs.notes }}" \
-          --dir release-files \
-          --base-url "${{ vars.R2_PUBLIC_URL }}/dev" \
-          --output release-files/manifest.json
-        echo "Generated manifest:"
-        cat release-files/manifest.json | jq .
+        TAG="${GITHUB_REF_NAME}"
+        if [[ "$TAG" == *-* ]]; then
+          # Prerelease tag (v1.0.0-beta, v1.0.0-rc.1) -> beta + dev
+          CHANNELS="beta dev"
+        else
+          # Stable tag (v0.9.5) -> stable + dev
+          CHANNELS="stable dev"
+        fi
+        echo "channels=$CHANNELS" >> $GITHUB_OUTPUT
+        echo "Upload channels: $CHANNELS"
 
-    - name: Upload to R2
+    - name: Generate manifests and upload to R2
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
       run: |
+        chmod +x scripts/generate-manifest.sh
         BUCKET="${{ vars.R2_BUCKET_NAME || 'helixscreen-releases' }}"
+        VERSION="${{ steps.version.outputs.version }}"
+        TAG="${{ steps.version.outputs.tag }}"
+        NOTES="${{ steps.notes.outputs.notes }}"
 
-        # Upload all tarballs
-        for tarball in release-files/*.tar.gz; do
-          filename=$(basename "$tarball")
-          echo "Uploading dev/$filename..."
-          aws s3 cp "$tarball" "s3://${BUCKET}/dev/$filename" \
-            --endpoint-url "$R2_ENDPOINT"
+        for CHANNEL in ${{ steps.channels.outputs.channels }}; do
+          echo "=== Uploading to ${CHANNEL} channel ==="
+
+          # Generate channel-specific manifest
+          scripts/generate-manifest.sh \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --notes "$NOTES" \
+            --dir release-files \
+            --base-url "${{ vars.R2_PUBLIC_URL }}/${CHANNEL}" \
+            --output "release-files/manifest-${CHANNEL}.json"
+
+          echo "Generated manifest for ${CHANNEL}:"
+          cat "release-files/manifest-${CHANNEL}.json" | jq .
+
+          # Upload all tarballs
+          for tarball in release-files/*.tar.gz; do
+            filename=$(basename "$tarball")
+            echo "Uploading ${CHANNEL}/${filename}..."
+            aws s3 cp "$tarball" "s3://${BUCKET}/${CHANNEL}/${filename}" \
+              --endpoint-url "$R2_ENDPOINT"
+          done
+
+          # Upload manifest
+          echo "Uploading ${CHANNEL}/manifest.json..."
+          aws s3 cp "release-files/manifest-${CHANNEL}.json" \
+            "s3://${BUCKET}/${CHANNEL}/manifest.json" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type "application/json"
+
+          echo "=== ${CHANNEL} upload complete ==="
         done
 
-        # Upload manifest
-        echo "Uploading dev/manifest.json..."
-        aws s3 cp release-files/manifest.json "s3://${BUCKET}/dev/manifest.json" \
-          --endpoint-url "$R2_ENDPOINT" \
-          --content-type "application/json"
-
-        echo "Upload complete! Manifest: ${{ vars.R2_PUBLIC_URL }}/dev/manifest.json"
+        echo "All uploads complete!"
+        for CHANNEL in ${{ steps.channels.outputs.channels }}; do
+          echo "  ${CHANNEL}: ${{ vars.R2_PUBLIC_URL }}/${CHANNEL}/manifest.json"
+        done

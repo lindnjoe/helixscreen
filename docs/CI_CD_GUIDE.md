@@ -10,6 +10,7 @@ This guide documents the GitHub Actions CI/CD setup for HelixScreen, including p
 - [Dependency Build Order](#dependency-build-order)
 - [Quality Checks](#quality-checks)
 - [Testing Locally](#testing-locally)
+- [R2 Release Pipeline](#r2-release-pipeline)
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
@@ -320,6 +321,70 @@ apt install -y \
 npm install
 ./scripts/regen_mdi_fonts.sh
 make -j$(nproc)
+```
+
+## R2 Release Pipeline
+
+The release workflow (`.github/workflows/release.yml`) uploads build artifacts to Cloudflare R2 for CDN-based update distribution. This enables faster downloads and reduces dependency on GitHub's API.
+
+### R2 Bucket Layout
+
+```
+s3://helixscreen-releases/
+  stable/manifest.json        ← Stable releases (no prerelease suffix)
+  stable/helixscreen-*.tar.gz
+  beta/manifest.json           ← Beta/RC releases (v1.0.0-beta, v1.0.0-rc.1)
+  beta/helixscreen-*.tar.gz
+  dev/manifest.json            ← All releases (bleeding edge)
+  dev/helixscreen-*.tar.gz
+```
+
+### Channel Upload Routing
+
+| Tag Format | Channels | Example |
+|------------|----------|---------|
+| `v1.0.0` (no `-`) | `stable` + `dev` | Stable release |
+| `v1.0.0-beta.1` (has `-`) | `beta` + `dev` | Prerelease |
+
+Dev always receives every release, making it the bleeding-edge channel.
+
+### Required GitHub Configuration
+
+| Type | Name | Description |
+|------|------|-------------|
+| Variable | `R2_PUBLIC_URL` | Public CDN URL (e.g., `https://releases.helixscreen.org`) |
+| Variable | `R2_BUCKET_NAME` | R2 bucket name (default: `helixscreen-releases`) |
+| Secret | `R2_ACCOUNT_ID` | Cloudflare account ID |
+| Secret | `R2_ACCESS_KEY_ID` | R2 API access key |
+| Secret | `R2_SECRET_ACCESS_KEY` | R2 API secret key |
+
+### Non-Fatal Upload
+
+R2 upload uses `continue-on-error: true`, so GitHub releases are always created even if R2 upload fails. The HelixScreen client falls back to GitHub API automatically when R2 is unavailable.
+
+### Manual Recovery
+
+If R2 upload fails during CI, you can manually upload from a local machine:
+
+```bash
+# Download release assets from GitHub
+gh release download v0.9.5 -D release-files/
+
+# Generate manifest for each channel
+scripts/generate-manifest.sh \
+  --version "0.9.5" --tag "v0.9.5" --notes "Release" \
+  --dir release-files \
+  --base-url "https://releases.helixscreen.org/stable" \
+  --output release-files/manifest-stable.json
+
+# Upload via AWS CLI (configured for R2 endpoint)
+export AWS_ENDPOINT_URL="https://{account-id}.r2.cloudflarestorage.com"
+for f in release-files/*.tar.gz; do
+  aws s3 cp "$f" "s3://helixscreen-releases/stable/$(basename $f)"
+done
+aws s3 cp release-files/manifest-stable.json \
+  s3://helixscreen-releases/stable/manifest.json \
+  --content-type "application/json"
 ```
 
 ## Troubleshooting

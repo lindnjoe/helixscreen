@@ -48,6 +48,8 @@
  */
 class UpdateChecker {
   public:
+    static constexpr const char* DEFAULT_R2_BASE_URL = "https://releases.helixscreen.org";
+
     /**
      * @brief Release information from GitHub
      */
@@ -210,6 +212,10 @@ class UpdateChecker {
     bool fetch_beta_release(ReleaseInfo& info, std::string& error);
     bool fetch_dev_release(ReleaseInfo& info, std::string& error);
 
+    // R2 CDN fetch (used as primary source before GitHub fallback)
+    bool fetch_r2_manifest(const std::string& channel, ReleaseInfo& info, std::string& error);
+    std::string get_r2_base_url() const;
+
     /**
      * @brief Report result to callback on LVGL thread
      * @param status Final status
@@ -240,6 +246,7 @@ class UpdateChecker {
     // Channel cached on main thread before worker spawns (Config is not thread-safe)
     UpdateChannel cached_channel_{UpdateChannel::Stable};
     std::string cached_dev_url_;
+    std::string cached_r2_base_url_;
 
     // LVGL subjects for UI binding (update check)
     lv_subject_t status_subject_{};
