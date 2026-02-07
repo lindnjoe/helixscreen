@@ -58,9 +58,14 @@
                           label="Spoolman" label_tag="Spoolman" icon="database" description="Weight sync settings"
                           description_tag="Weight sync settings" callback="on_spoolman_settings_clicked"/>
     </lv_obj>
-    <!-- LED Light Toggle (hidden if no LED capability) -->
-    <lv_obj name="container_led_light" width="100%" style_pad_all="0" scrollable="false">
+    <!-- LED Light Settings (hidden if no LED capability) -->
+    <lv_obj name="container_led_light" width="100%" style_pad_all="0" style_layout="flex" style_flex_flow="column" scrollable="false">
       <bind_flag_if_eq subject="printer_has_led" flag="hidden" ref_value="0"/>
+      <setting_dropdown_row name="row_led_select"
+                            label="Main LED" label_tag="Main LED" icon="light"
+                            description="Select which LED to control"
+                            description_tag="Select which LED to control"
+                            callback="on_led_select_changed"/>
       <setting_toggle_row name="row_led_light"
                           label="LED on at Start" label_tag="LED on at Start" icon="light"
                           description="Turn on LED when printer starts"

@@ -439,8 +439,11 @@ void Application::auto_configure_mock_state() {
     if (config->test_mode && !config->use_real_moonraker) {
         if (m_args.overlays.print_status) {
             config->mock_auto_start_print = true;
-            config->gcode_test_file = RuntimeConfig::get_default_test_file_path();
-            spdlog::info("[Auto] Mock will simulate active print for print-status panel");
+            if (!config->gcode_test_file) {
+                config->gcode_test_file = RuntimeConfig::get_default_test_file_path();
+            }
+            spdlog::info("[Auto] Mock will simulate active print with '{}'",
+                         config->gcode_test_file);
         }
 
         // Auto-select a file only when explicitly requesting detail view (print-detail)
@@ -1342,6 +1345,9 @@ void Application::setup_discovery_callbacks() {
             if (!c->hardware.os_version().empty()) {
                 get_printer_state().set_os_version(c->hardware.os_version());
             }
+
+            // Populate LED dropdown now that hardware is discovered
+            get_global_settings_panel().populate_led_dropdown();
 
             // Fetch print hours now that connection is live, and refresh on job changes
             get_global_settings_panel().fetch_print_hours();

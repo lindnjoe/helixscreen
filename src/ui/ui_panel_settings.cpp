@@ -396,8 +396,6 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_dark_mode_changed", on_dark_mode_changed);
     lv_xml_register_event_cb(nullptr, "on_animations_changed", on_animations_changed);
     lv_xml_register_event_cb(nullptr, "on_gcode_3d_changed", on_gcode_3d_changed);
-    lv_xml_register_event_cb(nullptr, "on_led_select_changed",
-                             SettingsPanel::on_led_select_changed);
     lv_xml_register_event_cb(nullptr, "on_led_light_changed", on_led_light_changed);
     // Note: on_retraction_row_clicked is registered by RetractionSettingsOverlay
     lv_xml_register_event_cb(nullptr, "on_sounds_changed", on_sounds_changed);

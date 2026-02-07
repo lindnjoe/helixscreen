@@ -8,6 +8,9 @@
 
 #include "subject_managed_panel.h" // For SubjectManager
 
+#include <string>
+#include <vector>
+
 /**
  * @file ui_panel_settings.h
  * @brief Settings panel - Scrolling list of app and printer settings
@@ -95,6 +98,11 @@ class SettingsPanel : public PanelBase {
     lv_obj_t* completion_alert_dropdown_ = nullptr;
     lv_obj_t* display_sleep_dropdown_ = nullptr;
     lv_obj_t* language_dropdown_ = nullptr;
+    lv_obj_t* led_select_dropdown_ = nullptr;
+
+    // LED selection state (populated by wizard_populate_hardware_dropdown)
+    std::vector<std::string> led_items_;
+    lv_subject_t led_select_subject_;
 
     // Restart prompt dialog
     lv_obj_t* restart_prompt_dialog_ = nullptr;
@@ -188,6 +196,15 @@ class SettingsPanel : public PanelBase {
      */
     void fetch_print_hours();
 
+    /**
+     * @brief Populate LED selection dropdown from discovered hardware
+     *
+     * Called after discovery completes (same timing as fetch_print_hours).
+     * Uses wizard_populate_hardware_dropdown helper for discovery, friendly
+     * names, "None" option, and restoring saved config selection.
+     */
+    void populate_led_dropdown();
+
   private:
     //
     // === Event Handlers ===
@@ -201,6 +218,7 @@ class SettingsPanel : public PanelBase {
     void handle_sounds_changed(bool enabled);
     void handle_estop_confirm_changed(bool enabled);
 
+    void handle_led_select_changed(int index);
     void handle_display_settings_clicked();
     void handle_filament_sensors_clicked();
     void handle_ams_settings_clicked();
@@ -244,6 +262,7 @@ class SettingsPanel : public PanelBase {
     //
     static void on_animations_changed(lv_event_t* e);
     static void on_gcode_3d_changed(lv_event_t* e);
+    static void on_led_select_changed(lv_event_t* e);
     static void on_led_light_changed(lv_event_t* e);
     static void on_sounds_changed(lv_event_t* e);
     static void on_estop_confirm_changed(lv_event_t* e);
