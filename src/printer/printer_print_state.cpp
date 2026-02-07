@@ -28,6 +28,7 @@ PrinterPrintState::PrinterPrintState() {
     std::memset(print_thumbnail_path_buf_, 0, sizeof(print_thumbnail_path_buf_));
     std::memset(print_state_buf_, 0, sizeof(print_state_buf_));
     std::memset(print_start_message_buf_, 0, sizeof(print_start_message_buf_));
+    std::memset(print_start_time_left_buf_, 0, sizeof(print_start_time_left_buf_));
 
     // Set default values
     std::strcpy(print_state_buf_, "standby");
@@ -69,6 +70,11 @@ void PrinterPrintState::init_subjects(bool register_xml) {
 
     // Print workflow in-progress subject
     INIT_SUBJECT_INT(print_in_progress, 0, subjects_, register_xml);
+
+    // Pre-print duration prediction subjects
+    INIT_SUBJECT_STRING(print_start_time_left, "", subjects_, register_xml);
+    INIT_SUBJECT_INT(preprint_remaining, 0, subjects_, register_xml);
+    INIT_SUBJECT_INT(preprint_elapsed, 0, subjects_, register_xml);
 
     subjects_initialized_ = true;
     spdlog::trace("[PrinterPrintState] Subjects initialized successfully");
@@ -341,6 +347,28 @@ void PrinterPrintState::reset_print_start_state() {
 void PrinterPrintState::set_print_in_progress(bool in_progress) {
     // Thread-safe wrapper: defer LVGL subject updates to main thread
     helix::async::invoke([this, in_progress]() { set_print_in_progress_internal(in_progress); });
+}
+
+void PrinterPrintState::set_print_start_time_left(const char* text) {
+    if (text && text[0] != '\0') {
+        lv_subject_copy_string(&print_start_time_left_, text);
+    } else {
+        lv_subject_copy_string(&print_start_time_left_, "");
+    }
+}
+
+void PrinterPrintState::clear_print_start_time_left() {
+    lv_subject_copy_string(&print_start_time_left_, "");
+    lv_subject_set_int(&preprint_remaining_, 0);
+    lv_subject_set_int(&preprint_elapsed_, 0);
+}
+
+void PrinterPrintState::set_preprint_remaining_seconds(int seconds) {
+    lv_subject_set_int(&preprint_remaining_, std::max(0, seconds));
+}
+
+void PrinterPrintState::set_preprint_elapsed_seconds(int seconds) {
+    lv_subject_set_int(&preprint_elapsed_, std::max(0, seconds));
 }
 
 void PrinterPrintState::set_print_in_progress_internal(bool in_progress) {

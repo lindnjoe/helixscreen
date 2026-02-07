@@ -153,6 +153,21 @@ class PrinterPrintState {
         return &print_in_progress_;
     }
 
+    /// Predicted pre-print time remaining (formatted string, e.g. "~2 min left")
+    lv_subject_t* get_print_start_time_left_subject() {
+        return &print_start_time_left_;
+    }
+
+    /// Predicted pre-print time remaining in seconds (for augmenting total remaining)
+    lv_subject_t* get_preprint_remaining_subject() {
+        return &preprint_remaining_;
+    }
+
+    /// Pre-print elapsed seconds (time since preparation started)
+    lv_subject_t* get_preprint_elapsed_subject() {
+        return &preprint_elapsed_;
+    }
+
     // ========================================================================
     // Setters
     // ========================================================================
@@ -205,6 +220,33 @@ class PrinterPrintState {
      * Thread-safe: Uses helix::async::invoke() for main-thread execution.
      */
     void set_print_in_progress(bool in_progress);
+
+    /**
+     * @brief Set predicted pre-print time remaining string
+     *
+     * Main-thread only (called from LVGL timer).
+     * @param text Formatted string (e.g., "~2 min left") or empty to clear
+     */
+    void set_print_start_time_left(const char* text);
+
+    /**
+     * @brief Clear predicted pre-print time remaining
+     */
+    void clear_print_start_time_left();
+
+    /**
+     * @brief Set pre-print remaining seconds (for total remaining augmentation)
+     *
+     * Main-thread only (called from LVGL timer).
+     */
+    void set_preprint_remaining_seconds(int seconds);
+
+    /**
+     * @brief Set pre-print elapsed seconds (for elapsed display during preparation)
+     *
+     * Main-thread only (called from LVGL timer).
+     */
+    void set_preprint_elapsed_seconds(int seconds);
 
     // ========================================================================
     // State queries
@@ -279,12 +321,18 @@ class PrinterPrintState {
     // Print workflow in-progress subject
     lv_subject_t print_in_progress_{};
 
+    // Pre-print duration prediction subjects
+    lv_subject_t print_start_time_left_{};
+    lv_subject_t preprint_remaining_{}; // int: seconds remaining for pre-print
+    lv_subject_t preprint_elapsed_{};   // int: seconds elapsed since pre-print started
+
     // String buffers for subject storage
     char print_filename_buf_[256]{};
     char print_display_filename_buf_[128]{};
     char print_thumbnail_path_buf_[512]{};
     char print_state_buf_[32]{};
     char print_start_message_buf_[64]{};
+    char print_start_time_left_buf_[32]{};
 };
 
 } // namespace helix

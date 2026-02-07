@@ -503,6 +503,58 @@ class PrinterState {
     }
 
     /**
+     * @brief Get predicted pre-print time remaining subject for UI binding
+     *
+     * String subject with formatted remaining time (e.g., "~2 min left").
+     * Empty when no prediction is available.
+     */
+    lv_subject_t* get_print_start_time_left_subject() {
+        return print_domain_.get_print_start_time_left_subject();
+    }
+
+    /**
+     * @brief Set predicted pre-print time remaining (main-thread only)
+     */
+    void set_print_start_time_left(const char* text) {
+        print_domain_.set_print_start_time_left(text);
+    }
+
+    /**
+     * @brief Clear predicted pre-print time remaining
+     */
+    void clear_print_start_time_left() {
+        print_domain_.clear_print_start_time_left();
+    }
+
+    /**
+     * @brief Get pre-print remaining seconds subject for augmenting total remaining
+     */
+    lv_subject_t* get_preprint_remaining_subject() {
+        return print_domain_.get_preprint_remaining_subject();
+    }
+
+    /**
+     * @brief Set pre-print remaining seconds (main-thread only)
+     */
+    void set_preprint_remaining_seconds(int seconds) {
+        print_domain_.set_preprint_remaining_seconds(seconds);
+    }
+
+    /**
+     * @brief Get pre-print elapsed seconds subject
+     */
+    lv_subject_t* get_preprint_elapsed_subject() {
+        return print_domain_.get_preprint_elapsed_subject();
+    }
+
+    /**
+     * @brief Set pre-print elapsed seconds (main-thread only)
+     */
+    void set_preprint_elapsed_seconds(int seconds) {
+        print_domain_.set_preprint_elapsed_seconds(seconds);
+    }
+
+    /**
      * @brief Check if currently in print start phase
      *
      * Convenience method to check if we're showing PRINT_START progress.
