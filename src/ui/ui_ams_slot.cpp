@@ -379,15 +379,20 @@ static void apply_current_slot_highlight(AmsSlotData* data, int current_slot) {
  * Shows "T0", "T1", etc. when a tool is mapped to this slot.
  * Hidden when mapped_tool == -1 (no tool assigned).
  */
-static void apply_tool_badge(AmsSlotData* data, int mapped_tool) {
+static void apply_tool_badge(AmsSlotData* data, int mapped_tool,
+                             const std::string& mapped_extruder) {
     if (!data || !data->tool_badge_bg) {
         return;
     }
 
-    if (mapped_tool >= 0) {
-        // Tool is mapped - show badge with tool number
-        char tool_text[8];
-        snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
+    if (!mapped_extruder.empty() || mapped_tool >= 0) {
+        // Tool/extruder is mapped - show badge
+        char tool_text[32];
+        if (!mapped_extruder.empty()) {
+            snprintf(tool_text, sizeof(tool_text), "%s", mapped_extruder.c_str());
+        } else {
+            snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
+        }
         lv_subject_copy_string(&data->tool_badge_subject, tool_text);
         lv_obj_remove_flag(data->tool_badge_bg, LV_OBJ_FLAG_HIDDEN);
 
@@ -651,7 +656,7 @@ static void setup_slot_observers(AmsSlotData* data) {
             lv_subject_copy_string(&data->material_subject, slot.material.c_str());
         }
         // Update tool badge based on slot's mapped_tool
-        apply_tool_badge(data, slot.mapped_tool);
+        apply_tool_badge(data, slot.mapped_tool, slot.mapped_extruder);
     }
 
     spdlog::trace("[AmsSlot] Created observers for slot {}", data->slot_index);
@@ -870,7 +875,7 @@ void ui_ams_slot_refresh(lv_obj_t* obj) {
             }
         }
         // Update tool badge based on slot's mapped_tool
-        apply_tool_badge(data, slot.mapped_tool);
+        apply_tool_badge(data, slot.mapped_tool, slot.mapped_extruder);
     }
 
     spdlog::trace("[AmsSlot] Refreshed slot {}", data->slot_index);

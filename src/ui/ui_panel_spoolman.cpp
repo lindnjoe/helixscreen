@@ -10,6 +10,7 @@
 #include "ui_spool_canvas.h"
 #include "ui_subject_registry.h"
 #include "ui_toast.h"
+#include "ui_update_queue.h"
 
 #include "ams_state.h"
 #include "app_globals.h"
@@ -23,6 +24,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <memory>
 
 // ============================================================================
 // Global Instance
@@ -158,34 +160,45 @@ void SpoolmanPanel::refresh_spools() {
     api->get_spoolman_spools(
         [this](const std::vector<SpoolInfo>& spools) {
             spdlog::info("[{}] Received {} spools from Spoolman", get_name(), spools.size());
-            cached_spools_ = spools;
+            auto spools_ptr = std::make_shared<std::vector<SpoolInfo>>(spools);
 
             // Also get active spool ID
             MoonrakerAPI* api_inner = get_moonraker_api();
             if (!api_inner) {
                 spdlog::warn("[{}] API unavailable for status check", get_name());
-                active_spool_id_ = -1;
-                populate_spool_list();
+                ui_queue_update([this, spools_ptr]() {
+                    cached_spools_ = *spools_ptr;
+                    active_spool_id_ = -1;
+                    populate_spool_list();
+                });
                 return;
             }
 
             api_inner->get_spoolman_status(
-                [this](bool /*connected*/, int active_id) {
-                    active_spool_id_ = active_id;
-                    spdlog::debug("[{}] Active spool ID: {}", get_name(), active_spool_id_);
-                    populate_spool_list();
+                [this, spools_ptr](bool /*connected*/, int active_id) {
+                    ui_queue_update([this, spools_ptr, active_id]() {
+                        cached_spools_ = *spools_ptr;
+                        active_spool_id_ = active_id;
+                        spdlog::debug("[{}] Active spool ID: {}", get_name(), active_spool_id_);
+                        populate_spool_list();
+                    });
                 },
-                [this](const MoonrakerError& err) {
-                    spdlog::warn("[{}] Failed to get active spool: {}", get_name(), err.message);
-                    active_spool_id_ = -1;
-                    populate_spool_list();
+                [this, spools_ptr](const MoonrakerError& err) {
+                    ui_queue_update([this, spools_ptr, message = err.message]() {
+                        spdlog::warn("[{}] Failed to get active spool: {}", get_name(), message);
+                        cached_spools_ = *spools_ptr;
+                        active_spool_id_ = -1;
+                        populate_spool_list();
+                    });
                 });
         },
         [this](const MoonrakerError& err) {
-            spdlog::error("[{}] Failed to fetch spools: {}", get_name(), err.message);
-            cached_spools_.clear();
-            show_empty_state();
-            ui_toast_show(ToastSeverity::ERROR, lv_tr("Failed to load spools"), 3000);
+            ui_queue_update([this, message = err.message]() {
+                spdlog::error("[{}] Failed to fetch spools: {}", get_name(), message);
+                cached_spools_.clear();
+                show_empty_state();
+                ui_toast_show(ToastSeverity::ERROR, lv_tr("Failed to load spools"), 3000);
+            });
         });
 }
 

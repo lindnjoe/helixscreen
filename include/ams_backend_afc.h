@@ -279,6 +279,7 @@ class AmsBackendAfc : public AmsBackend {
      * "AFC" namespace with key "lane_data".
      */
     void query_lane_data();
+    void query_afc_unit_snapshot();
 
     /**
      * @brief Parse lane data from database response
@@ -288,6 +289,7 @@ class AmsBackendAfc : public AmsBackend {
      * @param lane_data JSON object containing lane configurations
      */
     void parse_lane_data(const nlohmann::json& lane_data);
+    void parse_afc_unit_snapshot(const nlohmann::json& snapshot);
 
     /**
      * @brief Detect AFC version by querying afc-install database namespace
@@ -408,6 +410,8 @@ class AmsBackendAfc : public AmsBackend {
 
     // Lane name to slot index mapping
     std::unordered_map<std::string, int> lane_name_to_index_;
+
+    bool afc_unit_snapshot_attempted_{false};
 
     // Version detection
     std::string afc_version_{"unknown"}; ///< Detected AFC version (e.g., "1.0.0")
