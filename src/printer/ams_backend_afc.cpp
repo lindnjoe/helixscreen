@@ -791,46 +791,36 @@ void AmsBackendAfc::detect_afc_version() {
         return;
     }
 
-    // Query Moonraker database for AFC install version
+    // Query Moonraker database for AFC lane data support
     // Method: server.database.get_item
-    // Namespace: afc-install (contains {"version": "1.0.0"})
-    nlohmann::json params = {{"namespace", "afc-install"}};
+    // Namespace: lane_data (contains per-lane records)
+    nlohmann::json params = {{"namespace", "lane_data"}};
 
     client_->send_jsonrpc(
         "server.database.get_item", params,
         [this](const nlohmann::json& response) {
-            bool should_query_lane_data = false;
-
             if (response.contains("value") && response["value"].is_object()) {
-                const auto& value = response["value"];
-                if (value.contains("version") && value["version"].is_string()) {
-                    {
-                        std::lock_guard<std::recursive_mutex> lock(mutex_);
-                        afc_version_ = value["version"].get<std::string>();
-                        system_info_.version = afc_version_;
-
-                        // Set capability flags based on version
-                        has_lane_data_db_ = version_at_least("1.0.32");
-                        should_query_lane_data = has_lane_data_db_;
-                    }
-                    spdlog::info("[AMS AFC] Detected AFC version: {} (lane_data DB: {})",
-                                 afc_version_, has_lane_data_db_ ? "yes" : "no");
+                {
+                    std::lock_guard<std::recursive_mutex> lock(mutex_);
+                    has_lane_data_db_ = true;
+                    parse_lane_data(response["value"]);
                 }
+                // Emit OUTSIDE the lock to avoid deadlock with callbacks
+                emit_event(EVENT_STATE_CHANGED);
+                spdlog::info("[AMS AFC] Detected lane_data namespace in Moonraker");
+                return;
             }
 
-            // For v1.0.32+, query lane_data database for richer data
-            // This supplements the basic lane info from printer.objects.list
-            if (should_query_lane_data) {
-                query_lane_data();
-            }
+            spdlog::debug("[AMS AFC] lane_data namespace not present in Moonraker");
         },
         [this](const MoonrakerError& err) {
-            spdlog::warn("[AMS AFC] Could not detect AFC version: {}", err.message);
+            spdlog::warn("[AMS AFC] Could not detect lane_data namespace: {}", err.message);
             std::lock_guard<std::recursive_mutex> lock(mutex_);
-            afc_version_ = "unknown";
-            system_info_.version = "unknown";
+            has_lane_data_db_ = false;
             // Don't query lane_data - we'll rely on discovered lanes from capabilities
-        });
+        },
+        0,
+        true);
 }
 
 bool AmsBackendAfc::version_at_least(const std::string& required) const {
@@ -930,8 +920,8 @@ void AmsBackendAfc::query_lane_data() {
 
     // Query Moonraker database for AFC lane_data
     // Method: server.database.get_item
-    // Params: { "namespace": "AFC", "key": "lane_data" }
-    nlohmann::json params = {{"namespace", "AFC"}, {"key", "lane_data"}};
+    // Params: { "namespace": "lane_data" }
+    nlohmann::json params = {{"namespace", "lane_data"}};
 
     client_->send_jsonrpc(
         "server.database.get_item", params,
@@ -947,7 +937,9 @@ void AmsBackendAfc::query_lane_data() {
         },
         [](const MoonrakerError& err) {
             spdlog::warn("[AMS AFC] Failed to query lane_data: {}", err.message);
-        });
+        },
+        0,
+        true);
 }
 
 void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
