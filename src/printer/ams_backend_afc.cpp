@@ -1213,9 +1213,9 @@ AmsError AmsBackendAfc::load_filament(int slot_index) {
         }
     }
 
-    // Send AFC_LOAD LANE={name} command
+    // Send CHANGE_TOOL LANE={name} command
     std::ostringstream cmd;
-    cmd << "AFC_LOAD LANE=" << lane_name;
+    cmd << "CHANGE_TOOL LANE=" << lane_name;
 
     spdlog::info("[AMS AFC] Loading from lane {} (slot {})", lane_name, slot_index);
     return execute_gcode(cmd.str());
@@ -1236,8 +1236,18 @@ AmsError AmsBackendAfc::unload_filament() {
         }
     }
 
-    spdlog::info("[AMS AFC] Unloading filament");
-    return execute_gcode("AFC_UNLOAD");
+    std::string lane_name;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        lane_name = get_lane_name(system_info_.current_slot);
+        if (lane_name.empty()) {
+            return AmsErrorHelper::invalid_slot(system_info_.current_slot,
+                                                system_info_.total_slots - 1);
+        }
+    }
+
+    spdlog::info("[AMS AFC] Unloading filament from lane {}", lane_name);
+    return execute_gcode("TOOL_UNLOAD LANE=" + lane_name);
 }
 
 AmsError AmsBackendAfc::select_slot(int slot_index) {

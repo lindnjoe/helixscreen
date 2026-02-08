@@ -297,8 +297,12 @@ class PrinterDiscovery {
             }
         }
 
-        int openams_unit_count = static_cast<int>(openams_unit_names_.size());
-        int expected_units = openams_unit_count + static_cast<int>(afc_hub_names_.size());
+        int expected_units = static_cast<int>(openams_unit_names_.size());
+        for (const auto& hub_name : afc_hub_names_) {
+            if (openams_unit_names_.find(hub_name) == openams_unit_names_.end()) {
+                ++expected_units;
+            }
+        }
         if (expected_units > 0) {
             int expected_lanes = expected_units * 4;
             if (static_cast<int>(afc_lane_names_.size()) < expected_lanes) {
