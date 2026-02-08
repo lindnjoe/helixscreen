@@ -380,19 +380,15 @@ static void apply_current_slot_highlight(AmsSlotData* data, int current_slot) {
  * Hidden when mapped_tool == -1 (no tool assigned).
  */
 static void apply_tool_badge(AmsSlotData* data, int mapped_tool,
-                             const std::string& mapped_extruder) {
+                             const std::string& /*mapped_extruder*/) {
     if (!data || !data->tool_badge_bg) {
         return;
     }
 
-    if (!mapped_extruder.empty() || mapped_tool >= 0) {
+    if (mapped_tool >= 0) {
         // Tool/extruder is mapped - show badge
         char tool_text[32];
-        if (!mapped_extruder.empty()) {
-            snprintf(tool_text, sizeof(tool_text), "%s", mapped_extruder.c_str());
-        } else {
-            snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
-        }
+        snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
         lv_subject_copy_string(&data->tool_badge_subject, tool_text);
         lv_obj_remove_flag(data->tool_badge_bg, LV_OBJ_FLAG_HIDDEN);
 
