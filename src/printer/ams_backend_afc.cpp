@@ -1158,6 +1158,11 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         if (lane.contains("total_weight") && lane["total_weight"].is_number()) {
             slot->total_weight_g = lane["total_weight"].get<float>();
         }
+        should_emit = true;
+    }
+
+    if (should_emit) {
+        emit_event(EVENT_STATE_CHANGED);
     }
 }
 
