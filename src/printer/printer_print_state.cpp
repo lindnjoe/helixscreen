@@ -398,6 +398,14 @@ void PrinterPrintState::set_preprint_elapsed_seconds(int seconds) {
 void PrinterPrintState::set_estimated_print_time(int seconds) {
     estimated_print_time_ = std::max(0, seconds);
     spdlog::debug("[PrinterPrintState] Slicer estimated print time: {}s", estimated_print_time_);
+
+    // Seed time_left with slicer estimate so pre-print display includes print time.
+    // Progress-based calculation takes over once progress >= 5%.
+    if (estimated_print_time_ > 0 && lv_subject_get_int(&print_time_left_) == 0) {
+        lv_subject_set_int(&print_time_left_, estimated_print_time_);
+        spdlog::debug("[PrinterPrintState] Seeded time_left with slicer estimate: {}s",
+                      estimated_print_time_);
+    }
 }
 
 int PrinterPrintState::get_estimated_print_time() const {
