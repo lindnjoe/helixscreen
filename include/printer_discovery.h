@@ -201,6 +201,8 @@ class PrinterDiscovery {
             }
             // AFC lane discovery
             else if (name.rfind("AFC_stepper ", 0) == 0) {
+                has_mmu_ = true;
+                mmu_type_ = AmsType::AFC;
                 std::string lane_name = name.substr(12); // Remove "AFC_stepper " prefix
                 if (!lane_name.empty()) {
                     afc_lane_names_.push_back(lane_name);
@@ -208,10 +210,22 @@ class PrinterDiscovery {
             }
             // AFC hub discovery
             else if (name.rfind("AFC_hub ", 0) == 0) {
+                has_mmu_ = true;
+                mmu_type_ = AmsType::AFC;
                 std::string hub_name = name.substr(8); // Remove "AFC_hub " prefix
                 if (!hub_name.empty()) {
                     afc_hub_names_.push_back(hub_name);
                 }
+            }
+            // AFC extruder discovery (signals AFC installed even if main object is missing)
+            else if (name.rfind("AFC_extruder ", 0) == 0) {
+                has_mmu_ = true;
+                mmu_type_ = AmsType::AFC;
+            }
+            // OpenAMS units (e.g., "AFC_OpenAMS AMS_1") indicate AFC is installed
+            else if (name.rfind("AFC_OpenAMS ", 0) == 0) {
+                has_mmu_ = true;
+                mmu_type_ = AmsType::AFC;
             }
             // Tool changer detection
             else if (name == "toolchanger") {
@@ -289,7 +303,7 @@ class PrinterDiscovery {
         }
 
         // Set mmu_type_ for tool changers (after all objects processed)
-        if (has_tool_changer_ && !tool_names_.empty()) {
+        if (has_tool_changer_ && !tool_names_.empty() && mmu_type_ == AmsType::NONE) {
             mmu_type_ = AmsType::TOOL_CHANGER;
         }
     }
