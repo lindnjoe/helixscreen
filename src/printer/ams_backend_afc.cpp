@@ -53,6 +53,7 @@ AmsBackendAfc::~AmsBackendAfc() {
 
 AmsError AmsBackendAfc::start() {
     bool should_emit = false;
+    bool should_query_unit_snapshot = false;
 
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -90,6 +91,7 @@ AmsError AmsBackendAfc::start() {
         // Detect AFC version (async - results come via callback)
         // This will set has_lane_data_db_ for v1.0.32+
         detect_afc_version();
+        should_query_unit_snapshot = true;
 
         // If we have discovered lanes (from PrinterCapabilities), initialize them now.
         // This provides immediate lane data for ALL AFC versions (including < 1.0.32).
@@ -110,6 +112,9 @@ AmsError AmsBackendAfc::start() {
     // Emit initial state event OUTSIDE the lock to avoid deadlock
     if (should_emit) {
         emit_event(EVENT_STATE_CHANGED);
+    }
+    if (should_query_unit_snapshot) {
+        query_afc_unit_snapshot();
     }
 
     return AmsErrorHelper::success();
@@ -996,6 +1001,40 @@ void AmsBackendAfc::query_lane_data() {
         true);
 }
 
+void AmsBackendAfc::query_afc_unit_snapshot() {
+    if (!api_) {
+        spdlog::warn("[AMS AFC] Cannot query AFC unit snapshot: api is null");
+        return;
+    }
+
+    auto try_download = [this](const std::string& path, bool allow_fallback) {
+        api_->download_file(
+            "config", path,
+            [this](const std::string& content) {
+                try {
+                    nlohmann::json snapshot = nlohmann::json::parse(content);
+                    parse_afc_unit_snapshot(snapshot);
+                } catch (const std::exception& e) {
+                    spdlog::warn("[AMS AFC] Failed to parse AFC unit snapshot: {}", e.what());
+                }
+            },
+            [this, path, allow_fallback](const MoonrakerError& err) {
+                spdlog::debug("[AMS AFC] AFC unit snapshot not available at {}: {}", path,
+                              err.message);
+                if (allow_fallback) {
+                    query_afc_unit_snapshot();
+                }
+            });
+    };
+
+    if (!afc_unit_snapshot_attempted_) {
+        afc_unit_snapshot_attempted_ = true;
+        try_download("AFC/AFC.var.unit", true);
+    } else {
+        try_download("AFC.var.unit", false);
+    }
+}
+
 void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
     // Lane data format:
     // {
@@ -1077,6 +1116,9 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         if (lane.contains("material") && lane["material"].is_string()) {
             slot->material = lane["material"].get<std::string>();
         }
+        if (lane.contains("extruder") && lane["extruder"].is_string()) {
+            slot->mapped_extruder = lane["extruder"].get<std::string>();
+        }
 
         // Parse loaded state
         if (lane.contains("loaded") && lane["loaded"].is_boolean()) {
@@ -1116,6 +1158,155 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         if (lane.contains("total_weight") && lane["total_weight"].is_number()) {
             slot->total_weight_g = lane["total_weight"].get<float>();
         }
+    }
+}
+
+void AmsBackendAfc::parse_afc_unit_snapshot(const nlohmann::json& snapshot) {
+    if (!snapshot.is_object()) {
+        return;
+    }
+
+    std::vector<std::string> new_lane_names;
+
+    for (auto it = snapshot.begin(); it != snapshot.end(); ++it) {
+        if (!it.value().is_object()) {
+            continue;
+        }
+        if (it.key() == "system" || it.key() == "Tools") {
+            continue;
+        }
+
+        const auto& unit_obj = it.value();
+        for (auto lane_it = unit_obj.begin(); lane_it != unit_obj.end(); ++lane_it) {
+            if (!lane_it.value().is_object()) {
+                continue;
+            }
+            new_lane_names.push_back(lane_it.key());
+        }
+    }
+
+    if (!new_lane_names.empty()) {
+        auto lane_index = [](const std::string& name) -> std::optional<int> {
+            static const std::string kPrefix = "lane";
+            if (name.rfind(kPrefix, 0) != 0) {
+                return std::nullopt;
+            }
+            std::string suffix = name.substr(kPrefix.size());
+            if (suffix.empty()) {
+                return std::nullopt;
+            }
+            for (char c : suffix) {
+                if (!std::isdigit(static_cast<unsigned char>(c))) {
+                    return std::nullopt;
+                }
+            }
+            try {
+                return std::stoi(suffix);
+            } catch (...) {
+                return std::nullopt;
+            }
+        };
+
+        std::sort(new_lane_names.begin(), new_lane_names.end(),
+                  [&](const std::string& left, const std::string& right) {
+                      auto left_index = lane_index(left);
+                      auto right_index = lane_index(right);
+                      if (left_index && right_index) {
+                          return *left_index < *right_index;
+                      }
+                      if (left_index) {
+                          return true;
+                      }
+                      if (right_index) {
+                          return false;
+                      }
+                      return left < right;
+                  });
+
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
+            if (!lanes_initialized_ || new_lane_names != lane_names_) {
+                spdlog::info("[AMS AFC] Initializing {} lanes from AFC unit snapshot",
+                             new_lane_names.size());
+                initialize_lanes(new_lane_names);
+            }
+        }
+    }
+
+    bool should_emit = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+        for (auto it = snapshot.begin(); it != snapshot.end(); ++it) {
+            if (!it.value().is_object()) {
+                continue;
+            }
+            if (it.key() == "system" || it.key() == "Tools") {
+                continue;
+            }
+
+            const auto& unit_obj = it.value();
+            for (auto lane_it = unit_obj.begin(); lane_it != unit_obj.end(); ++lane_it) {
+                if (!lane_it.value().is_object()) {
+                    continue;
+                }
+
+                const std::string& lane_name = lane_it.key();
+                auto lane_index_it = lane_name_to_index_.find(lane_name);
+                if (lane_index_it == lane_name_to_index_.end()) {
+                    continue;
+                }
+
+                int slot_index = lane_index_it->second;
+                SlotInfo* slot = system_info_.get_slot_global(slot_index);
+                if (!slot) {
+                    continue;
+                }
+
+                const auto& lane = lane_it.value();
+                if (lane.contains("extruder") && lane["extruder"].is_string()) {
+                    slot->mapped_extruder = lane["extruder"].get<std::string>();
+                }
+                if (lane.contains("unit") && lane["unit"].is_string()) {
+                    const std::string unit_name = lane["unit"].get<std::string>();
+                    for (auto& unit : system_info_.units) {
+                        if (slot_index >= unit.first_slot_global_index &&
+                            slot_index < unit.first_slot_global_index + unit.slot_count) {
+                            unit.name = unit_name;
+                            break;
+                        }
+                    }
+                }
+                if (lane.contains("map") && lane["map"].is_string()) {
+                    const std::string map_str = lane["map"].get<std::string>();
+                    if (map_str.size() >= 2 && map_str[0] == 'T') {
+                        try {
+                            int tool_num = std::stoi(map_str.substr(1));
+                            if (tool_num >= 0 && tool_num <= 64) {
+                                slot->mapped_tool = tool_num;
+                                if (tool_num >=
+                                    static_cast<int>(system_info_.tool_to_slot_map.size())) {
+                                    system_info_.tool_to_slot_map.resize(tool_num + 1, -1);
+                                }
+                                for (auto& mapping : system_info_.tool_to_slot_map) {
+                                    if (mapping == slot_index) {
+                                        mapping = -1;
+                                    }
+                                }
+                                system_info_.tool_to_slot_map[tool_num] = slot_index;
+                            }
+                        } catch (...) {
+                            // ignore malformed map
+                        }
+                    }
+                }
+            }
+        }
+        should_emit = true;
+    }
+
+    if (should_emit) {
+        emit_event(EVENT_STATE_CHANGED);
     }
 }
 
