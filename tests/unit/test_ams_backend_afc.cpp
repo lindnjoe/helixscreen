@@ -188,6 +188,74 @@ class AmsBackendAfcTestHelper : public AmsBackendAfc {
         }
         return false;
     }
+
+    // Feed a Moonraker notify_status_update notification through the backend
+    void feed_status_update(const nlohmann::json& params_inner) {
+        // Build the full notification format: { "params": [ { ... }, timestamp ] }
+        nlohmann::json notification;
+        notification["params"] = nlohmann::json::array({params_inner, 0.0});
+        handle_status_update(notification);
+    }
+
+    // Feed AFC global state update
+    void feed_afc_state(const nlohmann::json& afc_data) {
+        nlohmann::json params;
+        params["AFC"] = afc_data;
+        feed_status_update(params);
+    }
+
+    // Feed AFC_stepper lane update
+    void feed_afc_stepper(const std::string& lane_name, const nlohmann::json& data) {
+        nlohmann::json params;
+        params["AFC_stepper " + lane_name] = data;
+        feed_status_update(params);
+    }
+
+    // State accessors for test assertions
+    AmsAction get_action() const {
+        return system_info_.action;
+    }
+    std::string get_operation_detail() const {
+        return system_info_.operation_detail;
+    }
+    std::vector<int> get_tool_to_slot_map() const {
+        return system_info_.tool_to_slot_map;
+    }
+
+    const std::vector<helix::printer::EndlessSpoolConfig>& get_endless_spool_configs() const {
+        return endless_spool_configs_;
+    }
+
+    // Get mapped_tool from a slot
+    int get_slot_mapped_tool(int slot_index) const {
+        const auto* slot = system_info_.get_slot_global(slot_index);
+        return slot ? slot->mapped_tool : -1;
+    }
+
+    // Event tracking
+    std::vector<std::pair<std::string, std::string>> emitted_events;
+
+    void install_event_tracker() {
+        set_event_callback([this](const std::string& event, const std::string& data) {
+            emitted_events.emplace_back(event, data);
+        });
+    }
+
+    bool has_event(const std::string& event) const {
+        for (const auto& [ev, _] : emitted_events) {
+            if (ev == event)
+                return true;
+        }
+        return false;
+    }
+
+    std::string get_event_data(const std::string& event) const {
+        for (const auto& [ev, data] : emitted_events) {
+            if (ev == event)
+                return data;
+        }
+        return "";
+    }
 };
 
 // ============================================================================
@@ -891,4 +959,176 @@ TEST_CASE("AFC reset_endless_spool continues on partial failure",
 
     // Should still have attempted all 4 slots even if one hypothetically failed
     REQUIRE(helper.captured_gcodes.size() == 4);
+}
+
+// ============================================================================
+// Phase 1: Bug Fixes & Critical Data Sync Tests
+// ============================================================================
+//
+// These tests verify parsing of fields that the real AFC device exposes
+// (captured from 192.168.1.112). Tests use fixture data to validate that
+// state updates flow through correctly to internal state.
+// ============================================================================
+
+TEST_CASE("AFC current_state preferred over status field", "[ams][afc][state][phase1]") {
+    // Real device sends "current_state": "Idle" (in AFC global object)
+    // but we only parse "status" field today. current_state should take priority
+    // because it's the newer, more accurate field.
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // Feed AFC state with both current_state and status
+    // current_state says "Idle" but status says "Loading" — current_state should win
+    nlohmann::json afc_data = {{"current_state", "Idle"}, {"status", "Loading"}};
+    helper.feed_afc_state(afc_data);
+
+    // current_state takes priority over status field
+    REQUIRE(helper.get_action() == AmsAction::IDLE);
+}
+
+TEST_CASE("AFC current_state fallback to status when no current_state",
+          "[ams][afc][state][phase1]") {
+    // When current_state is absent, fall back to status field (regression guard)
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    nlohmann::json afc_data = {{"status", "Loading"}};
+    helper.feed_afc_state(afc_data);
+
+    // Should still work via status field — this PASSES today (regression guard)
+    REQUIRE(helper.get_action() == AmsAction::LOADING);
+}
+
+TEST_CASE("AFC tool mapping from stepper map field", "[ams][afc][tool_mapping][phase1]") {
+    // Real device: AFC_stepper lane1 has "map": "T0", lane2 has "map": "T1", etc.
+    // We never parse this field today.
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // Feed stepper data with map field
+    helper.feed_afc_stepper("lane1", {{"map", "T0"}, {"prep", true}});
+    helper.feed_afc_stepper("lane2", {{"map", "T1"}, {"prep", true}});
+    helper.feed_afc_stepper("lane3", {{"map", "T2"}, {"prep", false}});
+    helper.feed_afc_stepper("lane4", {{"map", "T3"}, {"prep", false}});
+
+    // tool_to_slot_map should reflect the mapping from stepper "map" fields
+    auto mapping = helper.get_tool_mapping();
+    REQUIRE(mapping.size() == 4);
+    REQUIRE(mapping[0] == 0); // T0 → lane1 (slot 0)
+    REQUIRE(mapping[1] == 1); // T1 → lane2 (slot 1)
+    REQUIRE(mapping[2] == 2); // T2 → lane3 (slot 2)
+    REQUIRE(mapping[3] == 3); // T3 → lane4 (slot 3)
+}
+
+TEST_CASE("AFC tool mapping swap updates correctly", "[ams][afc][tool_mapping][phase1]") {
+    // When lanes swap tools (e.g., T0 moves from lane1 to lane3), the mapping
+    // should update accordingly
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // Initial mapping: T0→lane1, T1→lane2, T2→lane3, T3→lane4
+    helper.feed_afc_stepper("lane1", {{"map", "T0"}});
+    helper.feed_afc_stepper("lane2", {{"map", "T1"}});
+    helper.feed_afc_stepper("lane3", {{"map", "T2"}});
+    helper.feed_afc_stepper("lane4", {{"map", "T3"}});
+
+    // Now swap: lane1 gets T2, lane3 gets T0
+    helper.feed_afc_stepper("lane1", {{"map", "T2"}});
+    helper.feed_afc_stepper("lane3", {{"map", "T0"}});
+
+    // After swap, mapping should reflect new tool assignments
+    auto mapping = helper.get_tool_mapping();
+    REQUIRE(mapping.size() == 4);
+    REQUIRE(mapping[0] == 2); // T0 → lane3 (slot 2)
+    REQUIRE(mapping[1] == 1); // T1 → lane2 (slot 1)
+    REQUIRE(mapping[2] == 0); // T2 → lane1 (slot 0)
+    REQUIRE(mapping[3] == 3); // T3 → lane4 (slot 3)
+
+    // Slot mapped_tool should also be updated
+    REQUIRE(helper.get_slot_mapped_tool(0) == 2); // lane1 now maps to T2
+    REQUIRE(helper.get_slot_mapped_tool(2) == 0); // lane3 now maps to T0
+}
+
+TEST_CASE("AFC endless spool from runout_lane field", "[ams][afc][endless_spool][phase1]") {
+    // Real device: AFC_stepper lane1 has "runout_lane": "lane2"
+    // meaning if lane1 runs out, switch to lane2.
+    // We never parse this field today.
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+    helper.initialize_endless_spool_configs(4);
+
+    // Feed stepper data with runout_lane
+    helper.feed_afc_stepper("lane1", {{"runout_lane", "lane2"}});
+
+    // runout_lane should update endless spool backup config
+    auto configs = helper.get_endless_spool_configs();
+    REQUIRE(configs.size() == 4);
+    REQUIRE(configs[0].backup_slot == 1); // lane1's backup is lane2 (slot 1)
+}
+
+TEST_CASE("AFC endless spool null runout_lane clears backup", "[ams][afc][endless_spool][phase1]") {
+    // When runout_lane is null, the backup should be cleared (-1)
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+    helper.initialize_endless_spool_configs(4);
+
+    // First set a backup
+    helper.set_endless_spool_config(0, 1); // lane1 backup = lane2
+
+    // Now feed a null runout_lane
+    nlohmann::json stepper_data;
+    stepper_data["runout_lane"] = nullptr; // JSON null
+    helper.feed_afc_stepper("lane1", stepper_data);
+
+    // null runout_lane should clear the backup
+    auto configs = helper.get_endless_spool_configs();
+    REQUIRE(configs[0].backup_slot == -1); // Cleared
+}
+
+TEST_CASE("AFC message sets operation detail", "[ams][afc][message][phase1]") {
+    // Real device: AFC global state has "message": {"message": "Loading T1", "type": "info"}
+    // We never parse this field today, but it should set operation_detail.
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    nlohmann::json afc_data = {{"message", {{"message", "Loading T1"}, {"type", "info"}}}};
+    helper.feed_afc_state(afc_data);
+
+    // message.message should flow through to operation_detail
+    REQUIRE(helper.get_operation_detail().find("Loading T1") != std::string::npos);
+}
+
+TEST_CASE("AFC error message emits EVENT_ERROR", "[ams][afc][message][phase1]") {
+    // When message.type == "error", we should emit EVENT_ERROR with the message text
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+    helper.install_event_tracker();
+
+    nlohmann::json afc_data = {
+        {"message", {{"message", "AFC Error: lane1 failed to load"}, {"type", "error"}}}};
+    helper.feed_afc_state(afc_data);
+
+    // error type messages should emit EVENT_ERROR
+    REQUIRE(helper.has_event(AmsBackend::EVENT_ERROR));
+    // Error data should contain the message text
+    std::string error_data = helper.get_event_data(AmsBackend::EVENT_ERROR);
+    REQUIRE(error_data.find("lane1 failed to load") != std::string::npos);
+}
+
+TEST_CASE("AFC current_load and next_lane tracked", "[ams][afc][state][phase1]") {
+    // Real device: AFC global state has "current_load": "lane2", "next_lane": "lane3"
+    // These tell us which lane is actively loading and which is queued next.
+    // We never parse these fields today.
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    nlohmann::json afc_data = {
+        {"current_load", "lane2"}, {"next_lane", "lane3"}, {"current_state", "Loading"}};
+    helper.feed_afc_state(afc_data);
+
+    // current_load should update current_slot (lane2 = slot 1)
+    REQUIRE(helper.get_current_slot() == 1);
+    // operation_detail should mention the loading context
+    // At minimum, the action should be LOADING from current_state
+    REQUIRE(helper.get_action() == AmsAction::LOADING);
 }

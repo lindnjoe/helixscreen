@@ -450,6 +450,44 @@ void AmsBackendAfc::parse_afc_state(const nlohmann::json& afc_data) {
                       status_str);
     }
 
+    // Parse current_state field (preferred over status when present)
+    if (afc_data.contains("current_state") && afc_data["current_state"].is_string()) {
+        std::string state_str = afc_data["current_state"].get<std::string>();
+        system_info_.action = ams_action_from_string(state_str);
+        system_info_.operation_detail = state_str;
+        spdlog::trace("[AMS AFC] Current state: {} ({})", ams_action_to_string(system_info_.action),
+                      state_str);
+    }
+
+    // Parse message object for operation detail and error events
+    if (afc_data.contains("message") && afc_data["message"].is_object()) {
+        const auto& msg = afc_data["message"];
+        if (msg.contains("message") && msg["message"].is_string()) {
+            std::string msg_text = msg["message"].get<std::string>();
+            if (!msg_text.empty()) {
+                system_info_.operation_detail = msg_text;
+            }
+            // Check for error type
+            if (msg.contains("type") && msg["type"].is_string()) {
+                std::string msg_type = msg["type"].get<std::string>();
+                if (msg_type == "error" && msg_text != last_error_msg_) {
+                    last_error_msg_ = msg_text;
+                    emit_event(EVENT_ERROR, msg_text);
+                }
+            }
+        }
+    }
+
+    // Parse current_load field (overrides current_lane when present)
+    if (afc_data.contains("current_load") && afc_data["current_load"].is_string()) {
+        std::string load_lane = afc_data["current_load"].get<std::string>();
+        auto it = lane_name_to_index_.find(load_lane);
+        if (it != lane_name_to_index_.end()) {
+            system_info_.current_slot = it->second;
+            spdlog::trace("[AMS AFC] Current load: {} (slot {})", load_lane, it->second);
+        }
+    }
+
     // Parse lanes array if present (some AFC versions provide this)
     if (afc_data.contains("lanes") && afc_data["lanes"].is_object()) {
         parse_lane_data(afc_data["lanes"]);
@@ -605,6 +643,55 @@ void AmsBackendAfc::parse_afc_stepper(const std::string& lane_name, const nlohma
     spdlog::trace("[AMS AFC] Lane {} (slot {}): prep={} load={} hub={} status={}", lane_name,
                   slot_index, sensors.prep, sensors.load, sensors.loaded_to_hub,
                   slot_status_to_string(slot->status));
+
+    // Parse tool mapping from "map" field (e.g., "T0", "T1")
+    if (data.contains("map") && data["map"].is_string()) {
+        std::string map_str = data["map"].get<std::string>();
+        // Parse "T{N}" format
+        if (map_str.size() >= 2 && map_str[0] == 'T') {
+            try {
+                int tool_num = std::stoi(map_str.substr(1));
+                if (tool_num >= 0 && tool_num <= 64) {
+                    // Update slot's mapped_tool
+                    if (slot) {
+                        slot->mapped_tool = tool_num;
+                    }
+                    // Update tool_to_slot_map — ensure map is large enough
+                    if (tool_num >= static_cast<int>(system_info_.tool_to_slot_map.size())) {
+                        system_info_.tool_to_slot_map.resize(tool_num + 1, -1);
+                    }
+                    // Clear old mapping for this slot (another tool may have pointed here)
+                    for (auto& mapping : system_info_.tool_to_slot_map) {
+                        if (mapping == slot_index) {
+                            mapping = -1;
+                        }
+                    }
+                    system_info_.tool_to_slot_map[tool_num] = slot_index;
+                    spdlog::trace("[AMS AFC] Lane {} mapped to tool T{}", lane_name, tool_num);
+                }
+            } catch (...) {
+                // Invalid tool number format
+            }
+        }
+    }
+
+    // Parse endless spool backup from "runout_lane" field
+    if (data.contains("runout_lane")) {
+        if (slot_index < static_cast<int>(endless_spool_configs_.size())) {
+            if (data["runout_lane"].is_string()) {
+                std::string backup_lane = data["runout_lane"].get<std::string>();
+                auto backup_it = lane_name_to_index_.find(backup_lane);
+                if (backup_it != lane_name_to_index_.end()) {
+                    endless_spool_configs_[slot_index].backup_slot = backup_it->second;
+                    spdlog::trace("[AMS AFC] Lane {} runout backup: {} (slot {})", lane_name,
+                                  backup_lane, backup_it->second);
+                }
+            } else if (data["runout_lane"].is_null()) {
+                endless_spool_configs_[slot_index].backup_slot = -1;
+                spdlog::trace("[AMS AFC] Lane {} runout backup: disabled", lane_name);
+            }
+        }
+    }
 }
 
 void AmsBackendAfc::parse_afc_hub(const nlohmann::json& data) {

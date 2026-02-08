@@ -429,6 +429,7 @@ class AmsBackendAfc : public AmsBackend {
     bool error_state_{false};            ///< AFC error state
     bool bypass_active_{false};          ///< Bypass mode active (external spool)
     std::string current_lane_name_;      ///< Currently active lane name
+    std::string last_error_msg_;         ///< Last emitted error message (dedup)
     std::vector<std::string> hub_names_; ///< Discovered hub names
 
     // Path visualization state
