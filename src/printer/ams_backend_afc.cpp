@@ -1043,30 +1043,40 @@ void AmsBackendAfc::initialize_lanes(const std::vector<std::string>& lane_names)
         lane_name_to_index_[lane_names_[i]] = static_cast<int>(i);
     }
 
-    // Create a single unit with all lanes (AFC units are typically treated as one logical unit)
-    AmsUnit unit;
-    unit.unit_index = 0;
-    unit.name = "AFC Box Turtle";
-    unit.slot_count = lane_count;
-    unit.first_slot_global_index = 0;
-    unit.connected = true;
-    unit.has_encoder = false;        // AFC typically uses optical sensors, not encoders
-    unit.has_toolhead_sensor = true; // Most AFC setups have toolhead sensor
-    unit.has_slot_sensors = true;    // AFC has per-lane sensors
-
-    // Initialize gates with defaults
-    for (int i = 0; i < lane_count; ++i) {
-        SlotInfo slot;
-        slot.slot_index = i;
-        slot.global_index = i;
-        slot.status = SlotStatus::UNKNOWN;
-        slot.mapped_tool = i; // Default 1:1 mapping
-        slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
-        unit.slots.push_back(slot);
-    }
+    // Create one unit per AFC box, with 4 lanes each.
+    constexpr int kLanesPerUnit = 4;
+    int unit_count = (lane_count + kLanesPerUnit - 1) / kLanesPerUnit;
 
     system_info_.units.clear();
-    system_info_.units.push_back(unit);
+    system_info_.units.reserve(unit_count);
+    for (int unit_index = 0; unit_index < unit_count; ++unit_index) {
+        int first_slot = unit_index * kLanesPerUnit;
+        int slot_count = std::min(kLanesPerUnit, lane_count - first_slot);
+
+        AmsUnit unit;
+        unit.unit_index = unit_index;
+        unit.name = fmt::format("AFC Box Turtle {}", unit_index + 1);
+        unit.slot_count = slot_count;
+        unit.first_slot_global_index = first_slot;
+        unit.connected = true;
+        unit.has_encoder = false;        // AFC typically uses optical sensors, not encoders
+        unit.has_toolhead_sensor = true; // Most AFC setups have toolhead sensor
+        unit.has_slot_sensors = true;    // AFC has per-lane sensors
+
+        // Initialize gates with defaults
+        for (int slot_index = 0; slot_index < slot_count; ++slot_index) {
+            int global_index = first_slot + slot_index;
+            SlotInfo slot;
+            slot.slot_index = slot_index;
+            slot.global_index = global_index;
+            slot.status = SlotStatus::UNKNOWN;
+            slot.mapped_tool = global_index; // Default 1:1 mapping
+            slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
+            unit.slots.push_back(slot);
+        }
+
+        system_info_.units.push_back(unit);
+    }
     system_info_.total_slots = lane_count;
 
     // Initialize tool-to-lane mapping (1:1 default)
