@@ -303,17 +303,11 @@ class PrinterDiscovery {
                 ++expected_units;
             }
         }
-        if (expected_units > 0) {
+        if (expected_units > 0 && afc_lane_names_.empty()) {
             int expected_lanes = expected_units * 4;
-            if (static_cast<int>(afc_lane_names_.size()) < expected_lanes) {
-                std::unordered_set<std::string> existing_lanes(afc_lane_names_.begin(),
-                                                               afc_lane_names_.end());
-                for (int i = 0; i < expected_lanes; ++i) {
-                    std::string lane_name = "lane" + std::to_string(i);
-                    if (existing_lanes.insert(lane_name).second) {
-                        afc_lane_names_.push_back(lane_name);
-                    }
-                }
+            afc_lane_names_.reserve(expected_lanes);
+            for (int i = 0; i < expected_lanes; ++i) {
+                afc_lane_names_.push_back("lane" + std::to_string(i));
             }
         }
 
