@@ -379,16 +379,16 @@ static void apply_current_slot_highlight(AmsSlotData* data, int current_slot) {
  * Shows "T0", "T1", etc. when a tool is mapped to this slot.
  * Hidden when mapped_tool == -1 (no tool assigned).
  */
-static void apply_tool_badge(AmsSlotData* data, int mapped_tool,
+static void apply_tool_badge(AmsSlotData* data, int /*mapped_tool*/,
                              const std::string& /*mapped_extruder*/) {
     if (!data || !data->tool_badge_bg) {
         return;
     }
 
-    if (mapped_tool >= 0) {
-        // Tool/extruder is mapped - show badge
+    if (data->slot_index >= 0) {
+        // Slot is mapped - show badge
         char tool_text[32];
-        snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
+        snprintf(tool_text, sizeof(tool_text), "%d", data->slot_index);
         lv_subject_copy_string(&data->tool_badge_subject, tool_text);
         lv_obj_remove_flag(data->tool_badge_bg, LV_OBJ_FLAG_HIDDEN);
 
