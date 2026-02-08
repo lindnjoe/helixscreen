@@ -68,6 +68,30 @@
         },
         {
           "enabled": true,
+          "klipper_name": "filament_switch_sensor Turtle_2_expanded",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor Turtle_2_compressed",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane0_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane0_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
           "klipper_name": "filament_switch_sensor lane1_prep",
           "role": "none",
           "type": "switch"
@@ -116,7 +140,145 @@
         },
         {
           "enabled": true,
+          "klipper_name": "filament_switch_sensor lane5_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane5_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane6_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane6_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane7_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane7_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane8_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane8_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane9_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane9_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane10_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane10_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane11_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane11_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane12_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane12_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane13_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane13_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane14_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane14_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane15_prep",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor lane15_load",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
           "klipper_name": "filament_switch_sensor Turtle_1_Hub",
+          "role": "none",
+          "type": "switch"
+        },
+        {
+          "enabled": true,
+          "klipper_name": "filament_switch_sensor Turtle_2_Hub",
           "role": "none",
           "type": "switch"
         },
@@ -158,6 +320,10 @@
           "filament_switch_sensor tool_end",
           "filament_switch_sensor Turtle_1_expanded",
           "filament_switch_sensor Turtle_1_compressed",
+          "filament_switch_sensor Turtle_2_expanded",
+          "filament_switch_sensor Turtle_2_compressed",
+          "filament_switch_sensor lane0_prep",
+          "filament_switch_sensor lane0_load",
           "filament_switch_sensor lane1_prep",
           "filament_switch_sensor lane1_load",
           "filament_switch_sensor lane2_prep",
@@ -166,7 +332,30 @@
           "filament_switch_sensor lane3_load",
           "filament_switch_sensor lane4_prep",
           "filament_switch_sensor lane4_load",
+          "filament_switch_sensor lane5_prep",
+          "filament_switch_sensor lane5_load",
+          "filament_switch_sensor lane6_prep",
+          "filament_switch_sensor lane6_load",
+          "filament_switch_sensor lane7_prep",
+          "filament_switch_sensor lane7_load",
+          "filament_switch_sensor lane8_prep",
+          "filament_switch_sensor lane8_load",
+          "filament_switch_sensor lane9_prep",
+          "filament_switch_sensor lane9_load",
+          "filament_switch_sensor lane10_prep",
+          "filament_switch_sensor lane10_load",
+          "filament_switch_sensor lane11_prep",
+          "filament_switch_sensor lane11_load",
+          "filament_switch_sensor lane12_prep",
+          "filament_switch_sensor lane12_load",
+          "filament_switch_sensor lane13_prep",
+          "filament_switch_sensor lane13_load",
+          "filament_switch_sensor lane14_prep",
+          "filament_switch_sensor lane14_load",
+          "filament_switch_sensor lane15_prep",
+          "filament_switch_sensor lane15_load",
           "filament_switch_sensor Turtle_1_Hub",
+          "filament_switch_sensor Turtle_2_Hub",
           "filament_switch_sensor virtual_bypass",
           "filament_switch_sensor quiet_mode"
         ],

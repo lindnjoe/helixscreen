@@ -3,12 +3,15 @@
 
 #include "ui_ams_spoolman_picker.h"
 
+#include "ui_update_queue.h"
 #include "ui_utils.h"
 
 #include "moonraker_api.h"
 #include "theme_manager.h"
 
 #include <spdlog/spdlog.h>
+
+#include <memory>
 
 namespace helix::ui {
 
@@ -217,91 +220,98 @@ void AmsSpoolmanPicker::populate_spools() {
 
     api_->get_spoolman_spools(
         [this, weak_guard](const std::vector<SpoolInfo>& spools) {
-            // Check if picker still exists and subjects are valid
-            if (weak_guard.expired() || !picker_ || !subjects_initialized_) {
-                spdlog::trace("[AmsSpoolmanPicker] Callback ignored - picker destroyed or moved");
-                return;
-            }
-
-            if (spools.empty()) {
-                lv_subject_set_int(&picker_state_subject_, 1); // Empty state
-                return;
-            }
-
-            // Show content state
-            lv_subject_set_int(&picker_state_subject_, 2);
-
-            // Cache spools for lookup on selection
-            cached_spools_ = spools;
-
-            // Find the spool list container
-            lv_obj_t* spool_list = lv_obj_find_by_name(picker_, "spool_list");
-            if (!spool_list) {
-                spdlog::error("[AmsSpoolmanPicker] spool_list not found");
-                return;
-            }
-
-            // Create a spool item for each spool
-            for (const auto& spool : spools) {
-                lv_obj_t* item =
-                    static_cast<lv_obj_t*>(lv_xml_create(spool_list, "spool_item", nullptr));
-                if (!item) {
-                    continue;
+            auto spools_ptr = std::make_shared<std::vector<SpoolInfo>>(spools);
+            ui_queue_update([this, weak_guard, spools_ptr]() {
+                // Check if picker still exists and subjects are valid
+                if (weak_guard.expired() || !picker_ || !subjects_initialized_) {
+                    spdlog::trace(
+                        "[AmsSpoolmanPicker] Callback ignored - picker destroyed or moved");
+                    return;
                 }
 
-                // Store spool_id in user_data for click handler
-                lv_obj_set_user_data(item,
-                                     reinterpret_cast<void*>(static_cast<intptr_t>(spool.id)));
-
-                // Update spool name (vendor + material)
-                lv_obj_t* name_label = lv_obj_find_by_name(item, "spool_name");
-                if (name_label) {
-                    std::string name = spool.vendor.empty() ? spool.material
-                                                            : (spool.vendor + " " + spool.material);
-                    lv_label_set_text(name_label, name.c_str());
+                if (spools_ptr->empty()) {
+                    lv_subject_set_int(&picker_state_subject_, 1); // Empty state
+                    return;
                 }
 
-                // Update color name
-                lv_obj_t* color_label = lv_obj_find_by_name(item, "spool_color");
-                if (color_label && !spool.color_name.empty()) {
-                    lv_label_set_text(color_label, spool.color_name.c_str());
+                // Show content state
+                lv_subject_set_int(&picker_state_subject_, 2);
+
+                // Cache spools for lookup on selection
+                cached_spools_ = *spools_ptr;
+
+                // Find the spool list container
+                lv_obj_t* spool_list = lv_obj_find_by_name(picker_, "spool_list");
+                if (!spool_list) {
+                    spdlog::error("[AmsSpoolmanPicker] spool_list not found");
+                    return;
                 }
 
-                // Update weight
-                lv_obj_t* weight_label = lv_obj_find_by_name(item, "spool_weight");
-                if (weight_label && spool.remaining_weight_g > 0) {
-                    char buf[32];
-                    snprintf(buf, sizeof(buf), "%.0fg", spool.remaining_weight_g);
-                    lv_label_set_text(weight_label, buf);
-                }
+                // Create a spool item for each spool
+                for (const auto& spool : *spools_ptr) {
+                    lv_obj_t* item =
+                        static_cast<lv_obj_t*>(lv_xml_create(spool_list, "spool_item", nullptr));
+                    if (!item) {
+                        continue;
+                    }
 
-                // Update color swatch
-                lv_obj_t* swatch = lv_obj_find_by_name(item, "spool_swatch");
-                if (swatch && !spool.color_hex.empty()) {
-                    lv_color_t color = theme_manager_parse_hex_color(spool.color_hex.c_str());
-                    lv_obj_set_style_bg_color(swatch, color, 0);
-                    lv_obj_set_style_border_color(swatch, color, 0);
-                }
+                    // Store spool_id in user_data for click handler
+                    lv_obj_set_user_data(item,
+                                         reinterpret_cast<void*>(static_cast<intptr_t>(spool.id)));
 
-                // Show checkmark if this is the currently assigned spool
-                if (spool.id == current_spool_id_) {
-                    lv_obj_t* check_icon = lv_obj_find_by_name(item, "selected_icon");
-                    if (check_icon) {
-                        lv_obj_remove_flag(check_icon, LV_OBJ_FLAG_HIDDEN);
+                    // Update spool name (vendor + material)
+                    lv_obj_t* name_label = lv_obj_find_by_name(item, "spool_name");
+                    if (name_label) {
+                        std::string name =
+                            spool.vendor.empty() ? spool.material
+                                                 : (spool.vendor + " " + spool.material);
+                        lv_label_set_text(name_label, name.c_str());
+                    }
+
+                    // Update color name
+                    lv_obj_t* color_label = lv_obj_find_by_name(item, "spool_color");
+                    if (color_label && !spool.color_name.empty()) {
+                        lv_label_set_text(color_label, spool.color_name.c_str());
+                    }
+
+                    // Update weight
+                    lv_obj_t* weight_label = lv_obj_find_by_name(item, "spool_weight");
+                    if (weight_label && spool.remaining_weight_g > 0) {
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%.0fg", spool.remaining_weight_g);
+                        lv_label_set_text(weight_label, buf);
+                    }
+
+                    // Update color swatch
+                    lv_obj_t* swatch = lv_obj_find_by_name(item, "spool_swatch");
+                    if (swatch && !spool.color_hex.empty()) {
+                        lv_color_t color = theme_manager_parse_hex_color(spool.color_hex.c_str());
+                        lv_obj_set_style_bg_color(swatch, color, 0);
+                        lv_obj_set_style_border_color(swatch, color, 0);
+                    }
+
+                    // Show checkmark if this is the currently assigned spool
+                    if (spool.id == current_spool_id_) {
+                        lv_obj_t* check_icon = lv_obj_find_by_name(item, "selected_icon");
+                        if (check_icon) {
+                            lv_obj_remove_flag(check_icon, LV_OBJ_FLAG_HIDDEN);
+                        }
                     }
                 }
-            }
 
-            spdlog::info("[AmsSpoolmanPicker] Populated with {} spools", spools.size());
+                spdlog::info("[AmsSpoolmanPicker] Populated with {} spools", spools_ptr->size());
+            });
         },
         [this, weak_guard](const MoonrakerError& err) {
-            // Check if picker still exists and subjects are valid
-            if (weak_guard.expired() || !picker_ || !subjects_initialized_) {
-                return;
-            }
+            ui_queue_update([this, weak_guard, message = err.message]() {
+                // Check if picker still exists and subjects are valid
+                if (weak_guard.expired() || !picker_ || !subjects_initialized_) {
+                    return;
+                }
 
-            spdlog::warn("[AmsSpoolmanPicker] Failed to fetch spools: {}", err.message);
-            lv_subject_set_int(&picker_state_subject_, 1); // Empty/error state
+                spdlog::warn("[AmsSpoolmanPicker] Failed to fetch spools: {}", message);
+                lv_subject_set_int(&picker_state_subject_, 1); // Empty/error state
+            });
         });
 }
 
