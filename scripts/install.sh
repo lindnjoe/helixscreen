@@ -27,7 +27,7 @@ _HELIX_BUNDLED_INSTALLER=1
 set -eu
 
 # Configuration
-GITHUB_REPO="prestonbrown/helixscreen"
+GITHUB_REPO="lindnjoe/helixscreen"
 SERVICE_NAME="helixscreen"
 
 
@@ -37,7 +37,7 @@ SERVICE_NAME="helixscreen"
 
 #
 # Default configuration (can be overridden before sourcing)
-: "${GITHUB_REPO:=prestonbrown/helixscreen}"
+: "${GITHUB_REPO:=lindnjoe/helixscreen}"
 : "${INSTALL_DIR:=/opt/helixscreen}"
 : "${SERVICE_NAME:=helixscreen}"
 
