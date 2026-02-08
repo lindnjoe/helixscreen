@@ -975,60 +975,63 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         }
 
         const auto& lane = lane_data[lane_name];
-        auto& slot = system_info_.units[0].slots[i];
+        auto* slot = system_info_.get_slot_global(static_cast<int>(i));
+        if (!slot) {
+            continue;
+        }
 
         // Parse color (AFC uses hex string without 0x prefix)
         if (lane.contains("color") && lane["color"].is_string()) {
             std::string color_str = lane["color"].get<std::string>();
             try {
-                slot.color_rgb = static_cast<uint32_t>(std::stoul(color_str, nullptr, 16));
+                slot->color_rgb = static_cast<uint32_t>(std::stoul(color_str, nullptr, 16));
             } catch (...) {
-                slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
+                slot->color_rgb = AMS_DEFAULT_SLOT_COLOR;
             }
         }
 
         // Parse material
         if (lane.contains("material") && lane["material"].is_string()) {
-            slot.material = lane["material"].get<std::string>();
+            slot->material = lane["material"].get<std::string>();
         }
 
         // Parse loaded state
         if (lane.contains("loaded") && lane["loaded"].is_boolean()) {
             bool loaded = lane["loaded"].get<bool>();
             if (loaded) {
-                slot.status = SlotStatus::LOADED;
+                slot->status = SlotStatus::LOADED;
                 system_info_.current_slot = static_cast<int>(i);
                 system_info_.filament_loaded = true;
             } else {
                 // Check if filament is available (not loaded but present)
                 if (lane.contains("available") && lane["available"].is_boolean() &&
                     lane["available"].get<bool>()) {
-                    slot.status = SlotStatus::AVAILABLE;
+                    slot->status = SlotStatus::AVAILABLE;
                 } else if (lane.contains("empty") && lane["empty"].is_boolean() &&
                            lane["empty"].get<bool>()) {
-                    slot.status = SlotStatus::EMPTY;
+                    slot->status = SlotStatus::EMPTY;
                 } else {
                     // Default to available if not explicitly empty
-                    slot.status = SlotStatus::AVAILABLE;
+                    slot->status = SlotStatus::AVAILABLE;
                 }
             }
         }
 
         // Parse spool information if available
         if (lane.contains("spool_id") && lane["spool_id"].is_number_integer()) {
-            slot.spoolman_id = lane["spool_id"].get<int>();
+            slot->spoolman_id = lane["spool_id"].get<int>();
         }
 
         if (lane.contains("brand") && lane["brand"].is_string()) {
-            slot.brand = lane["brand"].get<std::string>();
+            slot->brand = lane["brand"].get<std::string>();
         }
 
         if (lane.contains("remaining_weight") && lane["remaining_weight"].is_number()) {
-            slot.remaining_weight_g = lane["remaining_weight"].get<float>();
+            slot->remaining_weight_g = lane["remaining_weight"].get<float>();
         }
 
         if (lane.contains("total_weight") && lane["total_weight"].is_number()) {
-            slot.total_weight_g = lane["total_weight"].get<float>();
+            slot->total_weight_g = lane["total_weight"].get<float>();
         }
     }
 }
