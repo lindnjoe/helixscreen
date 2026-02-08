@@ -21,7 +21,7 @@
 set -eu
 
 # Configuration
-GITHUB_REPO="prestonbrown/helixscreen"
+GITHUB_REPO="lindnjoe/helixscreen"
 SERVICE_NAME="helixscreen"
 
 # Source modules (if running from repo, not bundled)
