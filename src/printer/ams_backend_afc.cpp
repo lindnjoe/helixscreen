@@ -1158,6 +1158,11 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         if (lane.contains("total_weight") && lane["total_weight"].is_number()) {
             slot->total_weight_g = lane["total_weight"].get<float>();
         }
+        should_emit = true;
+    }
+
+    if (should_emit) {
+        emit_event(EVENT_STATE_CHANGED);
     }
 }
 
@@ -1299,6 +1304,27 @@ void AmsBackendAfc::parse_afc_unit_snapshot(const nlohmann::json& snapshot) {
                             // ignore malformed map
                         }
                     }
+                }
+
+                if (lane.contains("color") && lane["color"].is_string()) {
+                    std::string color_str = lane["color"].get<std::string>();
+                    if (!color_str.empty() && color_str[0] == '#') {
+                        color_str = color_str.substr(1);
+                    }
+                    try {
+                        slot->color_rgb = static_cast<uint32_t>(std::stoul(color_str, nullptr, 16));
+                    } catch (...) {
+                        // ignore malformed color
+                    }
+                }
+                if (lane.contains("material") && lane["material"].is_string()) {
+                    slot->material = lane["material"].get<std::string>();
+                }
+                if (lane.contains("spool_id") && lane["spool_id"].is_number_integer()) {
+                    slot->spoolman_id = lane["spool_id"].get<int>();
+                }
+                if (lane.contains("weight") && lane["weight"].is_number()) {
+                    slot->remaining_weight_g = lane["weight"].get<float>();
                 }
             }
         }
