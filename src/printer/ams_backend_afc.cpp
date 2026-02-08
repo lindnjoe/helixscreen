@@ -503,6 +503,58 @@ void AmsBackendAfc::parse_afc_state(const nlohmann::json& afc_data) {
     // Parse lanes array if present (some AFC versions provide this)
     if (afc_data.contains("lanes") && afc_data["lanes"].is_object()) {
         parse_lane_data(afc_data["lanes"]);
+    } else if (afc_data.contains("lanes") && afc_data["lanes"].is_array()) {
+        std::vector<std::string> new_lane_names;
+        for (const auto& lane : afc_data["lanes"]) {
+            if (lane.is_string()) {
+                new_lane_names.push_back(lane.get<std::string>());
+            }
+        }
+
+        if (!new_lane_names.empty()) {
+            auto lane_index = [](const std::string& name) -> std::optional<int> {
+                static const std::string kPrefix = "lane";
+                if (name.rfind(kPrefix, 0) != 0) {
+                    return std::nullopt;
+                }
+                std::string suffix = name.substr(kPrefix.size());
+                if (suffix.empty()) {
+                    return std::nullopt;
+                }
+                for (char c : suffix) {
+                    if (!std::isdigit(static_cast<unsigned char>(c))) {
+                        return std::nullopt;
+                    }
+                }
+                try {
+                    return std::stoi(suffix);
+                } catch (...) {
+                    return std::nullopt;
+                }
+            };
+
+            std::sort(new_lane_names.begin(), new_lane_names.end(),
+                      [&](const std::string& left, const std::string& right) {
+                          auto left_index = lane_index(left);
+                          auto right_index = lane_index(right);
+                          if (left_index && right_index) {
+                              return *left_index < *right_index;
+                          }
+                          if (left_index) {
+                              return true;
+                          }
+                          if (right_index) {
+                              return false;
+                          }
+                          return left < right;
+                      });
+
+            if (!lanes_initialized_ || new_lane_names != lane_names_) {
+                spdlog::info("[AMS AFC] Initializing {} lanes from AFC status",
+                             new_lane_names.size());
+                initialize_lanes(new_lane_names);
+            }
+        }
     }
 
     // Parse unit information if available
@@ -518,6 +570,8 @@ void AmsBackendAfc::parse_afc_state(const nlohmann::json& afc_data) {
                 if (units[i].contains("connected") && units[i]["connected"].is_boolean()) {
                     system_info_.units[i].connected = units[i]["connected"].get<bool>();
                 }
+            } else if (units[i].is_string()) {
+                system_info_.units[i].name = units[i].get<std::string>();
             }
         }
     }
