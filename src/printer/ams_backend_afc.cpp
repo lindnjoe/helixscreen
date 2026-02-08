@@ -9,6 +9,8 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cctype>
+#include <optional>
 #include <sstream>
 
 // ============================================================================
@@ -960,7 +962,42 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
     for (auto it = lane_data.begin(); it != lane_data.end(); ++it) {
         new_lane_names.push_back(it.key());
     }
-    std::sort(new_lane_names.begin(), new_lane_names.end());
+    auto lane_index = [](const std::string& name) -> std::optional<int> {
+        static const std::string kPrefix = "lane";
+        if (name.rfind(kPrefix, 0) != 0) {
+            return std::nullopt;
+        }
+        std::string suffix = name.substr(kPrefix.size());
+        if (suffix.empty()) {
+            return std::nullopt;
+        }
+        for (char c : suffix) {
+            if (!std::isdigit(static_cast<unsigned char>(c))) {
+                return std::nullopt;
+            }
+        }
+        try {
+            return std::stoi(suffix);
+        } catch (...) {
+            return std::nullopt;
+        }
+    };
+
+    std::sort(new_lane_names.begin(), new_lane_names.end(),
+              [&](const std::string& left, const std::string& right) {
+                  auto left_index = lane_index(left);
+                  auto right_index = lane_index(right);
+                  if (left_index && right_index) {
+                      return *left_index < *right_index;
+                  }
+                  if (left_index) {
+                      return true;
+                  }
+                  if (right_index) {
+                      return false;
+                  }
+                  return left < right;
+              });
 
     // Initialize lanes if this is the first time or count changed
     if (!lanes_initialized_ || new_lane_names.size() != lane_names_.size()) {

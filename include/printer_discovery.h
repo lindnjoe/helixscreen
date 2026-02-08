@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -314,7 +315,42 @@ class PrinterDiscovery {
 
         // Sort AFC lane names for consistent ordering
         if (!afc_lane_names_.empty()) {
-            std::sort(afc_lane_names_.begin(), afc_lane_names_.end());
+            auto lane_index = [](const std::string& name) -> std::optional<int> {
+                static const std::string kPrefix = "lane";
+                if (name.rfind(kPrefix, 0) != 0) {
+                    return std::nullopt;
+                }
+                std::string suffix = name.substr(kPrefix.size());
+                if (suffix.empty()) {
+                    return std::nullopt;
+                }
+                for (char c : suffix) {
+                    if (!std::isdigit(static_cast<unsigned char>(c))) {
+                        return std::nullopt;
+                    }
+                }
+                try {
+                    return std::stoi(suffix);
+                } catch (...) {
+                    return std::nullopt;
+                }
+            };
+
+            std::sort(afc_lane_names_.begin(), afc_lane_names_.end(),
+                      [&](const std::string& left, const std::string& right) {
+                          auto left_index = lane_index(left);
+                          auto right_index = lane_index(right);
+                          if (left_index && right_index) {
+                              return *left_index < *right_index;
+                          }
+                          if (left_index) {
+                              return true;
+                          }
+                          if (right_index) {
+                              return false;
+                          }
+                          return left < right;
+                      });
         }
 
         // Sort tool names for consistent ordering
