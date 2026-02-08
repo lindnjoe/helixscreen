@@ -167,7 +167,7 @@ bool migrate_config_keys(json& data,
         // Skip if target already exists (don't overwrite)
         if (data.contains(to_ptr)) {
             spdlog::debug("[Config] Migration skipped: {} already exists", to_path);
-            data.erase(from_ptr);
+            data.erase(from_ptr.to_string());
             any_migrated = true;
             continue;
         }
@@ -185,7 +185,7 @@ bool migrate_config_keys(json& data,
 
         // Copy value to new location and remove from old
         data[to_ptr] = data[from_ptr];
-        data.erase(from_ptr);
+        data.erase(from_ptr.to_string());
         spdlog::info("[Config] Migrated {} -> {}", from_path, to_path);
         any_migrated = true;
     }

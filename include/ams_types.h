@@ -528,6 +528,7 @@ struct SlotInfo {
 
     // Tool mapping
     int mapped_tool = -1; ///< Which tool this slot maps to (-1=none)
+    std::string mapped_extruder; ///< Extruder name this slot maps to (empty=unknown)
 
     // Spoolman integration
     int spoolman_id = 0;           ///< Spoolman spool ID (0=not tracked)
