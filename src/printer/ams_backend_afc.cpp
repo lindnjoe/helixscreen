@@ -1335,7 +1335,7 @@ AmsError AmsBackendAfc::reset() {
     }
 
     spdlog::info("[AMS AFC] Homing AFC system");
-    return execute_gcode("AFC_HOME");
+    return execute_gcode("G28");
 }
 
 AmsError AmsBackendAfc::reset_lane(int slot_index) {
