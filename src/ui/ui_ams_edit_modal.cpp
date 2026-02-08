@@ -4,6 +4,7 @@
 #include "ui_ams_edit_modal.h"
 
 #include "ui_error_reporting.h"
+#include "ui_update_queue.h"
 
 #include "ams_state.h"
 #include "filament_database.h"
@@ -284,26 +285,39 @@ void AmsEditModal::fetch_vendors_from_spoolman() {
             }
 
             // Build vendor list and options string
-            vendor_list_.clear();
-            vendor_options_.clear();
+            std::vector<std::string> vendor_list;
+            std::string vendor_options;
             for (const auto& vendor : unique_vendors) {
-                if (!vendor_options_.empty()) {
-                    vendor_options_ += '\n';
+                if (!vendor_options.empty()) {
+                    vendor_options += '\n';
                 }
-                vendor_options_ += vendor;
-                vendor_list_.push_back(vendor);
+                vendor_options += vendor;
+                vendor_list.push_back(vendor);
             }
 
-            vendors_loaded_ = true;
-            spdlog::debug("[AmsEditModal] Loaded {} vendors from Spoolman", vendor_list_.size());
+            ui_queue_update([this, guard, vendor_list = std::move(vendor_list),
+                             vendor_options = std::move(vendor_options)]() mutable {
+                if (guard.expired()) {
+                    return;
+                }
 
-            // Update the dropdown if modal is still visible
-            update_vendor_dropdown();
+                vendor_list_ = std::move(vendor_list);
+                vendor_options_ = std::move(vendor_options);
+                vendors_loaded_ = true;
+                spdlog::debug("[AmsEditModal] Loaded {} vendors from Spoolman",
+                              vendor_list_.size());
+
+                // Update the dropdown if modal is still visible
+                update_vendor_dropdown();
+            });
         },
         [](const MoonrakerError& err) {
-            spdlog::warn("[AmsEditModal] Failed to fetch Spoolman spools for vendor list: {}",
-                         err.message);
-            // Keep using fallback vendors
+            ui_queue_update([message = err.message]() {
+                spdlog::warn(
+                    "[AmsEditModal] Failed to fetch Spoolman spools for vendor list: {}",
+                    message);
+                // Keep using fallback vendors
+            });
         });
 }
 
