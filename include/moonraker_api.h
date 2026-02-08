@@ -55,6 +55,7 @@
 #include "printer_state.h"
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <list>
 #include <map>
@@ -462,6 +463,16 @@ class MoonrakerAPI {
      */
     void execute_gcode(const std::string& gcode, SuccessCallback on_success,
                        ErrorCallback on_error);
+    /**
+     * @brief Execute custom G-code command with a custom timeout
+     *
+     * @param gcode G-code command string
+     * @param on_success Success callback
+     * @param on_error Error callback
+     * @param timeout_ms Timeout in milliseconds (0 = default)
+     */
+    void execute_gcode(const std::string& gcode, SuccessCallback on_success,
+                       ErrorCallback on_error, uint32_t timeout_ms);
 
     /**
      * @brief Check if a string is safe to use as a G-code parameter

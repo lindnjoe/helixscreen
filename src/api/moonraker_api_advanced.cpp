@@ -1100,6 +1100,7 @@ void MoonrakerAPI::run_z_tilt_adjust(SuccessCallback /*on_success*/, ErrorCallba
 void MoonrakerAPI::start_resonance_test(char axis, AdvancedProgressCallback /*on_progress*/,
                                         InputShaperCallback on_complete, ErrorCallback on_error) {
     spdlog::info("[Moonraker API] Starting SHAPER_CALIBRATE AXIS={}", axis);
+    constexpr uint32_t kInputShaperTimeoutMs = 5 * 60 * 1000;
 
     // Create collector to handle async response parsing
     auto collector = std::make_shared<InputShaperCollector>(client_, axis, on_complete, on_error);
@@ -1118,7 +1119,8 @@ void MoonrakerAPI::start_resonance_test(char axis, AdvancedProgressCallback /*on
             if (on_error) {
                 on_error(err);
             }
-        });
+        },
+        kInputShaperTimeoutMs);
 }
 
 void MoonrakerAPI::start_klippain_shaper_calibration(const std::string& /*axis*/,
