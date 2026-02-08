@@ -482,7 +482,7 @@ TEST_CASE_METHOD(AbortManagerTestFixture, "AbortManager: Timeout constants are c
                  "[abort][timeout][constants]") {
     REQUIRE(AbortManager::HEATER_INTERRUPT_TIMEOUT_MS == 1000);
     REQUIRE(AbortManager::PROBE_TIMEOUT_MS == 2000);
-    REQUIRE(AbortManager::CANCEL_TIMEOUT_MS == 3000);
+    REQUIRE(AbortManager::CANCEL_TIMEOUT_MS == 15000);
     REQUIRE(AbortManager::RECONNECT_TIMEOUT_MS == 15000);
 }
 
@@ -941,4 +941,158 @@ TEST_CASE_METHOD(AbortManagerTestFixture,
     auto outcome = static_cast<PrintOutcome>(
         lv_subject_get_int(get_printer_state().get_print_outcome_subject()));
     REQUIRE(outcome == PrintOutcome::CANCELLED);
+}
+
+// ============================================================================
+// Print State Observation During Cancel
+// ============================================================================
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Print state STANDBY during SENT_CANCEL completes abort",
+                 "[abort][cancel][state_observer]") {
+    // Setup: drive to SENT_CANCEL
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // Simulate print state transitioning to STANDBY (Klipper finished cancel macro)
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::STANDBY);
+
+    // Should complete without escalation
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+    REQUIRE(AbortManager::instance().escalation_level() == 0);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Print state CANCELLED during SENT_CANCEL completes abort",
+                 "[abort][cancel][state_observer]") {
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::CANCELLED);
+
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+    REQUIRE(AbortManager::instance().escalation_level() == 0);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Print state PAUSED during SENT_CANCEL is ignored",
+                 "[abort][cancel][state_observer]") {
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // PAUSED is non-terminal — cancel macro hasn't finished yet
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::PAUSED);
+
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Print state PRINTING during SENT_CANCEL is ignored",
+                 "[abort][cancel][state_observer]") {
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // PRINTING is non-terminal
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::PRINTING);
+
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Gcode callback success cleans up state observer",
+                 "[abort][cancel][cleanup]") {
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // Gcode success callback fires first — should clean up observer
+    simulate_cancel_success();
+
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+
+    // Sending a print state change after completion should be harmless
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::STANDBY);
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Observer fires immediately with PAUSED - stays in SENT_CANCEL",
+                 "[abort][cancel][state_observer][integration]") {
+    // Test the REAL observer path (not the _for_testing bypass).
+    // When PrinterState is initialized and print state is PAUSED (non-terminal),
+    // the observer should fire immediately on registration and be ignored.
+    get_printer_state().reset_for_testing();
+    get_printer_state().init_subjects(false);
+
+    // Set print state to PAUSED (simulates: user is cancelling a paused print)
+    lv_subject_set_int(get_printer_state().get_print_state_enum_subject(),
+                       static_cast<int>(PrintJobState::PAUSED));
+
+    AbortManager::instance().init(nullptr, &get_printer_state());
+
+    // Drive to SENT_CANCEL — observer registers on print_state_enum,
+    // fires immediately with PAUSED, which is non-terminal → ignored
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // Now simulate Klipper finishing the cancel macro → STANDBY
+    lv_subject_set_int(get_printer_state().get_print_state_enum_subject(),
+                       static_cast<int>(PrintJobState::STANDBY));
+
+    // Observer should complete the abort
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+    REQUIRE(AbortManager::instance().escalation_level() == 0);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Observer immediate fire with STANDBY completes immediately",
+                 "[abort][cancel][state_observer][integration]") {
+    // If print state is already STANDBY when we enter SENT_CANCEL,
+    // the observer fires immediately and correctly completes the abort.
+    // This handles the edge case where the print ended before our cancel was sent.
+    get_printer_state().reset_for_testing();
+    get_printer_state().init_subjects(false);
+
+    // Print state is already STANDBY (print ended on its own)
+    lv_subject_set_int(get_printer_state().get_print_state_enum_subject(),
+                       static_cast<int>(PrintJobState::STANDBY));
+
+    AbortManager::instance().init(nullptr, &get_printer_state());
+
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+
+    // Observer fires immediately with STANDBY → completes abort
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::COMPLETE);
+    REQUIRE(AbortManager::instance().escalation_level() == 0);
+}
+
+TEST_CASE_METHOD(AbortManagerTestFixture,
+                 "AbortManager: Cancel timeout cleans up state observer before escalating",
+                 "[abort][cancel][cleanup]") {
+    AbortManager::instance().start_abort();
+    simulate_kalico_not_present();
+    simulate_queue_responsive();
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_CANCEL);
+
+    // Timeout fires — should clean up observer and escalate
+    simulate_cancel_timeout();
+
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_ESTOP);
+
+    // Print state change after escalation should be harmless
+    AbortManager::instance().on_print_state_during_cancel_for_testing(PrintJobState::STANDBY);
+    REQUIRE(AbortManager::instance().get_state() == AbortManager::State::SENT_ESTOP);
 }

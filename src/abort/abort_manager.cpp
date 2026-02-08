@@ -68,6 +68,7 @@ void AbortManager::deinit_subjects() {
     cancel_all_timers();
 
     // Clear klippy observer before deinitializing subjects
+    // (cancel_state_observer_ already handled by cancel_all_timers() above)
     klippy_observer_.reset();
 
     // Delete modal widget if it exists and display is still available
@@ -274,6 +275,14 @@ void AbortManager::start_probe() {
 }
 
 void AbortManager::send_cancel_print() {
+    // Register observer on print_state_enum to detect when Klipper reports print ended
+    // This allows early completion before the timeout when the CANCEL_PRINT macro finishes
+    if (printer_state_) {
+        cancel_state_observer_ = ObserverGuard(printer_state_->get_print_state_enum_subject(),
+                                               cancel_state_observer_cb, this);
+        spdlog::debug("[AbortManager] Registered print_state_enum observer for cancel detection");
+    }
+
     // If no API, just stay in SENT_CANCEL state
     // Tests will call on_cancel_*_for_testing() to progress
     if (!api_) {
@@ -534,6 +543,8 @@ void AbortManager::on_cancel_success() {
         cancel_timer_ = nullptr;
     }
 
+    // Note: cancel_state_observer_ is cleaned up by complete_abort() → cancel_all_timers()
+
     spdlog::info("[AbortManager] CANCEL_PRINT succeeded");
     complete_abort("Print cancelled");
 }
@@ -544,6 +555,8 @@ void AbortManager::on_cancel_timeout() {
     }
 
     cancel_timer_ = nullptr;
+
+    // Note: cancel_state_observer_ is cleaned up by escalate_to_estop() → cancel_all_timers()
 
     spdlog::warn("[AbortManager] CANCEL_PRINT timed out, escalating to ESTOP");
     escalate_to_estop();
@@ -605,6 +618,43 @@ void AbortManager::on_klippy_state_changed(KlippyState klippy_state) {
     // For other states (STARTUP, ERROR), continue waiting
 }
 
+void AbortManager::on_print_state_during_cancel(PrintJobState state) {
+    if (abort_state_ != State::SENT_CANCEL) {
+        return; // Not in cancel phase, ignore
+    }
+
+    // Terminal states indicate the print has ended — cancel worked
+    switch (state) {
+    case PrintJobState::STANDBY:
+    case PrintJobState::CANCELLED:
+    case PrintJobState::COMPLETE:
+    case PrintJobState::ERROR:
+        spdlog::info("[AbortManager] Print state {} during cancel — completing abort",
+                     print_job_state_to_string(state));
+
+        // complete_abort() → cancel_all_timers() handles timer + observer cleanup
+        complete_abort("Print cancelled");
+        break;
+
+    case PrintJobState::PRINTING:
+    case PrintJobState::PAUSED:
+        // Non-terminal — cancel macro is still running, keep waiting
+        spdlog::debug("[AbortManager] Print state {} during cancel — still waiting",
+                      print_job_state_to_string(state));
+        break;
+    }
+}
+
+void AbortManager::cancel_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<AbortManager*>(lv_observer_get_user_data(observer));
+    if (!self) {
+        return;
+    }
+
+    auto print_state = static_cast<PrintJobState>(lv_subject_get_int(subject));
+    self->on_print_state_during_cancel(print_state);
+}
+
 // ============================================================================
 // Helper Methods
 // ============================================================================
@@ -647,6 +697,9 @@ void AbortManager::cancel_all_timers() {
         lv_timer_delete(reconnect_timer_);
         reconnect_timer_ = nullptr;
     }
+
+    // Also clean up cancel state observer (may be active during SENT_CANCEL)
+    cancel_state_observer_.reset();
 }
 
 void AbortManager::create_modal() {
@@ -728,11 +781,15 @@ void AbortManager::reset_for_testing() {
     // Also reset cached values that reset_state_for_testing() preserves
     kalico_status_ = KalicoStatus::UNKNOWN;
     commands_sent_ = 0;
+    // Clear dependencies to prevent stale pointers across tests
+    api_ = nullptr;
+    printer_state_ = nullptr;
 }
 
 void AbortManager::reset_state_for_testing() {
     cancel_all_timers();
     klippy_observer_.reset();
+    cancel_state_observer_.reset();
     abort_state_ = State::IDLE;
     escalation_level_ = 0;
     shutdown_recovery_in_progress_ = false;
@@ -801,6 +858,10 @@ void AbortManager::on_reconnect_timeout_for_testing() {
 
 void AbortManager::on_klippy_state_change_for_testing(KlippyState klippy_state) {
     on_klippy_state_changed(klippy_state);
+}
+
+void AbortManager::on_print_state_during_cancel_for_testing(PrintJobState state) {
+    on_print_state_during_cancel(state);
 }
 
 void AbortManager::on_api_error_for_testing(const std::string& /* error */) {

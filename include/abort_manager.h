@@ -284,6 +284,12 @@ class AbortManager {
     void on_reconnect_timeout_for_testing();
 
     /**
+     * @brief Simulate print state change during SENT_CANCEL
+     * @param state New PrintJobState
+     */
+    void on_print_state_during_cancel_for_testing(PrintJobState state);
+
+    /**
      * @brief Simulate klippy_state change
      * @param state New klippy state
      */
@@ -301,7 +307,7 @@ class AbortManager {
 
     static constexpr uint32_t HEATER_INTERRUPT_TIMEOUT_MS = 1000; ///< 1 second
     static constexpr uint32_t PROBE_TIMEOUT_MS = 2000;            ///< 2 seconds
-    static constexpr uint32_t CANCEL_TIMEOUT_MS = 3000;           ///< 3 seconds
+    static constexpr uint32_t CANCEL_TIMEOUT_MS = 15000;          ///< 15 seconds
     static constexpr uint32_t RECONNECT_TIMEOUT_MS = 15000;       ///< 15 seconds
 
   private:
@@ -338,6 +344,9 @@ class AbortManager {
 
     // Observer for klippy state changes during WAITING_RECONNECT
     ObserverGuard klippy_observer_;
+
+    // Observer for print_state_enum changes during SENT_CANCEL
+    ObserverGuard cancel_state_observer_;
 
     // RAII subject manager for automatic cleanup
     SubjectManager subjects_;
@@ -442,8 +451,19 @@ class AbortManager {
      */
     void update_visibility();
 
+    /**
+     * @brief Handle print state changes during SENT_CANCEL phase
+     *
+     * Terminal states (STANDBY, CANCELLED, COMPLETE, ERROR) complete the abort.
+     * Non-terminal states (PRINTING, PAUSED) are ignored.
+     */
+    void on_print_state_during_cancel(PrintJobState state);
+
     // Static observer callback for klippy state
     static void klippy_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+
+    // Static observer callback for print state during cancel
+    static void cancel_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 
     // Static timer callbacks
     static void heater_interrupt_timer_cb(lv_timer_t* timer);
