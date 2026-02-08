@@ -226,6 +226,10 @@ class PrinterDiscovery {
             else if (name.rfind("AFC_OpenAMS ", 0) == 0) {
                 has_mmu_ = true;
                 mmu_type_ = AmsType::AFC;
+                std::string unit_name = name.substr(12); // Remove "AFC_OpenAMS " prefix
+                if (!unit_name.empty()) {
+                    openams_unit_names_.insert(unit_name);
+                }
             }
             // Tool changer detection
             else if (name == "toolchanger") {
@@ -287,6 +291,22 @@ class PrinterDiscovery {
                         "HEAT_SOAK", "CHAMBER_SOAK", "SOAK", "BED_SOAK"};
                     if (matches_any(upper_macro, soak_patterns)) {
                         heat_soak_macro_ = macro_name;
+                    }
+                }
+            }
+        }
+
+        int openams_unit_count = static_cast<int>(openams_unit_names_.size());
+        int expected_units = openams_unit_count + static_cast<int>(afc_hub_names_.size());
+        if (expected_units > 0) {
+            int expected_lanes = expected_units * 4;
+            if (static_cast<int>(afc_lane_names_.size()) < expected_lanes) {
+                std::unordered_set<std::string> existing_lanes(afc_lane_names_.begin(),
+                                                               afc_lane_names_.end());
+                for (int i = 0; i < expected_lanes; ++i) {
+                    std::string lane_name = "lane" + std::to_string(i);
+                    if (existing_lanes.insert(lane_name).second) {
+                        afc_lane_names_.push_back(lane_name);
                     }
                 }
             }
@@ -362,6 +382,7 @@ class PrinterDiscovery {
         // AMS/MMU discovery
         afc_lane_names_.clear();
         afc_hub_names_.clear();
+        openams_unit_names_.clear();
         tool_names_.clear();
         filament_sensor_names_.clear();
         mmu_encoder_names_.clear();
@@ -819,6 +840,7 @@ class PrinterDiscovery {
     // AMS/MMU discovery
     std::vector<std::string> afc_lane_names_;
     std::vector<std::string> afc_hub_names_;
+    std::unordered_set<std::string> openams_unit_names_;
     std::vector<std::string> tool_names_;
     std::vector<std::string> filament_sensor_names_;
     std::vector<std::string> mmu_encoder_names_;
