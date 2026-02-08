@@ -9,6 +9,8 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cctype>
+#include <optional>
 #include <sstream>
 
 // ============================================================================
@@ -960,7 +962,42 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
     for (auto it = lane_data.begin(); it != lane_data.end(); ++it) {
         new_lane_names.push_back(it.key());
     }
-    std::sort(new_lane_names.begin(), new_lane_names.end());
+    auto lane_index = [](const std::string& name) -> std::optional<int> {
+        static const std::string kPrefix = "lane";
+        if (name.rfind(kPrefix, 0) != 0) {
+            return std::nullopt;
+        }
+        std::string suffix = name.substr(kPrefix.size());
+        if (suffix.empty()) {
+            return std::nullopt;
+        }
+        for (char c : suffix) {
+            if (!std::isdigit(static_cast<unsigned char>(c))) {
+                return std::nullopt;
+            }
+        }
+        try {
+            return std::stoi(suffix);
+        } catch (...) {
+            return std::nullopt;
+        }
+    };
+
+    std::sort(new_lane_names.begin(), new_lane_names.end(),
+              [&](const std::string& left, const std::string& right) {
+                  auto left_index = lane_index(left);
+                  auto right_index = lane_index(right);
+                  if (left_index && right_index) {
+                      return *left_index < *right_index;
+                  }
+                  if (left_index) {
+                      return true;
+                  }
+                  if (right_index) {
+                      return false;
+                  }
+                  return left < right;
+              });
 
     // Initialize lanes if this is the first time or count changed
     if (!lanes_initialized_ || new_lane_names.size() != lane_names_.size()) {
@@ -975,60 +1012,63 @@ void AmsBackendAfc::parse_lane_data(const nlohmann::json& lane_data) {
         }
 
         const auto& lane = lane_data[lane_name];
-        auto& slot = system_info_.units[0].slots[i];
+        auto* slot = system_info_.get_slot_global(static_cast<int>(i));
+        if (!slot) {
+            continue;
+        }
 
         // Parse color (AFC uses hex string without 0x prefix)
         if (lane.contains("color") && lane["color"].is_string()) {
             std::string color_str = lane["color"].get<std::string>();
             try {
-                slot.color_rgb = static_cast<uint32_t>(std::stoul(color_str, nullptr, 16));
+                slot->color_rgb = static_cast<uint32_t>(std::stoul(color_str, nullptr, 16));
             } catch (...) {
-                slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
+                slot->color_rgb = AMS_DEFAULT_SLOT_COLOR;
             }
         }
 
         // Parse material
         if (lane.contains("material") && lane["material"].is_string()) {
-            slot.material = lane["material"].get<std::string>();
+            slot->material = lane["material"].get<std::string>();
         }
 
         // Parse loaded state
         if (lane.contains("loaded") && lane["loaded"].is_boolean()) {
             bool loaded = lane["loaded"].get<bool>();
             if (loaded) {
-                slot.status = SlotStatus::LOADED;
+                slot->status = SlotStatus::LOADED;
                 system_info_.current_slot = static_cast<int>(i);
                 system_info_.filament_loaded = true;
             } else {
                 // Check if filament is available (not loaded but present)
                 if (lane.contains("available") && lane["available"].is_boolean() &&
                     lane["available"].get<bool>()) {
-                    slot.status = SlotStatus::AVAILABLE;
+                    slot->status = SlotStatus::AVAILABLE;
                 } else if (lane.contains("empty") && lane["empty"].is_boolean() &&
                            lane["empty"].get<bool>()) {
-                    slot.status = SlotStatus::EMPTY;
+                    slot->status = SlotStatus::EMPTY;
                 } else {
                     // Default to available if not explicitly empty
-                    slot.status = SlotStatus::AVAILABLE;
+                    slot->status = SlotStatus::AVAILABLE;
                 }
             }
         }
 
         // Parse spool information if available
         if (lane.contains("spool_id") && lane["spool_id"].is_number_integer()) {
-            slot.spoolman_id = lane["spool_id"].get<int>();
+            slot->spoolman_id = lane["spool_id"].get<int>();
         }
 
         if (lane.contains("brand") && lane["brand"].is_string()) {
-            slot.brand = lane["brand"].get<std::string>();
+            slot->brand = lane["brand"].get<std::string>();
         }
 
         if (lane.contains("remaining_weight") && lane["remaining_weight"].is_number()) {
-            slot.remaining_weight_g = lane["remaining_weight"].get<float>();
+            slot->remaining_weight_g = lane["remaining_weight"].get<float>();
         }
 
         if (lane.contains("total_weight") && lane["total_weight"].is_number()) {
-            slot.total_weight_g = lane["total_weight"].get<float>();
+            slot->total_weight_g = lane["total_weight"].get<float>();
         }
     }
 }
@@ -1043,30 +1083,40 @@ void AmsBackendAfc::initialize_lanes(const std::vector<std::string>& lane_names)
         lane_name_to_index_[lane_names_[i]] = static_cast<int>(i);
     }
 
-    // Create a single unit with all lanes (AFC units are typically treated as one logical unit)
-    AmsUnit unit;
-    unit.unit_index = 0;
-    unit.name = "AFC Box Turtle";
-    unit.slot_count = lane_count;
-    unit.first_slot_global_index = 0;
-    unit.connected = true;
-    unit.has_encoder = false;        // AFC typically uses optical sensors, not encoders
-    unit.has_toolhead_sensor = true; // Most AFC setups have toolhead sensor
-    unit.has_slot_sensors = true;    // AFC has per-lane sensors
-
-    // Initialize gates with defaults
-    for (int i = 0; i < lane_count; ++i) {
-        SlotInfo slot;
-        slot.slot_index = i;
-        slot.global_index = i;
-        slot.status = SlotStatus::UNKNOWN;
-        slot.mapped_tool = i; // Default 1:1 mapping
-        slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
-        unit.slots.push_back(slot);
-    }
+    // Create one unit per AFC box, with 4 lanes each.
+    constexpr int kLanesPerUnit = 4;
+    int unit_count = (lane_count + kLanesPerUnit - 1) / kLanesPerUnit;
 
     system_info_.units.clear();
-    system_info_.units.push_back(unit);
+    system_info_.units.reserve(unit_count);
+    for (int unit_index = 0; unit_index < unit_count; ++unit_index) {
+        int first_slot = unit_index * kLanesPerUnit;
+        int slot_count = std::min(kLanesPerUnit, lane_count - first_slot);
+
+        AmsUnit unit;
+        unit.unit_index = unit_index;
+        unit.name = fmt::format("AFC Box Turtle {}", unit_index + 1);
+        unit.slot_count = slot_count;
+        unit.first_slot_global_index = first_slot;
+        unit.connected = true;
+        unit.has_encoder = false;        // AFC typically uses optical sensors, not encoders
+        unit.has_toolhead_sensor = true; // Most AFC setups have toolhead sensor
+        unit.has_slot_sensors = true;    // AFC has per-lane sensors
+
+        // Initialize gates with defaults
+        for (int slot_index = 0; slot_index < slot_count; ++slot_index) {
+            int global_index = first_slot + slot_index;
+            SlotInfo slot;
+            slot.slot_index = slot_index;
+            slot.global_index = global_index;
+            slot.status = SlotStatus::UNKNOWN;
+            slot.mapped_tool = global_index; // Default 1:1 mapping
+            slot.color_rgb = AMS_DEFAULT_SLOT_COLOR;
+            unit.slots.push_back(slot);
+        }
+
+        system_info_.units.push_back(unit);
+    }
     system_info_.total_slots = lane_count;
 
     // Initialize tool-to-lane mapping (1:1 default)
@@ -1163,9 +1213,9 @@ AmsError AmsBackendAfc::load_filament(int slot_index) {
         }
     }
 
-    // Send AFC_LOAD LANE={name} command
+    // Send CHANGE_TOOL LANE={name} command
     std::ostringstream cmd;
-    cmd << "AFC_LOAD LANE=" << lane_name;
+    cmd << "CHANGE_TOOL LANE=" << lane_name;
 
     spdlog::info("[AMS AFC] Loading from lane {} (slot {})", lane_name, slot_index);
     return execute_gcode(cmd.str());
@@ -1186,8 +1236,18 @@ AmsError AmsBackendAfc::unload_filament() {
         }
     }
 
-    spdlog::info("[AMS AFC] Unloading filament");
-    return execute_gcode("AFC_UNLOAD");
+    std::string lane_name;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        lane_name = get_lane_name(system_info_.current_slot);
+        if (lane_name.empty()) {
+            return AmsErrorHelper::invalid_slot(system_info_.current_slot,
+                                                system_info_.total_slots - 1);
+        }
+    }
+
+    spdlog::info("[AMS AFC] Unloading filament from lane {}", lane_name);
+    return execute_gcode("TOOL_UNLOAD LANE=" + lane_name);
 }
 
 AmsError AmsBackendAfc::select_slot(int slot_index) {
@@ -1275,7 +1335,7 @@ AmsError AmsBackendAfc::reset() {
     }
 
     spdlog::info("[AMS AFC] Homing AFC system");
-    return execute_gcode("AFC_HOME");
+    return execute_gcode("G28");
 }
 
 AmsError AmsBackendAfc::reset_lane(int slot_index) {
