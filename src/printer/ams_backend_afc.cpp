@@ -1584,22 +1584,6 @@ void AmsBackendAfc::parse_afc_unit_snapshot(const nlohmann::json& snapshot) {
     if (should_emit) {
         emit_event(EVENT_STATE_CHANGED);
     }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void AmsBackendAfc::initialize_lanes(const std::vector<std::string>& lane_names) {
     int lane_count = static_cast<int>(lane_names.size());
     lane_names_ = lane_names;
