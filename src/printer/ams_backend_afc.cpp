@@ -496,11 +496,13 @@ void AmsBackendAfc::parse_afc_state(const nlohmann::json& afc_data) {
     }
 
     // Parse current_load field (overrides current_lane when present)
+    // "current_load" indicates the lane that is actively loaded, so also set filament_loaded
     if (afc_data.contains("current_load") && afc_data["current_load"].is_string()) {
         std::string load_lane = afc_data["current_load"].get<std::string>();
         auto it = lane_name_to_index_.find(load_lane);
         if (it != lane_name_to_index_.end()) {
             system_info_.current_slot = it->second;
+            system_info_.filament_loaded = true;
             spdlog::trace("[AMS AFC] Current load: {} (slot {})", load_lane, it->second);
         }
     }
@@ -828,12 +830,18 @@ void AmsBackendAfc::parse_afc_extruder(const nlohmann::json& data) {
     if (data.contains("lane_loaded") && !data["lane_loaded"].is_null()) {
         if (data["lane_loaded"].is_string()) {
             current_lane_name_ = data["lane_loaded"].get<std::string>();
-            // Update current_gate from lane name
+            // Update current_slot from lane name and mark filament as loaded
             auto it = lane_name_to_index_.find(current_lane_name_);
             if (it != lane_name_to_index_.end()) {
                 system_info_.current_slot = it->second;
+                system_info_.filament_loaded = true;
             }
         }
+    } else if (data.contains("lane_loaded") && data["lane_loaded"].is_null()) {
+        // lane_loaded is explicitly null — no filament loaded
+        current_lane_name_.clear();
+        system_info_.current_slot = -1;
+        system_info_.filament_loaded = false;
     }
 
     spdlog::trace("[AMS AFC] Extruder: tool_start={} tool_end={} lane={}", tool_start_sensor_,
