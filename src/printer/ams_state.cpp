@@ -816,19 +816,38 @@ void AmsState::refresh_spoolman_weights() {
 
                     const SpoolInfo& spool = spool_opt.value();
 
-                    // Data to pass to UI thread
-                    struct WeightUpdate {
+                    // Data to pass to UI thread — carry all enrichment fields
+                    struct SpoolUpdate {
                         int slot_index;
-                        int expected_spoolman_id; // To verify slot wasn't reassigned
+                        int expected_spoolman_id;
                         float remaining_weight_g;
                         float total_weight_g;
+                        std::string color_name;
+                        std::string color_hex;
+                        std::string multi_color_hexes;
+                        std::string vendor;
+                        std::string material;
+                        int nozzle_temp_min;
+                        int nozzle_temp_max;
+                        int bed_temp;
                     };
 
-                    auto update_data = std::make_unique<WeightUpdate>(WeightUpdate{
-                        slot_index, spoolman_id, static_cast<float>(spool.remaining_weight_g),
-                        static_cast<float>(spool.initial_weight_g)});
+                    auto update_data = std::make_unique<SpoolUpdate>(SpoolUpdate{
+                        slot_index,
+                        spoolman_id,
+                        static_cast<float>(spool.remaining_weight_g),
+                        static_cast<float>(spool.initial_weight_g),
+                        spool.color_name,
+                        spool.color_hex,
+                        spool.multi_color_hexes,
+                        spool.vendor,
+                        spool.material,
+                        spool.nozzle_temp_min,
+                        spool.nozzle_temp_max,
+                        spool.bed_temp_recommended,
+                    });
 
-                    ui_queue_update<WeightUpdate>(std::move(update_data), [](WeightUpdate* d) {
+                    ui_queue_update<SpoolUpdate>(std::move(update_data), [](SpoolUpdate* d) {
                         // Skip if shutdown is in progress
                         if (s_shutdown_flag.load(std::memory_order_acquire)) {
                             return;
@@ -846,19 +865,61 @@ void AmsState::refresh_spoolman_weights() {
                         if (slot.spoolman_id != d->expected_spoolman_id) {
                             spdlog::debug(
                                 "[AmsState] Slot {} spoolman_id changed ({} -> {}), skipping stale "
-                                "weight update",
+                                "update",
                                 d->slot_index, d->expected_spoolman_id, slot.spoolman_id);
                             return;
                         }
 
-                        // Update weights and set back
+                        // Update weights
                         slot.remaining_weight_g = d->remaining_weight_g;
                         slot.total_weight_g = d->total_weight_g;
+
+                        // Enrich with Spoolman data (only if not already set by user)
+                        if (!d->color_name.empty() && slot.color_name.empty()) {
+                            slot.color_name = d->color_name;
+                        }
+                        if (!d->vendor.empty() && slot.brand.empty()) {
+                            slot.brand = d->vendor;
+                        }
+                        if (!d->material.empty() && slot.material.empty()) {
+                            slot.material = d->material;
+                        }
+                        if (!d->multi_color_hexes.empty() && slot.multi_color_hexes.empty()) {
+                            slot.multi_color_hexes = d->multi_color_hexes;
+                        }
+                        // Update color from Spoolman hex if slot still has default color
+                        if (!d->color_hex.empty() && slot.color_rgb == AMS_DEFAULT_SLOT_COLOR) {
+                            std::string hex = d->color_hex;
+                            if (!hex.empty() && hex[0] == '#') {
+                                hex = hex.substr(1);
+                            }
+                            try {
+                                slot.color_rgb = static_cast<uint32_t>(std::stoul(hex, nullptr, 16));
+                            } catch (...) {
+                            }
+                        }
+                        // Update temperature recommendations
+                        if (d->nozzle_temp_min > 0 && slot.nozzle_temp_min == 0) {
+                            slot.nozzle_temp_min = d->nozzle_temp_min;
+                        }
+                        if (d->nozzle_temp_max > 0 && slot.nozzle_temp_max == 0) {
+                            slot.nozzle_temp_max = d->nozzle_temp_max;
+                        }
+                        if (d->bed_temp > 0 && slot.bed_temp == 0) {
+                            slot.bed_temp = d->bed_temp;
+                        }
+
                         state.backend_->set_slot_info(d->slot_index, slot);
                         state.bump_slots_version();
 
-                        spdlog::trace("[AmsState] Updated slot {} weights: {:.0f}g / {:.0f}g",
-                                      d->slot_index, d->remaining_weight_g, d->total_weight_g);
+                        // Re-sync the "Currently Loaded" display in case color_name changed
+                        state.sync_current_loaded_from_backend();
+
+                        spdlog::trace(
+                            "[AmsState] Enriched slot {} from Spoolman: {:.0f}g / {:.0f}g, "
+                            "color_name='{}', vendor='{}'",
+                            d->slot_index, d->remaining_weight_g, d->total_weight_g, d->color_name,
+                            d->vendor);
                     });
                 },
                 [spoolman_id](const MoonrakerError& err) {
