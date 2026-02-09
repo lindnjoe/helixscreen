@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <exception>
+#include <string>
 
 namespace helix {
 
@@ -123,6 +125,23 @@ void PrinterPrintState::reset_for_new_print() {
 }
 
 void PrinterPrintState::update_from_status(const nlohmann::json& status) {
+    auto parse_layer_value = [](const nlohmann::json& value, int fallback) {
+        if (value.is_number_integer()) {
+            return value.get<int>();
+        }
+        if (value.is_number()) {
+            return static_cast<int>(value.get<double>());
+        }
+        if (value.is_string()) {
+            try {
+                return std::stoi(value.get<std::string>());
+            } catch (const std::exception&) {
+                return fallback;
+            }
+        }
+        return fallback;
+    };
+
     // IMPORTANT: Process print_stats BEFORE virtual_sdcard.
     // The print_state_enum_ observer fires synchronously and reads print_progress_
     // for mid-print detection (should_start_print_collector). If virtual_sdcard is
@@ -215,13 +234,17 @@ void PrinterPrintState::update_from_status(const nlohmann::json& status) {
         if (stats.contains("info") && stats["info"].is_object()) {
             const auto& info = stats["info"];
 
-            if (info.contains("current_layer") && info["current_layer"].is_number()) {
-                int current_layer = info["current_layer"].get<int>();
+            if (info.contains("current_layer")) {
+                int current_layer = parse_layer_value(info["current_layer"],
+                                                      lv_subject_get_int(&print_layer_current_));
                 lv_subject_set_int(&print_layer_current_, current_layer);
             }
 
-            if (info.contains("total_layer") && info["total_layer"].is_number()) {
-                int total_layer = info["total_layer"].get<int>();
+            if (info.contains("total_layer") || info.contains("total_layers")) {
+                const auto& total_value =
+                    info.contains("total_layer") ? info["total_layer"] : info["total_layers"];
+                int total_layer =
+                    parse_layer_value(total_value, lv_subject_get_int(&print_layer_total_));
                 lv_subject_set_int(&print_layer_total_, total_layer);
             }
         }
@@ -236,34 +259,6 @@ void PrinterPrintState::update_from_status(const nlohmann::json& status) {
         if (stats.contains("total_duration") && stats["total_duration"].is_number()) {
             int total_elapsed = static_cast<int>(stats["total_duration"].get<double>());
             lv_subject_set_int(&print_elapsed_, total_elapsed);
-
-            // Estimate remaining from progress using print_duration (actual print time),
-            // NOT total_duration (which includes prep/preheat and inflates the estimate)
-            int print_time = lv_subject_get_int(&print_duration_);
-            int progress = lv_subject_get_int(&print_progress_);
-            if (progress >= 1 && progress < 100 && print_time > 0) {
-                int remaining =
-                    static_cast<int>(static_cast<double>(print_time) * (100 - progress) / progress);
-
-                // At very low progress (<5%), blend with slicer estimate to avoid
-                // wild extrapolation from tiny samples (e.g. 30s at 1% → 50 min)
-                if (progress < 5 && estimated_print_time_ > 0) {
-                    // Linear blend: at 1% use 80% slicer, at 4% use 20% slicer
-                    double slicer_weight = (5.0 - progress) / 5.0;
-                    int slicer_remaining = estimated_print_time_ * (100 - progress) / 100;
-                    remaining = static_cast<int>(slicer_weight * slicer_remaining +
-                                                 (1.0 - slicer_weight) * remaining);
-                }
-
-                lv_subject_set_int(&print_time_left_, remaining);
-            } else if (progress >= 1 && progress < 100 && print_time == 0 &&
-                       estimated_print_time_ > 0) {
-                // Fallback: use slicer estimate when print_duration hasn't started yet
-                int remaining = estimated_print_time_ * (100 - progress) / 100;
-                lv_subject_set_int(&print_time_left_, remaining);
-            } else if (progress >= 100) {
-                lv_subject_set_int(&print_time_left_, 0);
-            }
         }
     }
 
@@ -287,6 +282,34 @@ void PrinterPrintState::update_from_status(const nlohmann::json& status) {
                 lv_subject_set_int(&print_progress_, progress_pct);
             }
         }
+    }
+
+    // Estimate remaining from progress using print_duration (actual print time),
+    // NOT total_duration (which includes prep/preheat and inflates the estimate).
+    // Compute after virtual_sdcard so progress is up to date.
+    int print_time = lv_subject_get_int(&print_duration_);
+    int progress = lv_subject_get_int(&print_progress_);
+    if (progress >= 1 && progress < 100 && print_time > 0) {
+        int remaining =
+            static_cast<int>(static_cast<double>(print_time) * (100 - progress) / progress);
+
+        // At very low progress (<5%), blend with slicer estimate to avoid
+        // wild extrapolation from tiny samples (e.g. 30s at 1% → 50 min)
+        if (progress < 5 && estimated_print_time_ > 0) {
+            // Linear blend: at 1% use 80% slicer, at 4% use 20% slicer
+            double slicer_weight = (5.0 - progress) / 5.0;
+            int slicer_remaining = estimated_print_time_ * (100 - progress) / 100;
+            remaining = static_cast<int>(slicer_weight * slicer_remaining +
+                                         (1.0 - slicer_weight) * remaining);
+        }
+
+        lv_subject_set_int(&print_time_left_, remaining);
+    } else if (progress >= 1 && progress < 100 && print_time == 0 && estimated_print_time_ > 0) {
+        // Fallback: use slicer estimate when print_duration hasn't started yet
+        int remaining = estimated_print_time_ * (100 - progress) / 100;
+        lv_subject_set_int(&print_time_left_, remaining);
+    } else if (progress >= 100) {
+        lv_subject_set_int(&print_time_left_, 0);
     }
 }
 
