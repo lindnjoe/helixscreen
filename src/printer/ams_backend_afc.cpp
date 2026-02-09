@@ -730,7 +730,12 @@ void AmsBackendAfc::parse_afc_stepper(const std::string& lane_name, const nlohma
         status_str = data["status"].get<std::string>();
     }
 
-    if (status_str == "Loaded" || tool_loaded) {
+    if (tool_loaded || status_str == "Tool Loaded" || status_str == "Tooled") {
+        slot->status = SlotStatus::LOADED;
+        // This lane's filament is in the toolhead — update global state
+        system_info_.current_slot = slot_index;
+        system_info_.filament_loaded = true;
+    } else if (status_str == "Loaded") {
         slot->status = SlotStatus::LOADED;
     } else if (sensors.prep || sensors.load) {
         slot->status = SlotStatus::AVAILABLE;
@@ -740,9 +745,9 @@ void AmsBackendAfc::parse_afc_stepper(const std::string& lane_name, const nlohma
         slot->status = SlotStatus::AVAILABLE; // Default for other states like "Ready"
     }
 
-    spdlog::trace("[AMS AFC] Lane {} (slot {}): prep={} load={} hub={} status={}", lane_name,
-                  slot_index, sensors.prep, sensors.load, sensors.loaded_to_hub,
-                  slot_status_to_string(slot->status));
+    spdlog::trace("[AMS AFC] Lane {} (slot {}): prep={} load={} hub={} tool_loaded={} status={}",
+                  lane_name, slot_index, sensors.prep, sensors.load, sensors.loaded_to_hub,
+                  tool_loaded, slot_status_to_string(slot->status));
 
     // Parse tool mapping from "map" field (e.g., "T0", "T1")
     if (data.contains("map") && data["map"].is_string()) {
@@ -1335,8 +1340,69 @@ void AmsBackendAfc::parse_afc_unit_snapshot(const nlohmann::json& snapshot) {
                 if (lane.contains("weight") && lane["weight"].is_number()) {
                     slot->remaining_weight_g = lane["weight"].get<float>();
                 }
+
+                // Parse tool_loaded and status to determine which lane is in the toolhead
+                bool tool_loaded = false;
+                if (lane.contains("tool_loaded") && lane["tool_loaded"].is_boolean()) {
+                    tool_loaded = lane["tool_loaded"].get<bool>();
+                }
+                std::string status_str;
+                if (lane.contains("status") && lane["status"].is_string()) {
+                    status_str = lane["status"].get<std::string>();
+                }
+
+                if (tool_loaded || status_str == "Tool Loaded" || status_str == "Tooled") {
+                    slot->status = SlotStatus::LOADED;
+                    system_info_.current_slot = slot_index;
+                    system_info_.filament_loaded = true;
+                } else if (status_str == "Loaded") {
+                    slot->status = SlotStatus::LOADED;
+                } else if (status_str == "None" || status_str == "Error") {
+                    slot->status = SlotStatus::EMPTY;
+                } else if (!status_str.empty()) {
+                    slot->status = SlotStatus::AVAILABLE;
+                }
             }
         }
+
+        // Parse system section for current_load and per-extruder lane_loaded
+        if (snapshot.contains("system") && snapshot["system"].is_object()) {
+            const auto& sys = snapshot["system"];
+
+            // current_load is the authoritative "which lane is in the active toolhead"
+            if (sys.contains("current_load") && sys["current_load"].is_string()) {
+                const std::string& load_lane = sys["current_load"].get<std::string>();
+                auto idx_it = lane_name_to_index_.find(load_lane);
+                if (idx_it != lane_name_to_index_.end()) {
+                    system_info_.current_slot = idx_it->second;
+                    system_info_.filament_loaded = true;
+                    spdlog::debug("[AMS AFC] Unit snapshot: current_load={} (slot {})", load_lane,
+                                  idx_it->second);
+                }
+            }
+
+            // Parse per-extruder lane_loaded for toolchanger setups
+            if (sys.contains("extruders") && sys["extruders"].is_object()) {
+                for (auto ext_it = sys["extruders"].begin(); ext_it != sys["extruders"].end();
+                     ++ext_it) {
+                    if (!ext_it.value().is_object()) {
+                        continue;
+                    }
+                    const auto& ext = ext_it.value();
+                    if (ext.contains("lane_loaded") && ext["lane_loaded"].is_string()) {
+                        const std::string& loaded_lane = ext["lane_loaded"].get<std::string>();
+                        auto idx_it = lane_name_to_index_.find(loaded_lane);
+                        if (idx_it != lane_name_to_index_.end()) {
+                            SlotInfo* ext_slot = system_info_.get_slot_global(idx_it->second);
+                            if (ext_slot && ext_slot->status != SlotStatus::LOADED) {
+                                ext_slot->status = SlotStatus::LOADED;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         should_emit = true;
     }
 
