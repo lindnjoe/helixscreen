@@ -14,12 +14,15 @@
 
 #include "app_constants.h"
 #include "app_globals.h"
+#include "ams_state.h"
+#include "config.h"
 #include "filament_database.h"
 #include "moonraker_api.h"
 #include "observer_factory.h"
 #include "printer_state.h"
 #include "temperature_history_manager.h"
 #include "theme_manager.h"
+#include "wizard_config_paths.h"
 
 #include <spdlog/spdlog.h>
 
@@ -30,6 +33,35 @@
 
 using helix::ui::observe_int_sync;
 using helix::ui::temperature::centi_to_degrees_f;
+
+static std::string resolve_active_hotend_heater() {
+    if (AmsBackend* backend = AmsState::instance().get_backend()) {
+        AmsSystemInfo info = backend->get_system_info();
+        int slot_index = info.current_tool;
+        if (info.supports_tool_mapping && slot_index >= 0 &&
+            static_cast<size_t>(slot_index) < info.tool_to_slot_map.size()) {
+            int mapped_slot = info.tool_to_slot_map[slot_index];
+            if (mapped_slot >= 0) {
+                slot_index = mapped_slot;
+            }
+        }
+        if (slot_index >= 0) {
+            auto slot_info = backend->get_slot_info(slot_index);
+            if (!slot_info.mapped_extruder.empty()) {
+                return slot_info.mapped_extruder;
+            }
+        }
+    }
+
+    if (Config* config = Config::get_instance()) {
+        std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
+        if (!heater.empty()) {
+            return heater;
+        }
+    }
+
+    return "extruder";
+}
 
 TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* api)
     : printer_state_(printer_state), api_(api),
@@ -360,8 +392,9 @@ void TempControlPanel::send_nozzle_temperature(int target) {
         return;
     }
 
+    std::string heater = resolve_active_hotend_heater();
     api_->set_temperature(
-        "extruder", static_cast<double>(target),
+        heater, static_cast<double>(target),
         []() {
             // No toast on success - immediate visual feedback is sufficient
         },
@@ -578,8 +611,9 @@ void TempControlPanel::on_nozzle_confirm_clicked(lv_event_t* e) {
     self->nozzle_pending_ = -1;
 
     if (self->api_) {
+        std::string heater = resolve_active_hotend_heater();
         self->api_->set_temperature(
-            "extruder", static_cast<double>(target),
+            heater, static_cast<double>(target),
             [target]() {
                 if (target == 0) {
                     NOTIFY_SUCCESS("Nozzle heater turned off");
