@@ -31,6 +31,14 @@ class HThreadPool;
 namespace helix {
 
 /**
+ * @brief Thumbnail use case — determines target dimensions
+ */
+enum class ThumbnailSize {
+    Card,  ///< Small card in file list (120–220px depending on display)
+    Detail ///< Larger detail/status view (200–400px depending on display)
+};
+
+/**
  * @brief Target dimensions and format for pre-scaled thumbnails
  *
  * Determined by display breakpoint and card layout. Thumbnails are scaled
@@ -41,10 +49,9 @@ struct ThumbnailTarget {
     int height = 160; ///< Target height in pixels
 
     /**
-     * @brief Color format for output
+     * @brief Color format for output — always ARGB8888
      *
-     * ARGB8888 (0x10) is default - matches AD5M framebuffer format.
-     * RGB565 (0x12) can be used for smaller files but loses alpha.
+     * LVGL handles conversion to display format (e.g., RGB565) at render time.
      */
     uint8_t color_format = 0x10; // LV_COLOR_FORMAT_ARGB8888
 
@@ -154,33 +161,33 @@ class ThumbnailProcessor {
      *
      * Queries the active LVGL display and returns target dimensions based on
      * display breakpoint (using max(width, height)):
-     * - SMALL (<=480px): 120x120
-     * - MEDIUM (<=800px): 160x160
-     * - LARGE (>800px): 220x220
      *
-     * Also matches the display's color format (RGB565 or ARGB8888) for
-     * optimal rendering performance.
+     * Card sizes:   SMALL (<=480px): 120x120, MEDIUM (<=800px): 160x160, LARGE (>800px): 220x220
+     * Detail sizes: SMALL (<=480px): 200x200, MEDIUM (<=800px): 300x300, LARGE (>800px): 400x400
      *
+     * Always uses ARGB8888 — LVGL converts to display format at render time.
+     *
+     * @param size Use case: Card (file list) or Detail (status/detail views)
      * @note MUST be called from main thread only (LVGL is not thread-safe).
      *       For background threads, cache the result at initialization.
      *
      * @return ThumbnailTarget for current display configuration
      */
-    static ThumbnailTarget get_target_for_display();
+    static ThumbnailTarget get_target_for_display(ThumbnailSize size = ThumbnailSize::Card);
 
     /**
      * @brief Get thumbnail target for specific display dimensions
      *
      * Pure function version for testing. Uses the same breakpoint logic
-     * as get_target_for_display().
+     * as get_target_for_display(). Always uses ARGB8888.
      *
      * @param width Display width in pixels
      * @param height Display height in pixels
-     * @param use_rgb565 If true, use RGB565 format; otherwise ARGB8888
+     * @param size Use case: Card (file list) or Detail (status/detail views)
      * @return ThumbnailTarget for the given dimensions
      */
     static ThumbnailTarget get_target_for_resolution(int width, int height,
-                                                     bool use_rgb565 = false);
+                                                     ThumbnailSize size = ThumbnailSize::Card);
 
     /**
      * @brief Get the cache directory path (thread-safe)

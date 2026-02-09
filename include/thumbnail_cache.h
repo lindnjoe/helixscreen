@@ -211,14 +211,15 @@ class ThumbnailCache {
     // detail view where full PNG quality is needed).
 
     /**
-     * @brief Fetch thumbnail for a detail/large view (full PNG for quality)
+     * @brief Fetch thumbnail for a detail/large view (pre-scaled .bin at detail size)
      *
      * Use this for:
      * - Print Status panel thumbnail
      * - Print File Detail view
-     * - Any large thumbnail display that benefits from full resolution
+     * - Any large thumbnail display
      *
-     * Internally uses fetch() to get full-resolution PNG.
+     * Internally uses fetch_optimized() with ThumbnailSize::Detail for larger
+     * pre-scaled targets (200–400px) than card views.
      *
      * The success callback is automatically guarded by ctx.is_valid() - it will
      * only be invoked if the caller is still alive and the generation matches.

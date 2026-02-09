@@ -242,19 +242,16 @@ TEST_CASE("ThumbnailProcessor breakpoint selection", "[assets][processor]") {
     }
 }
 
-TEST_CASE("ThumbnailProcessor color format selection", "[assets][processor]") {
-    SECTION("Default is ARGB8888 (0x10)") {
+TEST_CASE("ThumbnailProcessor color format is always ARGB8888", "[assets][processor]") {
+    SECTION("Card size is ARGB8888 (0x10)") {
         auto target = ThumbnailProcessor::get_target_for_resolution(800, 480);
         REQUIRE(target.color_format == 0x10);
     }
 
-    SECTION("RGB565 when requested (0x12)") {
-        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480, true);
-        REQUIRE(target.color_format == 0x12);
-    }
-
-    SECTION("ARGB8888 when explicitly disabled") {
-        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480, false);
+    SECTION("Detail size is also ARGB8888 (0x10)") {
+        using helix::ThumbnailSize;
+        auto target =
+            ThumbnailProcessor::get_target_for_resolution(800, 480, ThumbnailSize::Detail);
         REQUIRE(target.color_format == 0x10);
     }
 }
@@ -298,11 +295,45 @@ TEST_CASE("ThumbnailProcessor edge cases", "[assets][processor]") {
         REQUIRE(target.width == 220);
     }
 
-    SECTION("Zero dimensions preserve color format choice") {
-        auto target_argb = ThumbnailProcessor::get_target_for_resolution(0, 0, false);
-        REQUIRE(target_argb.color_format == 0x10);
+    SECTION("Zero dimensions always ARGB8888") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(0, 0);
+        REQUIRE(target.color_format == 0x10);
+    }
+}
 
-        auto target_rgb = ThumbnailProcessor::get_target_for_resolution(0, 0, true);
-        REQUIRE(target_rgb.color_format == 0x12);
+TEST_CASE("ThumbnailProcessor detail size breakpoints", "[assets][processor]") {
+    using helix::ThumbnailSize;
+
+    SECTION("SMALL detail: 480x320 → 200x200") {
+        auto target =
+            ThumbnailProcessor::get_target_for_resolution(480, 320, ThumbnailSize::Detail);
+        REQUIRE(target.width == 200);
+        REQUIRE(target.height == 200);
+    }
+
+    SECTION("MEDIUM detail: 800x480 → 300x300") {
+        auto target =
+            ThumbnailProcessor::get_target_for_resolution(800, 480, ThumbnailSize::Detail);
+        REQUIRE(target.width == 300);
+        REQUIRE(target.height == 300);
+    }
+
+    SECTION("LARGE detail: 1024x600 → 400x400") {
+        auto target =
+            ThumbnailProcessor::get_target_for_resolution(1024, 600, ThumbnailSize::Detail);
+        REQUIRE(target.width == 400);
+        REQUIRE(target.height == 400);
+    }
+
+    SECTION("Detail zero dimensions → 200x200 fallback") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(0, 0, ThumbnailSize::Detail);
+        REQUIRE(target.width == 200);
+        REQUIRE(target.height == 200);
+    }
+
+    SECTION("Detail always ARGB8888") {
+        auto target =
+            ThumbnailProcessor::get_target_for_resolution(800, 480, ThumbnailSize::Detail);
+        REQUIRE(target.color_format == 0x10);
     }
 }
