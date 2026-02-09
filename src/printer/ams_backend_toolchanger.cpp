@@ -354,6 +354,15 @@ void AmsBackendToolChanger::parse_tool_state(const std::string& tool_name,
         spdlog::trace("[AMS ToolChanger] Tool {} active: {}", tool_name, active);
     }
 
+    if (tool_data.contains("extruder") && tool_data["extruder"].is_string()) {
+        std::string extruder = tool_data["extruder"].get<std::string>();
+        if (!system_info_.units.empty() &&
+            slot_idx < static_cast<int>(system_info_.units[0].slots.size())) {
+            system_info_.units[0].slots[slot_idx].mapped_extruder = extruder;
+        }
+        spdlog::trace("[AMS ToolChanger] Tool {} extruder: {}", tool_name, extruder);
+    }
+
     // Parse offsets (stored but not currently used in SlotInfo)
     if (tool_data.contains("gcode_x_offset") || tool_data.contains("gcode_y_offset") ||
         tool_data.contains("gcode_z_offset")) {
