@@ -141,6 +141,7 @@ class AmsPanel : public PanelBase {
 
     int pending_load_slot_ = -1;                  ///< Slot awaiting preheat completion (-1 = none)
     int pending_load_target_temp_ = 0;            ///< Target temp for pending load (°C)
+    std::string pending_load_extruder_;           ///< Heater name used for UI preheat
     bool ui_initiated_heat_ = false;              ///< True if UI heated for this load (for cooling)
     AmsAction prev_ams_action_ = AmsAction::IDLE; ///< Previous action for transition detection
 

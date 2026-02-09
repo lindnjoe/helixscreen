@@ -18,6 +18,7 @@
 #include "ams_state.h"
 #include "app_constants.h"
 #include "app_globals.h"
+#include "config.h"
 #include "filament_database.h"
 #include "filament_sensor_manager.h"
 #include "lvgl/src/others/translation/lv_translation.h"
@@ -27,6 +28,7 @@
 #include "standard_macros.h"
 #include "static_panel_registry.h"
 #include "theme_manager.h"
+#include "wizard_config_paths.h"
 
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
@@ -41,6 +43,35 @@ static constexpr int PRESET_COUNT = 4;
 
 // Format string for safety warning (used in constructor and set_limits)
 static constexpr const char* SAFETY_WARNING_FMT = "Heat to at least %d°C to load/unload";
+
+static std::string resolve_active_hotend_heater() {
+    if (AmsBackend* backend = AmsState::instance().get_backend()) {
+        AmsSystemInfo info = backend->get_system_info();
+        int slot_index = info.current_tool;
+        if (info.supports_tool_mapping && slot_index >= 0 &&
+            static_cast<size_t>(slot_index) < info.tool_to_slot_map.size()) {
+            int mapped_slot = info.tool_to_slot_map[slot_index];
+            if (mapped_slot >= 0) {
+                slot_index = mapped_slot;
+            }
+        }
+        if (slot_index >= 0) {
+            auto slot_info = backend->get_slot_info(slot_index);
+            if (!slot_info.mapped_extruder.empty()) {
+                return slot_info.mapped_extruder;
+            }
+        }
+    }
+
+    if (Config* config = Config::get_instance()) {
+        std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
+        if (!heater.empty()) {
+            return heater;
+        }
+    }
+
+    return "extruder";
+}
 
 using helix::ui::observe_int_async;
 using helix::ui::temperature::centi_to_degrees;
@@ -429,8 +460,9 @@ void FilamentPanel::handle_preset_button(int material_id) {
 
     // Send temperature commands to printer (both nozzle and bed)
     if (api_) {
+        std::string heater = resolve_active_hotend_heater();
         api_->set_temperature(
-            "extruder", static_cast<double>(nozzle_target_),
+            heater, static_cast<double>(nozzle_target_),
             [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Failed to set nozzle temp: {}", error.user_message());
@@ -493,8 +525,9 @@ void FilamentPanel::handle_custom_nozzle_confirmed(float value) {
 
     // Send temperature command to printer
     if (api_) {
+        std::string heater = resolve_active_hotend_heater();
         api_->set_temperature(
-            "extruder", static_cast<double>(nozzle_target_),
+            heater, static_cast<double>(nozzle_target_),
             [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Failed to set nozzle temp: {}", error.user_message());
@@ -848,8 +881,9 @@ void FilamentPanel::handle_cooldown() {
 
     // Turn off nozzle heater
     if (api_) {
+        std::string heater = resolve_active_hotend_heater();
         api_->set_temperature(
-            "extruder", 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
+            heater, 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
             [](const MoonrakerError& error) {
                 NOTIFY_ERROR("Failed to turn off nozzle: {}", error.user_message());
             });

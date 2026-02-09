@@ -103,7 +103,8 @@
                 style_flex_cross_place="center" style_pad_gap="#space_sm" clickable="false">
           <bind_flag_if_not_eq subject="print_active" flag="hidden" ref_value="0"/>
           <lv_image name="print_card_thumb"
-                    width="50%" height="50%" src="A:assets/images/benchy_thumbnail_white.png" inner_align="contain"
+                    width="50%" height="100%" src="A:assets/images/benchy_thumbnail_white.png"
+                    inner_align="contain"
                     align="center"/>
           <text_body name="print_card_label" text="Print Files" translation_tag="Print Files"/>
         </lv_obj>
@@ -134,7 +135,8 @@
           <bind_flag_if_eq subject="print_show_progress" flag="hidden" ref_value="0"/>
           <!-- Thumbnail (set programmatically via lv_image_set_src when print starts) -->
           <lv_image name="print_card_active_thumb"
-                    width="50%" height="50%" src="A:assets/images/benchy_thumbnail_white.png" inner_align="contain"
+                    width="50%" height="100%" src="A:assets/images/benchy_thumbnail_white.png"
+                    inner_align="contain"
                     align="center"/>
           <!-- Info column: filename, progress bar, percentage -->
           <lv_obj width="50%"
