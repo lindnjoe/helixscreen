@@ -55,6 +55,13 @@ static constexpr int32_t DEFAULT_SLOT_WIDTH = 80;
 // Logo path mapping moved to AmsState::get_logo_path()
 
 static std::string resolve_hotend_heater_name() {
+    // Priority 1: Klipper's toolhead.extruder (tracks active tool on toolchangers)
+    const std::string& active = get_printer_state().get_active_extruder();
+    if (!active.empty()) {
+        return active;
+    }
+
+    // Priority 2: User-configured hotend heater
     if (Config* config = Config::get_instance()) {
         std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
         if (!heater.empty()) {
