@@ -34,12 +34,8 @@
 using helix::ui::observe_int_sync;
 using helix::ui::temperature::centi_to_degrees_f;
 
-static std::string resolve_active_hotend_heater(PrinterState& printer_state) {
-    std::string active_extruder = printer_state.get_active_extruder_name();
-    if (!active_extruder.empty()) {
-        return active_extruder;
-    }
-
+static std::string resolve_active_hotend_heater() {
+    // Priority 1: AMS backend slot mapping (tool -> slot -> mapped_extruder)
     if (AmsBackend* backend = AmsState::instance().get_backend()) {
         AmsSystemInfo info = backend->get_system_info();
         int slot_index = info.current_tool;
@@ -58,6 +54,13 @@ static std::string resolve_active_hotend_heater(PrinterState& printer_state) {
         }
     }
 
+    // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
+    const std::string& active = get_printer_state().get_active_extruder();
+    if (!active.empty()) {
+        return active;
+    }
+
+    // Priority 3: User-configured hotend heater
     if (Config* config = Config::get_instance()) {
         std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
         if (!heater.empty()) {

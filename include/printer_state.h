@@ -256,6 +256,14 @@ class PrinterState {
         return temperature_state_.get_bed_target_subject();
     }
 
+    /**
+     * @brief Get the active extruder name from Klipper's toolhead.extruder
+     * @return Active extruder name (e.g., "extruder", "extruder3")
+     */
+    [[nodiscard]] const std::string& get_active_extruder() const {
+        return temperature_state_.get_active_extruder();
+    }
+
     // Print progress subjects - delegated to PrinterPrintState component
     lv_subject_t* get_print_progress_subject() {
         return print_domain_.get_print_progress_subject();
