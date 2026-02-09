@@ -61,9 +61,24 @@ void PrinterTemperatureState::register_xml_subjects() {
 }
 
 void PrinterTemperatureState::update_from_status(const nlohmann::json& status) {
-    // Update extruder temperature (stored as centidegrees for 0.1C resolution)
-    if (status.contains("extruder")) {
-        const auto& extruder = status["extruder"];
+    // Track active extruder from toolhead status (multi-tool/toolchanger printers)
+    if (status.contains("toolhead")) {
+        const auto& toolhead = status["toolhead"];
+        if (toolhead.contains("extruder") && toolhead["extruder"].is_string()) {
+            std::string new_extruder = toolhead["extruder"].get<std::string>();
+            if (new_extruder != active_extruder_name_) {
+                spdlog::info("[PrinterTemperatureState] Active extruder changed: {} -> {}",
+                             active_extruder_name_, new_extruder);
+                active_extruder_name_ = new_extruder;
+            }
+        }
+    }
+
+    // Update extruder temperature from the ACTIVE extruder (stored as centidegrees)
+    // On single-extruder printers, active_extruder_name_ is always "extruder".
+    // On toolchangers, it tracks the currently active tool (e.g., "extruder4").
+    if (status.contains(active_extruder_name_)) {
+        const auto& extruder = status[active_extruder_name_];
 
         if (extruder.contains("temperature") && extruder["temperature"].is_number()) {
             int temp_centi = helix::units::json_to_centidegrees(extruder, "temperature");
