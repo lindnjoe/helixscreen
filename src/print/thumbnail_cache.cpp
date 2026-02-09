@@ -831,9 +831,9 @@ void ThumbnailCache::process_and_callback(const std::string& png_lvgl_path,
 void ThumbnailCache::fetch_for_detail_view(MoonrakerAPI* api, const std::string& relative_path,
                                            ThumbnailLoadContext ctx, SuccessCallback on_success,
                                            ErrorCallback on_error) {
-    // Detail views need full-resolution PNG for quality upscaling.
-    // Pre-scaled .bin files are too small (e.g., 160x160) and look bad when
-    // displayed at larger sizes.
+    // Detail views use pre-scaled .bin at a larger size than card views.
+    // ThumbnailSize::Detail produces 200–400px targets depending on display,
+    // giving good quality while avoiding full-resolution PNG decode at render time.
 
     // Wrap the success callback with validity check to reduce boilerplate
     auto guarded_success = [ctx, on_success = std::move(on_success)](const std::string& path) {
@@ -846,8 +846,11 @@ void ThumbnailCache::fetch_for_detail_view(MoonrakerAPI* api, const std::string&
         }
     };
 
-    fetch(
-        api, relative_path, std::move(guarded_success),
+    helix::ThumbnailTarget target =
+        helix::ThumbnailProcessor::get_target_for_display(helix::ThumbnailSize::Detail);
+
+    fetch_optimized(
+        api, relative_path, target, std::move(guarded_success),
         on_error ? std::move(on_error) : [relative_path](const std::string& error) {
             spdlog::warn("[ThumbnailCache] Detail view fetch failed for {}: {}", relative_path,
                          error);
