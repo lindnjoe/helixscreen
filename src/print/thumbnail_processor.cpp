@@ -33,9 +33,8 @@ namespace helix {
 // This is just a fallback for early initialization before ThumbnailCache runs.
 static constexpr const char* DEFAULT_CACHE_DIR = "/tmp/helix_thumbs";
 
-// LVGL 9 color format constants (magic comes from lv_image_dsc.h)
+// LVGL 9 color format constant (magic comes from lv_image_dsc.h)
 static constexpr uint8_t COLOR_FORMAT_ARGB8888 = 0x10;
-static constexpr uint8_t COLOR_FORMAT_RGB565 = 0x12;
 
 // Thread pool configuration
 static constexpr int MIN_WORKER_THREADS = 1;
@@ -187,59 +186,69 @@ std::string ThumbnailProcessor::get_if_processed(const std::string& source_path,
 }
 
 ThumbnailTarget ThumbnailProcessor::get_target_for_resolution(int width, int height,
-                                                              bool use_rgb565) {
+                                                              ThumbnailSize size) {
     ThumbnailTarget target;
+    target.color_format = COLOR_FORMAT_ARGB8888;
 
     // Defensive: treat invalid dimensions as smallest breakpoint
     if (width <= 0 || height <= 0) {
-        target.width = 120;
-        target.height = 120;
-        target.color_format = use_rgb565 ? COLOR_FORMAT_RGB565 : COLOR_FORMAT_ARGB8888;
+        target.width = (size == ThumbnailSize::Detail) ? 200 : 120;
+        target.height = target.width;
         return target;
     }
 
     int greater_res = std::max(width, height);
 
-    // Select target size based on breakpoints
-    // These sizes are chosen to slightly exceed card display size to ensure
-    // sharp rendering without upscaling artifacts
-    if (greater_res <= 480) {
-        // SMALL: 480x320 class → card ~107px → target 120x120
-        target.width = 120;
-        target.height = 120;
-    } else if (greater_res <= 800) {
-        // MEDIUM: 800x480 class (AD5M) → card ~151px → target 160x160
-        target.width = 160;
-        target.height = 160;
+    if (size == ThumbnailSize::Detail) {
+        // Detail view sizes — larger for status panel / detail overlay
+        if (greater_res <= 480) {
+            target.width = 200;
+            target.height = 200;
+        } else if (greater_res <= 800) {
+            target.width = 300;
+            target.height = 300;
+        } else {
+            target.width = 400;
+            target.height = 400;
+        }
     } else {
-        // LARGE: 1024x600, 1280x720+ → card ~205px → target 220x220
-        target.width = 220;
-        target.height = 220;
+        // Card view sizes — small thumbnails for file lists
+        if (greater_res <= 480) {
+            // SMALL: 480x320 class → card ~107px → target 120x120
+            target.width = 120;
+            target.height = 120;
+        } else if (greater_res <= 800) {
+            // MEDIUM: 800x480 class (AD5M) → card ~151px → target 160x160
+            target.width = 160;
+            target.height = 160;
+        } else {
+            // LARGE: 1024x600, 1280x720+ → card ~205px → target 220x220
+            target.width = 220;
+            target.height = 220;
+        }
     }
 
-    target.color_format = use_rgb565 ? COLOR_FORMAT_RGB565 : COLOR_FORMAT_ARGB8888;
     return target;
 }
 
-ThumbnailTarget ThumbnailProcessor::get_target_for_display() {
+ThumbnailTarget ThumbnailProcessor::get_target_for_display(ThumbnailSize size) {
     // Get the default display
     lv_display_t* display = lv_display_get_default();
     if (!display) {
         // Fallback if no display initialized yet (shouldn't happen in normal use)
         spdlog::debug("[ThumbnailProcessor] No display available, using medium defaults");
-        return get_target_for_resolution(800, 480, false);
+        return get_target_for_resolution(800, 480, size);
     }
 
-    // Query display resolution and color format
+    // Query display resolution
     int32_t hor_res = lv_display_get_horizontal_resolution(display);
     int32_t ver_res = lv_display_get_vertical_resolution(display);
-    lv_color_format_t display_cf = lv_display_get_color_format(display);
-    bool use_rgb565 = (display_cf == LV_COLOR_FORMAT_RGB565);
 
-    ThumbnailTarget target = get_target_for_resolution(hor_res, ver_res, use_rgb565);
+    ThumbnailTarget target = get_target_for_resolution(hor_res, ver_res, size);
 
-    spdlog::trace("[ThumbnailProcessor] Display {}x{} → target {}x{} ({})", hor_res, ver_res,
-                  target.width, target.height, use_rgb565 ? "RGB565" : "ARGB8888");
+    const char* size_str = (size == ThumbnailSize::Detail) ? "detail" : "card";
+    spdlog::trace("[ThumbnailProcessor] Display {}x{} → target {}x{} ({}, ARGB8888)", hor_res,
+                  ver_res, target.width, target.height, size_str);
 
     return target;
 }
@@ -297,8 +306,8 @@ std::string ThumbnailProcessor::generate_cache_filename(const std::string& sourc
     std::hash<std::string> hasher;
     size_t hash = hasher(source_path);
 
-    // Format string for color format
-    const char* format_str = (target.color_format == COLOR_FORMAT_RGB565) ? "RGB565" : "ARGB8888";
+    // Always ARGB8888 now
+    const char* format_str = "ARGB8888";
 
     // Generate filename: {hash}_{w}x{h}_{format}.bin
     // NOTE: Must use .bin extension for LVGL's bin decoder (lv_bin_decoder.c only accepts .bin)
@@ -456,7 +465,8 @@ bool ThumbnailProcessor::write_lvbin(const std::string& path, int width, int hei
     // This ensures correct byte layout regardless of compiler/platform,
     // as we're using the same struct LVGL uses to read the file.
 
-    int bytes_per_pixel = (color_format == COLOR_FORMAT_RGB565) ? 2 : 4;
+    // Always ARGB8888 (4 bytes per pixel) — kept generic for header correctness
+    int bytes_per_pixel = 4;
     int stride = width * bytes_per_pixel;
 
     lv_image_header_t header = {};

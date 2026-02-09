@@ -54,6 +54,29 @@ static constexpr int32_t DEFAULT_SLOT_WIDTH = 80;
 
 // Logo path mapping moved to AmsState::get_logo_path()
 
+static std::string resolve_hotend_heater_name() {
+    if (Config* config = Config::get_instance()) {
+        std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
+        if (!heater.empty()) {
+            return heater;
+        }
+    }
+    return "extruder";
+}
+
+static std::string resolve_slot_extruder(AmsBackend* backend, int slot_index) {
+    if (!backend || slot_index < 0) {
+        return resolve_hotend_heater_name();
+    }
+
+    SlotInfo info = backend->get_slot_info(slot_index);
+    if (!info.mapped_extruder.empty()) {
+        return info.mapped_extruder;
+    }
+
+    return resolve_hotend_heater_name();
+}
+
 /**
  * @brief Check if configured printer is a Voron
  *
@@ -2086,11 +2109,13 @@ void AmsPanel::handle_load_with_preheat(int slot_index) {
     // Start preheating, then load when ready
     pending_load_slot_ = slot_index;
     pending_load_target_temp_ = target;
+    pending_load_extruder_ = resolve_slot_extruder(backend, slot_index);
     ui_initiated_heat_ = true; // Flag so we can cool down after load if needed
 
     // Send preheat command via API
     if (api_) {
-        api_->set_temperature("extruder", target, []() {}, [](const MoonrakerError& /*err*/) {});
+        api_->set_temperature(pending_load_extruder_, target, []() {},
+                              [](const MoonrakerError& /*err*/) {});
     }
 
     // Show immediate visual feedback
@@ -2134,10 +2159,13 @@ void AmsPanel::handle_load_complete() {
     // If backend auto-heated or user was already printing, don't touch the heater
     if (ui_initiated_heat_) {
         if (api_) {
-            api_->set_temperature("extruder", 0, []() {}, [](const MoonrakerError& /*err*/) {});
+            std::string heater = pending_load_extruder_.empty() ? resolve_hotend_heater_name()
+                                                                : pending_load_extruder_;
+            api_->set_temperature(heater, 0, []() {}, [](const MoonrakerError& /*err*/) {});
         }
         spdlog::info("[AmsPanel] Load complete, turning off heater (UI-initiated heat)");
         ui_initiated_heat_ = false;
+        pending_load_extruder_.clear();
     }
 }
 
