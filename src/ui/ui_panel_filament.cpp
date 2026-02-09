@@ -44,7 +44,12 @@ static constexpr int PRESET_COUNT = 4;
 // Format string for safety warning (used in constructor and set_limits)
 static constexpr const char* SAFETY_WARNING_FMT = "Heat to at least %d°C to load/unload";
 
-static std::string resolve_active_hotend_heater() {
+static std::string resolve_active_hotend_heater(PrinterState& printer_state) {
+    std::string active_extruder = printer_state.get_active_extruder_name();
+    if (!active_extruder.empty()) {
+        return active_extruder;
+    }
+
     if (AmsBackend* backend = AmsState::instance().get_backend()) {
         AmsSystemInfo info = backend->get_system_info();
         int slot_index = info.current_tool;
@@ -460,7 +465,7 @@ void FilamentPanel::handle_preset_button(int material_id) {
 
     // Send temperature commands to printer (both nozzle and bed)
     if (api_) {
-        std::string heater = resolve_active_hotend_heater();
+        std::string heater = resolve_active_hotend_heater(printer_state_);
         api_->set_temperature(
             heater, static_cast<double>(nozzle_target_),
             [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
@@ -525,7 +530,7 @@ void FilamentPanel::handle_custom_nozzle_confirmed(float value) {
 
     // Send temperature command to printer
     if (api_) {
-        std::string heater = resolve_active_hotend_heater();
+        std::string heater = resolve_active_hotend_heater(printer_state_);
         api_->set_temperature(
             heater, static_cast<double>(nozzle_target_),
             [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
@@ -881,7 +886,7 @@ void FilamentPanel::handle_cooldown() {
 
     // Turn off nozzle heater
     if (api_) {
-        std::string heater = resolve_active_hotend_heater();
+        std::string heater = resolve_active_hotend_heater(printer_state_);
         api_->set_temperature(
             heater, 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
             [](const MoonrakerError& error) {

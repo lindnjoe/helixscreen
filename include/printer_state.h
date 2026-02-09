@@ -902,6 +902,15 @@ class PrinterState {
     }
 
     /**
+     * @brief Get active toolhead extruder name
+     *
+     * Derived from toolhead.extruder in Moonraker status updates.
+     *
+     * @return Active extruder heater name, or empty if unknown
+     */
+    std::string get_active_extruder_name() const;
+
+    /**
      * @brief Set printer connection state (Moonraker WebSocket)
      *
      * Updates both printer_connection_state and printer_connection_message subjects.
@@ -1511,6 +1520,7 @@ class PrinterState {
 
     // Printer type and print start capabilities
     std::string printer_type_;                        ///< Selected printer type name
+    std::string active_extruder_name_;                ///< Active toolhead extruder name
     PrintStartCapabilities print_start_capabilities_; ///< Cached capabilities for current type
 
     /// Auto-detected bed_moves value from kinematics (before user override)
