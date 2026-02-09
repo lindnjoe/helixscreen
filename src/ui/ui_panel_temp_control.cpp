@@ -400,7 +400,7 @@ void TempControlPanel::send_nozzle_temperature(int target) {
         return;
     }
 
-    std::string heater = resolve_active_hotend_heater();
+    std::string heater = resolve_active_hotend_heater(printer_state_);
     api_->set_temperature(
         heater, static_cast<double>(target),
         []() {
@@ -619,7 +619,7 @@ void TempControlPanel::on_nozzle_confirm_clicked(lv_event_t* e) {
     self->nozzle_pending_ = -1;
 
     if (self->api_) {
-        std::string heater = resolve_active_hotend_heater();
+        std::string heater = resolve_active_hotend_heater(self->printer_state_);
         self->api_->set_temperature(
             heater, static_cast<double>(target),
             [target]() {
