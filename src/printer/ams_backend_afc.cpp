@@ -719,6 +719,15 @@ void AmsBackendAfc::parse_afc_stepper(const std::string& lane_name, const nlohma
         slot->remaining_weight_g = data["weight"].get<float>();
     }
 
+    // Parse nozzle temperature recommendation from Spoolman (via AFC)
+    if (data.contains("extruder_temp") && data["extruder_temp"].is_number_integer()) {
+        int temp = data["extruder_temp"].get<int>();
+        if (temp > 0) {
+            slot->nozzle_temp_min = temp;
+            slot->nozzle_temp_max = temp;
+        }
+    }
+
     // Derive slot status from sensors and status string
     bool tool_loaded = false;
     if (data.contains("tool_loaded") && data["tool_loaded"].is_boolean()) {
@@ -1339,6 +1348,13 @@ void AmsBackendAfc::parse_afc_unit_snapshot(const nlohmann::json& snapshot) {
                 }
                 if (lane.contains("weight") && lane["weight"].is_number()) {
                     slot->remaining_weight_g = lane["weight"].get<float>();
+                }
+                if (lane.contains("extruder_temp") && lane["extruder_temp"].is_number_integer()) {
+                    int temp = lane["extruder_temp"].get<int>();
+                    if (temp > 0) {
+                        slot->nozzle_temp_min = temp;
+                        slot->nozzle_temp_max = temp;
+                    }
                 }
 
                 // Parse tool_loaded and status to determine which lane is in the toolhead
