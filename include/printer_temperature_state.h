@@ -83,6 +83,25 @@ class PrinterTemperatureState {
         chamber_sensor_name_ = name;
     }
 
+    /**
+     * @brief Set the active extruder name for multi-tool printers
+     * @param name Klipper extruder name (e.g., "extruder", "extruder1", "extruder4")
+     *
+     * On toolchanger/multi-extruder printers, this determines which extruder's
+     * temperature is shown in the nozzle temp display. Updated from toolhead.extruder.
+     */
+    void set_active_extruder(const std::string& name) {
+        active_extruder_name_ = name;
+    }
+
+    /**
+     * @brief Get the active extruder name
+     * @return Active extruder name (defaults to "extruder")
+     */
+    [[nodiscard]] const std::string& get_active_extruder() const {
+        return active_extruder_name_;
+    }
+
   private:
     SubjectManager subjects_;
     bool subjects_initialized_ = false;
@@ -96,6 +115,9 @@ class PrinterTemperatureState {
 
     // Chamber sensor configuration
     std::string chamber_sensor_name_;
+
+    // Active extruder for multi-tool printers (default: "extruder")
+    std::string active_extruder_name_ = "extruder";
 };
 
 } // namespace helix
