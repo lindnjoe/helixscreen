@@ -444,6 +444,9 @@ ifneq ($(CROSS_COMPILE),)
         # K1 uses musl - fully static, no system library paths needed
         # -latomic: Required for 64-bit atomics on 32-bit MIPS (std::atomic<int64_t>)
         LDFLAGS := $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) -latomic -ldl -lm -lpthread
+    else ifeq ($(PLATFORM_TARGET),k2)
+        # K2 uses musl - fully static, no system library paths needed (same as K1)
+        LDFLAGS := $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) -ldl -lm -lpthread
     else
         LDFLAGS := -L/usr/lib/$(TARGET_TRIPLE) $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) $(SYSTEMD_LIBS) -ldl -lm -lpthread
     endif
