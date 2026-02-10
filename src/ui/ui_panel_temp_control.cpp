@@ -55,7 +55,7 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
     }
 
     // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
-    const std::string& active = ps.get_active_extruder();
+    std::string active = ps.get_active_extruder();
     if (!active.empty()) {
         return active;
     }

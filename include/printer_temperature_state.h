@@ -97,8 +97,11 @@ class PrinterTemperatureState {
     /**
      * @brief Get the active extruder name
      * @return Active extruder name (defaults to "extruder")
+     *
+     * Returns by value (not reference) for thread safety - the underlying
+     * string may be modified by update_from_status() during tool changes.
      */
-    [[nodiscard]] const std::string& get_active_extruder() const {
+    [[nodiscard]] std::string get_active_extruder() const {
         return active_extruder_name_;
     }
 
