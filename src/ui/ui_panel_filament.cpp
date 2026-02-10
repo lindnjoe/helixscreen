@@ -44,7 +44,7 @@ static constexpr int PRESET_COUNT = 4;
 // Format string for safety warning (used in constructor and set_limits)
 static constexpr const char* SAFETY_WARNING_FMT = "Heat to at least %d°C to load/unload";
 
-static std::string resolve_active_hotend_heater() {
+static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 1: AMS backend slot mapping (tool -> slot -> mapped_extruder)
     if (AmsBackend* backend = AmsState::instance().get_backend()) {
         AmsSystemInfo info = backend->get_system_info();
@@ -65,7 +65,7 @@ static std::string resolve_active_hotend_heater() {
     }
 
     // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
-    const std::string& active = get_printer_state().get_active_extruder();
+    const std::string& active = ps.get_active_extruder();
     if (!active.empty()) {
         return active;
     }
