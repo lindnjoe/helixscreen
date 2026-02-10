@@ -46,7 +46,8 @@ static constexpr const char* SAFETY_WARNING_FMT = "Heat to at least %d°C to loa
 
 static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 1: AMS backend slot mapping (tool -> slot -> mapped_extruder)
-    if (AmsBackend* backend = AmsState::instance().get_backend()) {
+    AmsBackend* backend = AmsState::instance().get_backend();
+    if (backend) {
         AmsSystemInfo info = backend->get_system_info();
         int slot_index = info.current_tool;
         if (info.supports_tool_mapping && slot_index >= 0 &&
@@ -57,8 +58,10 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
             }
         }
         if (slot_index >= 0) {
-            auto slot_info = backend->get_slot_info(slot_index);
+            SlotInfo slot_info = backend->get_slot_info(slot_index);
             if (!slot_info.mapped_extruder.empty()) {
+                spdlog::debug("[FilamentPanel] resolve_heater: AMS slot {} -> '{}'", slot_index,
+                              slot_info.mapped_extruder);
                 return slot_info.mapped_extruder;
             }
         }
@@ -67,6 +70,7 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
     std::string active = ps.get_active_extruder();
     if (!active.empty()) {
+        spdlog::debug("[FilamentPanel] resolve_heater: toolhead.extruder -> '{}'", active);
         return active;
     }
 
@@ -74,10 +78,12 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
     if (Config* config = Config::get_instance()) {
         std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
         if (!heater.empty()) {
+            spdlog::debug("[FilamentPanel] resolve_heater: config -> '{}'", heater);
             return heater;
         }
     }
 
+    spdlog::debug("[FilamentPanel] resolve_heater: fallback -> 'extruder'");
     return "extruder";
 }
 
@@ -468,18 +474,20 @@ void FilamentPanel::handle_preset_button(int material_id) {
     nozzle_target_ = mat->nozzle_recommended();
     bed_target_ = mat->bed_temp;
 
+    spdlog::info("[{}] Material selected: {} (nozzle={}°C, bed={}°C)", get_name(),
+                 PRESET_MATERIAL_NAMES[material_id], nozzle_target_, bed_target_);
+
     lv_subject_set_int(&material_selected_subject_, selected_material_);
     update_preset_buttons_visual();
     update_temp_display();
     update_material_temp_display();
     update_status();
 
-    spdlog::info("[{}] Material selected: {} (nozzle={}°C, bed={}°C)", get_name(),
-                 PRESET_MATERIAL_NAMES[material_id], nozzle_target_, bed_target_);
-
     // Send temperature commands to printer (both nozzle and bed)
     if (api_) {
         std::string heater = resolve_active_hotend_heater(printer_state_);
+        spdlog::info("[{}] Sending temps: heater='{}' nozzle={}°C bed={}°C", get_name(), heater,
+                     nozzle_target_, bed_target_);
         api_->set_temperature(
             heater, static_cast<double>(nozzle_target_),
             [target = nozzle_target_]() { NOTIFY_SUCCESS("Nozzle target set to {}°C", target); },
