@@ -420,19 +420,30 @@ void FilamentPanel::check_and_auto_select_preset() {
 }
 
 void FilamentPanel::update_all_temps() {
-    // Unified update handler for temperature observer bundle
-    // Called on UI thread after any temperature value changes
-    // Guard against async callbacks firing after display destruction
+    // Unified update handler for temperature observer bundle.
+    // Called on UI thread after any temperature value changes.
     if (!panel_ || !lv_obj_is_valid(panel_))
         return;
+
+    // Always update current-temp-dependent displays
     update_left_card_temps();
     update_temp_display();
-    update_material_temp_display();
     update_warning_text();
     update_safety_state();
     update_status();
-    check_and_auto_select_preset();
-    lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+
+    // Only update target-dependent displays when targets actually changed.
+    // Current temps change frequently during heating (~1Hz × 4 subjects),
+    // but preset matching and material display only depend on targets.
+    bool targets_changed =
+        (nozzle_target_ != prev_nozzle_target_ || bed_target_ != prev_bed_target_);
+    if (targets_changed) {
+        prev_nozzle_target_ = nozzle_target_;
+        prev_bed_target_ = bed_target_;
+        update_material_temp_display();
+        check_and_auto_select_preset();
+        lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+    }
 }
 
 // ============================================================================

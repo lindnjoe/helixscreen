@@ -48,6 +48,10 @@ MachineLimitsOverlay::MachineLimitsOverlay() {
 }
 
 MachineLimitsOverlay::~MachineLimitsOverlay() {
+    if (apply_timer_) {
+        lv_timer_delete(apply_timer_);
+        apply_timer_ = nullptr;
+    }
     deinit_subjects();
 }
 
@@ -166,6 +170,13 @@ void MachineLimitsOverlay::on_activate() {
 
 void MachineLimitsOverlay::on_deactivate() {
     spdlog::debug("[{}] on_deactivate()", get_name());
+
+    // Flush any pending debounced apply before leaving
+    if (apply_timer_) {
+        lv_timer_delete(apply_timer_);
+        apply_timer_ = nullptr;
+        apply_limits();
+    }
 
     // Call base class
     OverlayBase::on_deactivate();
@@ -298,28 +309,28 @@ void MachineLimitsOverlay::handle_velocity_changed(int value) {
     current_limits_.max_velocity = static_cast<double>(value);
     helix::fmt::format_speed_mm_s(static_cast<double>(value), velocity_buf_, sizeof(velocity_buf_));
     lv_subject_copy_string(&max_velocity_display_subject_, velocity_buf_);
-    apply_limits();
+    schedule_apply_limits();
 }
 
 void MachineLimitsOverlay::handle_accel_changed(int value) {
     current_limits_.max_accel = static_cast<double>(value);
     helix::fmt::format_accel_mm_s2(static_cast<double>(value), accel_buf_, sizeof(accel_buf_));
     lv_subject_copy_string(&max_accel_display_subject_, accel_buf_);
-    apply_limits();
+    schedule_apply_limits();
 }
 
 void MachineLimitsOverlay::handle_a2d_changed(int value) {
     current_limits_.max_accel_to_decel = static_cast<double>(value);
     helix::fmt::format_accel_mm_s2(static_cast<double>(value), a2d_buf_, sizeof(a2d_buf_));
     lv_subject_copy_string(&accel_to_decel_display_subject_, a2d_buf_);
-    apply_limits();
+    schedule_apply_limits();
 }
 
 void MachineLimitsOverlay::handle_scv_changed(int value) {
     current_limits_.square_corner_velocity = static_cast<double>(value);
     helix::fmt::format_speed_mm_s(static_cast<double>(value), scv_buf_, sizeof(scv_buf_));
     lv_subject_copy_string(&square_corner_velocity_display_subject_, scv_buf_);
-    apply_limits();
+    schedule_apply_limits();
 }
 
 void MachineLimitsOverlay::handle_reset() {
@@ -328,6 +339,26 @@ void MachineLimitsOverlay::handle_reset() {
     update_display();
     update_sliders();
     apply_limits(); // Send original values back to printer
+}
+
+void MachineLimitsOverlay::schedule_apply_limits() {
+    // Debounce slider changes: reset/create a 250ms one-shot timer.
+    // Display subjects update immediately (user sees the number change),
+    // but the G-code command only fires after 250ms of inactivity.
+    static constexpr uint32_t DEBOUNCE_MS = 250;
+
+    if (apply_timer_) {
+        lv_timer_reset(apply_timer_);
+    } else {
+        apply_timer_ = lv_timer_create(
+            [](lv_timer_t* t) {
+                auto* self = static_cast<MachineLimitsOverlay*>(lv_timer_get_user_data(t));
+                self->apply_timer_ = nullptr;
+                self->apply_limits();
+            },
+            DEBOUNCE_MS, this);
+        lv_timer_set_repeat_count(apply_timer_, 1);
+    }
 }
 
 void MachineLimitsOverlay::apply_limits() {

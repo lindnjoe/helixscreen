@@ -228,6 +228,15 @@ class MachineLimitsOverlay : public OverlayBase {
     void apply_limits();
 
     /**
+     * @brief Schedule a debounced apply_limits() call
+     *
+     * Creates or resets a 250ms one-shot timer. During slider drags this
+     * prevents spamming G-code commands to the printer on every pixel of
+     * slider movement.
+     */
+    void schedule_apply_limits();
+
+    /**
      * @brief Query API for limits and show overlay
      * @param parent_screen Parent screen for overlay creation
      */
@@ -248,8 +257,9 @@ class MachineLimitsOverlay : public OverlayBase {
     // === State Tracking ===
     //
 
-    MachineLimits current_limits_;  ///< Live values from sliders
-    MachineLimits original_limits_; ///< Values when overlay opened (for reset)
+    MachineLimits current_limits_;     ///< Live values from sliders
+    MachineLimits original_limits_;    ///< Values when overlay opened (for reset)
+    lv_timer_t* apply_timer_{nullptr}; ///< Debounce timer for apply_limits (250ms)
 
     //
     // === Subject Management ===
