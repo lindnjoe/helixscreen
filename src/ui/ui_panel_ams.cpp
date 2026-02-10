@@ -56,7 +56,7 @@ static constexpr int32_t DEFAULT_SLOT_WIDTH = 80;
 
 static std::string resolve_hotend_heater_name() {
     // Priority 1: Klipper's toolhead.extruder (tracks active tool on toolchangers)
-    const std::string& active = get_printer_state().get_active_extruder();
+    std::string active = get_printer_state().get_active_extruder();
     if (!active.empty()) {
         return active;
     }

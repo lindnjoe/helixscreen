@@ -260,7 +260,7 @@ class PrinterState {
      * @brief Get the active extruder name from Klipper's toolhead.extruder
      * @return Active extruder name (e.g., "extruder", "extruder3")
      */
-    [[nodiscard]] const std::string& get_active_extruder() const {
+    [[nodiscard]] std::string get_active_extruder() const {
         return temperature_state_.get_active_extruder();
     }
 
