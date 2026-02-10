@@ -82,13 +82,20 @@ void PrinterTemperatureState::update_from_status(const nlohmann::json& status) {
 
         if (extruder.contains("temperature") && extruder["temperature"].is_number()) {
             int temp_centi = helix::units::json_to_centidegrees(extruder, "temperature");
+            spdlog::debug("[TempState] >> extruder_temp={} ({})", temp_centi,
+                          active_extruder_name_);
             lv_subject_set_int(&extruder_temp_, temp_centi);
+            spdlog::debug("[TempState] << extruder_temp set OK, force-notifying...");
             lv_subject_notify(&extruder_temp_); // Force notify for graph updates even if unchanged
+            spdlog::debug("[TempState] << extruder_temp notify OK");
         }
 
         if (extruder.contains("target") && extruder["target"].is_number()) {
             int target_centi = helix::units::json_to_centidegrees(extruder, "target");
+            spdlog::debug("[TempState] >> extruder_target={} ({})", target_centi,
+                          active_extruder_name_);
             lv_subject_set_int(&extruder_target_, target_centi);
+            spdlog::debug("[TempState] << extruder_target set OK");
         }
     }
 
@@ -98,17 +105,18 @@ void PrinterTemperatureState::update_from_status(const nlohmann::json& status) {
 
         if (bed.contains("temperature") && bed["temperature"].is_number()) {
             int temp_centi = helix::units::json_to_centidegrees(bed, "temperature");
+            spdlog::debug("[TempState] >> bed_temp={}", temp_centi);
             lv_subject_set_int(&bed_temp_, temp_centi);
+            spdlog::debug("[TempState] << bed_temp set OK, force-notifying...");
             lv_subject_notify(&bed_temp_); // Force notify for graph updates even if unchanged
-            spdlog::trace("[PrinterTemperatureState] Bed temp: {}.{}C", temp_centi / 10,
-                          temp_centi % 10);
+            spdlog::debug("[TempState] << bed_temp notify OK");
         }
 
         if (bed.contains("target") && bed["target"].is_number()) {
             int target_centi = helix::units::json_to_centidegrees(bed, "target");
+            spdlog::debug("[TempState] >> bed_target={}", target_centi);
             lv_subject_set_int(&bed_target_, target_centi);
-            spdlog::trace("[PrinterTemperatureState] Bed target: {}.{}C", target_centi / 10,
-                          target_centi % 10);
+            spdlog::debug("[TempState] << bed_target set OK");
         }
     }
 
