@@ -1280,13 +1280,15 @@ TEST_CASE("Print characterization: slicer estimated_print_time used as fallback"
         REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 60);
     }
 
-    SECTION("estimated_print_time clears on reset_for_new_print") {
+    SECTION("estimated_print_time preserved across reset_for_new_print") {
+        // estimated_print_time belongs to the FILE, not the print session.
+        // It must survive reset so same-file reprints still have the estimate.
         state.set_estimated_print_time(300);
         REQUIRE(state.get_estimated_print_time() == 300);
 
         state.reset_for_new_print();
 
-        REQUIRE(state.get_estimated_print_time() == 0);
+        REQUIRE(state.get_estimated_print_time() == 300);
     }
 
     SECTION("slicer fallback not used when estimated_print_time is 0") {
@@ -1349,6 +1351,124 @@ TEST_CASE("Print characterization: slicer estimated_print_time used as fallback"
     SECTION("negative estimated_print_time is clamped to 0") {
         state.set_estimated_print_time(-10);
         REQUIRE(state.get_estimated_print_time() == 0);
+    }
+}
+
+// ============================================================================
+// Pre-print Time Remaining Bug Fix Tests
+// ============================================================================
+
+TEST_CASE("Print characterization: reset_for_new_print re-seeds time_left from slicer estimate",
+          "[characterization][print][time][preprint]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    SECTION("same-file reprint preserves time_left from slicer estimate") {
+        // Simulate first print: slicer says 1469s (24.5 min)
+        state.set_estimated_print_time(1469);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // time_left was seeded with slicer estimate
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 1469);
+
+        // Print completes, user reprints same file → reset_for_new_print fires
+        state.reset_for_new_print();
+
+        // time_left should be re-seeded from estimated_print_time, NOT cleared to 0
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 1469);
+        REQUIRE(state.get_estimated_print_time() == 1469);
+    }
+
+    SECTION("reset clears progress and duration but keeps estimate") {
+        state.set_estimated_print_time(1469);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // Simulate some print progress
+        json progress = {{"virtual_sdcard", {{"progress", 0.50}}}};
+        state.update_from_status(progress);
+        json stats = {{"print_stats", {{"print_duration", 700.0}, {"total_duration", 750.0}}}};
+        state.update_from_status(stats);
+
+        // Verify progress advanced
+        REQUIRE(lv_subject_get_int(state.get_print_progress_subject()) == 50);
+        REQUIRE(lv_subject_get_int(state.get_print_duration_subject()) == 700);
+
+        // Reset for new print
+        state.reset_for_new_print();
+
+        // Progress/duration cleared
+        REQUIRE(lv_subject_get_int(state.get_print_progress_subject()) == 0);
+        REQUIRE(lv_subject_get_int(state.get_print_duration_subject()) == 0);
+        REQUIRE(lv_subject_get_int(state.get_print_elapsed_subject()) == 0);
+
+        // But time_left re-seeded and estimate preserved
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 1469);
+        REQUIRE(state.get_estimated_print_time() == 1469);
+    }
+
+    SECTION("reset with no prior estimate sets time_left to 0") {
+        // No slicer estimate set (default 0)
+        state.reset_for_new_print();
+
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 0);
+        REQUIRE(state.get_estimated_print_time() == 0);
+    }
+
+    SECTION("different file updates time_left even after reset seeded old value") {
+        // First file: 1469s estimate
+        state.set_estimated_print_time(1469);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // Reset (re-seeds with old estimate)
+        state.reset_for_new_print();
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 1469);
+
+        // New file has different estimate (500s) — metadata callback fires
+        state.set_estimated_print_time(500);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // Progress is still 0, so set_estimated_print_time should update time_left
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 500);
+        REQUIRE(state.get_estimated_print_time() == 500);
+    }
+
+    SECTION("set_estimated_print_time updates time_left at progress 0 even when non-zero") {
+        // Seed with initial estimate
+        state.set_estimated_print_time(1000);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 1000);
+
+        // New estimate arrives while still at 0% progress
+        state.set_estimated_print_time(2000);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // Should update to new value (not skip because time_left was already non-zero)
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 2000);
+    }
+
+    SECTION("set_estimated_print_time does NOT update time_left once progress > 0") {
+        state.set_estimated_print_time(1000);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // Advance progress to 10%
+        json progress = {{"virtual_sdcard", {{"progress", 0.10}}}};
+        state.update_from_status(progress);
+        json stats = {{"print_stats", {{"print_duration", 100.0}, {"total_duration", 110.0}}}};
+        state.update_from_status(stats);
+
+        // Progress-based: 100 * 90 / 10 = 900
+        int time_left_before = lv_subject_get_int(state.get_print_time_left_subject());
+        REQUIRE(time_left_before == 900);
+
+        // Late metadata callback with a different estimate should NOT override
+        state.set_estimated_print_time(5000);
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+
+        // time_left should still be progress-based, not the new slicer estimate
+        REQUIRE(lv_subject_get_int(state.get_print_time_left_subject()) == 900);
     }
 }
 

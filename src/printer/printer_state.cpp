@@ -341,9 +341,6 @@ void PrinterState::update_from_status(const json& state) {
             std::string kin = toolhead["kinematics"].get<std::string>();
             set_kinematics(kin);
         }
-        if (toolhead.contains("extruder") && toolhead["extruder"].is_string()) {
-            active_extruder_name_ = toolhead["extruder"].get<std::string>();
-        }
     }
 
     // Delegate fan state updates to fan component
@@ -430,11 +427,6 @@ void PrinterState::update_from_status(const json& state) {
 
     // Cache full state for complex queries
     json_state_.merge_patch(state);
-}
-
-std::string PrinterState::get_active_extruder_name() const {
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    return active_extruder_name_;
 }
 
 json& PrinterState::get_json_state() {

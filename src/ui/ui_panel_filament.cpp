@@ -44,7 +44,7 @@ static constexpr int PRESET_COUNT = 4;
 // Format string for safety warning (used in constructor and set_limits)
 static constexpr const char* SAFETY_WARNING_FMT = "Heat to at least %d°C to load/unload";
 
-static std::string resolve_active_hotend_heater() {
+static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 1: AMS backend slot mapping (tool -> slot -> mapped_extruder)
     if (AmsBackend* backend = AmsState::instance().get_backend()) {
         AmsSystemInfo info = backend->get_system_info();
@@ -65,7 +65,7 @@ static std::string resolve_active_hotend_heater() {
     }
 
     // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
-    const std::string& active = get_printer_state().get_active_extruder();
+    const std::string& active = ps.get_active_extruder();
     if (!active.empty()) {
         return active;
     }
@@ -420,19 +420,30 @@ void FilamentPanel::check_and_auto_select_preset() {
 }
 
 void FilamentPanel::update_all_temps() {
-    // Unified update handler for temperature observer bundle
-    // Called on UI thread after any temperature value changes
-    // Guard against async callbacks firing after display destruction
+    // Unified update handler for temperature observer bundle.
+    // Called on UI thread after any temperature value changes.
     if (!panel_ || !lv_obj_is_valid(panel_))
         return;
+
+    // Always update current-temp-dependent displays
     update_left_card_temps();
     update_temp_display();
-    update_material_temp_display();
     update_warning_text();
     update_safety_state();
     update_status();
-    check_and_auto_select_preset();
-    lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+
+    // Only update target-dependent displays when targets actually changed.
+    // Current temps change frequently during heating (~1Hz × 4 subjects),
+    // but preset matching and material display only depend on targets.
+    bool targets_changed =
+        (nozzle_target_ != prev_nozzle_target_ || bed_target_ != prev_bed_target_);
+    if (targets_changed) {
+        prev_nozzle_target_ = nozzle_target_;
+        prev_bed_target_ = bed_target_;
+        update_material_temp_display();
+        check_and_auto_select_preset();
+        lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+    }
 }
 
 // ============================================================================
@@ -887,20 +898,11 @@ void FilamentPanel::on_cooldown_clicked(lv_event_t* e) {
 void FilamentPanel::handle_cooldown() {
     spdlog::info("[{}] Cooldown requested - turning off heaters", get_name());
 
-    // Turn off nozzle heater
     if (api_) {
-        std::string heater = resolve_active_hotend_heater(printer_state_);
-        api_->set_temperature(
-            heater, 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
+        api_->execute_gcode(
+            "TURN_OFF_HEATERS", []() { NOTIFY_SUCCESS("Heaters off"); },
             [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Failed to turn off nozzle: {}", error.user_message());
-            });
-
-        // Also turn off bed heater for full cooldown
-        api_->set_temperature(
-            "heater_bed", 0.0, []() { NOTIFY_SUCCESS("Bed heater off"); },
-            [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Failed to turn off bed: {}", error.user_message());
+                NOTIFY_ERROR("Failed to turn off heaters: {}", error.user_message());
             });
     }
 

@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 using namespace moonraker_internal;
@@ -18,6 +19,11 @@ using namespace moonraker_internal;
 
 void MoonrakerAPI::set_led(const std::string& led, double red, double green, double blue,
                            double white, SuccessCallback on_success, ErrorCallback on_error) {
+    // Reject NaN/Inf before any G-code generation
+    if (reject_non_finite({red, green, blue, white}, "set_led", on_error)) {
+        return;
+    }
+
     // Validate LED name
     if (!is_safe_identifier(led)) {
         NOTIFY_ERROR("Invalid LED name '{}'. Contains unsafe characters.", led);

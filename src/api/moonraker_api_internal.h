@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <initializer_list>
 #include <memory>
 #include <string>
@@ -271,6 +272,37 @@ inline bool reject_out_of_range(double value, double min, double max, const char
         on_error(err);
     }
     return true; // Invalid, caller should return
+}
+
+/**
+ * @brief Check if any double value is NaN or Inf, and reject with error callback if so
+ *
+ * Prevents malformed G-code from being sent to the printer when upstream data
+ * contains NaN or Inf values (e.g., from corrupted JSON or division by zero).
+ *
+ * @param values List of double values to check
+ * @param method Method name for error context
+ * @param on_error Error callback (may be nullptr)
+ * @return true if any value is NON-FINITE (caller should return), false if all valid
+ */
+inline bool reject_non_finite(std::initializer_list<double> values, const char* method,
+                              const MoonrakerAPI::ErrorCallback& on_error) {
+    for (double v : values) {
+        if (std::isnan(v) || std::isinf(v)) {
+            spdlog::warn("[Moonraker API] {}: Rejecting G-code generation: "
+                         "invalid value (NaN/Inf)",
+                         method);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::VALIDATION_ERROR;
+                err.message = "Parameter contains NaN or Inf value";
+                err.method = method;
+                on_error(err);
+            }
+            return true; // Invalid, caller should return
+        }
+    }
+    return false; // All finite, continue
 }
 
 // ============================================================================

@@ -1879,15 +1879,14 @@ deploy_platform_hooks() {
     log_info "Deployed platform hooks: $platform"
 }
 
-# Fix ownership of config directory for non-root Klipper users
-# Binaries stay root-owned for security; only config needs user write access
+# Fix ownership of install directory for non-root Klipper users
+# The entire directory must be user-owned so Moonraker's zip updater
+# can extract updates without root privileges (see GitHub issue #29)
 fix_install_ownership() {
     local user="${KLIPPER_USER:-}"
     if [ -n "$user" ] && [ "$user" != "root" ] && [ -d "$INSTALL_DIR" ]; then
-        log_info "Setting ownership to ${user}..."
-        if [ -d "${INSTALL_DIR}/config" ]; then
-            $SUDO chown -R "${user}:${user}" "${INSTALL_DIR}/config"
-        fi
+        log_info "Setting ownership of ${INSTALL_DIR} to ${user}..."
+        $SUDO chown -R "${user}:${user}" "${INSTALL_DIR}"
     fi
 }
 
