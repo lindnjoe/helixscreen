@@ -107,6 +107,9 @@ void PrinterPrintState::reset_for_testing() {
     // Use SubjectManager for automatic subject cleanup
     subjects_.deinit_all();
     subjects_initialized_ = false;
+
+    // Reset non-subject state too
+    estimated_print_time_ = 0;
 }
 
 void PrinterPrintState::reset_for_new_print() {
@@ -119,9 +122,14 @@ void PrinterPrintState::reset_for_new_print() {
     lv_subject_set_int(&print_layer_current_, 0);
     lv_subject_set_int(&print_duration_, 0);
     lv_subject_set_int(&print_elapsed_, 0);
-    lv_subject_set_int(&print_time_left_, 0);
-    estimated_print_time_ = 0;
-    spdlog::trace("[PrinterPrintState] Reset print progress for new print");
+    // Re-seed time_left from slicer estimate instead of clearing to 0.
+    // For same-file reprints, the metadata callback won't re-fire since
+    // the filename hasn't changed, so we preserve the previous estimate.
+    // For different files, the metadata callback updates both values.
+    lv_subject_set_int(&print_time_left_, estimated_print_time_);
+    // DON'T clear estimated_print_time_ - it belongs to the file, not the session
+    spdlog::trace("[PrinterPrintState] Reset print progress for new print (slicer_est={}s)",
+                  estimated_print_time_);
 }
 
 void PrinterPrintState::update_from_status(const nlohmann::json& status) {
@@ -437,9 +445,9 @@ void PrinterPrintState::set_estimated_print_time(int seconds) {
     // lv_subject_set_int triggers observer chain which touches LVGL objects.
     int est = estimated_print_time_;
     helix::async::invoke([this, est]() {
-        // Seed time_left with slicer estimate so pre-print display includes print time.
-        // Progress-based calculation blends in starting at 1% and fully takes over at 5%.
-        if (est > 0 && lv_subject_get_int(&print_time_left_) == 0) {
+        // Seed/update time_left with slicer estimate when progress is still 0%.
+        // Once progress-based calculation kicks in (>=1%), it takes over.
+        if (est > 0 && lv_subject_get_int(&print_progress_) == 0) {
             lv_subject_set_int(&print_time_left_, est);
             spdlog::debug("[PrinterPrintState] Seeded time_left with slicer estimate: {}s", est);
         }
