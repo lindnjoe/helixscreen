@@ -11,12 +11,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <sstream>
-
-#ifdef __APPLE__
-#include <cstdlib>
-#endif
+#include <sys/wait.h>
+#include <unistd.h>
 
 // ============================================================================
 // Constructor / Destructor
@@ -293,20 +292,47 @@ std::string NetworkTester::get_default_gateway() {
 
 bool NetworkTester::ping_host(const std::string& host, int timeout_sec) {
 #ifdef __APPLE__
-    // macOS: ping -c 1 -t timeout host
-    std::string cmd =
-        "ping -c 1 -t " + std::to_string(timeout_sec) + " " + host + " >/dev/null 2>&1";
+    const char* timeout_flag = "-t";
 #else
-    // Linux: ping -c 1 -W timeout host
-    std::string cmd =
-        "ping -c 1 -W " + std::to_string(timeout_sec) + " " + host + " >/dev/null 2>&1";
+    const char* timeout_flag = "-W";
 #endif
 
-    spdlog::debug("[NetworkTester] Running: {}", cmd);
+    std::string timeout_str = std::to_string(timeout_sec);
 
-    int ret = system(cmd.c_str());
-    bool success = (ret == 0);
+    spdlog::debug("[NetworkTester] Pinging {} (timeout={}s)", host, timeout_sec);
 
+    // Use fork/execvp to avoid shell injection (host could be user-influenced)
+    pid_t pid = fork();
+    if (pid < 0) {
+        spdlog::error("[NetworkTester] fork() failed: {}", strerror(errno));
+        return false;
+    }
+
+    if (pid == 0) {
+        // Child process — redirect stdout/stderr to /dev/null
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull >= 0) {
+            dup2(devnull, STDOUT_FILENO);
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+
+        // execvp does PATH lookup, no shell interpretation
+        const char* argv[] = {"ping",       "-c",   "1", timeout_flag, timeout_str.c_str(),
+                              host.c_str(), nullptr};
+        execvp("ping", const_cast<char* const*>(argv));
+        // If execvp returns, it failed
+        _exit(127);
+    }
+
+    // Parent — wait for child
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) {
+        spdlog::error("[NetworkTester] waitpid() failed: {}", strerror(errno));
+        return false;
+    }
+
+    bool success = WIFEXITED(status) && WEXITSTATUS(status) == 0;
     spdlog::debug("[NetworkTester] Ping {} {}", host, success ? "succeeded" : "failed");
     return success;
 }
