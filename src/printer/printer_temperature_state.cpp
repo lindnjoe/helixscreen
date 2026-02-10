@@ -66,7 +66,7 @@ void PrinterTemperatureState::update_from_status(const nlohmann::json& status) {
         const auto& toolhead = status["toolhead"];
         if (toolhead.contains("extruder") && toolhead["extruder"].is_string()) {
             std::string new_extruder = toolhead["extruder"].get<std::string>();
-            if (new_extruder != active_extruder_name_) {
+            if (!new_extruder.empty() && new_extruder != active_extruder_name_) {
                 spdlog::info("[PrinterTemperatureState] Active extruder changed: {} -> {}",
                              active_extruder_name_, new_extruder);
                 active_extruder_name_ = new_extruder;
