@@ -7,6 +7,7 @@
 #include "spdlog/spdlog.h"
 
 #include <chrono>
+#include <cmath>
 #include <sstream>
 #include <thread>
 
@@ -174,6 +175,13 @@ std::string MoonrakerAPI::generate_home_gcode(const std::string& axes) {
 }
 
 std::string MoonrakerAPI::generate_move_gcode(char axis, double distance, double feedrate) {
+    if (std::isnan(distance) || std::isinf(distance) || std::isnan(feedrate) ||
+        std::isinf(feedrate)) {
+        spdlog::warn("[Moonraker API] generate_move_gcode: Rejecting G-code generation: "
+                     "invalid value (NaN/Inf)");
+        return "";
+    }
+
     std::ostringstream gcode;
     gcode << "G91\n"; // Relative positioning
     gcode << "G0 " << static_cast<char>(std::toupper(axis)) << distance;
@@ -186,6 +194,13 @@ std::string MoonrakerAPI::generate_move_gcode(char axis, double distance, double
 
 std::string MoonrakerAPI::generate_absolute_move_gcode(char axis, double position,
                                                        double feedrate) {
+    if (std::isnan(position) || std::isinf(position) || std::isnan(feedrate) ||
+        std::isinf(feedrate)) {
+        spdlog::warn("[Moonraker API] generate_absolute_move_gcode: Rejecting G-code generation: "
+                     "invalid value (NaN/Inf)");
+        return "";
+    }
+
     std::ostringstream gcode;
     gcode << "G90\n"; // Absolute positioning
     gcode << "G0 " << static_cast<char>(std::toupper(axis)) << position;

@@ -10,6 +10,7 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 using namespace moonraker_internal;
@@ -46,6 +47,11 @@ void MoonrakerAPI::home_axes(const std::string& axes, SuccessCallback on_success
 
 void MoonrakerAPI::move_axis(char axis, double distance, double feedrate,
                              SuccessCallback on_success, ErrorCallback on_error) {
+    // Reject NaN/Inf before any G-code generation
+    if (reject_non_finite({distance, feedrate}, "move_axis", on_error)) {
+        return;
+    }
+
     // Validate axis
     if (!is_valid_axis(axis)) {
         NOTIFY_ERROR("Invalid axis '{}'. Must be X, Y, Z, or E.", axis);
@@ -100,6 +106,11 @@ void MoonrakerAPI::move_axis(char axis, double distance, double feedrate,
 
 void MoonrakerAPI::move_to_position(char axis, double position, double feedrate,
                                     SuccessCallback on_success, ErrorCallback on_error) {
+    // Reject NaN/Inf before any G-code generation
+    if (reject_non_finite({position, feedrate}, "move_to_position", on_error)) {
+        return;
+    }
+
     // Validate axis
     if (!is_valid_axis(axis)) {
         NOTIFY_ERROR("Invalid axis '{}'. Must be X, Y, Z, or E.", axis);
@@ -163,6 +174,11 @@ void MoonrakerAPI::move_to_position(char axis, double position, double feedrate,
 
 void MoonrakerAPI::set_temperature(const std::string& heater, double temperature,
                                    SuccessCallback on_success, ErrorCallback on_error) {
+    // Reject NaN/Inf before any G-code generation
+    if (reject_non_finite({temperature}, "set_temperature", on_error)) {
+        return;
+    }
+
     // Validate heater name
     if (!is_safe_identifier(heater)) {
         NOTIFY_ERROR("Invalid heater name '{}'. Contains unsafe characters.", heater);
@@ -205,6 +221,11 @@ void MoonrakerAPI::set_temperature(const std::string& heater, double temperature
 
 void MoonrakerAPI::set_fan_speed(const std::string& fan, double speed, SuccessCallback on_success,
                                  ErrorCallback on_error) {
+    // Reject NaN/Inf before any G-code generation
+    if (reject_non_finite({speed}, "set_fan_speed", on_error)) {
+        return;
+    }
+
     // Validate fan name
     if (!is_safe_identifier(fan)) {
         NOTIFY_ERROR("Invalid fan name '{}'. Contains unsafe characters.", fan);
