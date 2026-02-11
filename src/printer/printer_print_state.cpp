@@ -237,24 +237,31 @@ void PrinterPrintState::update_from_status(const nlohmann::json& status) {
             lv_subject_copy_string(&print_filename_, filename.c_str());
         }
 
-        // Update layer info from print_stats.info (sent by Moonraker/mock client)
-        // Note: Moonraker can send null values for layer fields when not available
+        // Update layer info from print_stats payload.
+        // Different Moonraker/Klipper versions can report layer fields either:
+        //   1) nested in print_stats.info.{current_layer,total_layer,total_layers}
+        //   2) directly in print_stats.{current_layer,total_layer,total_layers}
+        // Accept both formats to avoid getting stuck at "Layer 0 / 0" on firmware variants.
+        const nlohmann::json* layer_source = nullptr;
         if (stats.contains("info") && stats["info"].is_object()) {
-            const auto& info = stats["info"];
+            layer_source = &stats["info"];
+        } else {
+            layer_source = &stats;
+        }
 
-            if (info.contains("current_layer")) {
-                int current_layer = parse_layer_value(info["current_layer"],
-                                                      lv_subject_get_int(&print_layer_current_));
-                lv_subject_set_int(&print_layer_current_, current_layer);
-            }
+        if (layer_source->contains("current_layer")) {
+            int current_layer = parse_layer_value((*layer_source)["current_layer"],
+                                                  lv_subject_get_int(&print_layer_current_));
+            lv_subject_set_int(&print_layer_current_, current_layer);
+        }
 
-            if (info.contains("total_layer") || info.contains("total_layers")) {
-                const auto& total_value =
-                    info.contains("total_layer") ? info["total_layer"] : info["total_layers"];
-                int total_layer =
-                    parse_layer_value(total_value, lv_subject_get_int(&print_layer_total_));
-                lv_subject_set_int(&print_layer_total_, total_layer);
-            }
+        if (layer_source->contains("total_layer") || layer_source->contains("total_layers")) {
+            const auto& total_value = layer_source->contains("total_layer")
+                                          ? (*layer_source)["total_layer"]
+                                          : (*layer_source)["total_layers"];
+            int total_layer =
+                parse_layer_value(total_value, lv_subject_get_int(&print_layer_total_));
+            lv_subject_set_int(&print_layer_total_, total_layer);
         }
 
         // Update print time tracking (elapsed and remaining)
