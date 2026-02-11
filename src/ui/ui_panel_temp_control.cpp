@@ -36,7 +36,8 @@ using helix::ui::temperature::centi_to_degrees_f;
 
 static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 1: AMS backend slot mapping (tool -> slot -> mapped_extruder)
-    if (AmsBackend* backend = AmsState::instance().get_backend()) {
+    AmsBackend* backend = AmsState::instance().get_backend();
+    if (backend) {
         AmsSystemInfo info = backend->get_system_info();
         int slot_index = info.current_tool;
         if (info.supports_tool_mapping && slot_index >= 0 &&
@@ -47,8 +48,10 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
             }
         }
         if (slot_index >= 0) {
-            auto slot_info = backend->get_slot_info(slot_index);
+            SlotInfo slot_info = backend->get_slot_info(slot_index);
             if (!slot_info.mapped_extruder.empty()) {
+                spdlog::debug("[TempPanel] resolve_heater: AMS slot {} -> '{}'", slot_index,
+                              slot_info.mapped_extruder);
                 return slot_info.mapped_extruder;
             }
         }
@@ -57,6 +60,7 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
     // Priority 2: Klipper's toolhead.extruder (tracks active tool on toolchangers)
     std::string active = ps.get_active_extruder();
     if (!active.empty()) {
+        spdlog::debug("[TempPanel] resolve_heater: toolhead.extruder -> '{}'", active);
         return active;
     }
 
@@ -64,10 +68,12 @@ static std::string resolve_active_hotend_heater(PrinterState& ps) {
     if (Config* config = Config::get_instance()) {
         std::string heater = config->get<std::string>(helix::wizard::HOTEND_HEATER, "");
         if (!heater.empty()) {
+            spdlog::debug("[TempPanel] resolve_heater: config -> '{}'", heater);
             return heater;
         }
     }
 
+    spdlog::debug("[TempPanel] resolve_heater: fallback -> 'extruder'");
     return "extruder";
 }
 
@@ -393,7 +399,7 @@ void TempControlPanel::update_bed_display() {
 }
 
 void TempControlPanel::send_nozzle_temperature(int target) {
-    spdlog::debug("[TempPanel] Sending nozzle temperature: {}°C", target);
+    spdlog::info("[TempPanel] Sending nozzle temperature: {}°C", target);
 
     if (!api_) {
         spdlog::warn("[TempPanel] Cannot set nozzle temp: no API connection");
@@ -401,6 +407,7 @@ void TempControlPanel::send_nozzle_temperature(int target) {
     }
 
     std::string heater = resolve_active_hotend_heater(printer_state_);
+    spdlog::info("[TempPanel] Resolved heater='{}', sending SET_HEATER_TEMPERATURE", heater);
     api_->set_temperature(
         heater, static_cast<double>(target),
         []() {
