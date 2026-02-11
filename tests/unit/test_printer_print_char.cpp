@@ -497,6 +497,13 @@ TEST_CASE("Print characterization: layer tracking from JSON", "[characterization
         REQUIRE(lv_subject_get_int(state.get_print_layer_current_subject()) == 42);
     }
 
+    SECTION("current_layer updates from top-level print_stats") {
+        json status = {{"print_stats", {{"current_layer", 42}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_print_layer_current_subject()) == 42);
+    }
+
     SECTION("total_layer updates from print_stats.info") {
         json status = {{"print_stats", {{"info", {{"total_layer", 150}}}}}};
         state.update_from_status(status);
@@ -504,8 +511,23 @@ TEST_CASE("Print characterization: layer tracking from JSON", "[characterization
         REQUIRE(lv_subject_get_int(state.get_print_layer_total_subject()) == 150);
     }
 
+    SECTION("total_layer updates from top-level print_stats") {
+        json status = {{"print_stats", {{"total_layer", 150}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_print_layer_total_subject()) == 150);
+    }
+
     SECTION("both layers update together") {
         json status = {{"print_stats", {{"info", {{"current_layer", 25}, {"total_layer", 100}}}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_print_layer_current_subject()) == 25);
+        REQUIRE(lv_subject_get_int(state.get_print_layer_total_subject()) == 100);
+    }
+
+    SECTION("both layers update together from top-level print_stats") {
+        json status = {{"print_stats", {{"current_layer", 25}, {"total_layer", 100}}}};
         state.update_from_status(status);
 
         REQUIRE(lv_subject_get_int(state.get_print_layer_current_subject()) == 25);
