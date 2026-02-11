@@ -42,6 +42,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -138,7 +139,7 @@ class UpdateQueue {
      * Call this after queuing updates in test code.
      */
     void drain_queue_for_testing() {
-        process_pending();
+        process_pending(false);
     }
 
   private:
@@ -152,7 +153,7 @@ class UpdateQueue {
     UpdateQueue& operator=(const UpdateQueue&) = delete;
 
     /**
-     * @brief Timer callback - processes all pending updates
+     * @brief Timer callback - processes pending updates within a time budget
      *
      * Called by LVGL on every lv_timer_handler() cycle due to highest priority.
      * Runs BEFORE the render timer, ensuring updates are applied before drawing.
@@ -164,21 +165,32 @@ class UpdateQueue {
         }
     }
 
-    void process_pending() {
-        // Move pending updates to local queue to minimize lock time
-        std::queue<UpdateCallback> to_process;
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            std::swap(to_process, pending_);
-        }
+    void process_pending(bool use_time_budget = true) {
+        const auto deadline = std::chrono::steady_clock::now() + kProcessBudget;
 
-        // Execute all pending updates - safe because render hasn't started yet
-        while (!to_process.empty()) {
-            auto& callback = to_process.front();
+        // Execute pending updates until the queue is empty or time budget expires.
+        // We pop under lock and execute outside lock to keep queue() contention low.
+        while (true) {
+            UpdateCallback callback;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (pending_.empty()) {
+                    return;
+                }
+
+                callback = std::move(pending_.front());
+                pending_.pop();
+            }
+
             callback();
-            to_process.pop();
+
+            if (use_time_budget && std::chrono::steady_clock::now() >= deadline) {
+                return;
+            }
         }
     }
+
+    static constexpr auto kProcessBudget = std::chrono::milliseconds(2);
 
     std::mutex mutex_;
     std::queue<UpdateCallback> pending_;
